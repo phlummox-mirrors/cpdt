@@ -14,5 +14,32 @@ Coq provides a very general "proof script" facility for writing out manual proof
 
 In this class, we'll focus instead on a style that we call "proof by decision procedure."  Coq includes a Turing-complete language for writing programs that manipulate proof states, such that, by construction, one of these programs can never claim to have proved a goal when it really hasn't.  We will show how many examples of certified programming can be completed by writing custom decision procedures that are robust to changes in program implementation and specification.  Proofs in this style are naturally decomposed into pieces that can be read and understood in isolation, free of deep hierarchical structure, a major victory for maintainability.
 
-We expect to spend almost all of class time on example programs and proofs, with the class working together to build the solutions in a live Coq environment.  We'll draw examples from a variety of domains, based on audience interest.  We'll probably spend a good amount of time on applications related to certified programming language tools, since they provide a great stress test for reasoning about programs with complicated specifications, and also because the instructor thinks they're cool.  Most of the class, though, will be based on case studies suggested by participants based on their own research and other interests.
+We expect to spend almost all of class time on example programs and proofs, with the class working together to build the solutions in a live Coq environment.  We'll draw examples from a variety of domains, based on audience interest.  We'll probably spend a good amount of time on applications related to certified programming language tools, since they provide a great stress test for reasoning about programs with complicated specifications, and also because the instructor thinks they're cool.  We also hope to spend a lot of the class on case studies suggested by participants based on their own research and other interests.
 
+
+================================================
+Topics to cover in whole class periods or longer
+================================================
+
+* A simple compiler from a binder-free language to a stack machine, and its mostly-automated proof
+* Crash course on basic tactics for manual proofs
+* Crash course on induction and its pitfalls in Coq
+* Infinite data objects and proofs via co-inductive types
+* Programming with subset types and refinement
+* Introduction to more dependent types
+* Alternatives for defining dependent datatypes
+* Introduction to Ltac, Coq's Turing-complete tactic language
+* Pattern matching and backtracking in Coq tactics
+* Proof by reflection (AKA putting certified decision procedures to work)
+* Proving things about programs that use type equality proofs
+* Techniques for representing variable binders
+  * First-order techniques: concrete names, De Bruijn indices, locally nameless
+  * Higher-order abstract syntax, and how to get most of its benefits in Coq
+* Language semantics by definitional compilers
+* Building certified program transformations
+  * Extensional transformations, e.g., CPS conversion
+  * Intensional transformations, e.g., closure conversion
+* Semantics and certified transformations for languages with general recursion and side effects
+* Ynot: Imperative programming with specifications in Coq
+
+* Student project presentations
