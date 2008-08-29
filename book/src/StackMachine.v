@@ -7,14 +7,18 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
+(* begin hide *)
 Require Import List.
 
 Require Import Tactics.
+(* end hide *)
 
 
 (** * Arithmetic expressions over natural numbers *)
 
+(* begin hide *)
 Module Nat.
+(* end hide *)
   (** ** Source language *)
 
   Inductive binop : Set := Plus | Times.
@@ -112,4 +116,6 @@ Module Nat.
     reflexivity.
   Qed.
 
+(* begin hide *)
 End Nat.
+(* end hide *)

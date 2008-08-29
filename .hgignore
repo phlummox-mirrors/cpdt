@@ -6,3 +6,8 @@ syntax: glob
 *.vo
 */Makefile.coq
 */.coq_globals
+
+*/coqdoc.sty
+*/cpdt.*
+*/*.log
+
