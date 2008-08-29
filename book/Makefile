@@ -1,11 +1,11 @@
 MODULES_NODOC := Tactics
-MODULES_DOC   := StackMachine
+MODULES_DOC   := Intro StackMachine
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
 VS_DOC        := $(MODULES_DOC:%=%.v)
 GLOBALS       := .coq_globals
 
-.PHONY: coq clean doc
+.PHONY: coq clean doc dvi html
 
 coq: Makefile.coq
 	make -f Makefile.coq
@@ -21,11 +21,20 @@ clean:: Makefile.coq
 	rm -f Makefile.coq .depend $(GLOBALS) \
 		latex/*.sty latex/cpdt.*
 
-doc: latex/cpdt.dvi
+doc: latex/cpdt.dvi html
 
 latex/cpdt.tex: $(VS)
 	cd src ; coqdoc --latex $(VS_DOC) \
+		-p "\usepackage{url}" \
 		-o ../latex/cpdt.tex
 
 latex/cpdt.dvi: latex/cpdt.tex
 	cd latex ; latex cpdt
+
+html: $(VS)
+	cd src ; coqdoc $(VS_DOC) \
+		--glob-from ../$(GLOBALS) \
+		-d ../html
+
+dvi:
+	xdvi latex/cpdt

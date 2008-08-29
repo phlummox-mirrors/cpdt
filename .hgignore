@@ -11,3 +11,5 @@ syntax: glob
 */cpdt.*
 */*.log
 
+book/html/coqdoc.css
+book/html/*.html
