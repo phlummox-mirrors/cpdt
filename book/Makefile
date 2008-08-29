@@ -25,14 +25,14 @@ doc: latex/cpdt.dvi html
 
 latex/cpdt.tex: $(VS)
 	cd src ; coqdoc --latex $(VS_DOC) \
-		-p "\usepackage{url}" \
+		-p "\usepackage{url}" -toc \
 		-o ../latex/cpdt.tex
 
 latex/cpdt.dvi: latex/cpdt.tex
-	cd latex ; latex cpdt
+	cd latex ; latex cpdt ; latex cpdt
 
 html: $(VS)
-	cd src ; coqdoc $(VS_DOC) \
+	cd src ; coqdoc $(VS_DOC) -toc \
 		--glob-from ../$(GLOBALS) \
 		-d ../html
 

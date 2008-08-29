@@ -107,3 +107,23 @@ A surprising wealth of benefits follow from choosing a proof language that integ
 
 The critical ingredient for this technique, many of whose instances are referred to as %\textit{%#<i>#proof by reflection#</i>#%}%, is a way of inducing non-trivial computation inside of logical propositions during proof checking.  Further, most of these instances require dependent types to make it possible to state the appropriate theorems.  Of the proof assistants I listed, only Coq really provides this support.
 *)
+
+
+(** * Engineering with a Proof Assistant *)
+
+(**
+In comparisons with its competitors, Coq is often derided for promoting unreadable proofs.  It is very easy to write proof scripts that manipulate proof goals imperatively, with no structure to aid readers.  Such developments are nightmares to maintain, and they certainly do not manage to convey "why the theorem is true" to anyone but the original author.  One additional (and not insignificant) purpose of this book is to show why it is unfair and unproductive to dismiss Coq based on the existence of such developments.
+
+I will go out on a limb and guess that the reader is a dedicated fan of some functional programming language or another, and that he may even have been involved in teaching that language to undergraduates.  I want to propose an analogy between two attitudes: coming to a negative conclusion about Coq after reading common Coq developments in the wild, and coming to a negative conclusion about Your Favorite Language after looking at the programs undergraduates write in it in the first week of class.  The pragmatics of mechanized proving and program verification have been under serious study for much less time than the pragmatics of programming have been.  The computer theorem proving community is still developing the key insights that correspond to those that functional programming texts and instructors impart to their students, to help those students get over that critical hump where using the language stops being more trouble than it is worth.  Most of the insights for Coq are barely even disseminated among the experts, let alone set down in a tutorial form.  I hope to use this book to go a long way towards remedying that.
+
+If I do that job well, then this book should be of interest even to people who have participated in classes or tutorials specifically about Coq.  The book should even be useful to people who have been using Coq for years but who are mystified when their Coq developments prove impenetrable by colleagues.  The crucial angle in this book is that there are "design patterns" for reliably avoiding the really grungy parts of theorem proving, and consistent use of these patterns can get you over the hump to the point where it is worth your while to use Coq to prove your theorems and certify your programs, even if formal verification is not your main concern in a project.  We will follow this theme by pursuing two main methods for replacing manual proofs with more understandable artifacts: dependently-typed functions and custom Ltac decision procedures.
+*)
+
+
+(** * Prerequisites for This Book *)
+
+(**
+I try to keep the required background knowledge to a minimum in this book.  I will assume familiarity with the material from usual discrete math and logic courses taken by all undergraduate computer science majors, and I will assume that readers have significant experience programming in one of the ML dialects, in Haskell, or in some other, closely-related language.  Experience with only dynamically-typed functional languages might lead to befuddlement in some places, but a reader who has come to grok Scheme deeply will probably be fine.
+
+A good portion of the book is about how to formalize programming languages, compilers, and proofs about them.  I depart significantly from today's most popular methodology for pencil-and-paper formalism among programming languages researchers.  There is no need to be familiar with operational semantics, preservation and progress theorems, or any of the material found in courses on programming language semantics but not in basic discrete math and logic courses.  I will use operational semantics very sparingly, and there will be no preservation or progress proofs.  Instead, I will use a style that seems to work much better in Coq, which can be given the fancy-sounding name %\textit{%#<i>#foundational type-theoretic semantics#</i>#%}% or the more populist name %\textit{%#<i>#semantics by definitional compilers#</i>#%}%.
+*)
