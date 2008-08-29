@@ -5,3 +5,4 @@ syntax: glob
 *.depend
 *.vo
 */Makefile.coq
+*/.coq_globals
