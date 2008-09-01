@@ -92,12 +92,18 @@ Fixpoint expDenote (e : exp) : nat :=
 
 (** ** Target language *)
 
+(** We will compile our source programs onto a simple stack machine, whose syntax is: *)
+
 Inductive instr : Set :=
 | IConst : nat -> instr
 | IBinop : binop -> instr.
 
 Definition prog := list instr.
 Definition stack := list nat.
+
+(** An instruction either pushes a constant onto the stack or pops two arguments, applies a binary operator to them, and pushes the result onto the stack.  A program is a list of instructions, and a stack is a list of natural numbers.
+
+We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  [::] is the "list cons" operator from the Coq standard library. *)
 
 Definition instrDenote (i : instr) (s : stack) : option stack :=
   match i with
@@ -109,6 +115,8 @@ Definition instrDenote (i : instr) (s : stack) : option stack :=
       end
   end.
 
+(** With [instrDenote] defined, it is easy to define a function [progDenote], which iterates application of [instrDenote] through a whole program. *)
+
 Fixpoint progDenote (p : prog) (s : stack) {struct p} : option stack :=
   match p with
     | nil => Some s
@@ -119,8 +127,12 @@ Fixpoint progDenote (p : prog) (s : stack) {struct p} : option stack :=
       end
   end.
 
+(** There is one interesting difference compared to our previous example of a [Fixpoint].  This recursive function takes two arguments, [p] and [s].  It is critical for the soundness of Coq that every program terminate, so a shallow syntactic termination check is imposed on every recursive function definition.  One of the function parameters must be designated to decrease monotonically across recursive calls.  That is, every recursive call must use a version of that argument that has been pulled out of the current argument by some number of [match] expressions.  [expDenote] has only one argument, so we did not need to specify which of its arguments decreases.  For [progDenote], we resolve the ambiguity by writing [{struct p}] to indicate that argument [p] decreases structurally. *)
+
 
 (** ** Translation *)
+
+(** Our compiler itself is now unsurprising.  [++] is the list concatenation operator from the Coq standard library. *)
 
 Fixpoint compile (e : exp) : prog :=
   match e with
