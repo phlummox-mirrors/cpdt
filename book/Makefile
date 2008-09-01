@@ -21,7 +21,7 @@ clean:: Makefile.coq
 	rm -f Makefile.coq .depend $(GLOBALS) \
 		latex/*.sty latex/cpdt.*
 
-doc: latex/cpdt.dvi html
+doc: latex/cpdt.dvi latex/cpdt.pdf html
 
 latex/cpdt.tex: $(VS)
 	cd src ; coqdoc --latex $(VS_DOC) \
@@ -30,6 +30,9 @@ latex/cpdt.tex: $(VS)
 
 latex/cpdt.dvi: latex/cpdt.tex
 	cd latex ; latex cpdt ; latex cpdt
+
+latex/cpdt.pdf: latex/cpdt.dvi
+	cd latex ; pdflatex cpdt
 
 html: $(VS)
 	cd src ; coqdoc $(VS_DOC) -toc \
