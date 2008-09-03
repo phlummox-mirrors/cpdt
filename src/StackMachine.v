@@ -23,11 +23,11 @@ As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#<
 With Proof General, the portion of a buffer that Coq has processed is highlighted in some way, like being given a blue background.  You step through Coq source files by positioning the point at the position you want Coq to run to and pressing C-C C-RET.  This can be used both for normal step-by-step coding, by placing the point inside some command past the end of the highlighted region; and for undoing, by placing the point inside the highlighted region. *)
 
 
-(** * Arithmetic expressions over natural numbers *)
+(** * Arithmetic Expressions Over Natural Numbers *)
 
 (** We will begin with that staple of compiler textbooks, arithemtic expressions over a single type of numbers. *)
 
-(** ** Source language *)
+(** ** Source Language *)
 
 (** We begin with the syntax of the source language. *)
 
@@ -108,7 +108,7 @@ Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))
 = 28 : nat
 ]] *)
 
-(** ** Target language *)
+(** ** Target Language *)
 
 (** We will compile our source programs onto a simple stack machine, whose syntax is: *)
 
@@ -190,7 +190,7 @@ Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) 
 ]] *)
 
 
-(** ** Translation correctness *)
+(** ** Translation Correctness *)
 
 (** We are ready to prove that our compiler is implemented correctly.  We can use a new vernacular command [Theorem] to start a correctness proof, in terms of the semantics we defined earlier: *)
 
@@ -513,11 +513,11 @@ We are almost done.  The lefthand and righthand sides can be seen to match by si
 Qed.
 
 
-(** * Typed expressions *)
+(** * Typed Expressions *)
 
 (** In this section, we will build on the initial example by adding additional expression forms that depend on static typing of terms for safety. *)
 
-(** ** Source language *)
+(** ** Source Language *)
 
 (** We define a trivial language of types to classify our expressions: *)
 
@@ -631,7 +631,7 @@ Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNC
 ]] *)
 
 
-(** ** Target language *)
+(** ** Target Language *)
 
 (** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
 
@@ -785,13 +785,41 @@ Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNCon
 ]] *)
 
 
-(** ** Translation correctness *)
+(** ** Translation Correctness *)
+
+(** We can state a correctness theorem similar to the last one. *)
+
+Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+(* begin hide *)
+Abort.
+(* end hide *)
+
+(** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
 
 Lemma tcompileCorrect' : forall t (e : texp t)
   ts (s : vstack ts),
   tprogDenote (tcompile e ts) s
   = (texpDenote e, s).
+
+(** While lemma [compileCorrect'] quantified over a program that is the "continuation" for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
+
+   Let us try to prove this theorem in the same way that we settled on in the last section. *)
+
   induction e; crush.
+
+(** We are left with this unproved conclusion:
+
+[[
+
+tprogDenote
+     (tconcat (tcompile e2 ts)
+        (tconcat (tcompile e1 (arg2 :: ts))
+           (TCons (TIBinop ts t) (TNil (res :: ts))))) s =
+   (tbinopDenote t (texpDenote e1) (texpDenote e2), s)
+]]
+
+We need an analogue to the [app_ass] theorem that we used to rewrite the goal in the last section.  We can abort this proof and prove such a lemma about [tconcat].
+*)
 Abort.
 
 Lemma tconcatCorrect : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'')
@@ -801,7 +829,13 @@ Lemma tconcatCorrect : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'
   induction p; crush.
 Qed.
 
+(** This one goes through completely automatically.
+
+Some code behind the scenes registers [app_ass] for use by [crush].  We must register [tconcatCorrect] similarly to get the same effect: *)
+
 Hint Rewrite tconcatCorrect : cpdt.
+
+(** We ask that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  Now we are ready to return to [tcompileCorrect'], proving it automatically this time. *)
 
 Lemma tcompileCorrect' : forall t (e : texp t)
   ts (s : vstack ts),
@@ -809,6 +843,8 @@ Lemma tcompileCorrect' : forall t (e : texp t)
   = (texpDenote e, s).
   induction e; crush.
 Qed.
+
+(** We can register this main lemma as another hint, allowing us to prove the final theorem trivially. *)
 
 Hint Rewrite tcompileCorrect' : cpdt.
 

@@ -131,7 +131,7 @@ If I do that job well, then this book should be of interest even to people who h
 *)
 
 
-(** * Prerequisites for This Book *)
+(** * Prerequisites *)
 
 (**
 I try to keep the required background knowledge to a minimum in this book.  I will assume familiarity with the material from usual discrete math and logic courses taken by all undergraduate computer science majors, and I will assume that readers have significant experience programming in one of the ML dialects, in Haskell, or in some other, closely-related language.  Experience with only dynamically-typed functional languages might lead to befuddlement in some places, but a reader who has come to grok Scheme deeply will probably be fine.
