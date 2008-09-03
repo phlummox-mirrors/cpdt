@@ -96,9 +96,17 @@ Fixpoint expDenote (e : exp) : nat :=
 (** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses. *)
 
 Eval simpl in expDenote (Const 42).
+(** [[
+= 42 : nat
+]] *)
 Eval simpl in expDenote (Binop Plus (Const 2) (Const 2)).
+(** [[
+= 4 : nat
+]] *)
 Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
-
+(** [[
+= 28 : nat
+]] *)
 
 (** ** Target language *)
 
@@ -154,14 +162,32 @@ Fixpoint compile (e : exp) : prog :=
 (** Before we set about proving that this compiler is correct, we can try a few test runs, using our sample programs from earlier. *)
 
 Eval simpl in compile (Const 42).
+(** [[
+= IConst 42 :: nil : prog
+]] *)
 Eval simpl in compile (Binop Plus (Const 2) (Const 2)).
+(** [[
+= IConst 2 :: IConst 2 :: IBinop Plus :: nil : prog
+]] *)
 Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
+(** [[
+= IConst 7 :: IConst 2 :: IConst 2 :: IBinop Plus :: IBinop Times :: nil : prog
+]] *)
 
 (** We can also run our compiled programs and chedk that they give the right results. *)
 
 Eval simpl in progDenote (compile (Const 42)) nil.
+(** [[
+= Some (42 :: nil) : option stack
+]] *)
 Eval simpl in progDenote (compile (Binop Plus (Const 2) (Const 2))) nil.
+(** [[
+= Some (4 :: nil) : option stack
+]] *)
 Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))) nil.
+(** [[
+= Some (28 :: nil) : option stack
+]] *)
 
 
 (** ** Translation correctness *)
@@ -584,15 +610,40 @@ Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
 (** We can evaluate a few example programs to convince ourselves that this semantics is correct. *)
 
 Eval simpl in texpDenote (TNConst 42).
+(** [[
+= 42 : typeDenote Nat
+]] *)
 Eval simpl in texpDenote (TBConst true).
+(** [[
+= true : typeDenote Bool
+]] *)
 Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+(** [[
+= 28 : typeDenote Nat
+]] *)
 Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+(** [[
+= false : typeDenote Bool
+]] *)
 Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+(** [[
+= true : typeDenote Bool
+]] *)
 
 
 (** ** Target language *)
 
+(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
+
+For our new languages, besides underflow, we also have the problem of stack slots with naturals instead of bools or vice versa.  This time, we will use indexed typed families to avoid the need to reason about potential failures.
+
+We start by defining stack types, which classify sets of possible stacks. *)
+
 Definition tstack := list type.
+
+(** Any stack classified by a [tstack] must have exactly as many elements, and each stack element must have the type found in the same position of the stack type.
+
+We can define instructions in terms of stack types, where every instruction's type tells us what initial stack type it expects and what final stack type it will produce. *)
 
 Inductive tinstr : tstack -> tstack -> Set :=
 | TINConst : forall s, nat -> tinstr s (Nat :: s)
@@ -601,6 +652,8 @@ Inductive tinstr : tstack -> tstack -> Set :=
   tbinop arg1 arg2 res
   -> tinstr (arg1 :: arg2 :: s) (res :: s).
 
+(** Stack machine programs must be a similar inductive family, since, if we again used the [list] type family, we would not be able to guarantee that intermediate stack types match within a program. *)
+
 Inductive tprog : tstack -> tstack -> Set :=
 | TNil : forall s, tprog s s
 | TCons : forall s1 s2 s3,
@@ -608,11 +661,17 @@ Inductive tprog : tstack -> tstack -> Set :=
   -> tprog s2 s3
   -> tprog s1 s3.
 
+(** Now, to define the semantics of our new target language, we need a representation for stacks at runtime.  We will again take advantage of type information to define types of value stacks that, by construction, contain the right number and types of elements. *)
+
 Fixpoint vstack (ts : tstack) : Set :=
   match ts with
     | nil => unit
     | t :: ts' => typeDenote t * vstack ts'
   end%type.
+
+(** This is another [Set]-valued function.  This time it is recursive, which is perfectly valid, since [Set] is not treated specially in determining which functions may be written.  We say that the value stack of an empty stack type is any value of type [unit], which has just a single value, [tt].  A nonempty stack type leads to a value stack that is a pair, whose first element has the proper type and whose second element follows the representation for the remainder of the stack type.
+
+This idea of programming with types can take a while to internalize, but it enables a very simple definition of instruction denotation.  We have the same kind of type annotations for the dependent [match], but everything else is like what you might expect from a Lisp-like version of ML that ignored type information.  Nonetheless, the fact that [tinstrDenote] passes the type-checker guarantees that our stack machine programs can never go wrong. *)
 
 Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
   match i in (tinstr ts ts') return (vstack ts -> vstack ts') with
@@ -623,6 +682,34 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
         (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
       end
   end.
+
+(** Why do we choose to use an anonymous function to bind the initial stack in every case of the [match]?  Consider this well-intentioned but invalid alternative version:
+
+[[
+Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' :=
+  match i in (tinstr ts ts') return (vstack ts') with
+    | TINConst _ n => (n, s)
+    | TIBConst _ b => (b, s)
+    | TIBinop _ _ _ _ b =>
+      match s with
+        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
+      end
+  end.
+
+The Coq type-checker complains that:
+
+[[
+The term "(n, s)" has type "(nat * vstack ts)%type"
+ while it is expected to have type "vstack (Nat :: t)"
+]]
+
+Recall from our earlier discussion of [match] annotations that we write the annotations to express to the type-checker the relationship between the type indices of the case object and the result type of the [match].  Coq chooses to assign to the wildcard [_] after [TINConst] the name [t], and the type error is telling us that the type checker cannot prove that [t] is the same as [ts].  By moving [s] out of the [match], we lose the ability to express, with [in] and [return] clauses, the relationship between the shared index [ts] of [s] and [i].
+
+There %\textit{%#<i>#are#</i>#%}% reasonably general ways of getting around this problem without pushing binders inside [match]es.  However, the alternatives are significantly more involved, and the technique we use here is almost certainly the best choice, whenever it applies.
+
+*)
+
+(** We finish the semantics with a straightforward definition of program denotation. *)
 
 Fixpoint tprogDenote ts ts' (p : tprog ts ts') {struct p} : vstack ts -> vstack ts' :=
   match p in (tprog ts ts') return (vstack ts -> vstack ts') with
