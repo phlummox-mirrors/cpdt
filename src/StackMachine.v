@@ -720,11 +720,15 @@ Fixpoint tprogDenote ts ts' (p : tprog ts ts') {struct p} : vstack ts -> vstack 
 
 (** ** Translation *)
 
+(** To define our compilation, it is useful to have an auxiliary function for concatenating two stack machine programs. *)
+
 Fixpoint tconcat ts ts' ts'' (p : tprog ts ts') {struct p} : tprog ts' ts'' -> tprog ts ts'' :=
   match p in (tprog ts ts') return (tprog ts' ts'' -> tprog ts ts'') with
     | TNil _ => fun p' => p'
     | TCons _ _ _ i p1 => fun p' => TCons i (tconcat p1 p')
   end.
+
+(** With that function in place, the compilation is defined very similarly to how it was before, modulo the use of dependent typing. *)
 
 Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :=
   match e in (texp t) return (tprog ts (t :: ts)) with
@@ -734,7 +738,51 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :
       (tconcat (tcompile e1 _) (TCons (TIBinop _ b) (TNil _)))
   end.
 
+(** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\textit{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
+
+The underscores here are being filled in with stack types.  That is, the Coq type inferencer is, in a sense, inferring something about the flow of control in the translated programs.  We can take a look at exactly which values are filled in: *)
+
 Print tcompile.
+
+(** [[
+
+tcompile = 
+fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
+  tprog ts (t :: ts) :=
+  match e in (texp t0) return (tprog ts (t0 :: ts)) with
+  | TNConst n => TCons (TINConst ts n) (TNil (Nat :: ts))
+  | TBConst b => TCons (TIBConst ts b) (TNil (Bool :: ts))
+  | TBinop arg1 arg2 res b e1 e2 =>
+      tconcat (tcompile arg2 e2 ts)
+        (tconcat (tcompile arg1 e1 (arg2 :: ts))
+           (TCons (TIBinop ts b) (TNil (res :: ts))))
+  end
+     : forall t : type, texp t -> forall ts : tstack, tprog ts (t :: ts)
+]] *)
+
+
+(** We can check that the compiler generates programs that behave appropriately on our sample programs from above: *)
+
+Eval simpl in tprogDenote (tcompile (TNConst 42) nil) tt.
+(** [[
+= (42, tt) : vstack (Nat :: nil)
+]] *)
+Eval simpl in tprogDenote (tcompile (TBConst true) nil) tt.
+(** [[
+= (true, tt) : vstack (Bool :: nil)
+]] *)
+Eval simpl in tprogDenote (tcompile (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
+(** [[
+= (28, tt) : vstack (Nat :: nil)
+]] *)
+Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
+(** [[
+= (false, tt) : vstack (Bool :: nil)
+]] *)
+Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
+(** [[
+= (true, tt) : vstack (Bool :: nil)
+]] *)
 
 
 (** ** Translation correctness *)
