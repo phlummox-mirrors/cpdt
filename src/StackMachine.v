@@ -581,6 +581,14 @@ Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
     | TBinop _ _ _ b e1 e2 => (tbinopDenote b) (texpDenote e1) (texpDenote e2)
   end.
 
+(** We can evaluate a few example programs to convince ourselves that this semantics is correct. *)
+
+Eval simpl in texpDenote (TNConst 42).
+Eval simpl in texpDenote (TBConst true).
+Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+
 
 (** ** Target language *)
 
