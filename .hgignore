@@ -4,12 +4,12 @@ syntax: glob
 
 *.depend
 *.vo
-*/Makefile.coq
-*/.coq_globals
+Makefile.coq
+.coq_globals
 
 */coqdoc.sty
 */cpdt.*
 */*.log
 
-book/html/coqdoc.css
-book/html/*.html
+html/coqdoc.css
+html/*.html
