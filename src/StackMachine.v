@@ -157,8 +157,7 @@ Abort.
 (** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
 
-Lemma compileCorrect' : forall e s p, progDenote (compile e ++ p) s =
-  progDenote p (expDenote e :: s).
+Lemma compileCorrect' : forall e p s, progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
 (** After the period in the [Lemma] command, we are in %\textit{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
 
@@ -166,8 +165,8 @@ Lemma compileCorrect' : forall e s p, progDenote (compile e ++ p) s =
 1 subgoal
   
  ============================
- forall (e : exp) (s : stack) (p : list instr),
-   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s)
+  forall (e : exp) (p : list instr) (s : stack),
+   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s)  
 ]]
 
 Coq seems to be restating the lemma for us.  What we are seeing is a limited case of a more general protocol for describing where we are in a proof.  We are told that we have a single subgoal.  In general, during a proof, we can have many pending subgoals, each of which is a logical proposition to prove.  Subgoals can be proved in any order, but it usually works best to prove them in the order that Coq chooses.
@@ -475,7 +474,11 @@ Qed.
 
 (** ** Source language *)
 
+(** We define a trivial language of types to classify our expressions: *)
+
 Inductive type : Set := Nat | Bool.
+
+(** Now we define an expanded set of binary operators. *)
 
 Inductive tbinop : type -> type -> type -> Set :=
 | TPlus : tbinop Nat Nat Nat
@@ -483,16 +486,34 @@ Inductive tbinop : type -> type -> type -> Set :=
 | TEq : forall t, tbinop t t Bool
 | TLt : tbinop Nat Nat Bool.
 
+(** The definition of [tbinop] is different from [binop] in an important way.  Where we declared that [binop] has type [Set], here we declare that [tbinop] has type [type -> type -> type -> Set].  We define [tbinop] as an %\textit{%#<i>#indexed type family#</i>#%}%.  Indexed inductive types are at the heart of Coq's expressive power; almost everything else of interest is defined in terms of them.
+
+ML and Haskell have indexed algebraic datatypes.  For instance, their list types are indexed by the type of data that the list carries.  However, compared to Coq, ML and Haskell 98 place two important restrictions on datatype definitions.
+
+First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\textit{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
+
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indiced by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+*)
+
+(** We can define a similar type family for typed expressions. *)
+
 Inductive texp : type -> Set :=
 | TNConst : nat -> texp Nat
 | TBConst : bool -> texp Bool
 | TBinop : forall arg1 arg2 res, tbinop arg1 arg2 res -> texp arg1 -> texp arg2 -> texp res.
+
+(** Thanks to our use of dependent types, every well-typed [texp] represents a well-typed source expression, by construction.  This turns out to be very convenient for many things we might want to do with expressions.  For instance, it is easy to adapt our interpreter approach to defining semantics.  We start by defining a function mapping the types of our languages into Coq types: *)
 
 Definition typeDenote (t : type) : Set :=
   match t with
     | Nat => nat
     | Bool => bool
   end.
+
+(** It can take a few moments to come to terms with the fact that [Set], the type of types of programs, is itself a first-class type, and that we can write functions that return [Set]s.  Past that wrinkle, the definition of [typeDenote] is trivial, relying on the [nat] and [bool] types from the Coq standard library.
+
+We need to define a few auxiliary functions, implementing our boolean binary operators that do not appear with the right types in the standard library.  They are entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
+*)
 
 Definition eq_bool (b1 b2 : bool) : bool :=
   match b1, b2 with
@@ -515,6 +536,8 @@ Fixpoint lt (n1 n2 : nat) {struct n1} : bool :=
     | _, _ => false
   end.
 
+(** Now we can interpret binary operators: *)
+
 Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
   : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
   match b in (tbinop arg1 arg2 res) return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
@@ -524,6 +547,13 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TEq Bool => eq_bool
     | TLt => lt
   end.
+
+(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, and Coq avoids pursuing special heuristics for the problem, instead asking users to write annotations, like we see above on the line with [match].
+
+The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\textit{%#<i>#binding occcurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [arg3] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
+
+The same tricks suffice to define an expression denotation function in an unsurprising way:
+*)
 
 Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
   match e in (texp t) return (typeDenote t) with
