@@ -11,6 +11,8 @@
 Require Import List.
 
 Require Import Tactics.
+
+Set Implicit Arguments.
 (* end hide *)
 
 
@@ -464,4 +466,160 @@ Now we can apply the lemma. *)
 We are almost done.  The lefthand and righthand sides can be seen to match by simple symbolic evaluation.  That means we are in luck, because Coq identifies any pair of terms as equal whenever they normalize to the same result by symbolic evaluation.  By the definition of [progDenote], that is the case here, but we do not need to worry about such details.  A simple invocation of [reflexivity] does the normalization and checks that the two results are syntactically equal. *)
 
   reflexivity.
+Qed.
+
+
+(** * Typed expressions *)
+
+(** In this section, we will build on the initial example by adding additional expression forms that depend on static typing of terms for safety. *)
+
+(** ** Source language *)
+
+Inductive type : Set := Nat | Bool.
+
+Inductive tbinop : type -> type -> type -> Set :=
+| TPlus : tbinop Nat Nat Nat
+| TTimes : tbinop Nat Nat Nat
+| TEq : forall t, tbinop t t Bool
+| TLt : tbinop Nat Nat Bool.
+
+Inductive texp : type -> Set :=
+| TNConst : nat -> texp Nat
+| TBConst : bool -> texp Bool
+| TBinop : forall arg1 arg2 res, tbinop arg1 arg2 res -> texp arg1 -> texp arg2 -> texp res.
+
+Definition typeDenote (t : type) : Set :=
+  match t with
+    | Nat => nat
+    | Bool => bool
+  end.
+
+Definition eq_bool (b1 b2 : bool) : bool :=
+  match b1, b2 with
+    | true, true => true
+    | false, false => true
+    | _, _ => false
+  end.
+
+Fixpoint eq_nat (n1 n2 : nat) {struct n1} : bool :=
+  match n1, n2 with
+    | O, O => true
+    | S n1', S n2' => eq_nat n1' n2'
+    | _, _ => false
+  end.
+
+Fixpoint lt (n1 n2 : nat) {struct n1} : bool :=
+  match n1, n2 with
+    | O, S _ => true
+    | S n1', S n2' => lt n1' n2'
+    | _, _ => false
+  end.
+
+Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
+  : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
+  match b in (tbinop arg1 arg2 res) return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
+    | TPlus => plus
+    | TTimes => mult
+    | TEq Nat => eq_nat
+    | TEq Bool => eq_bool
+    | TLt => lt
+  end.
+
+Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
+  match e in (texp t) return (typeDenote t) with
+    | TNConst n => n
+    | TBConst b => b
+    | TBinop _ _ _ b e1 e2 => (tbinopDenote b) (texpDenote e1) (texpDenote e2)
+  end.
+
+
+(** ** Target language *)
+
+Definition tstack := list type.
+
+Inductive tinstr : tstack -> tstack -> Set :=
+| TINConst : forall s, nat -> tinstr s (Nat :: s)
+| TIBConst : forall s, bool -> tinstr s (Bool :: s)
+| TIBinop : forall arg1 arg2 res s,
+  tbinop arg1 arg2 res
+  -> tinstr (arg1 :: arg2 :: s) (res :: s).
+
+Inductive tprog : tstack -> tstack -> Set :=
+| TNil : forall s, tprog s s
+| TCons : forall s1 s2 s3,
+  tinstr s1 s2
+  -> tprog s2 s3
+  -> tprog s1 s3.
+
+Fixpoint vstack (ts : tstack) : Set :=
+  match ts with
+    | nil => unit
+    | t :: ts' => typeDenote t * vstack ts'
+  end%type.
+
+Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
+  match i in (tinstr ts ts') return (vstack ts -> vstack ts') with
+    | TINConst _ n => fun s => (n, s)
+    | TIBConst _ b => fun s => (b, s)
+    | TIBinop _ _ _ _ b => fun s =>
+      match s with
+        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
+      end
+  end.
+
+Fixpoint tprogDenote ts ts' (p : tprog ts ts') {struct p} : vstack ts -> vstack ts' :=
+  match p in (tprog ts ts') return (vstack ts -> vstack ts') with
+    | TNil _ => fun s => s
+    | TCons _ _ _ i p' => fun s => tprogDenote p' (tinstrDenote i s)
+  end.
+
+
+(** ** Translation *)
+
+Fixpoint tconcat ts ts' ts'' (p : tprog ts ts') {struct p} : tprog ts' ts'' -> tprog ts ts'' :=
+  match p in (tprog ts ts') return (tprog ts' ts'' -> tprog ts ts'') with
+    | TNil _ => fun p' => p'
+    | TCons _ _ _ i p1 => fun p' => TCons i (tconcat p1 p')
+  end.
+
+Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :=
+  match e in (texp t) return (tprog ts (t :: ts)) with
+    | TNConst n => TCons (TINConst _ n) (TNil _)
+    | TBConst b => TCons (TIBConst _ b) (TNil _)
+    | TBinop _ _ _ b e1 e2 => tconcat (tcompile e2 _)
+      (tconcat (tcompile e1 _) (TCons (TIBinop _ b) (TNil _)))
+  end.
+
+Print tcompile.
+
+
+(** ** Translation correctness *)
+
+Lemma tcompileCorrect' : forall t (e : texp t)
+  ts (s : vstack ts),
+  tprogDenote (tcompile e ts) s
+  = (texpDenote e, s).
+  induction e; crush.
+Abort.
+
+Lemma tconcatCorrect : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'')
+  (s : vstack ts),
+  tprogDenote (tconcat p p') s
+  = tprogDenote p' (tprogDenote p s).
+  induction p; crush.
+Qed.
+
+Hint Rewrite tconcatCorrect : cpdt.
+
+Lemma tcompileCorrect' : forall t (e : texp t)
+  ts (s : vstack ts),
+  tprogDenote (tcompile e ts) s
+  = (texpDenote e, s).
+  induction e; crush.
+Qed.
+
+Hint Rewrite tcompileCorrect' : cpdt.
+
+Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+  crush.
 Qed.
