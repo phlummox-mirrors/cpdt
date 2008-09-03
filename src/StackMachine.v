@@ -93,6 +93,12 @@ Fixpoint expDenote (e : exp) : nat :=
 
 (** We declare explicitly that this is a recursive definition, using the keyword [Fixpoint].  The rest should be old hat for functional programmers. *)
 
+(** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses. *)
+
+Eval simpl in expDenote (Const 42).
+Eval simpl in expDenote (Binop Plus (Const 2) (Const 2)).
+Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
+
 
 (** ** Target language *)
 
@@ -143,6 +149,19 @@ Fixpoint compile (e : exp) : prog :=
     | Const n => IConst n :: nil
     | Binop b e1 e2 => compile e2 ++ compile e1 ++ IBinop b :: nil
   end.
+
+
+(** Before we set about proving that this compiler is correct, we can try a few test runs, using our sample programs from earlier. *)
+
+Eval simpl in compile (Const 42).
+Eval simpl in compile (Binop Plus (Const 2) (Const 2)).
+Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
+
+(** We can also run our compiled programs and chedk that they give the right results. *)
+
+Eval simpl in progDenote (compile (Const 42)) nil.
+Eval simpl in progDenote (compile (Binop Plus (Const 2) (Const 2))) nil.
+Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))) nil.
 
 
 (** ** Translation correctness *)
