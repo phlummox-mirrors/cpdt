@@ -198,6 +198,7 @@ Theorem compileCorrect : forall e, progDenote (compile e) nil = Some (expDenote 
 (* begin hide *)
 Abort.
 (* end hide *)
+(* begin thide *)
 
 (** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
@@ -511,6 +512,7 @@ We are almost done.  The lefthand and righthand sides can be seen to match by si
 
   reflexivity.
 Qed.
+(* end thide *)
 
 
 (** * Typed Expressions *)
@@ -793,6 +795,7 @@ Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt
 (* begin hide *)
 Abort.
 (* end hide *)
+(* begin thide *)
 
 (** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
 
@@ -851,3 +854,4 @@ Hint Rewrite tcompileCorrect' : cpdt.
 Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
   crush.
 Qed.
+(* end thide *)
