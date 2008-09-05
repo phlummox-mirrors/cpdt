@@ -13,3 +13,5 @@ Makefile.coq
 
 html/coqdoc.css
 html/*.html
+
+templates/*.v

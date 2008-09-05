@@ -1,11 +1,14 @@
 MODULES_NODOC := Tactics
-MODULES_DOC   := Intro StackMachine
+MODULES_PROSE := StackMachine
+MODULES_CODE  := StackMachine
+MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
 VS_DOC        := $(MODULES_DOC:%=%.v)
 GLOBALS       := .coq_globals
+TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
-.PHONY: coq clean doc dvi html
+.PHONY: coq clean doc dvi html templates
 
 coq: Makefile.coq
 	make -f Makefile.coq
@@ -19,7 +22,7 @@ Makefile.coq: Makefile $(VS)
 clean:: Makefile.coq
 	make -f Makefile.coq clean
 	rm -f Makefile.coq .depend $(GLOBALS) \
-		latex/*.sty latex/cpdt.*
+		latex/*.sty latex/cpdt.* templates/*.v
 
 doc: latex/cpdt.dvi latex/cpdt.pdf html
 
@@ -44,3 +47,8 @@ html: Makefile $(VS)
 
 dvi:
 	xdvi latex/cpdt
+
+templates: $(TEMPLATES)
+
+templates/%.v: src/%.v
+	ocaml tools/make_template.ml <$< >$@
