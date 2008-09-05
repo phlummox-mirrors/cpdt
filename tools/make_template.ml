@@ -1,10 +1,10 @@
-let input_line () = 
+let read_line () = 
   try
-    Some (input_line stdin)
+    Some (read_line ())
   with End_of_file -> None
 
 let rec initial last_was_empty =
-  match input_line () with
+  match read_line () with
   | None -> ()
   | Some "(* begin thide *)" ->	thide last_was_empty
   | Some "" ->
@@ -23,7 +23,7 @@ let rec initial last_was_empty =
       end
 
 and comment last_was_empty =
-  match input_line () with
+  match read_line () with
   | None -> ()
   | Some line ->
       if String.length line >= 2 && line.[String.length line - 2] = '*'
@@ -33,7 +33,7 @@ and comment last_was_empty =
 	comment last_was_empty
 
 and thide last_was_empty =
-  match input_line () with
+  match read_line () with
   | None -> ()
   | Some "(* end thide *)" -> initial last_was_empty
   | Some _ -> thide last_was_empty
