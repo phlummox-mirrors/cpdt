@@ -1,6 +1,6 @@
 MODULES_NODOC := Tactics
 MODULES_PROSE := Intro
-MODULES_CODE  := StackMachine
+MODULES_CODE  := StackMachine InductiveTypes
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
