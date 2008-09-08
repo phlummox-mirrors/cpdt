@@ -205,7 +205,7 @@ Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) 
 
 (** We are ready to prove that our compiler is implemented correctly.  We can use a new vernacular command [Theorem] to start a correctness proof, in terms of the semantics we defined earlier: *)
 
-Theorem compileCorrect : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
+Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
 (* begin hide *)
 Abort.
 (* end hide *)
@@ -214,7 +214,7 @@ Abort.
 (** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
 
-Lemma compileCorrect' : forall e p s, progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
+Lemma compile_correct' : forall e p s, progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
 (** After the period in the [Lemma] command, we are in %\textit{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
 
@@ -468,7 +468,7 @@ And there lies our first proof.  Already, even for simple theorems like this, th
 
 Abort.
 
-Lemma compileCorrect' : forall e s p, progDenote (compile e ++ p) s =
+Lemma compile_correct' : forall e s p, progDenote (compile e ++ p) s =
   progDenote p (expDenote e :: s).
   induction e; crush.
 Qed.
@@ -477,7 +477,7 @@ Qed.
 
 The proof of our main theorem is now easy.  We prove it with four period-terminated tactics, though separating them with semicolons would work as well; the version here is easier to step through. *)
 
-Theorem compileCorrect : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
+Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
   intros.
 
 (** [[
@@ -487,7 +487,7 @@ Theorem compileCorrect : forall e, progDenote (compile e) nil = Some (expDenote 
    progDenote (compile e) nil = Some (expDenote e :: nil)
 ]]
 
-At this point, we want to massage the lefthand side to match the statement of [compileCorrect'].  A theorem from the standard library is useful: *)
+At this point, we want to massage the lefthand side to match the statement of [compile_correct'].  A theorem from the standard library is useful: *)
 
 Check app_nil_end.
 
@@ -510,7 +510,7 @@ app_nil_end
 
 Now we can apply the lemma. *)
 
-  rewrite compileCorrect'.
+  rewrite compile_correct'.
 
 (** [[
 
@@ -802,7 +802,7 @@ Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNCon
 
 (** We can state a correctness theorem similar to the last one. *)
 
-Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+Theorem tcompile_correct : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
 (* begin hide *)
 Abort.
 (* end hide *)
@@ -810,12 +810,12 @@ Abort.
 
 (** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
 
-Lemma tcompileCorrect' : forall t (e : texp t)
+Lemma tcompile_correct' : forall t (e : texp t)
   ts (s : vstack ts),
   tprogDenote (tcompile e ts) s
   = (texpDenote e, s).
 
-(** While lemma [compileCorrect'] quantified over a program that is the "continuation" for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
+(** While lemma [compile_correct'] quantified over a program that is the "continuation" for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
 
    Let us try to prove this theorem in the same way that we settled on in the last section. *)
 
@@ -836,7 +836,7 @@ We need an analogue to the [app_ass] theorem that we used to rewrite the goal in
 *)
 Abort.
 
-Lemma tconcatCorrect : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'')
+Lemma tconcat_correct : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'')
   (s : vstack ts),
   tprogDenote (tconcat p p') s
   = tprogDenote p' (tprogDenote p s).
@@ -845,13 +845,13 @@ Qed.
 
 (** This one goes through completely automatically.
 
-Some code behind the scenes registers [app_ass] for use by [crush].  We must register [tconcatCorrect] similarly to get the same effect: *)
+Some code behind the scenes registers [app_ass] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect: *)
 
-Hint Rewrite tconcatCorrect : cpdt.
+Hint Rewrite tconcat_correct : cpdt.
 
-(** We ask that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  Now we are ready to return to [tcompileCorrect'], proving it automatically this time. *)
+(** We ask that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  Now we are ready to return to [tcompile_correct'], proving it automatically this time. *)
 
-Lemma tcompileCorrect' : forall t (e : texp t)
+Lemma tcompile_correct' : forall t (e : texp t)
   ts (s : vstack ts),
   tprogDenote (tcompile e ts) s
   = (texpDenote e, s).
@@ -860,9 +860,9 @@ Qed.
 
 (** We can register this main lemma as another hint, allowing us to prove the final theorem trivially. *)
 
-Hint Rewrite tcompileCorrect' : cpdt.
+Hint Rewrite tcompile_correct' : cpdt.
 
-Theorem tcompileCorrect : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+Theorem tcompile_correct : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
   crush.
 Qed.
 (* end thide *)
