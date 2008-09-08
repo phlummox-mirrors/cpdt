@@ -275,4 +275,85 @@ Qed.
 
 (** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
 
-There is also a very useful tactic called [congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types. *)
+There is also a very useful tactic called [congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types.
+
+%\medskip%
+
+We can define a type of lists of natural numbers. *)
+
+Inductive nat_list : Set :=
+| NNil : nat_list
+| NCons : nat -> nat_list -> nat_list.
+
+(** Recursive definitions are straightforward extensions of what we have seen before. *)
+
+Fixpoint nlength (ls : nat_list) : nat :=
+  match ls with
+    | NNil => O
+    | NCons _ ls' => S (nlength ls')
+  end.
+
+Fixpoint napp (ls1 ls2 : nat_list) {struct ls1} : nat_list :=
+  match ls1 with
+    | NNil => ls2
+    | NCons n ls1' => NCons n (napp ls1' ls2)
+  end.
+
+(** Inductive theorem proving can again be automated quite effectively. *)
+
+Theorem nlength_napp : forall ls1 ls2 : nat_list, nlength (napp ls1 ls2)
+  = plus (nlength ls1) (nlength ls2).
+  induction ls1; crush.
+Qed.
+
+Check nat_list_ind.
+(** [[
+
+nat_list_ind
+     : forall P : nat_list -> Prop,
+       P NNil ->
+       (forall (n : nat) (n0 : nat_list), P n0 -> P (NCons n n0)) ->
+       forall n : nat_list, P n
+]]
+
+%\medskip%
+
+In general, we can implement any "tree" types as inductive types.  For example, here are binary trees of naturals. *)
+
+Inductive nat_btree : Set :=
+| NLeaf : nat_btree
+| NNode : nat_btree -> nat -> nat_btree -> nat_btree.
+
+Fixpoint nsize (tr : nat_btree) : nat :=
+  match tr with
+    | NLeaf => O
+    | NNode tr1 _ tr2 => plus (nsize tr1) (nsize tr2)
+  end.
+
+Fixpoint nsplice (tr1 tr2 : nat_btree) {struct tr1} : nat_btree :=
+  match tr1 with
+    | NLeaf => tr2
+    | NNode tr1' n tr2' => NNode (nsplice tr1' tr2) n tr2'
+  end.
+
+Theorem plus_assoc : forall n1 n2 n3 : nat, plus (plus n1 n2) n3 = plus n1 (plus n2 n3).
+  induction n1; crush.
+Qed.
+
+Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
+  = plus (nsize tr2) (nsize tr1).
+  Hint Rewrite n_plus_O plus_assoc : cpdt.
+
+  induction tr1; crush.
+Qed.
+
+Check nat_btree_ind.
+(** [[
+
+nat_btree_ind
+     : forall P : nat_btree -> Prop,
+       P NLeaf ->
+       (forall n : nat_btree,
+        P n -> forall (n0 : nat) (n1 : nat_btree), P n1 -> P (NNode n n0 n1)) ->
+       forall n : nat_btree, P n
+]] *)
