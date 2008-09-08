@@ -171,3 +171,108 @@ Check bool_ind.
 
 bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b
 ]] *)
+
+
+(** * Simple Recursive Types *)
+
+(** The natural numbers are the simplest common example of an inductive type that actually deserves the name. *)
+
+Inductive nat : Set :=
+| O : nat
+| S : nat -> nat.
+
+(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (S O)], and so on.
+
+Pattern matching works as we demonstrated in the last chapter: *)
+
+Definition isZero (n : nat) : bool :=
+  match n with
+    | O => true
+    | S _ => false
+  end.
+
+Definition pred (n : nat) : nat :=
+  match n with
+    | O => O
+    | S n' => n'
+  end.
+
+(** We can prove theorems by case analysis: *)
+
+Theorem S_isZero : forall n : nat, isZero (pred (S (S n))) = false.
+  destruct n; reflexivity.
+Qed.
+
+(** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting. *)
+
+Fixpoint plus (n m : nat) {struct n} : nat :=
+  match n with
+    | O => m
+    | S n' => S (plus n' m)
+  end.
+
+(** Recall that [Fixpoint] is Coq's mechanism for recursive function definitions, and that the [{struct n}] annotation is noting which function argument decreases structurally at recursive calls.
+
+Some theorems about [plus] can be proved without induction. *)
+
+Theorem O_plus_n : forall n : nat, plus O n = n.
+  intro; reflexivity.
+Qed.
+
+(** Coq's computation rules automatically simplify the application of [plus].  If we just reverse the order of the arguments, though, this no longer works, and we need induction. *)
+
+Theorem n_plus_O : forall n : nat, plus n O = n.
+  induction n.
+
+(** Our first subgoal is [plus O O = O], which %\textit{%#<i>#is#</i>#%}% trivial by computation. *)
+
+  reflexivity.
+
+(** Our second subgoal is more work and also demonstrates our first inductive hypothesis.
+
+[[
+
+  n : nat
+  IHn : plus n O = n
+  ============================
+   plus (S n) O = S n
+]]
+
+We can start out by using computation to simplify the goal as far as we can. *)
+
+  simpl.
+
+(** Now the conclusion is [S (plus n O) = S n].  Using our inductive hypothesis: *)
+
+  rewrite IHn.
+
+(** ...we get a trivial conclusion [S n = S n]. *)
+
+  reflexivity.
+
+(** Not much really went on in this proof, so the [crush] tactic from the [Tactics] module can prove this theorem automatically. *)
+
+Restart.
+  induction n; crush.
+Qed.
+
+(** We can check out the induction principle at work here: *)
+
+Check nat_ind.
+(** [[
+
+nat_ind : forall P : nat -> Prop,
+          P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
+]]
+
+Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O], and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+
+Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective. *)
+
+Theorem S_inj : forall n m : nat, S n = S m -> n = m.
+  injection 1; trivial.
+Qed.
+
+(** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
+
+There is also a very useful tactic called [congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types. *)
