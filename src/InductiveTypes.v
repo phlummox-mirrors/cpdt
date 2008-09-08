@@ -357,3 +357,97 @@ nat_btree_ind
         P n -> forall (n0 : nat) (n1 : nat_btree), P n1 -> P (NNode n n0 n1)) ->
        forall n : nat_btree, P n
 ]] *)
+
+
+(** * Parameterized Types *)
+
+(** We can also define polymorphic inductive types, as with algebraic datatypes in Haskell and ML. *)
+
+Inductive list (T : Set) : Set :=
+| Nil : list T
+| Cons : T -> list T -> list T.
+
+Fixpoint length T (ls : list T) : nat :=
+  match ls with
+    | Nil => O
+    | Cons _ ls' => S (length ls')
+  end.
+
+Fixpoint app T (ls1 ls2 : list T) {struct ls1} : list T :=
+  match ls1 with
+    | Nil => ls2
+    | Cons x ls1' => Cons x (app ls1' ls2)
+  end.
+
+Theorem length_app : forall T (ls1 ls2 : list T), length (app ls1 ls2)
+  = plus (length ls1) (length ls2).
+  induction ls1; crush.
+Qed.
+
+(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\textit{%#<i>#section#</i>#%}% mechanism.  The following block of code is equivalent to the above: *)
+
+(* begin hide *)
+Reset list.
+(* end hide *)
+
+Section list.
+  Variable T : Set.
+
+  Inductive list : Set :=
+  | Nil : list
+  | Cons : T -> list -> list.
+
+  Fixpoint length (ls : list) : nat :=
+    match ls with
+      | Nil => O
+      | Cons _ ls' => S (length ls')
+    end.
+
+  Fixpoint app (ls1 ls2 : list) {struct ls1} : list :=
+    match ls1 with
+      | Nil => ls2
+      | Cons x ls1' => Cons x (app ls1' ls2)
+    end.
+
+  Theorem length_app : forall ls1 ls2 : list, length (app ls1 ls2)
+    = plus (length ls1) (length ls2).
+    induction ls1; crush.
+  Qed.
+End list.
+
+(** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed. *)
+
+Check list.
+(** [[
+
+list
+     : Set -> Set
+]] *)
+
+Check Cons.
+(** [[
+
+Cons
+     : forall T : Set, T -> list T -> list T
+]] *)
+
+Check length.
+(** [[
+
+length
+     : forall T : Set, list T -> nat
+]]
+
+The extra parameter [T] is treated as a new argument to the induction principle, too. *)
+
+Check list_ind.
+(** [[
+
+list_ind
+     : forall (T : Set) (P : list T -> Prop),
+       P (Nil T) ->
+       (forall (t : T) (l : list T), P l -> P (Cons t l)) ->
+       forall l : list T, P l
+]]
+
+Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
