@@ -27,7 +27,7 @@ clean:: Makefile.coq
 doc: latex/cpdt.dvi latex/cpdt.pdf html
 
 latex/cpdt.tex: Makefile $(VS)
-	cd src ; coqdoc --latex $(VS_DOC) \
+	cd src ; coqdoc --latex -s $(VS_DOC) \
 		-p "\usepackage{url}" \
 		-p "\title{Certified Programming with Dependent Types}" \
 		-p "\author{Adam Chlipala}" \
