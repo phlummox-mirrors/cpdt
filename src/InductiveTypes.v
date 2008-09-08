@@ -121,6 +121,11 @@ Definition not (b : bool) : bool :=
     | false => true
   end.
 
+(** An alternative definition desugars to the above: *)
+
+Definition not' (b : bool) : bool :=
+  if b then false else true.
+
 (** We might want to prove that [not] is its own inverse operation. *)
 
 Theorem not_inverse : forall b : bool, not (not b) = b.
@@ -150,3 +155,19 @@ The first subgoal follows by Coq's rules of computation, so we can dispatch it e
 Restart.
   destruct b; reflexivity.
 Qed.
+
+(** Another theorem about booleans illustrates another useful tactic. *)
+
+Theorem not_ineq : forall b : bool, not b <> b.
+  destruct b; discriminate.
+Qed.
+
+(** [discriminate] is used to prove that two values of an inductive type are not equal, whenever the values are formed with different constructors.  In this case, the different constructors are [true] and [false].
+
+At this point, it is probably not hard to guess what the underlying induction principle for [bool] is. *)
+
+Check bool_ind.
+(** [[
+
+bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b
+]] *)
