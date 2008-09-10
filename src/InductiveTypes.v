@@ -326,13 +326,13 @@ Inductive nat_btree : Set :=
 
 Fixpoint nsize (tr : nat_btree) : nat :=
   match tr with
-    | NLeaf => O
+    | NLeaf => S O
     | NNode tr1 _ tr2 => plus (nsize tr1) (nsize tr2)
   end.
 
 Fixpoint nsplice (tr1 tr2 : nat_btree) {struct tr1} : nat_btree :=
   match tr1 with
-    | NLeaf => tr2
+    | NLeaf => NNode tr2 O NLeaf
     | NNode tr1' n tr2' => NNode (nsplice tr1' tr2) n tr2'
   end.
 
@@ -414,6 +414,10 @@ Section list.
     induction ls1; crush.
   Qed.
 End list.
+
+(* begin hide *)
+Implicit Arguments Nil [T].
+(* end hide *)
 
 (** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed. *)
 
@@ -814,3 +818,200 @@ Section formula_ind'.
     end.
 End formula_ind'.
 
+
+(** * Nested Inductive Types *)
+
+(** Suppose we want to extend our earlier type of binary trees to trees with arbitrary finite branching.  We can use lists to give a simple definition. *)
+
+Inductive nat_tree : Set :=
+| NLeaf' : nat_tree
+| NNode' : nat -> list nat_tree -> nat_tree.
+
+(** This is an example of a %\textit{%#<i>#nested#</i>#%}% inductive type definition, because we use the type we are defining as an argument to a parametrized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
+
+Like we encountered for mutual inductive types, we find that the automatically-generated induction principle for [nat_tree] is too weak. *)
+
+Check nat_tree_ind.
+(** [[
+
+nat_tree_ind
+     : forall P : nat_tree -> Prop,
+       P NLeaf' ->
+       (forall (n : nat) (l : list nat_tree), P (NNode' n l)) ->
+       forall n : nat_tree, P n
+]]
+
+There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses to different type families.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
+
+First, we will need an auxiliary definition, characterizing what it means for a property to hold of every element of a list. *)
+
+Section All.
+  Variable T : Set.
+  Variable P : T -> Prop.
+
+  Fixpoint All (ls : list T) : Prop :=
+    match ls with
+      | Nil => True
+      | Cons h t => P h /\ All t
+    end.
+End All.
+
+(** It will be useful to look at the definitions of [True] and [/\], since we will want to write manual proofs of them below. *)
+
+Print True.
+(** [[
+
+Inductive True : Prop :=  I : True
+]]
+
+That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
+
+Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the [Locate] command. *)
+
+Locate "/\".
+(** [[
+
+Notation            Scope     
+"A /\ B" := and A B  : type_scope
+                      (default interpretation)
+]] *)
+
+Print and.
+(** [[
+
+Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
+For conj: Arguments A, B are implicit
+For and: Argument scopes are [type_scope type_scope]
+For conj: Argument scopes are [type_scope type_scope _ _]
+]]
+
+In addition to the definition of [and] itself, we get information on implicit arguments and parsing rules for [and] and its constructor [conj].  We will ignore the parsing information for now.  The implicit argument information tells us that we build a proof of a conjunction by calling the constructor [conj] on proofs of the conjuncts, with no need to include the types of those proofs as explicit arguments.
+
+%\medskip%
+
+Now we create a section for our induction principle, following the same basic plan as in the last section of this chapter. *)
+
+Section nat_tree_ind'.
+  Variable P : nat_tree -> Prop.
+
+  Variable NLeaf'_case : P NLeaf'.
+  Variable NNode'_case : forall (n : nat) (ls : list nat_tree),
+    All P ls -> P (NNode' n ls).
+
+  (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.
+
+  [[
+
+  Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
+    match tr return (P tr) with
+      | NLeaf' => NLeaf'_case
+      | NNode' n ls => NNode'_case n ls (list_nat_tree_ind ls)
+    end
+
+  with list_nat_tree_ind (ls : list nat_tree) : All P ls :=
+    match ls return (All P ls) with
+      | Nil => I
+      | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
+    end.
+
+  Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  The term "nested inductive type" hints at the solution to the problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
+
+  Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
+    match tr return (P tr) with
+      | NLeaf' => NLeaf'_case
+      | NNode' n ls => NNode'_case n ls
+        ((fix list_nat_tree_ind (ls : list nat_tree) : All P ls :=
+          match ls return (All P ls) with
+            | Nil => I
+            | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
+          end) ls)
+    end.
+
+  (** We include an anonymous [fix] version of [list_nat_tree_ind] that is literally %\textit{%#<i>#nested#</i>#%}% inside the definition of the recursive function corresponding to the inductive definition that had the nested use of [list]. *)
+
+End nat_tree_ind'.
+
+(** We can try our induction principle out by defining some recursive functions on [nat_tree]s and proving a theorem about them.  First, we define some helper functions that operate on lists. *)
+
+Section map.
+  Variables T T' : Set.
+  Variable f : T -> T'.
+
+  Fixpoint map (ls : list T) : list T' :=
+    match ls with
+      | Nil => Nil
+      | Cons h t => Cons (f h) (map t)
+    end.
+End map.
+
+Fixpoint sum (ls : list nat) : nat :=
+  match ls with
+    | Nil => O
+    | Cons h t => plus h (sum t)
+  end.
+
+(** Now we can define a size function over our trees. *)
+
+Fixpoint ntsize (tr : nat_tree) : nat :=
+  match tr with
+    | NLeaf' => S O
+    | NNode' _ trs => S (sum (map ntsize trs))
+  end.
+
+(** Notice that Coq was smart enough to expand the definition of [map] to verify that we are using proper nested recursion, even through a use of a higher-order function. *)
+
+Fixpoint ntsplice (tr1 tr2 : nat_tree) {struct tr1} : nat_tree :=
+  match tr1 with
+    | NLeaf' => NNode' O (Cons tr2 Nil)
+    | NNode' n Nil => NNode' n (Cons tr2 Nil)
+    | NNode' n (Cons tr trs) => NNode' n (Cons (ntsplice tr tr2) trs)
+  end.
+
+(** We have defined another arbitrary notion of tree splicing, similar to before, and we can prove an analogous theorem about its relationship with tree size.  We start with a useful lemma about addition. *)
+
+Lemma plus_S : forall n1 n2 : nat,
+  plus n1 (S n2) = S (plus n1 n2).
+  induction n1; crush.
+Qed.
+
+(** Now we begin the proof of the theorem, adding the lemma [plus_S] as a hint. *)
+
+Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
+  = plus (ntsize tr2) (ntsize tr1).
+  Hint Rewrite plus_S : cpdt.
+
+  (** We know that the standard induction principle is insufficient for the task, so we need to provide a [using] clause for the [induction] tactic to specify our alternate principle. *)
+  induction tr1 using nat_tree_ind'; crush.
+
+  (** One subgoal remains: [[
+
+  n : nat
+  ls : list nat_tree
+  H : All
+        (fun tr1 : nat_tree =>
+         forall tr2 : nat_tree,
+         ntsize (ntsplice tr1 tr2) = plus (ntsize tr2) (ntsize tr1)) ls
+  tr2 : nat_tree
+  ============================
+   ntsize
+     match ls with
+     | Nil => NNode' n (Cons tr2 Nil)
+     | Cons tr trs => NNode' n (Cons (ntsplice tr tr2) trs)
+     end = S (plus (ntsize tr2) (sum (map ntsize ls)))
+     ]]
+
+     After a few moments of squinting at this goal, it becomes apparent that we need to do a case analysis on the structure of [ls].  The rest is routine. *)
+
+  destruct ls; crush.
+
+  (** We can go further in automating the proof by exploiting the hint mechanism further. *)
+
+  Restart.
+  Hint Extern 1 (ntsize (match ?LS with Nil => _ | Cons _ _ => _ end) = _) =>
+    destruct LS; crush.
+  induction tr1 using nat_tree_ind'; crush.
+Qed.
+
+(** We will go into great detail on hints in a later chapter, but the only important thing to note here is that we register a pattern that describes a conclusion we expect to encounter during the proof.  The pattern may contain unification variables, whose names are prefixed with question marks, and we may refer to those bound variables in a tactic that we ask to have run whenever the pattern matches.
+
+The advantage of using the hint is not very clear here, because the original proof was so short.  However, the hint has fundamentally improved the readability of our proof.  Before, the proof refered to the local variable [ls], which has an automatically-generated name.  To a human reading the proof script without stepping through it interactively, it was not clear where [ls] came from.  The hint explains to the reader the process for choosing which variables to case analyze on, and the hint can continue working even if the rest of the proof structure changes significantly. *)
