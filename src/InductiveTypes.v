@@ -638,3 +638,179 @@ Using an informal idea of Coq's semantics, it is easy to verify that the applica
 For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
 
 Nonetheless, the basic insight of HOAS is a very useful one, and there are ways to realize most benefits of HOAS in Coq.  We will study a particular technique of this kind in the later chapters on programming language syntax and semantics. *)
+
+
+(** * An Interlude on Proof Terms *)
+
+(** As we have emphasized a few times already, Coq proofs are actually programs, written in the same language we have been using in our examples all along.  We can get a first sense of what this means by taking a look at the definitions of some of the induction principles we have used. *)
+
+Print unit_ind.
+(** [[
+
+unit_ind = 
+fun P : unit -> Prop => unit_rect P
+     : forall P : unit -> Prop, P tt -> forall u : unit, P u
+]]
+
+We see that this induction principle is defined in terms of a more general principle, [unit_rect]. *)
+
+Check unit_rect.
+(** [[
+
+unit_rect
+     : forall P : unit -> Type, P tt -> forall u : unit, P u
+]]
+
+[unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
+
+Print unit_rec.
+(** [[
+
+unit_rec = 
+fun P : unit -> Set => unit_rect P
+     : forall P : unit -> Set, P tt -> forall u : unit, P u
+]]
+
+This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
+
+Definition always_O (u : unit) : nat :=
+  match u with
+    | tt => O
+  end.
+
+Definition always_O' (u : unit) : nat :=
+  unit_rec (fun _ : unit => nat) O u.
+
+(** Going even further down the rabbit hole, [unit_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
+
+Print unit_rect.
+
+(** [[
+
+unit_rect = 
+fun (P : unit -> Type) (f : P tt) (u : unit) =>
+match u as u0 return (P u0) with
+| tt => f
+end
+     : forall P : unit -> Type, P tt -> forall u : unit, P u
+]]
+
+The only new feature we see is an [as] clause for a [match], which is used in concert with the [return] clause that we saw in the introduction.  Since the type of the [match] is dependent on the value of the object being analyzed, we must give that object a name so that we can refer to it in the [return] clause.
+
+To prove that [unit_rect] is nothing special, we can reimplement it manually. *)
+
+Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
+  match u return (P u) with
+    | tt => f
+  end.
+
+(** We use the handy shorthand that lets us omit an [as] annotation when matching on a variable, simply using that variable directly in the [return] clause.
+
+We can check the implement of [nat_rect] as well: *)
+
+Print nat_rect.
+(** [[
+
+nat_rect = 
+fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
+fix F (n : nat) : P n :=
+  match n as n0 return (P n0) with
+  | O => f
+  | S n0 => f0 n0 (F n0)
+  end
+     : forall P : nat -> Type,
+       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
+]]
+
+Now we have an actual recursive definition.  [fix] expressions are an anonymous form of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
+
+Section nat_ind'.
+  (** First, we have the property of natural numbers that we aim to prove. *)
+  Variable P : nat -> Prop.
+
+  (** Then we require a proof of the [O] case. *)
+  Variable O_case : P O.
+
+  (** Next is a proof of the [S] case, which may assume an inductive hypothesis. *)
+  Variable S_case : forall n : nat, P n -> P (S n).
+
+  (** Finally, we define a recursive function to tie the pieces together. *)
+  Fixpoint nat_ind' (n : nat) : P n :=
+    match n return (P n) with
+      | O => O_case
+      | S n' => S_case (nat_ind' n')
+    end.
+End nat_ind'.
+
+(** Closing the section adds the [Variable]s as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
+
+%\medskip%
+
+We can also examine the definition of [even_list_mut], which we generated with [Scheme] for a mutually-recursive type. *)
+
+Print even_list_mut.
+(** [[
+
+even_list_mut = 
+fun (P : even_list -> Prop) (P0 : odd_list -> Prop) 
+  (f : P ENil) (f0 : forall (n : nat) (o : odd_list), P0 o -> P (ECons n o))
+  (f1 : forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) =>
+fix F (e : even_list) : P e :=
+  match e as e0 return (P e0) with
+  | ENil => f
+  | ECons n o => f0 n o (F0 o)
+  end
+with F0 (o : odd_list) : P0 o :=
+  match o as o0 return (P0 o0) with
+  | OCons n e => f1 n e (F e)
+  end
+for F
+     : forall (P : even_list -> Prop) (P0 : odd_list -> Prop),
+       P ENil ->
+       (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
+       (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
+       forall e : even_list, P e
+]]
+
+We see a mutually-recursive [fix], with the different functions separated by [with] in the same way that they would be separated by [and] in ML.  A final [for] clause identifies which of the mutually-recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+
+Section even_list_mut'.
+  (** First, we need the properties that we are proving. *)
+  Variable Peven : even_list -> Prop.
+  Variable Podd : odd_list -> Prop.
+
+  (** Next, we need proofs of the three cases. *)
+  Variable ENil_case : Peven ENil.
+  Variable ECons_case : forall (n : nat) (o : odd_list), Podd o -> Peven (ECons n o).
+  Variable OCons_case : forall (n : nat) (e : even_list), Peven e -> Podd (OCons n e).
+
+  (** Finally, we define the recursive functions. *)
+  Fixpoint even_list_mut' (e : even_list) : Peven e :=
+    match e return (Peven e) with
+      | ENil => ENil_case
+      | ECons n o => ECons_case n (odd_list_mut' o)
+    end
+  with odd_list_mut' (o : odd_list) : Podd o :=
+    match o return (Podd o) with
+      | OCons n e => OCons_case n (even_list_mut' e)
+    end.
+End even_list_mut'.
+
+(** Even induction principles for reflexive types are easy to implement directly.  For our [formula] type, we can use a recursive definition much like those we wrote above. *)
+
+Section formula_ind'.
+  Variable P : formula -> Prop.
+  Variable Eq_case : forall n1 n2 : nat, P (Eq n1 n2).
+  Variable And_case : forall f1 f2 : formula,
+    P f1 -> P f2 -> P (And f1 f2).
+  Variable Forall_case : forall f : nat -> formula,
+    (forall n : nat, P (f n)) -> P (Forall f).
+
+  Fixpoint formula_ind' (f : formula) : P f :=
+    match f return (P f) with
+      | Eq n1 n2 => Eq_case n1 n2
+      | And f1 f2 => And_case (formula_ind' f1) (formula_ind' f2)
+      | Forall f' => Forall_case f' (fun n => formula_ind' (f' n))
+    end.
+End formula_ind'.
+
