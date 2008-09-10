@@ -21,6 +21,6 @@ Ltac rewriter := autorewrite with cpdt in *; rewriterP.
 
 Hint Rewrite app_ass : cpdt.
 
-Ltac sintuition := simpl; intuition.
+Ltac sintuition := simpl in *; intuition.
 
 Ltac crush := sintuition; rewriter; sintuition.
