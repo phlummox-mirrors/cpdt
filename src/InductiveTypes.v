@@ -550,3 +550,91 @@ Theorem elength_eapp : forall el1 el2 : even_list,
 Qed.
 
 (** We simply need to specify two predicates, one for each of the mutually inductive types.  In general, it would not be a good idea to assume that a proof assistant could infer extra predicates, so this way of applying mutual induction is about as straightforward as we could hope for. *)
+
+
+(** * Reflexive Types *)
+
+(** A kind of inductive type called a %\textit{%#<i>#reflexive type#</i>#%}% is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  For instance, here is a type for encoding the syntax of a subset of first-order logic: *)
+
+Inductive formula : Set :=
+| Eq : nat -> nat -> formula
+| And : formula -> formula -> formula
+| Forall : (nat -> formula) -> formula.
+
+(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of "variables" in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]: *)
+
+Example forall_refl : formula := Forall (fun x => Eq x x).
+
+(** We can write recursive functions over reflexive types quite naturally.  Here is one translating our formulas into native Coq propositions. *)
+
+Fixpoint formulaDenote (f : formula) : Prop :=
+  match f with
+    | Eq n1 n2 => n1 = n2
+    | And f1 f2 => formulaDenote f1 /\ formulaDenote f2
+    | Forall f' => forall n : nat, formulaDenote (f' n)
+  end.
+
+(** We can also encode a trivial formula transformation that swaps the order of equality and conjunction operands. *)
+
+Fixpoint swapper (f : formula) : formula :=
+  match f with
+    | Eq n1 n2 => Eq n2 n1
+    | And f1 f2 => And (swapper f2) (swapper f1)
+    | Forall f' => Forall (fun n => swapper (f' n))
+  end.
+
+(** It is helpful to prove that this transformation does not make true formulas false. *)
+
+Theorem swapper_preserves_truth : forall f, formulaDenote f -> formulaDenote (swapper f).
+  induction f; crush.
+Qed.
+
+(** We can take a look at the induction principle behind this proof. *)
+
+Check formula_ind.
+(** [[
+
+formula_ind
+     : forall P : formula -> Prop,
+       (forall n n0 : nat, P (Eq n n0)) ->
+       (forall f0 : formula,
+        P f0 -> forall f1 : formula, P f1 -> P (And f0 f1)) ->
+       (forall f1 : nat -> formula,
+        (forall n : nat, P (f1 n)) -> P (Forall f1)) ->
+       forall f2 : formula, P f2
+]] *)
+
+(** Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds %\textit{%#<i>#for any application of the argument function [f1]#</i>#%}%.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
+
+%\medskip%
+
+Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in Haskell and ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
+
+Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of lambda calculus.  Indeed, the function-based representation technique that we just used, called %\textit{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}%, is the representation of choice for lambda calculi in Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
+
+(** [[
+
+Inductive term : Set :=
+| App : term -> term -> term
+| Abs : (term -> term) -> term.
+
+[[
+Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
+]]
+
+We have run afoul of the %\textit{%#<i>#strict positivity requirement#</i>#%}% for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.
+
+Why must Coq enforce this restriction?  Imagine that our last definition had been accepted, allowing us to write this function:
+
+[[
+Definition uhoh (t : term) : term :=
+  match t with
+    | Abs f => f t
+    | _ => t
+  end.
+
+Using an informal idea of Coq's semantics, it is easy to verify that the application [uhoh (Abs uhoh)] will run forever.  This would be a mere curiosity in OCaml and Haskell, where non-termination is commonplace, though the fact that we have a non-terminating program without explicit recursive function definitions is unusual.
+
+For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
+
+Nonetheless, the basic insight of HOAS is a very useful one, and there are ways to realize most benefits of HOAS in Coq.  We will study a particular technique of this kind in the later chapters on programming language syntax and semantics. *)
