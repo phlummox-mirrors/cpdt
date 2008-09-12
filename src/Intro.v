@@ -167,7 +167,7 @@ A good portion of the book is about how to formalize programming languages, comp
 This book is generated automatically from Coq source files using the wonderful coqdoc program.  The latest PDF version is available at:
 %\begin{center}\url{http://adam.chlipala.net/cpdt/cpdt.pdf}\end{center}%#<blockquote><tt><a href="http://adam.chlipala.net/cpdt/cpdt.pdf">http://adam.chlipala.net/cpdt/cpdt.pdf</a></tt></blockquote>#
 There is also an online HTML version available, with a hyperlink from each use of an identifier to that identifier's definition:
-%\begin{center}\url{http://adam.chlipala.net/cpdt/html/}\end{center}%#<blockquote><tt><a href="http://adam.chlipala.net/cpdt/html/">http://adam.chlipala.net/cpdt/html/</a></tt></blockquote>#
+%\begin{center}\url{http://adam.chlipala.net/cpdt/html/toc.html}\end{center}%#<blockquote><tt><a href="http://adam.chlipala.net/cpdt/html/toc.html">http://adam.chlipala.net/cpdt/html/toc.html</a></tt></blockquote>#
 The source code to the book is also freely available at:
 %\begin{center}\url{http://adam.chlipala.net/cpdt/cpdt.tgz}\end{center}%#<blockquote><tt><a href="http://adam.chlipala.net/cpdt/cpdt.tgz">http://adam.chlipala.net/cpdt/cpdt.tgz</a></tt></blockquote>#
 

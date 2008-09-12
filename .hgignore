@@ -15,3 +15,6 @@ html/coqdoc.css
 html/*.html
 
 templates/*.v
+
+staging/html/.dir
+cpdt.tgz
