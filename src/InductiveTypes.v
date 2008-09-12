@@ -733,10 +733,10 @@ Section nat_ind'.
   Variable P : nat -> Prop.
 
   (** Then we require a proof of the [O] case. *)
-  Variable O_case : P O.
+  Hypothesis O_case : P O.
 
   (** Next is a proof of the [S] case, which may assume an inductive hypothesis. *)
-  Variable S_case : forall n : nat, P n -> P (S n).
+  Hypothesis S_case : forall n : nat, P n -> P (S n).
 
   (** Finally, we define a recursive function to tie the pieces together. *)
   Fixpoint nat_ind' (n : nat) : P n :=
@@ -746,7 +746,7 @@ Section nat_ind'.
     end.
 End nat_ind'.
 
-(** Closing the section adds the [Variable]s as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
+(** Closing the section adds the [Variable]s and [Hypothesis]es as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
 
 %\medskip%
 
@@ -784,9 +784,9 @@ Section even_list_mut'.
   Variable Podd : odd_list -> Prop.
 
   (** Next, we need proofs of the three cases. *)
-  Variable ENil_case : Peven ENil.
-  Variable ECons_case : forall (n : nat) (o : odd_list), Podd o -> Peven (ECons n o).
-  Variable OCons_case : forall (n : nat) (e : even_list), Peven e -> Podd (OCons n e).
+  Hypothesis ENil_case : Peven ENil.
+  Hypothesis ECons_case : forall (n : nat) (o : odd_list), Podd o -> Peven (ECons n o).
+  Hypothesis OCons_case : forall (n : nat) (e : even_list), Peven e -> Podd (OCons n e).
 
   (** Finally, we define the recursive functions. *)
   Fixpoint even_list_mut' (e : even_list) : Peven e :=
@@ -804,10 +804,10 @@ End even_list_mut'.
 
 Section formula_ind'.
   Variable P : formula -> Prop.
-  Variable Eq_case : forall n1 n2 : nat, P (Eq n1 n2).
-  Variable And_case : forall f1 f2 : formula,
+  Hypothesis Eq_case : forall n1 n2 : nat, P (Eq n1 n2).
+  Hypothesis And_case : forall f1 f2 : formula,
     P f1 -> P f2 -> P (And f1 f2).
-  Variable Forall_case : forall f : nat -> formula,
+  Hypothesis Forall_case : forall f : nat -> formula,
     (forall n : nat, P (f n)) -> P (Forall f).
 
   Fixpoint formula_ind' (f : formula) : P f :=
@@ -894,8 +894,8 @@ Now we create a section for our induction principle, following the same basic pl
 Section nat_tree_ind'.
   Variable P : nat_tree -> Prop.
 
-  Variable NLeaf'_case : P NLeaf'.
-  Variable NNode'_case : forall (n : nat) (ls : list nat_tree),
+  Hypothesis NLeaf'_case : P NLeaf'.
+  Hypothesis NNode'_case : forall (n : nat) (ls : list nat_tree),
     All P ls -> P (NNode' n ls).
 
   (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.
@@ -1098,6 +1098,14 @@ Qed.
 
 %\item%#<li># Define an inductive type [truth] with three constructors, [Yes], [No], and [Maybe].  [Yes] stands for certain truth, [False] for certain falsehood, and [Maybe] for an unknown situation.  Define "not," "and," and "or" for this replacement boolean algebra.  Prove that your implementation of "and" is commutative and distributes over your implementation of "or."#</li>#
 
-%\item%#<li># Modify the first example language of Chapter 1 to include variables, where variables are represented with [nat].  Extend the syntax and semantics of expressions to accommodate the change.  Your new [expDenote] function should take as a new extra first argument a value of type [var -> nat], where [var] is a synonym for naturals-as-variables, and the function assigns a value to each variable.  Define a constant folding function which does a bottom-up pass over an expression, at each stage replacing every binary operation on constants with an equivalent constant.  Prove that constant folding preserves the meaning of expressions.#</li>#
+%\item%#<li># Modify the first example language of Chapter 1 to include variables, where variables are represented with [nat].  Extend the syntax and semantics of expressions to accommodate the change.  Your new [expDenote] function should take as a new extra first argument a value of type [var -> nat], where [var] is a synonym for naturals-as-variables, and the function assigns a value to each variable.  Define a constant folding function which does a bottom-up pass over an expression, at each stage replacing every binary operation on constants with an equivalent constant.  Prove that constant folding preserves the meanings of expressions.#</li>#
+
+%\item%#<li># Reimplement the second example language of Chapter 1 to use mutually-inductive types instead of dependent types.  That is, define two separate (non-dependent) inductive types [nat_exp] and [bool_exp] for expressions of the two different types, rather than a single indexed type.  To keep things simple, you may consider only the binary operators that take naturals as operands.  Add natural number variables to the language, as in the last exercise, and add an "if" expression form taking as arguments one boolean expression and two natural number expressions.  Define semantics and constant-folding functions for this new language.  Your constant folding should simplify not just binary operations (returning naturals or booleans) with known arguments, but also "if" expressions with known values for their test expressions but possibly undetermined "then" and "else" cases.  Prove that constant-folding a natural number expression preserves its meaning.#</li>#
+
+%\item%#<li># Using a reflexive inductive definition, define a type [nat_tree] of infinitary trees, with natural numbers at their leaves and a countable infinity of new trees branching out of each internal node.  Define a function [increment] that increments the number in every leaf of a [nat_tree].  Define a function [leapfrog] over a natural [i] and a tree [nt].  [leapfrog] should recurse into the [i]th child of [nt], the [i+1]st child of that node, the [i+2]nd child of the next node, and so on, until reaching a leaf, in which case [leapfrog] should return the number at that leaf.  Prove that the result of any call to [leapfrog] is incremented by one by calling [increment] on the tree.#</li>#
+
+%\item%#<li># Define a type of trees of trees of trees of (repeat to infinity).  That is, define an inductive type [trexp], whose members are either base cases containing natural numbers or binary trees of [trexp]s.  Base your definition on a parameterized binary tree type [btree] that you will also define, so that [trexp] is defined as a nested inductive type.  Define a function [total] that sums all of the naturals at the leaves of a [trexp].  Define a function [increment] that increments every leaf of a [trexp] by one.  Prove that, for all [tr], [total (increment tr) >= total tr].  On the way to finishing this proof, you will probably want to prove a lemma and add it as a hint using the syntax [Hint Resolve name_of_lemma.].#</li>#
+
+%\item%#<li># Prove discrimination and injectivity theorems for the [nat_btree] type defined earlier in this chapter.  In particular, without using the tactics [discriminate], [injection], or [congruence], prove that no leaf equals any node, and prove that two equal nodes carry the same natural number.#</li>#
 
 #</ol>#%\end{enumerate}% *)
