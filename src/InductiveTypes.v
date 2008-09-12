@@ -1004,7 +1004,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
 
   destruct ls; crush.
 
-  (** We can go further in automating the proof by exploiting the hint mechanism further. *)
+  (** We can go further in automating the proof by exploiting the hint mechanism. *)
 
   Restart.
   Hint Extern 1 (ntsize (match ?LS with Nil => _ | Cons _ _ => _ end) = _) =>
@@ -1015,3 +1015,79 @@ Qed.
 (** We will go into great detail on hints in a later chapter, but the only important thing to note here is that we register a pattern that describes a conclusion we expect to encounter during the proof.  The pattern may contain unification variables, whose names are prefixed with question marks, and we may refer to those bound variables in a tactic that we ask to have run whenever the pattern matches.
 
 The advantage of using the hint is not very clear here, because the original proof was so short.  However, the hint has fundamentally improved the readability of our proof.  Before, the proof refered to the local variable [ls], which has an automatically-generated name.  To a human reading the proof script without stepping through it interactively, it was not clear where [ls] came from.  The hint explains to the reader the process for choosing which variables to case analyze on, and the hint can continue working even if the rest of the proof structure changes significantly. *)
+
+
+(** * Manual Proofs About Constructors *)
+
+(** It can be useful to understand how tactics like [discriminate] and [injection] work, so it is worth stepping through a manual proof of each kind.  We will start with a proof fit for [discriminate]. *)
+
+Theorem true_neq_false : true <> false.
+(** We begin with the tactic [red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
+
+  red.
+(** [[
+
+  ============================
+   true = false -> False
+]]
+
+The negation is replaced with an implication of falsehood.  We use the tactic [intro H] to change the assumption of the implication into a hypothesis named [H]. *)
+
+  intro H.
+(** [[
+
+  H : true = false
+  ============================
+   False
+]]
+
+This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
+
+  Definition f (b : bool) := if b then True else False.
+
+(** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are boolean values that we can case-analyze.  We have defined [f] such that our conclusion of [False] is computationally equivalent to [f false].  Thus, the [change] tactic will let us change the conclusion to [f false]. *)
+
+  change (f false).
+(** [[
+
+  H : true = false
+  ============================
+   f false
+]]
+
+Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite. *)
+
+  rewrite <- H.
+(** [[
+
+  H : true = false
+  ============================
+   f true
+]]
+
+We are almost done.  Just how close we are to done is revealed by computational simplification. *)
+
+  simpl.
+(** [[
+
+  H : true = false
+  ============================
+   True
+]] *)
+
+  trivial.
+Qed.
+
+(** I have no trivial automated version of this proof to suggest, beyond using [discriminate] or [congruence] in the first place.
+
+%\medskip%
+
+We can perform a similar manual proof of injectivity of the constructor [S].  I leave a walk-through of the details to curious readers who want to run the proof script interactively. *)
+
+Theorem S_inj' : forall n m : nat, S n = S m -> n = m.
+  intros n m H.
+  change (pred (S n) = pred (S m)).
+  rewrite H.
+  reflexivity.
+Qed.
+
