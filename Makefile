@@ -8,7 +8,7 @@ VS_DOC        := $(MODULES_DOC:%=%.v)
 GLOBALS       := .coq_globals
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
-.PHONY: coq clean doc dvi html templates
+.PHONY: coq clean doc dvi html templates install
 
 coq: Makefile.coq
 	make -f Makefile.coq
@@ -40,10 +40,11 @@ latex/cpdt.dvi: latex/cpdt.tex
 latex/cpdt.pdf: latex/cpdt.dvi
 	cd latex ; pdflatex cpdt
 
-html: Makefile $(VS)
-	cd src ; coqdoc $(VS_DOC) -toc \
+html: Makefile $(VS) src/toc.html
+	cd src ; coqdoc $(VS_DOC) \
 		--glob-from ../$(GLOBALS) \
 		-d ../html
+	cp src/toc.html html/
 
 dvi:
 	xdvi latex/cpdt
@@ -52,3 +53,12 @@ templates: $(TEMPLATES)
 
 templates/%.v: src/%.v
 	ocaml tools/make_template.ml <$< >$@
+
+cpdt.tgz:
+	hg archive -t tgz $@
+
+install: cpdt.tgz latex/cpdt.pdf html
+	cp cpdt.tgz staging/
+	cp latex/cpdt.pdf staging/
+	cp -R html staging/
+	rsync -az --exclude '*~' staging/* ssh.hcoop.net:sites/chlipala/adam/cpdt/
