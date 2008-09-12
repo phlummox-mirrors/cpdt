@@ -1091,3 +1091,13 @@ Theorem S_inj' : forall n m : nat, S n = S m -> n = m.
   reflexivity.
 Qed.
 
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># Define an inductive type [truth] with three constructors, [Yes], [No], and [Maybe].  [Yes] stands for certain truth, [False] for certain falsehood, and [Maybe] for an unknown situation.  Define "not," "and," and "or" for this replacement boolean algebra.  Prove that your implementation of "and" is commutative and distributes over your implementation of "or."#</li>#
+
+%\item%#<li># Modify the first example language of Chapter 1 to include variables, where variables are represented with [nat].  Extend the syntax and semantics of expressions to accommodate the change.  Your new [expDenote] function should take as a new extra first argument a value of type [var -> nat], where [var] is a synonym for naturals-as-variables, and the function assigns a value to each variable.  Define a constant folding function which does a bottom-up pass over an expression, at each stage replacing every binary operation on constants with an equivalent constant.  Prove that constant folding preserves the meaning of expressions.#</li>#
+
+#</ol>#%\end{enumerate}% *)
