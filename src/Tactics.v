@@ -9,6 +9,8 @@
 
 Require Import List.
 
+Require Omega.
+
 
 Ltac rewriteHyp :=
   match goal with
@@ -23,4 +25,4 @@ Hint Rewrite app_ass : cpdt.
 
 Ltac sintuition := simpl in *; intuition.
 
-Ltac crush := sintuition; rewriter; sintuition.
+Ltac crush := sintuition; rewriter; sintuition; try omega.
