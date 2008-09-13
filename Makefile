@@ -51,7 +51,7 @@ dvi:
 
 templates: $(TEMPLATES)
 
-templates/%.v: src/%.v
+templates/%.v: src/%.v tools/make_template.ml
 	ocaml tools/make_template.ml <$< >$@
 
 cpdt.tgz:

@@ -12,15 +12,21 @@ let rec initial last_was_empty =
 	print_newline ();
       initial true
   | Some line ->
-      if String.length line >= 2 && line.[0] = '(' && line.[1] = '*' then
-	if line.[String.length line - 2] = '*' && line.[String.length line - 1] = ')' then
-	  initial last_was_empty
-	else
-	  comment last_was_empty
-      else begin
-	print_endline line;
-	initial false
-      end
+      let idx = try Some (String.index line '(') with Not_found -> None in
+      match idx with
+        | Some idx ->
+            if String.length line > idx+1 && line.[idx+1] = '*' then
+              if line.[String.length line - 2] = '*' && line.[String.length line - 1] = ')' then
+	        initial last_was_empty
+	      else
+	        comment last_was_empty
+            else begin
+              print_endline line;
+              initial false
+            end
+        | None ->
+	    print_endline line;
+	    initial false
 
 and comment last_was_empty =
   match read_line () with
