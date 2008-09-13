@@ -47,6 +47,7 @@ Check tt.
 
 Theorem unit_singleton : forall x : unit, x = tt.
 (** The important thing about an inductive type is, unsurprisingly, that you can do induction over its values, and induction is the key to proving this theorem.  We ask to proceed by induction on the variable [x]. *)
+(* begin thide *)
   induction x.
 (** The goal changes to: [[
 
@@ -55,6 +56,7 @@ Theorem unit_singleton : forall x : unit, x = tt.
   (** ...which we can discharge trivially. *)
   reflexivity.
 Qed.
+(* end thide *)
 
 (** It seems kind of odd to write a proof by induction with no inductive hypotheses.  We could have arrived at the same result by beginning the proof with: [[
 
@@ -84,8 +86,10 @@ Inductive Empty_set : Set := .
 (** [Empty_set] has no elements.  We can prove fun theorems about it: *)
 
 Theorem the_sky_is_falling : forall x : Empty_set, 2 + 2 = 5.
+(* begin thide *)
   destruct 1.
 Qed.
+(* end thide *)
 
 (** Because [Empty_set] has no elements, the fact of having an element of this type implies anything.  We use [destruct 1] instead of [destruct x] in the proof because unused quantified variables are relegated to being referred to by number.  (There is a good reason for this, related to the unity of quantifiers and implication.  An implication is just a quantification over a proof, where the quantified variable is never used.  It generally makes more sense to refer to implication hypotheses by number than by name, and Coq treats our quantifier over an unused variable as an implication in determining the proper behavior.)
 
@@ -129,6 +133,7 @@ Definition not' (b : bool) : bool :=
 (** We might want to prove that [not] is its own inverse operation. *)
 
 Theorem not_inverse : forall b : bool, not (not b) = b.
+(* begin thide *)
   destruct b.
 
   (** After we case analyze on [b], we are left with one subgoal for each constructor of [bool].
@@ -155,12 +160,15 @@ The first subgoal follows by Coq's rules of computation, so we can dispatch it e
 Restart.
   destruct b; reflexivity.
 Qed.
+(* end thide *)
 
 (** Another theorem about booleans illustrates another useful tactic. *)
 
 Theorem not_ineq : forall b : bool, not b <> b.
+(* begin thide *)
   destruct b; discriminate.
 Qed.
+(* end thide *)
 
 (** [discriminate] is used to prove that two values of an inductive type are not equal, whenever the values are formed with different constructors.  In this case, the different constructors are [true] and [false].
 
@@ -200,8 +208,10 @@ Definition pred (n : nat) : nat :=
 (** We can prove theorems by case analysis: *)
 
 Theorem S_isZero : forall n : nat, isZero (pred (S (S n))) = false.
+(* begin thide *)
   destruct n; reflexivity.
 Qed.
+(* end thide *)
 
 (** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting. *)
 
@@ -216,12 +226,15 @@ Fixpoint plus (n m : nat) {struct n} : nat :=
 Some theorems about [plus] can be proved without induction. *)
 
 Theorem O_plus_n : forall n : nat, plus O n = n.
+(* begin thide *)
   intro; reflexivity.
 Qed.
+(* end thide *)
 
 (** Coq's computation rules automatically simplify the application of [plus].  If we just reverse the order of the arguments, though, this no longer works, and we need induction. *)
 
 Theorem n_plus_O : forall n : nat, plus n O = n.
+(* begin thide *)
   induction n.
 
 (** Our first subgoal is [plus O O = O], which %\textit{%#<i>#is#</i>#%}% trivial by computation. *)
@@ -255,6 +268,7 @@ We can start out by using computation to simplify the goal as far as we can. *)
 Restart.
   induction n; crush.
 Qed.
+(* end thide *)
 
 (** We can check out the induction principle at work here: *)
 
@@ -270,8 +284,10 @@ Each of the two cases of our last proof came from the type of one of the argumen
 Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective. *)
 
 Theorem S_inj : forall n m : nat, S n = S m -> n = m.
+(* begin thide *)
   injection 1; trivial.
 Qed.
+(* end thide *)
 
 (** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
 
@@ -303,8 +319,10 @@ Fixpoint napp (ls1 ls2 : nat_list) {struct ls1} : nat_list :=
 
 Theorem nlength_napp : forall ls1 ls2 : nat_list, nlength (napp ls1 ls2)
   = plus (nlength ls1) (nlength ls2).
+(* begin thide *)
   induction ls1; crush.
 Qed.
+(* end thide *)
 
 Check nat_list_ind.
 (** [[
@@ -337,15 +355,19 @@ Fixpoint nsplice (tr1 tr2 : nat_btree) {struct tr1} : nat_btree :=
   end.
 
 Theorem plus_assoc : forall n1 n2 n3 : nat, plus (plus n1 n2) n3 = plus n1 (plus n2 n3).
+(* begin thide *)
   induction n1; crush.
 Qed.
+(* end thide *)
 
 Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
   = plus (nsize tr2) (nsize tr1).
+(* begin thide *)
   Hint Rewrite n_plus_O plus_assoc : cpdt.
 
   induction tr1; crush.
 Qed.
+(* end thide *)
 
 Check nat_btree_ind.
 (** [[
@@ -381,8 +403,10 @@ Fixpoint app T (ls1 ls2 : list T) {struct ls1} : list T :=
 
 Theorem length_app : forall T (ls1 ls2 : list T), length (app ls1 ls2)
   = plus (length ls1) (length ls2).
+(* begin thide *)
   induction ls1; crush.
 Qed.
+(* end thide *)
 
 (** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\textit{%#<i>#section#</i>#%}% mechanism.  The following block of code is equivalent to the above: *)
 
@@ -411,8 +435,10 @@ Section list.
 
   Theorem length_app : forall ls1 ls2 : list, length (app ls1 ls2)
     = plus (length ls1) (length ls2).
+(* begin thide *)
     induction ls1; crush.
   Qed.
+(* end thide *)
 End list.
 
 (* begin hide *)
@@ -494,6 +520,7 @@ with oapp (ol : odd_list) (el : even_list) {struct ol} : odd_list :=
 
 Theorem elength_eapp : forall el1 el2 : even_list,
   elength (eapp el1 el2) = plus (elength el1) (elength el2).
+(* begin thide *)
   induction el1; crush.
 
   (** One goal remains: [[
@@ -546,12 +573,14 @@ This technique generalizes to our mutual example: *)
 
 Theorem elength_eapp : forall el1 el2 : even_list,
   elength (eapp el1 el2) = plus (elength el1) (elength el2).
+
   apply (even_list_mut
     (fun el1 : even_list => forall el2 : even_list,
       elength (eapp el1 el2) = plus (elength el1) (elength el2))
     (fun ol : odd_list => forall el : even_list,
       olength (oapp ol el) = plus (olength ol) (elength el))); crush.
 Qed.
+(* end thide *)
 
 (** We simply need to specify two predicates, one for each of the mutually inductive types.  In general, it would not be a good idea to assume that a proof assistant could infer extra predicates, so this way of applying mutual induction is about as straightforward as we could hope for. *)
 
@@ -590,8 +619,10 @@ Fixpoint swapper (f : formula) : formula :=
 (** It is helpful to prove that this transformation does not make true formulas false. *)
 
 Theorem swapper_preserves_truth : forall f, formulaDenote f -> formulaDenote (swapper f).
+(* begin thide *)
   induction f; crush.
 Qed.
+(* end thide *)
 
 (** We can take a look at the induction principle behind this proof. *)
 
@@ -969,15 +1000,18 @@ Fixpoint ntsplice (tr1 tr2 : nat_tree) {struct tr1} : nat_tree :=
 
 (** We have defined another arbitrary notion of tree splicing, similar to before, and we can prove an analogous theorem about its relationship with tree size.  We start with a useful lemma about addition. *)
 
+(* begin thide *)
 Lemma plus_S : forall n1 n2 : nat,
   plus n1 (S n2) = S (plus n1 n2).
   induction n1; crush.
 Qed.
+(* end thide *)
 
 (** Now we begin the proof of the theorem, adding the lemma [plus_S] as a hint. *)
 
 Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   = plus (ntsize tr2) (ntsize tr1).
+(* begin thide *)
   Hint Rewrite plus_S : cpdt.
 
   (** We know that the standard induction principle is insufficient for the task, so we need to provide a [using] clause for the [induction] tactic to specify our alternate principle. *)
@@ -1011,6 +1045,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
     destruct LS; crush.
   induction tr1 using nat_tree_ind'; crush.
 Qed.
+(* end thide *)
 
 (** We will go into great detail on hints in a later chapter, but the only important thing to note here is that we register a pattern that describes a conclusion we expect to encounter during the proof.  The pattern may contain unification variables, whose names are prefixed with question marks, and we may refer to those bound variables in a tactic that we ask to have run whenever the pattern matches.
 
@@ -1022,6 +1057,7 @@ The advantage of using the hint is not very clear here, because the original pro
 (** It can be useful to understand how tactics like [discriminate] and [injection] work, so it is worth stepping through a manual proof of each kind.  We will start with a proof fit for [discriminate]. *)
 
 Theorem true_neq_false : true <> false.
+(* begin thide *)
 (** We begin with the tactic [red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
 
   red.
@@ -1077,6 +1113,7 @@ We are almost done.  Just how close we are to done is revealed by computational 
 
   trivial.
 Qed.
+(* end thide *)
 
 (** I have no trivial automated version of this proof to suggest, beyond using [discriminate] or [congruence] in the first place.
 
@@ -1085,11 +1122,13 @@ Qed.
 We can perform a similar manual proof of injectivity of the constructor [S].  I leave a walk-through of the details to curious readers who want to run the proof script interactively. *)
 
 Theorem S_inj' : forall n m : nat, S n = S m -> n = m.
+(* begin thide *)
   intros n m H.
   change (pred (S n) = pred (S m)).
   rewrite H.
   reflexivity.
 Qed.
+(* end thide *)
 
 
 (** * Exercises *)
