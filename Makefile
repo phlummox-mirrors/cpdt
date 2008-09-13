@@ -8,7 +8,7 @@ VS_DOC        := $(MODULES_DOC:%=%.v)
 GLOBALS       := .coq_globals
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
-.PHONY: coq clean doc dvi html templates install
+.PHONY: coq clean doc dvi html templates install cpdt.tgz
 
 coq: Makefile.coq
 	make -f Makefile.coq
