@@ -1014,7 +1014,7 @@ Qed.
 
 (** We will go into great detail on hints in a later chapter, but the only important thing to note here is that we register a pattern that describes a conclusion we expect to encounter during the proof.  The pattern may contain unification variables, whose names are prefixed with question marks, and we may refer to those bound variables in a tactic that we ask to have run whenever the pattern matches.
 
-The advantage of using the hint is not very clear here, because the original proof was so short.  However, the hint has fundamentally improved the readability of our proof.  Before, the proof refered to the local variable [ls], which has an automatically-generated name.  To a human reading the proof script without stepping through it interactively, it was not clear where [ls] came from.  The hint explains to the reader the process for choosing which variables to case analyze on, and the hint can continue working even if the rest of the proof structure changes significantly. *)
+The advantage of using the hint is not very clear here, because the original proof was so short.  However, the hint has fundamentally improved the readability of our proof.  Before, the proof referred to the local variable [ls], which has an automatically-generated name.  To a human reading the proof script without stepping through it interactively, it was not clear where [ls] came from.  The hint explains to the reader the process for choosing which variables to case analyze on, and the hint can continue working even if the rest of the proof structure changes significantly. *)
 
 
 (** * Manual Proofs About Constructors *)

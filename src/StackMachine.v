@@ -36,7 +36,7 @@ With Proof General, the portion of a buffer that Coq has processed is highlighte
 
 (** * Arithmetic Expressions Over Natural Numbers *)
 
-(** We will begin with that staple of compiler textbooks, arithemtic expressions over a single type of numbers. *)
+(** We will begin with that staple of compiler textbooks, arithmetic expressions over a single type of numbers. *)
 
 (** ** Source Language *)
 
@@ -86,7 +86,7 @@ Languages like Haskell and ML have a convenient %\textit{%#<i>#principal typing#
 
 This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\textit{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\textit{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\textit{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\textit{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are "really true," if you believe in set theory.
 
-Coq is actually based on an extension of CIC called %\textit{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internalluy to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
+Coq is actually based on an extension of CIC called %\textit{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
 Commands like [Inductive] and [Definition] are part of %\textit{%#<i>#the vernacular#</i>#%}%, which includes all sorts of useful queries and requests to the Coq system.
 
@@ -185,7 +185,7 @@ Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
 = IConst 7 :: IConst 2 :: IConst 2 :: IBinop Plus :: IBinop Times :: nil : prog
 ]] *)
 
-(** We can also run our compiled programs and chedk that they give the right results. *)
+(** We can also run our compiled programs and check that they give the right results. *)
 
 Eval simpl in progDenote (compile (Const 42)) nil.
 (** [[
@@ -550,7 +550,7 @@ ML and Haskell have indexed algebraic datatypes.  For instance, their list types
 
 First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\textit{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indiced by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
 (** We can define a similar type family for typed expressions. *)
@@ -608,7 +608,7 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
 
 (** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, and Coq avoids pursuing special heuristics for the problem, instead asking users to write annotations, like we see above on the line with [match].
 
-The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\textit{%#<i>#binding occcurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [arg3] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
+The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\textit{%#<i>#binding occurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [arg3] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
 
 The same tricks suffice to define an expression denotation function in an unsurprising way:
 *)
@@ -751,7 +751,7 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :
       (tconcat (tcompile e1 _) (TCons (TIBinop _ b) (TNil _)))
   end.
 
-(** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\textit{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
+(** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitrary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\textit{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
 
 The underscores here are being filled in with stack types.  That is, the Coq type inferencer is, in a sense, inferring something about the flow of control in the translated programs.  We can take a look at exactly which values are filled in: *)
 
