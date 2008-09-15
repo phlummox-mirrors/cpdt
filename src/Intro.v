@@ -185,7 +185,7 @@ I believe that a good graphical interface to Coq is crucial for using it product
 \hline
 Some Quick Examples & \texttt{StackMachine.v} \\
 \hline
-Inductive Types & \texttt{InductiveTypes.v} \\
+Introducing Inductive Types & \texttt{InductiveTypes.v} \\
 \hline
 \end{tabular} \end{center}
 
