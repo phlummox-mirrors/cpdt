@@ -391,7 +391,7 @@ We start out the same way as before, introducing new free variables and unfoldin
   unfold expDenote.
   fold expDenote.
 
-(** Now we arrive at a point where the tactics we have seen so far are insufficient:
+(** Now we arrive at a point where the tactics we have seen so far are insufficient.  No further definition unfoldings get us anywhere, so we will need to try something different.
 
 [[
 
