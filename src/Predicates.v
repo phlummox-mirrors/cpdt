@@ -46,7 +46,7 @@ With that perspective in mind, this chapter is sort of a mirror image of the las
 (** Let us begin with a brief tour through the definitions of the connectives for propositional logic.  We will work within a Coq section that provides us with a set of propositional variables.  In Coq parlance, these are just terms of type [Prop.] *)
 
 Section Propositional.
-  Variables P Q : Prop.
+  Variables P Q R : Prop.
 
   (** In Coq, the most basic propositional connective is implication, written [->], which we have already used in almost every proof.  Rather than being defined inductively, implication is built into Coq as the function type constructor.
 
@@ -206,5 +206,75 @@ subgoal 2 is:
     left; assumption.
   Qed.
 
+
+(* begin hide *)
+(* In-class exercises *)
+
+  Theorem contra : P -> ~P -> R.
+  Admitted.
+
+  Theorem and_assoc : (P /\ Q) /\ R -> P /\ (Q /\ R).
+  Admitted.
+
+  Theorem or_assoc : (P \/ Q) \/ R -> P \/ (Q \/ R).
+  Admitted.
+
+(* end hide *)
+
+
+  (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is [tauto], which is a complete decision procedure for constructive propositional logic.  (More on what "constructive" means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
+
+  Theorem or_comm' : P \/ Q -> Q \/ P.
+    tauto.
+  Qed.
+
+  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  [intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
+
+  Theorem arith_comm : forall ls1 ls2 : list nat,
+    length ls1 = length ls2 \/ length ls1 + length ls2 = 6
+    -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
+    intuition.
+
+    (** A lot of the proof structure has been generated for us by [intuition], but the final proof depends on a fact about lists.  The remaining subgoal hints at what cleverness we need to inject. *)
+
+    (** [[
+
+  ls1 : list nat
+  ls2 : list nat
+  H0 : length ls1 + length ls2 = 6
+  ============================
+   length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2
+   ]] *)
+
+    (** We can see that we need a theorem about lengths of concatenated lists, which we proved last chapter and is also in the standard library. *)
+
+    rewrite app_length.
+    (** [[
+
+  ls1 : list nat
+  ls2 : list nat
+  H0 : length ls1 + length ls2 = 6
+  ============================
+   length ls1 + length ls2 = 6 \/ length ls1 = length ls2
+   ]] *)
+
+    (** Now the subgoal follows by purely propositional reasoning.  That is, we could replace [length ls1 + length ls2 = 6] with [P] and [length ls1 = length ls2] with [Q] and arrive at a tautology of propositional logic. *)
+
+    tauto.
+  Qed.
+
+  (** [intuition] is one of the main bits of glue in the implementation of [crush], so, with a little help, we can get a short automated proof of the theorem. *)
+
+  Theorem arith_comm' : forall ls1 ls2 : list nat,
+    length ls1 = length ls2 \/ length ls1 + length ls2 = 6
+    -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
+    Hint Rewrite app_length : cpdt.
+
+    crush.
+  Qed.
+
 End Propositional.
+
+
+
 
