@@ -41,7 +41,7 @@ The essence of the argument is roughly this: to an engineer, not all functions o
 With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus "datatypes."  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently-typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
 
 
-(** * Propositional logic *)
+(** * Propositional Logic *)
 
 (** Let us begin with a brief tour through the definitions of the connectives for propositional logic.  We will work within a Coq section that provides us with a set of propositional variables.  In Coq parlance, these are just terms of type [Prop.] *)
 
@@ -287,3 +287,70 @@ Hence the distinction between [bool] and [Prop].  Programs of type [bool] are co
 Constructive logic lets us define all of the logical connectives in an aesthetically-appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called %\textit{%#<i>#program extraction#</i>#%}%, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
 
 We will see more about Coq's program extraction facility in a later chapter.  However, I think it is worth interjecting another warning at this point, following up on the prior warning about taking the Curry-Howard correspondence too literally.  It is possible to write programs by theorem-proving methods in Coq, but hardly anyone does it.  It is almost always most useful to maintain the distinction between programs and proofs.  If you write a program by proving a theorem, you are likely to run into algorithmic inefficiencies that you introduced in your proof to make it easier to prove.  It is a shame to have to worry about such situations while proving tricky theorems, and it is a happy state of affairs that you almost certainly will not need to, with the ideal of extracting programs from proofs being confined mostly to theoretical studies. *)
+
+
+(** * First-Order Logic *)
+
+(** The [forall] connective of first-order logic, which we have seen in many examples so far, is built into Coq.  Getting ahead of ourselves a bit, we can see it as the dependent function type constructor.  In fact, implication and universal quantification are just different syntactic shorthands for the same Coq mechanism.  A formula [P -> Q] is equivalent to [forall x : P, Q], where [x] does not appear in [Q].  That is, the "real" type of the implication says "for every proof of [P], there exists a proof of [Q]."
+
+Existential quantification is defined in the standard library. *)
+
+Print ex.
+(** [[
+
+Inductive ex (A : Type) (P : A -> Prop) : Prop :=
+    ex_intro : forall x : A, P x -> ex P
+    ]] *)
+
+(** [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time. *)
+
+Theorem exist1 : exists x : nat, x + 1 = 2.
+  (** remove printing exists*)
+  (** We can start this proof with a tactic [exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse 'E' appears instead of the text "exists.") *)
+  exists 1.
+
+  (** The conclusion is replaced with a version using the existential witness that we announced. *)
+
+  (** [[
+
+  ============================
+   1 + 1 = 2
+   ]] *)
+
+  reflexivity.
+Qed.
+
+(** printing exists $\exists$ *)
+
+(** We can also use tactics to reason about existential hypotheses. *)
+
+Theorem exist2 : forall n m : nat, (exists x : nat, n + x = m) -> n <= m.
+  (** We start by case analysis on the proof of the existential fact. *)
+  destruct 1.
+  (** [[
+
+  n : nat
+  m : nat
+  x : nat
+  H : n + x = m
+  ============================
+   n <= m
+   ]] *)
+
+  (** The goal has been replaced by a form where there is a new free variable [x], and where we have a new hypothesis that the body of the existential holds with [x] substituted for the old bound variable.  From here, the proof is just about arithmetic and is easy to automate. *)
+
+  crush.
+Qed.
+
+
+(* begin hide *)
+(* In-class exercises *)
+
+Theorem forall_exists_commute : forall (A B : Type) (P : A -> B -> Prop),
+  (exists x : A, forall y : B, P x y) -> (forall y : B, exists x : A, P x y).
+Admitted.
+
+(* end hide *)
+
+
+(** The tactic [intuition] has a first-order cousin called [firstorder].  [firstorder] proves many formulas when only first-order reasoning is needed, and it tries to perform first-order simplifications in any case.  First-order reasoning is much harder than propositional reasoning, so [firstorder] is much more likely than [intuition] to get stuck in a way that makes it run for long enough to be useless. *)
