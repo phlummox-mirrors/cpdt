@@ -12,6 +12,11 @@ Require Import List.
 Require Omega.
 
 
+Ltac simplHyp :=
+  match goal with
+    | [ H : S _ = S _ |- _ ] => injection H; clear H; intros; subst
+  end.
+
 Ltac rewriteHyp :=
   match goal with
     | [ H : _ |- _ ] => rewrite H
@@ -23,6 +28,6 @@ Ltac rewriter := autorewrite with cpdt in *; rewriterP.
 
 Hint Rewrite app_ass : cpdt.
 
-Ltac sintuition := simpl in *; intuition.
+Ltac sintuition := simpl in *; intuition; try simplHyp.
 
 Ltac crush := sintuition; rewriter; sintuition; try omega.
