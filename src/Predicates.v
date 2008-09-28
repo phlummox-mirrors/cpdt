@@ -440,3 +440,225 @@ Abort.
 
 (* end hide *)
 
+
+(** * Recursive Predicates *)
+
+(** We have already seen all of the ingredients we need to build interesting recursive predicates, like this predicate capturing even-ness. *)
+
+Inductive even : nat -> Prop :=
+| EvenO : even O
+| EvenSS : forall n, even n -> even (S (S n)).
+
+(** Think of [even] as another judgment defined by natural deduction rules.  [EvenO] is a rule with nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (S (S n))] below.
+
+The proof techniques of the last section are easily adapted. *)
+
+Theorem even_0 : even 0.
+  constructor.
+Qed.
+
+Theorem even_4 : even 4.
+  constructor; constructor; constructor.
+Qed.
+
+(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility. *)
+
+Hint Constructors even.
+
+Theorem even_4' : even 4.
+  auto.
+Qed.
+
+Theorem even_1_contra : even 1 -> False.
+  inversion 1.
+Qed.
+
+Theorem even_3_contra : even 3 -> False.
+  inversion 1.
+  (** [[
+
+  H : even 3
+  n : nat
+  H1 : even 1
+  H0 : n = 1
+  ============================
+   False
+   ]] *)
+
+  (** [inversion] can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion. *)
+
+  inversion H1.
+Qed.
+
+(** We can also do inductive proofs about [even]. *)
+
+Theorem even_plus : forall n m, even n -> even m -> even (n + m).
+  (** It seems a reasonable first choice to proceed by induction on [n]. *)
+  induction n; crush.
+  (** [[
+
+  n : nat
+  IHn : forall m : nat, even n -> even m -> even (n + m)
+  m : nat
+  H : even (S n)
+  H0 : even m
+  ============================
+   even (S (n + m))
+   ]] *)
+
+  (** We will need to use the hypotheses [H] and [H0] somehow.  The most natural choice is to invert [H]. *)
+
+  inversion H.
+  (** [[
+
+  n : nat
+  IHn : forall m : nat, even n -> even m -> even (n + m)
+  m : nat
+  H : even (S n)
+  H0 : even m
+  n0 : nat
+  H2 : even n0
+  H1 : S n0 = n
+  ============================
+   even (S (S n0 + m))
+   ]] *)
+
+  (** Simplifying the conclusion brings us to a point where we can apply a constructor. *)
+  simpl.
+  (** [[
+
+  ============================
+   even (S (S (n0 + m)))
+   ]] *)
+
+  constructor.
+  (** [[
+
+  ============================
+   even (n0 + m)
+   ]] *)
+
+  (** At this point, we would like to apply the inductive hypothesis, which is: *)
+  (** [[
+
+  IHn : forall m : nat, even n -> even m -> even (n + m)
+  ]] *)
+
+  (** Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct %\textit{%#<i>#on the structure of one of the [even] proofs#</i>#%}%.  This technique is commonly called %\textit{%#<i>#rule induction#</i>#%}% in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with "normal" induction is apparent. *)
+
+Restart.
+
+  induction 1.
+(** [[
+
+  m : nat
+  ============================
+   even m -> even (0 + m)
+
+subgoal 2 is:
+ even m -> even (S (S n) + m)
+ ]] *)
+
+  (** The first case is easily discharged by [crush], based on the hint we added earlier to try the constructors of [even]. *)
+
+  crush.
+
+  (** Now we focus on the second case: *)
+  intro.
+
+  (** [[
+
+  m : nat
+  n : nat
+  H : even n
+  IHeven : even m -> even (n + m)
+  H0 : even m
+  ============================
+   even (S (S n) + m)
+   ]] *)
+
+  (** We simplify and apply a constructor, as in our last proof attempt. *)
+
+  simpl; constructor.
+  (** [[
+
+  ============================
+   even (n + m)
+   ]] *)
+
+  (** Now we have an exact match with our inductive hypothesis, and the remainder of the proof is trivial. *)
+
+  apply IHeven; assumption.
+
+  (** In fact, [crush] can handle all of the details of the proof once we declare the induction strategy. *)
+
+Restart.
+  induction 1; crush.
+Qed.
+
+(** Induction on recursive predicates has similar pitfalls to those we encountered with inversion in the last section. *)
+
+Theorem even_contra : forall n, even (S (n + n)) -> False.
+  induction 1.
+  (** [[
+  
+  n : nat
+  ============================
+   False
+
+subgoal 2 is:
+ False
+ ]] *)
+
+  (** We are already sunk trying to prove the first subgoal, since the argument to [even] was replaced by a fresh variable internally.  This time, we find it easiest to prove this theorem by way of a lemma.  Instead of trusting [induction] to replace expressions with fresh variables, we do it ourselves, explicitly adding the appropriate equalities as new assumptions. *)
+Abort.
+
+Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
+  induction 1; crush.
+
+  (** At this point, it is useful to consider all cases of [n] and [n0] being zero or nonzero.  Only one of these cases has any trickyness to it. *)
+  destruct n; destruct n0; crush.
+
+  (** [[
+
+  n : nat
+  H : even (S n)
+  IHeven : forall n0 : nat, S n = S (n0 + n0) -> False
+  n0 : nat
+  H0 : S n = n0 + S n0
+  ============================
+   False
+   ]] *)
+
+  (** At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter. *)
+  Check plus_n_Sm.
+  (** [[
+
+plus_n_Sm
+     : forall n m : nat, S (n + m) = n + S m
+     ]] *)
+
+  rewrite <- plus_n_Sm in H0.
+
+  (** The induction hypothesis lets us complete the proof. *)
+  apply IHeven with n0; assumption.
+
+  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more robust to changes in the theorem statement. *)
+Restart.
+  Hint Rewrite <- plus_n_Sm : cpdt.
+
+  induction 1; crush;
+    match goal with
+      | [ H : S ?N = ?N0 + ?N0 |- _ ] => destruct N; destruct N0
+    end; crush; eauto.
+Qed.
+
+(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the [match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, [eauto].
+
+[crush] uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  [auto] attempts Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  [eauto] relaxes this restriction, at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively-automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing off with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+
+The original theorem now follows trivially from our lemma. *)
+
+Theorem even_contra : forall n, even (S (n + n)) -> False.
+  intros; apply even_contra' with (S (n + n)) n; trivial.
+Qed.
