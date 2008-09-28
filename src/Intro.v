@@ -187,6 +187,8 @@ Some Quick Examples & \texttt{StackMachine.v} \\
 \hline
 Introducing Inductive Types & \texttt{InductiveTypes.v} \\
 \hline
+Inductive Predicates & \texttt{Predicates.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
