@@ -211,12 +211,42 @@ subgoal 2 is:
 (* In-class exercises *)
 
   Theorem contra : P -> ~P -> R.
+(* begin thide *)
+    unfold not.
+    intros.
+    elimtype False.
+    apply H0.
+    assumption.
+(* end thide *)
   Admitted.
 
   Theorem and_assoc : (P /\ Q) /\ R -> P /\ (Q /\ R).
+(* begin thide *)
+    intros.
+    destruct H.
+    destruct H.
+    split.
+    assumption.
+    split.
+    assumption.
+    assumption.
+(* end thide *)
   Admitted.
 
   Theorem or_assoc : (P \/ Q) \/ R -> P \/ (Q \/ R).
+(* begin thide *)
+    intros.
+    destruct H.
+    destruct H.
+    left.
+    assumption.
+    right.
+    left.
+    assumption.
+    right.
+    right.
+    assumption.
+(* end thide *)
   Admitted.
 
 (* end hide *)
@@ -348,6 +378,12 @@ Qed.
 
 Theorem forall_exists_commute : forall (A B : Type) (P : A -> B -> Prop),
   (exists x : A, forall y : B, P x y) -> (forall y : B, exists x : A, P x y).
+(* begin thide *)
+  intros.
+  destruct H.
+  exists x.
+  apply H.
+(* end thide *)
 Admitted.
 
 (* end hide *)
@@ -437,6 +473,24 @@ Abort.
 (* In-class exercises *)
 
 (* EX: Define an inductive type capturing when a list has exactly two elements.  Prove that your predicate does not hold of the empty list, and prove that, whenever it holds of a list, the length of that list is two. *)
+
+(* begin thide *)
+Section twoEls.
+  Variable A : Type.
+
+  Inductive twoEls : list A -> Prop :=
+  | TwoEls : forall x y, twoEls (x :: y :: nil).
+
+  Theorem twoEls_nil : twoEls nil -> False.
+    inversion 1.
+  Qed.
+
+  Theorem twoEls_two : forall ls, twoEls ls -> length ls = 2.
+    inversion 1.
+    reflexivity.
+  Qed.
+End twoEls.
+(* end thide *)
 
 (* end hide *)
 
@@ -660,5 +714,96 @@ Qed.
 The original theorem now follows trivially from our lemma. *)
 
 Theorem even_contra : forall n, even (S (n + n)) -> False.
-  intros; apply even_contra' with (S (n + n)) n; trivial.
+  intros; eapply even_contra'; eauto.
 Qed.
+
+(** We use a variant [eapply] of [apply] which has the same relationship to [apply] as [eauto] has to [auto].  [apply] only succeeds if all arguments to the rule being used can be determined from the form of the goal, whereas [eapply] will introduce unification variables for undetermined arguments.  [eauto] is able to determine the right values for those unification variables.
+
+By considering an alternate attempt at proving the lemma, we can see another common pitfall of inductive proofs in Coq.  Imagine that we had tried to prove [even_contra'] with all of the [forall] quantifiers moved to the front of the lemma statement. *)
+
+Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
+  induction 1; crush;
+    match goal with
+      | [ H : S ?N = ?N0 + ?N0 |- _ ] => destruct N; destruct N0
+    end; crush; eauto.
+
+  (** One subgoal remains: *)
+
+  (** [[
+  
+  n : nat
+  H : even (S (n + n))
+  IHeven : S (n + n) = S (S (S (n + n))) -> False
+  ============================
+   False
+   ]] *)
+
+  (** We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] %\textit{%#<i>#appeared after the thing we are inducting on#</i>#%}% in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses.
+
+     Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
+
+
+(* begin hide *)
+(* In-class exercises *)
+
+(* EX: Define a type [prop] of simple boolean formulas made up only of truth, falsehood, binary conjunction, and binary disjunction.  Define an inductive predicate [holds] that captures when [prop]s are valid, and define a predicate [falseFree] that captures when a [prop] does not contain the "false" formula.  Prove that every false-free [prop] is valid. *)
+
+(* begin thide *)
+Inductive prop : Set :=
+| Tru : prop
+| Fals : prop
+| And : prop -> prop -> prop
+| Or : prop -> prop -> prop.
+
+Inductive holds : prop -> Prop :=
+| HTru : holds Tru
+| HAnd : forall p1 p2, holds p1 -> holds p2 -> holds (And p1 p2)
+| HOr1 : forall p1 p2, holds p1 -> holds (Or p1 p2)
+| HOr2 : forall p1 p2, holds p2 -> holds (Or p1 p2).
+
+Inductive falseFree : prop -> Prop :=
+| FFTru : falseFree Tru
+| FFAnd : forall p1 p2, falseFree p1 -> falseFree p2 -> falseFree (And p1 p2)
+| FFNot : forall p1 p2, falseFree p1 -> falseFree p2 -> falseFree (Or p1 p2).
+
+Hint Constructors holds.
+
+Theorem falseFree_holds : forall p, falseFree p -> holds p.
+  induction 1; crush.
+Qed.
+(* end thide *)
+
+
+(* EX: Define an inductive type [prop'] that is the same as [prop] but omits the possibility for falsehood.  Define a proposition [holds'] for [prop'] that is analogous to [holds].  Define a function [propify] for translating [prop']s to [prop]s.  Prove that, for any [prop'] [p], if [propify p] is valid, then so is [p]. *)
+
+(* begin thide *)
+Inductive prop' : Set :=
+| Tru' : prop'
+| And' : prop' -> prop' -> prop'
+| Or' : prop' -> prop' -> prop'.
+
+Inductive holds' : prop' -> Prop :=
+| HTru' : holds' Tru'
+| HAnd' : forall p1 p2, holds' p1 -> holds' p2 -> holds' (And' p1 p2)
+| HOr1' : forall p1 p2, holds' p1 -> holds' (Or' p1 p2)
+| HOr2' : forall p1 p2, holds' p2 -> holds' (Or' p1 p2).
+
+Fixpoint propify (p : prop') : prop :=
+  match p with
+    | Tru' => Tru
+    | And' p1 p2 => And (propify p1) (propify p2)
+    | Or' p1 p2 => Or (propify p1) (propify p2)
+  end.
+
+Hint Constructors holds'.
+
+Lemma propify_holds' : forall p', holds p' -> forall p, p' = propify p -> holds' p.
+  induction 1; crush; destruct p; crush.
+Qed.
+
+Theorem propify_holds : forall p, holds (propify p) -> holds' p.
+  intros; eapply propify_holds'; eauto.
+Qed.
+(* end thide *)
+
+(* end hide *)
