@@ -53,14 +53,19 @@ Section Propositional.
 We have also already seen the definition of [True].  For a demonstration of a lower-level way of establishing proofs of inductive predicates, we turn to this trivial theorem. *)
   
   Theorem obvious : True.
+(* begin thide *)
     apply I.
+(* end thide *)
   Qed.
 
   (** We may always use the [apply] tactic to take a proof step based on applying a particular constructor of the inductive predicate that we are trying to establish.  Sometimes there is only one constructor that could possibly apply, in which case a shortcut is available: *)
 
+(* begin thide *)
   Theorem obvious' : True.
     constructor.
   Qed.
+
+(* end thide *)
 
   (** There is also a predicate [False], which is the Curry-Howard mirror image of [Empty_set] from the last chapter. *)
 
@@ -73,12 +78,15 @@ Inductive False : Prop :=
   (** We can conclude anything from [False], doing case analysis on a proof of [False] in the same way we might do case analysis on, say, a natural number.  Since there are no cases to consider, any such case analysis succeeds immediately in proving the goal. *)
 
   Theorem False_imp : False -> 2 + 2 = 5.
+(* begin thide *)
     destruct 1.
+(* end thide *)
   Qed.
 
   (** In a consistent context, we can never build a proof of [False].  In inconsistent contexts that appear in the courses of proofs, it is usually easiest to proceed by demonstrating that inconsistency with an explicit proof of [False]. *)
 
   Theorem arith_neq : 2 + 2 = 5 -> 9 + 9 = 835.
+(* begin thide *)
     intro.
 
     (** At this point, we have an inconsistent hypothesis [2 + 2 = 5], so the specific conclusion is not important.  We use the [elimtype] tactic to state a proposition, telling Coq that we wish to construct a proof of the new proposition and then prove the original goal by case analysis on the structure of the new auxiliary proof.  Since [False] has no constructors, [elimtype False] simply leaves us with the obligation to prove [False]. *)
@@ -94,6 +102,7 @@ Inductive False : Prop :=
     (** For now, we will leave the details of this proof about arithmetic to [crush]. *)
 
     crush.
+(* end thide *)
   Qed.
 
   (** A related notion to [False] is logical negation. *)
@@ -108,6 +117,7 @@ not = fun A : Prop => A -> False
   (** We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~P] expands to [not P]. *)
 
   Theorem arith_neq' : ~ (2 + 2 = 5).
+(* begin thide *)
     unfold not.
 
     (** [[
@@ -117,6 +127,7 @@ not = fun A : Prop => A -> False
    ]] *)
 
     crush.
+(* end thide *)
   Qed.
 
   (** We also have conjunction, which we introduced in the last chapter. *)
@@ -130,6 +141,7 @@ Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
   (** The interested reader can check that [and] has a Curry-Howard doppleganger called [prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  [/\] is an infix shorthand for [and]. *)
 
   Theorem and_comm : P /\ Q -> Q /\ P.
+(* begin thide *)
     (** We start by case analysis on the proof of [P /\ Q]. *)
 
     destruct 1.
@@ -160,6 +172,7 @@ subgoal 2 is:
 
     assumption.
     assumption.
+(* end thide *)
   Qed.
 
   (** Coq disjunction is called [or] and abbreviated with the infix operator [\/]. *)
@@ -174,6 +187,8 @@ Inductive or (A : Prop) (B : Prop) : Prop :=
   (** We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq [sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
 
   Theorem or_comm : P \/ Q -> Q \/ P.
+
+(* begin thide *)
     (** As in the proof for [and], we begin with case analysis, though this time we are met by two cases instead of one. *)
     destruct 1.
 (** [[
@@ -204,6 +219,7 @@ subgoal 2 is:
    ]] *)
 
     left; assumption.
+(* end thide *)
   Qed.
 
 
@@ -255,7 +271,9 @@ subgoal 2 is:
   (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is [tauto], which is a complete decision procedure for constructive propositional logic.  (More on what "constructive" means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
 
   Theorem or_comm' : P \/ Q -> Q \/ P.
+(* begin thide *)
     tauto.
+(* end thide *)
   Qed.
 
   (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  [intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
@@ -263,6 +281,7 @@ subgoal 2 is:
   Theorem arith_comm : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
     -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
+(* begin thide *)
     intuition.
 
     (** A lot of the proof structure has been generated for us by [intuition], but the final proof depends on a fact about lists.  The remaining subgoal hints at what cleverness we need to inject. *)
@@ -291,10 +310,12 @@ subgoal 2 is:
     (** Now the subgoal follows by purely propositional reasoning.  That is, we could replace [length ls1 + length ls2 = 6] with [P] and [length ls1 = length ls2] with [Q] and arrive at a tautology of propositional logic. *)
 
     tauto.
+(* end thide *)
   Qed.
 
   (** [intuition] is one of the main bits of glue in the implementation of [crush], so, with a little help, we can get a short automated proof of the theorem. *)
 
+(* begin thide *)
   Theorem arith_comm' : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
     -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
@@ -302,6 +323,7 @@ subgoal 2 is:
 
     crush.
   Qed.
+(* end thide *)
 
 End Propositional.
 
@@ -335,8 +357,9 @@ Inductive ex (A : Type) (P : A -> Prop) : Prop :=
 (** [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time. *)
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
+(* begin thide *)
   (** remove printing exists*)
-  (** We can start this proof with a tactic [exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse 'E' appears instead of the text "exists.") *)
+  (** We can start this proof with a tactic [exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse 'E' appears instead of the text "exists" in formulas.) *)
   exists 1.
 
   (** The conclusion is replaced with a version using the existential witness that we announced. *)
@@ -348,6 +371,7 @@ Theorem exist1 : exists x : nat, x + 1 = 2.
    ]] *)
 
   reflexivity.
+(* end thide *)
 Qed.
 
 (** printing exists $\exists$ *)
@@ -355,6 +379,7 @@ Qed.
 (** We can also use tactics to reason about existential hypotheses. *)
 
 Theorem exist2 : forall n m : nat, (exists x : nat, n + x = m) -> n <= m.
+(* begin thide *)
   (** We start by case analysis on the proof of the existential fact. *)
   destruct 1.
   (** [[
@@ -370,6 +395,7 @@ Theorem exist2 : forall n m : nat, (exists x : nat, n + x = m) -> n <= m.
   (** The goal has been replaced by a form where there is a new free variable [x], and where we have a new hypothesis that the body of the existential holds with [x] substituted for the old bound variable.  From here, the proof is just about arithmetic and is easy to automate. *)
 
   crush.
+(* end thide *)
 Qed.
 
 
@@ -400,7 +426,9 @@ Inductive isZero : nat -> Prop :=
 | IsZero : isZero 0.
 
 Theorem isZero_zero : isZero 0.
+(* begin thide *)
   constructor.
+(* end thide *)
 Qed.
 
 (** We can call [isZero] a %\textit{%#<i>#judgment#</i>#%}%, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of %\textit{%#<i>#natural deduction#</i>#%}%, where we write a number of %\textit{%#<i>#inference rules#</i>#%}% with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
@@ -420,6 +448,7 @@ Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
 Returning to the example of [isZero], we can see how to make use of hypotheses that use this predicate. *)
 
 Theorem isZero_plus : forall n m : nat, isZero m -> n + m = n.
+(* begin thide *)
   (** We want to proceed by cases on the proof of the assumption about [isZero]. *)
   destruct 1.
   (** [[
@@ -432,11 +461,13 @@ Theorem isZero_plus : forall n m : nat, isZero m -> n + m = n.
   (** Since [isZero] has only one constructor, we are presented with only one subgoal.  The argument [m] to [isZero] is replaced with that type's argument from the single constructor [IsZero].  From this point, the proof is trivial. *)
 
   crush.
+(* end thide *)
 Qed.
 
 (** Another example seems at first like it should admit an analogous proof, but in fact provides a demonstration of one of the most basic gotchas of Coq proving. *)
 
 Theorem isZero_contra : isZero 1 -> False.
+(* begin thide *)
   (** Let us try a proof by cases on the assumption, as in the last proof. *)
   destruct 1.
   (** [[
@@ -451,6 +482,7 @@ Theorem isZero_contra : isZero 1 -> False.
 
   Undo.
   inversion 1.
+(* end thide *)
 Qed.
 
 (** What does [inversion] do?  Think of it as a version of [destruct] that does its best to take advantage of the structure of arguments to inductive types.  In this case, [inversion] completed the proof immediately, because it was able to detect that we were using [isZero] with an impossible argument.
@@ -508,26 +540,36 @@ Inductive even : nat -> Prop :=
 The proof techniques of the last section are easily adapted. *)
 
 Theorem even_0 : even 0.
+(* begin thide *)
   constructor.
+(* end thide *)
 Qed.
 
 Theorem even_4 : even 4.
+(* begin thide *)
   constructor; constructor; constructor.
+(* end thide *)
 Qed.
 
 (** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility. *)
 
+(* begin thide *)
 Hint Constructors even.
 
 Theorem even_4' : even 4.
   auto.
 Qed.
 
+(* end thide *)
+
 Theorem even_1_contra : even 1 -> False.
+(* begin thide *)
   inversion 1.
+(* end thide *)
 Qed.
 
 Theorem even_3_contra : even 3 -> False.
+(* begin thide *)
   inversion 1.
   (** [[
 
@@ -542,11 +584,13 @@ Theorem even_3_contra : even 3 -> False.
   (** [inversion] can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion. *)
 
   inversion H1.
+(* end thide *)
 Qed.
 
 (** We can also do inductive proofs about [even]. *)
 
 Theorem even_plus : forall n m, even n -> even m -> even (n + m).
+(* begin thide *)
   (** It seems a reasonable first choice to proceed by induction on [n]. *)
   induction n; crush.
   (** [[
@@ -648,11 +692,13 @@ subgoal 2 is:
 
 Restart.
   induction 1; crush.
+(* end thide *)
 Qed.
 
 (** Induction on recursive predicates has similar pitfalls to those we encountered with inversion in the last section. *)
 
 Theorem even_contra : forall n, even (S (n + n)) -> False.
+(* begin thide *)
   induction 1.
   (** [[
   
@@ -697,7 +743,7 @@ plus_n_Sm
   (** The induction hypothesis lets us complete the proof. *)
   apply IHeven with n0; assumption.
 
-  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more robust to changes in the theorem statement. *)
+  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more readable and more robust to changes in the theorem statement. *)
 Restart.
   Hint Rewrite <- plus_n_Sm : cpdt.
 
@@ -709,7 +755,7 @@ Qed.
 
 (** We write the proof in a way that avoids the use of local variable or hypothesis names, using the [match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, [eauto].
 
-[crush] uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  [auto] attempts Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  [eauto] relaxes this restriction, at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively-automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing off with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+[crush] uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  [auto] attempts Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  [eauto] relaxes this restriction, at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively-automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
 
 The original theorem now follows trivially from our lemma. *)
 
@@ -741,7 +787,7 @@ Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
   (** We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] %\textit{%#<i>#appeared after the thing we are inducting on#</i>#%}% in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses.
 
      Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
-
+(* end thide *)
 Abort.
 
 
