@@ -1,0 +1,20 @@
+syntax: glob
+
+*~
+
+*.depend
+*.vo
+Makefile.coq
+.coq_globals
+
+*/coqdoc.sty
+*/cpdt.*
+*/*.log
+
+html/coqdoc.css
+html/*.html
+
+templates/*.v
+
+staging/html/.dir
+cpdt.tgz
