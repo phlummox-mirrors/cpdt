@@ -21,7 +21,7 @@ Makefile.coq: Makefile $(VS)
 
 clean:: Makefile.coq
 	make -f Makefile.coq clean
-	rm -f Makefile.coq .depend $(GLOBALS) \
+	rm -f Makefile.coq .depend $(GLOBALS) cpdt.tgz \
 		latex/*.sty latex/cpdt.* templates/*.v
 
 doc: latex/cpdt.dvi latex/cpdt.pdf html

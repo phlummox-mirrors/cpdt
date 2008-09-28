@@ -15,7 +15,8 @@ let rec initial last_was_empty =
       let idx = try Some (String.index line '(') with Not_found -> None in
       match idx with
         | Some idx ->
-            if String.length line > idx+1 && line.[idx+1] = '*' then
+            if String.length line > idx+1 && line.[idx+1] = '*'
+              && not (String.length line > idx+4 && String.sub line (idx+2) 3 = " EX") then
               if line.[String.length line - 2] = '*' && line.[String.length line - 1] = ')' then
 	        initial last_was_empty
 	      else

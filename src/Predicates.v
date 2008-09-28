@@ -354,3 +354,89 @@ Admitted.
 
 
 (** The tactic [intuition] has a first-order cousin called [firstorder].  [firstorder] proves many formulas when only first-order reasoning is needed, and it tries to perform first-order simplifications in any case.  First-order reasoning is much harder than propositional reasoning, so [firstorder] is much more likely than [intuition] to get stuck in a way that makes it run for long enough to be useless. *)
+
+
+(** * Predicates with Implicit Equality *)
+
+(** We start our exploration of a more complicated class of predicates with a simple example: an alternative way of characterizing when a natural number is zero. *)
+
+Inductive isZero : nat -> Prop :=
+| IsZero : isZero 0.
+
+Theorem isZero_zero : isZero 0.
+  constructor.
+Qed.
+
+(** We can call [isZero] a %\textit{%#<i>#judgment#</i>#%}%, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of %\textit{%#<i>#natural deduction#</i>#%}%, where we write a number of %\textit{%#<i>#inference rules#</i>#%}% with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
+
+The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names %\textit{%#<i>#before#</i>#%}% the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to use different arguments to the type for different constructors.
+
+For instance, [isZero] forces its argument to be [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type! *)
+
+Print eq.
+(** [[
+
+Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
+]] *)
+
+(** [eq] is the type we get behind the scenes when uses of infix [=] are expanded.  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  It is crucial that the second argument is untied to the parameter in the type of [eq]; otherwise, we would have to prove that two values are equal even to be able to state the possibility of equality, which would more or less defeat the purpose of having an equality proposition.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only %\textit{%#<i>#prove#</i>#%}% equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.
+
+Returning to the example of [isZero], we can see how to make use of hypotheses that use this predicate. *)
+
+Theorem isZero_plus : forall n m : nat, isZero m -> n + m = n.
+  (** We want to proceed by cases on the proof of the assumption about [isZero]. *)
+  destruct 1.
+  (** [[
+
+  n : nat
+  ============================
+   n + 0 = n
+   ]] *)
+
+  (** Since [isZero] has only one constructor, we are presented with only one subgoal.  The argument [m] to [isZero] is replaced with that type's argument from the single constructor [IsZero].  From this point, the proof is trivial. *)
+
+  crush.
+Qed.
+
+(** Another example seems at first like it should admit an analogous proof, but in fact provides a demonstration of one of the most basic gotchas of Coq proving. *)
+
+Theorem isZero_contra : isZero 1 -> False.
+  (** Let us try a proof by cases on the assumption, as in the last proof. *)
+  destruct 1.
+  (** [[
+
+  ============================
+   False
+   ]] *)
+
+  (** It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0].
+
+     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently-typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called [inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
+
+  Undo.
+  inversion 1.
+Qed.
+
+(** What does [inversion] do?  Think of it as a version of [destruct] that does its best to take advantage of the structure of arguments to inductive types.  In this case, [inversion] completed the proof immediately, because it was able to detect that we were using [isZero] with an impossible argument.
+
+Sometimes using [destruct] when you should have used [inversion] can lead to confusing results.  To illustrate, consider an alternate proof attempt for the last theorem. *)
+
+Theorem isZero_contra' : isZero 1 -> 2 + 2 = 5.
+  destruct 1.
+  (** [[
+
+  ============================
+   1 + 1 = 4
+   ]] *)
+
+  (** What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  This has the net effect of decrementing each of these numbers.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+Abort.
+
+
+(* begin hide *)
+(* In-class exercises *)
+
+(* EX: Define an inductive type capturing when a list has exactly two elements.  Prove that your predicate does not hold of the empty list, and prove that, whenever it holds of a list, the length of that list is two. *)
+
+(* end hide *)
+
