@@ -670,7 +670,7 @@ Abort.
 Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   induction 1; crush.
 
-  (** At this point, it is useful to consider all cases of [n] and [n0] being zero or nonzero.  Only one of these cases has any trickyness to it. *)
+  (** At this point, it is useful to consider all cases of [n] and [n0] being zero or nonzero.  Only one of these cases has any trickiness to it. *)
   destruct n; destruct n0; crush.
 
   (** [[
