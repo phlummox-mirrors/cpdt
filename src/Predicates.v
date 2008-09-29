@@ -855,3 +855,24 @@ Qed.
 (* end thide *)
 
 (* end hide *)
+
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># Prove these tautologies of propositional logic, using only the tactics [apply], [assumption], [constructor], [destruct], [intro], [intros], [left], [right], [split], and [unfold].
+  %\begin{enumerate}%#<ol>#
+    %\item%#<li># [(True \/ False) /\ (False \/ True)]#</li>#
+    %\item%#<li># [P -> ~ ~P]#</li>#
+    %\item%#<li># [P /\ (Q \/ R) -> (P /\ Q) \/ (P /\ R)]#</li>#
+  #</ol> </li>#%\end{enumerate}% *)
+
+(** remove printing exists*)
+(** %\item%#<li># Prove the following tautology of first-order logic, using only the tactics [apply], [assert], [assumption], [destruct], [eapply], [eassumption], and [exists].  You will probably find [assert] useful for stating and proving an intermediate lemma, enabling a kind of "forward reasoning," in contrast to the "backward reasoning" that is the default for Coq tactics.  [eassumption] is a version of [assumption] that will do matching of unification variables.  Let some variable [T] of type [Set] be the set of individuals.  [x] is a constant symbol, [p] is a unary predicate symbol, [q] is a binary predicate symbol, and [f] is a unary function symbol. **)
+(** printing exists $\exists$ *)
+(** %\begin{enumerate}%#<ol>#
+    %\item%#<li># [p x -> (forall x, p x -> exists y, q x y) -> (forall x y, q x y -> q y (f y)) -> exists z, q z (f z)]#</li>#
+  #</ol> </li>#%\end{enumerate}%
+
+#</ol>#%\end{enumerate}% *)
