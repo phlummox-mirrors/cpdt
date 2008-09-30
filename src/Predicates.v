@@ -875,4 +875,6 @@ Qed.
     %\item%#<li># [p x -> (forall x, p x -> exists y, q x y) -> (forall x y, q x y -> q y (f y)) -> exists z, q z (f z)]#</li>#
   #</ol> </li>#%\end{enumerate}%
 
+%\item%#<li># Define an inductive predicate capturing when a natural number is an integer multiple of either 6 or 10.  Prove that 13 does not satisfy your predicate, and prove that any number satisfying the predicate is not odd.  It is probably easiest to prove the second theorem by indicating "odd-ness" as equality to [2 * n + 1] for some [n].#</li>#
+
 #</ol>#%\end{enumerate}% *)
