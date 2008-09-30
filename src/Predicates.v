@@ -877,4 +877,36 @@ Qed.
 
 %\item%#<li># Define an inductive predicate capturing when a natural number is an integer multiple of either 6 or 10.  Prove that 13 does not satisfy your predicate, and prove that any number satisfying the predicate is not odd.  It is probably easiest to prove the second theorem by indicating "odd-ness" as equality to [2 * n + 1] for some [n].#</li>#
 
+%\item%#<li># Define a simple programming language, its semantics, and its typing rules, and then prove that well-typed programs cannot go wrong.  Specifically:
+  %\begin{enumerate}%#<ol>#
+    %\item%#<li># Define [var] as a synonym for the natural numbers.#</li>#
+    %\item%#<li># Define an inductive type [exp] of expressions, containing natural number constants, natural number addition, pairing of two other expressions, extraction of the first component of a pair, extraction of the second component of a pair, and variables (based on the [var] type you defined).#</li>#
+    %\item%#<li># Define an inductive type [cmd] of commands, containing expressions and variable assignments.  A variable assignment node should contain the variable being assigned, the expression being assigned to it, and the command to run afterward.#</li>#
+    %\item%#<li># Define an inductive type [val] of values, containing natural number constants and pairings of values.#</li>#
+    %\item%#<li># Define a type of variable assignments, which assign a value to each variable.#</li>#
+    %\item%#<li># Define a big-step evaluation relation [eval], capturing what it means for an expression to evaluate to a value under a particular variable assignment.  "Big step" means that the evaluation of every expression should evaluatable with a single instance of the inductive predicate you will define.  For instance, "[1 + 1] evaluates to [2] under assignment [va]" should be derivable for any assignment [va].#</li>#
+    %\item%#<li># Define a big-step evaluation relation [run], capturing what it means for a command to run to a value under a particular variable assignment.  The value of a command is the result of evaluating its final expression.#</li>#
+    %\item%#<li># Define a type of variable typings, which are like variable assignments, but map variables to types instead of values.  You might use polymorphism to share some code with your variable assignments.#</li>#
+    %\item%#<li># Define typing judgments for expressions, values, and commands.  The expression and command cases will be in terms of a typing assignment.#</li>#
+    %\item%#<li># Define a predicate [varsType] to express when a variable assignment and a variable typing agree on the types of variables.#</li>#
+    %\item%#<li># Prove that any expression that has type [t] under variable typing [vt] evaluates under variable assignment [va] to some value that also has type [t] in [vt], as long as [va] and [vt] agree.#</li>#
+    %\item%#<li># Prove that any command that has type [t] under variable typing [vt] evaluates under variable assignment [va] to some value that also has type [t] in [vt], as long as [va] and [vt] agree.#</li>#
+  #</ol> </li>#%\end{enumerate}%
+
+  A few hints that may be helpful:
+  %\begin{enumerate}%#<ol>#
+    %\item%#<li># One easy way of defining variable assignments and typings is to define both as instances of a polymorphic map type.  The map type at parameter [T] can be defined to be the type of arbitrary functions from variables to [T].  A helpful function for implementing insertion into such a functional map is [eq_nat_dec], which you can make available with [Require Import Arith.].  [eq_nat_dec] has a dependent type that tells you that it makes accurate decisions on whether two natural numbers are equal, but you can use it as if it returned a boolean, e.g., [if eq_nat_dec n m then E1 else E2].#</li>#
+    %\item%#<li># If you follow the last hint, you may find yourself writing a proof that involves an expression with [eq_nat_dec] that you would like to simplify.  Running [destruct] on the particular call to [eq_nat_dec] should do the trick.  You can automate this advice with a piece of Ltac: [[
+
+match goal with
+  | [ |- context[eq_nat_dec ?X ?Y] ] => destruct (eq_nat_dec X Y)
+end
+]] #</li>#
+    %\item%#<li># You probably do not want to use an inductive definition for compatibility of variable assignments and typings.#</li>#
+    %\item%#<li># The [Tactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in "forward reasoning" style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inverison should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
+    %\item%#<li># If you want [crush'] to apply polymorphic lemmas, you may have to do a little extra work, if the type parameter is not a free variable of your proof context (so that [crush'] does not know to try it).  For instance, if you define a polymorphic map insert function [assign] of some type [forall T : Set, ...], and you want particular applications of [assign] added automatically with type parameter [U], you would need to include [assign] in the lemma list as [assign U] (if you have implicit arguments off) or [assign (T := U)] or [@assign U] (if you have implicit arguments on).#</li>#
+  #</ol> </li>#%\end{enumerate}%
+
+#</li>#
+
 #</ol>#%\end{enumerate}% *)
