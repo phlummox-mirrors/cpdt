@@ -866,12 +866,10 @@ Qed.
     %\item%#<li># [(True \/ False) /\ (False \/ True)]#</li>#
     %\item%#<li># [P -> ~ ~P]#</li>#
     %\item%#<li># [P /\ (Q \/ R) -> (P /\ Q) \/ (P /\ R)]#</li>#
-  #</ol> </li>#%\end{enumerate}% *)
+  #</ol> </li>#%\end{enumerate}%
 
-(** remove printing exists*)
-(** %\item%#<li># Prove the following tautology of first-order logic, using only the tactics [apply], [assert], [assumption], [destruct], [eapply], [eassumption], and [exists].  You will probably find [assert] useful for stating and proving an intermediate lemma, enabling a kind of "forward reasoning," in contrast to the "backward reasoning" that is the default for Coq tactics.  [eassumption] is a version of [assumption] that will do matching of unification variables.  Let some variable [T] of type [Set] be the set of individuals.  [x] is a constant symbol, [p] is a unary predicate symbol, [q] is a binary predicate symbol, and [f] is a unary function symbol. **)
-(** printing exists $\exists$ *)
-(** %\begin{enumerate}%#<ol>#
+  %\item%#<li># Prove the following tautology of first-order logic, using only the tactics [apply], [assert], [assumption], [destruct], [eapply], [eassumption], and %\textit{%#<tt>#exists#</tt>#%}%.  You will probably find [assert] useful for stating and proving an intermediate lemma, enabling a kind of "forward reasoning," in contrast to the "backward reasoning" that is the default for Coq tactics.  [eassumption] is a version of [assumption] that will do matching of unification variables.  Let some variable [T] of type [Set] be the set of individuals.  [x] is a constant symbol, [p] is a unary predicate symbol, [q] is a binary predicate symbol, and [f] is a unary function symbol.
+%\begin{enumerate}%#<ol>#
     %\item%#<li># [p x -> (forall x, p x -> exists y, q x y) -> (forall x y, q x y -> q y (f y)) -> exists z, q z (f z)]#</li>#
   #</ol> </li>#%\end{enumerate}%
 
@@ -892,7 +890,6 @@ Qed.
     %\item%#<li># Prove that any expression that has type [t] under variable typing [vt] evaluates under variable assignment [va] to some value that also has type [t] in [vt], as long as [va] and [vt] agree.#</li>#
     %\item%#<li># Prove that any command that has type [t] under variable typing [vt] evaluates under variable assignment [va] to some value that also has type [t] in [vt], as long as [va] and [vt] agree.#</li>#
   #</ol> </li>#%\end{enumerate}%
-
   A few hints that may be helpful:
   %\begin{enumerate}%#<ol>#
     %\item%#<li># One easy way of defining variable assignments and typings is to define both as instances of a polymorphic map type.  The map type at parameter [T] can be defined to be the type of arbitrary functions from variables to [T].  A helpful function for implementing insertion into such a functional map is [eq_nat_dec], which you can make available with [Require Import Arith.].  [eq_nat_dec] has a dependent type that tells you that it makes accurate decisions on whether two natural numbers are equal, but you can use it as if it returned a boolean, e.g., [if eq_nat_dec n m then E1 else E2].#</li>#
