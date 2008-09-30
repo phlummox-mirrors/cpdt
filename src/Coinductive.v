@@ -143,3 +143,165 @@ Section map'.
      Why enforce a rule like this?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Perhaps this other function might be defined mutually with [map'].  It might deconstruct its first argument, retrieving [map' s] from within [Cons (f h) (map' s)].  Next it might try a [match] on this retrieved value, which amounts to deconstructing [map' s].  To figure out how this [match] turns out, we need to know the top-level structure of [map' s], but this is exactly what we started out trying to determine!  We run into a loop in the evaluation process, and we have reached a witness of inconsistency if we are evaluating [approx (map' s) 1] for any [s]. *)
 End map'.
 
+
+(** * Infinite Proofs *)
+
+(** Let us say we want to give two different definitions of a stream of all ones, and then we want to prove that they are equivalent. *)
+
+CoFixpoint ones : stream nat := Cons 1 ones.
+Definition ones' := map S zeroes.
+
+(** The obvious statement of the equality is this: *)
+
+Theorem ones_eq : ones = ones'.
+
+  (** However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)
+Abort.
+
+(** Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a %\textit{%#<i>#co-inductive proposition#</i>#%}%.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
+
+We are ready for our first co-inductive predicate. *)
+
+Section stream_eq.
+  Variable A : Set.
+
+  CoInductive stream_eq : stream A -> stream A -> Prop :=
+  | Stream_eq : forall h t1 t2,
+    stream_eq t1 t2
+    -> stream_eq (Cons h t1) (Cons h t2).
+End stream_eq.
+
+(** We say that two streams are equal if and only if they have the same heads and their tails are equal.  We use the normal finite-syntactic equality for the heads, and we refer to our new equality recursively for the tails.
+
+We can try restating the theorem with [stream_eq]. *)
+
+Theorem ones_eq : stream_eq ones ones'.
+  (** Coq does not support tactical co-inductive proofs as well as it supports tactical inductive proofs.  The usual starting point is the [cofix] tactic, which asks to structure this proof as a co-fixpoint. *)
+  cofix.
+  (** [[
+
+  ones_eq : stream_eq ones ones'
+  ============================
+   stream_eq ones ones'
+   ]] *)
+
+  (** It looks like this proof might be easier than we expected! *)
+
+  assumption.
+  (** [[
+
+Proof completed. *)
+
+  (** Unfortunately, we are due for some disappointment in our victory lap. *)
+
+  (** [[
+Qed.
+
+Error:
+Recursive definition of ones_eq is ill-formed.
+
+In environment
+ones_eq : stream_eq ones ones'
+
+unguarded recursive call in "ones_eq" *)
+
+  (** Via the Curry-Howard correspondence, the same guardedness condition applies to our co-inductive proofs as to our co-inductive data structures.  We should be grateful that this proof is rejected, because, if it were not, the same proof structure could be used to prove any co-inductive theorem vacuously, by direct appeal to itself!
+
+     Thinking about how Coq would generate a proof term from the proof script above, we see that the problem is that we are violating the first part of the guardedness condition.  During our proofs, Coq can help us check whether we have yet gone wrong in this way.  We can run the command [Guarded] in any context to see if it is possible to finish the proof in a way that will yield a properly guarded proof term.
+
+     [[
+Guarded.
+
+     Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems %\textit{%#<i>#before#</i>#%}% we think we are ready to run [Qed].
+     
+     We need to start the co-induction by applying one of [stream_eq]'s constructors.  To do that, we need to know that both arguments to the predicate are [Cons]es.  Informally, this is trivial, but [simpl] is not able to help us. *)
+
+  Undo.
+  simpl.
+  (** [[
+
+  ones_eq : stream_eq ones ones'
+  ============================
+   stream_eq ones ones'
+   ]] *)
+
+  (** It turns out that we are best served by proving an auxiliary lemma. *)
+Abort.
+
+(** First, we need to define a function that seems pointless on first glance. *)
+
+Definition frob A (s : stream A) : stream A :=
+  match s with
+    | Cons h t => Cons h t
+  end.
+
+(** Next, we need to prove a theorem that seems equally pointless. *)
+
+Theorem frob_eq : forall A (s : stream A), s = frob s.
+  destruct s; reflexivity.
+Qed.
+
+(** But, miraculously, this theorem turns out to be just what we needed. *)
+
+Theorem ones_eq : stream_eq ones ones'.
+  cofix.
+
+  (** We can use the theorem to rewrite the two streams. *)
+  rewrite (frob_eq ones).
+  rewrite (frob_eq ones').
+  (** [[
+
+  ones_eq : stream_eq ones ones'
+  ============================
+   stream_eq (frob ones) (frob ones')
+   ]] *)
+
+  (** Now [simpl] is able to reduce the streams. *)
+
+  simpl.
+  (** [[
+
+  ones_eq : stream_eq ones ones'
+  ============================
+   stream_eq (Cons 1 ones)
+     (Cons 1
+        ((cofix map (s : stream nat) : stream nat :=
+            match s with
+            | Cons h t => Cons (S h) (map t)
+            end) zeroes))
+            ]] *)
+
+  (** Since we have exposed the [Cons] structure of each stream, we can apply the constructor of [stream_eq]. *)
+
+  constructor.
+  (** [[
+
+  ones_eq : stream_eq ones ones'
+  ============================
+   stream_eq ones
+     ((cofix map (s : stream nat) : stream nat :=
+         match s with
+         | Cons h t => Cons (S h) (map t)
+         end) zeroes)
+         ]] *)
+
+  (** Now, modulo unfolding of the definition of [map], we have matched our assumption. *)
+  assumption.
+Qed.
+
+(** Why did this silly-looking trick help?  The answer has to do with the constraints placed on Coq's evaluation rules by the need for termination.  The [cofix]-related restriction that foiled our first attempt at using [simpl] is dual to a restriction for [fix].  In particular, an application of an anonymous [fix] only reduces when the top-level structure of the recursive argument is known.  Otherwise, we would be unfolding the recursive definition ad infinitum.
+
+   Fixpoints only reduce when enough is known about the %\textit{%#<i>#definitions#</i>#%}% of their arguments.  Dually, co-fixpoints only reduce when enough is known about %\textit{%#<i>#how their results will be used#</i>#%}%.  In particular, a [cofix] is only expanded when it is the discriminee of a [match].  Rewriting with our superficially silly lemma wrapped new [match]es around the two [cofix]es, triggering reduction.
+
+   If [cofix]es reduced haphazardly, it would be easy to run into infinite loops in evaluation, since we are, after all, building infinite objects.
+
+   One common source of difficulty with co-inductive proofs is bad interaction with standard Coq automation machinery.  If we try to prove [ones_eq'] with automation, like we have in previous inductive proofs, we get an invalid proof. *)
+
+Theorem ones_eq' : stream_eq ones ones'.
+  cofix; crush.
+  (** [[
+
+  Guarded. *)
+Abort.
+
+(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.  We will see examples of effective co-inductive proving in later chapters. *)
