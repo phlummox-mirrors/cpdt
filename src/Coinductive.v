@@ -305,3 +305,121 @@ Theorem ones_eq' : stream_eq ones ones'.
 Abort.
 
 (** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.  We will see examples of effective co-inductive proving in later chapters. *)
+
+
+(** * Simple Modeling of Non-Terminating Programs *)
+
+(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple assembly language and use that semantics to prove that an optimization function is sound.  We start by defining a type of instructions. *)
+
+Inductive reg : Set := R1 | R2.
+Definition label := nat.
+
+Inductive instrs : Set :=
+| Const : reg -> nat -> instrs -> instrs
+| Add : reg -> reg -> reg -> instrs -> instrs
+| Halt : reg -> instrs
+| Jeq : reg -> reg -> label -> instrs -> instrs.
+
+Definition program := list instrs.
+
+Section regmap.
+  Variable A : Set.
+
+  Record regmap : Set := Regmap {
+    VR1 : A;
+    VR2 : A
+  }.
+
+  Definition empty v : regmap := Regmap v v.
+  Definition get (rm : regmap) (r : reg) : A :=
+    match r with
+      | R1 => VR1 rm
+      | R2 => VR2 rm
+    end.
+  Definition set (rm : regmap) (r : reg) (v : A) : regmap :=
+    match r with
+      | R1 => Regmap v (VR2 rm)
+      | R2 => Regmap (VR1 rm) v
+    end.
+End regmap.
+
+Section run.
+  Variable prog : program.
+
+  CoInductive run : regmap nat -> instrs -> nat -> Prop :=
+  | RConst : forall rm r n is v,
+    run (set rm r n) is v
+    -> run rm (Const r n is) v
+  | RAdd : forall rm r r1 r2 is v,
+    run (set rm r (get rm r1 + get rm r2)) is v
+    -> run rm (Add r r1 r2 is) v
+  | RHalt : forall rm r,
+    run rm (Halt r) (get rm r)
+  | RJeq_eq : forall rm r1 r2 l is is' v,
+    get rm r1 = get rm r2
+    -> nth_error prog l = Some is'
+    -> run rm is' v
+    -> run rm (Jeq r1 r2 l is) v
+  | RJeq_neq : forall rm r1 r2 l is v,
+    get rm r1 <> get rm r2
+    -> run rm is v
+    -> run rm (Jeq r1 r2 l is) v.
+End run.
+
+Fixpoint constFold (rm : regmap (option nat)) (is : instrs) {struct is} : instrs :=
+  match is with
+    | Const r n is => Const r n (constFold (set rm r (Some n)) is)
+    | Add r r1 r2 is =>
+      match get rm r1, get rm r2 with
+        | Some n1, Some n2 => Const r (n1 + n2) (constFold (set rm r (Some (n1 + n2))) is)
+        | _, _ => Add r r1 r2 (constFold (set rm r None) is)
+      end
+    | Halt _ => is
+    | Jeq r1 r2 l is => Jeq r1 r2 l (constFold rm is)
+  end.
+
+Definition regmapCompat (rm : regmap nat) (rm' : regmap (option nat)) :=
+  forall r, match get rm' r with
+              | None => True
+              | Some v => get rm r = v
+            end.
+
+Ltac compat := unfold regmapCompat in *; crush;
+  match goal with
+    | [ |- match get _ ?R with Some _ => _ | None => _ end ] => destruct R; crush
+  end.
+
+Lemma regmapCompat_set_None : forall rm rm' r n,
+  regmapCompat rm rm'
+  -> regmapCompat (set rm r n) (set rm' r None).
+  destruct r; compat.
+Qed.
+
+Lemma regmapCompat_set_Some : forall rm rm' r n,
+  regmapCompat rm rm'
+  -> regmapCompat (set rm r n) (set rm' r (Some n)).
+  destruct r; compat.
+Qed.
+
+Require Import Arith.
+
+Section constFold_ok.
+  Variable prog : program.
+
+  Theorem constFold_ok : forall rm is v,
+    run prog rm is v
+    -> forall rm', regmapCompat rm rm'
+      -> run prog rm (constFold rm' is) v.
+    Hint Resolve regmapCompat_set_None regmapCompat_set_Some.
+    Hint Constructors run.
+
+    cofix.
+    destruct 1; crush; eauto;
+      repeat match goal with
+               | [ H : regmapCompat _ _ |- run _ _ (match get ?RM ?R with Some _ => _ | None => _ end) _ ] =>
+                 generalize (H R); destruct (get RM R); crush
+             end.
+  Qed.
+End constFold_ok.
+
+Print constFold_ok.
