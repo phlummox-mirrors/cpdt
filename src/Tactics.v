@@ -14,7 +14,7 @@ Require Omega.
 Set Implicit Arguments.
 
 
-Ltac inject H := injection H; clear H; intros; subst.
+Ltac inject H := injection H; clear H; intros; try subst.
 
 Ltac appHyps f :=
   match goal with
@@ -46,15 +46,15 @@ Ltac simplHyp invOne :=
 
     | [ H : ?F _ = ?F _ |- _ ] => injection H;
       match goal with
-        | [ |- _ = _ -> _ ] => clear H; intros; subst
+        | [ |- _ = _ -> _ ] => clear H; intros; try subst
       end
     | [ H : ?F _ _ = ?F _ _ |- _ ] => injection H;
       match goal with
-        | [ |- _ = _ -> _ = _ -> _ ] => clear H; intros; subst
+        | [ |- _ = _ -> _ = _ -> _ ] => clear H; intros; try subst
       end
 
-    | [ H : ?F _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; subst
-    | [ H : ?F _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; subst
+    | [ H : ?F _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
+    | [ H : ?F _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
   end.
 
 Ltac rewriteHyp :=
@@ -108,7 +108,7 @@ Ltac un_done :=
          end.
 
 Ltac crush' lemmas invOne :=
-  let sintuition := simpl in *; intuition; subst; repeat (simplHyp invOne; intuition; subst); try congruence
+  let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence
     in (sintuition; rewriter;
       repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
         repeat (simplHyp invOne; intuition));
