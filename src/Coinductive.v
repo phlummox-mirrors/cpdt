@@ -413,12 +413,12 @@ Section constFold_ok.
     Hint Resolve regmapCompat_set_None regmapCompat_set_Some.
     Hint Constructors run.
 
-    cofix.
-    destruct 1; crush; eauto;
-      repeat match goal with
-               | [ H : regmapCompat _ _ |- run _ _ (match get ?RM ?R with Some _ => _ | None => _ end) _ ] =>
-                 generalize (H R); destruct (get RM R); crush
-             end.
+    cofix;
+      destruct 1; crush; eauto;
+        repeat match goal with
+                 | [ H : regmapCompat _ _ |- run _ _ (match get ?RM ?R with Some _ => _ | None => _ end) _ ] =>
+                   generalize (H R); destruct (get RM R); crush
+               end.
   Qed.
 End constFold_ok.
 

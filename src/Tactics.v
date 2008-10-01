@@ -102,11 +102,16 @@ Ltac inster e trace :=
       end
   end.
 
+Ltac un_done :=
+  repeat match goal with
+           | [ H : done _ |- _ ] => clear H
+         end.
+
 Ltac crush' lemmas invOne :=
   let sintuition := simpl in *; intuition; subst; repeat (simplHyp invOne; intuition; subst); try congruence
     in (sintuition; rewriter;
       repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
         repeat (simplHyp invOne; intuition));
-      sintuition; try omega).
+      un_done; sintuition; try omega).
 
 Ltac crush := crush' tt fail.
