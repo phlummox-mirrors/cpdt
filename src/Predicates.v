@@ -358,7 +358,7 @@ Inductive ex (A : Type) (P : A -> Prop) : Prop :=
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
-  (** remove printing exists*)
+  (** remove printing exists *)
   (** We can start this proof with a tactic [exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse 'E' appears instead of the text "exists" in formulas.) *)
   exists 1.
 

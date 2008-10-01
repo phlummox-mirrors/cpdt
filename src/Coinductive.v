@@ -309,7 +309,7 @@ Abort.
 
 (** * Simple Modeling of Non-Terminating Programs *)
 
-(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple assembly language and use that semantics to prove that an optimization function is sound.  We start by defining a type of instructions. *)
+(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple assembly language and use that semantics to prove that an optimization function is sound.  We start by defining types of registers, program labels, and instructions. *)
 
 Inductive reg : Set := R1 | R2.
 Definition label := nat.
@@ -320,8 +320,13 @@ Inductive instrs : Set :=
 | Halt : reg -> instrs
 | Jeq : reg -> reg -> label -> instrs -> instrs.
 
+(** [Const] stores a constant in a register; [Add] stores in the first register the sum of the values in the second two; [Halt] ends the program, returning the value of its register argument; and [Jeq] jumps to a label if the values in two registers are equal.  Each instruction but [Halt] takes an [instrs], which can be read as "list of instructions," as the normal continuation of control flow.
+
+We can define a program as a list of lists of instructions, where labels will be interpreted as indexing into such a list. *)
+
 Definition program := list instrs.
 
+(** We define a polymorphic map type for register keys, with its associated operations. *)
 Section regmap.
   Variable A : Set.
 
@@ -330,7 +335,7 @@ Section regmap.
     VR2 : A
   }.
 
-  Definition empty v : regmap := Regmap v v.
+  Definition empty (v : A) : regmap := Regmap v v.
   Definition get (rm : regmap) (r : reg) : A :=
     match r with
       | R1 => VR1 rm
@@ -342,6 +347,8 @@ Section regmap.
       | R2 => Regmap (VR1 rm) v
     end.
 End regmap.
+
+(** Now comes the interesting part. We define a co-inductive semantics for programs.  The definition itself is not surprising.  We could change [CoInductive] to [Inductive] and arrive at a valid semantics that only covers terminating program executions.  Using [CoInductive] admits infinite derivations for infinite executions. *)
 
 Section run.
   Variable prog : program.
@@ -366,17 +373,22 @@ Section run.
     -> run rm (Jeq r1 r2 l is) v.
 End run.
 
+(** We can write a function which tracks known register values to attempt to constant fold a sequence of instructions.  We track register values with a [regmap (option nat)], where a mapping to [None] indicates no information, and a mapping to [Some n] indicates that the corresponding register is known to have value [n]. *)
+
 Fixpoint constFold (rm : regmap (option nat)) (is : instrs) {struct is} : instrs :=
   match is with
     | Const r n is => Const r n (constFold (set rm r (Some n)) is)
     | Add r r1 r2 is =>
       match get rm r1, get rm r2 with
-        | Some n1, Some n2 => Const r (n1 + n2) (constFold (set rm r (Some (n1 + n2))) is)
+        | Some n1, Some n2 =>
+          Const r (n1 + n2) (constFold (set rm r (Some (n1 + n2))) is)
         | _, _ => Add r r1 r2 (constFold (set rm r None) is)
       end
     | Halt _ => is
     | Jeq r1 r2 l is => Jeq r1 r2 l (constFold rm is)
   end.
+
+(** We characterize when the two types of register maps we are using agree with each other. *)
 
 Definition regmapCompat (rm : regmap nat) (rm' : regmap (option nat)) :=
   forall r, match get rm' r with
@@ -384,6 +396,9 @@ Definition regmapCompat (rm : regmap nat) (rm' : regmap (option nat)) :=
               | Some v => get rm r = v
             end.
 
+(** We prove two lemmas about how register map modifications affect compatibility.  A tactic [compat] abstracts the common structure of the two proofs. *)
+
+(** remove printing * *)
 Ltac compat := unfold regmapCompat in *; crush;
   match goal with
     | [ |- match get _ ?R with Some _ => _ | None => _ end ] => destruct R; crush
@@ -401,7 +416,7 @@ Lemma regmapCompat_set_Some : forall rm rm' r n,
   destruct r; compat.
 Qed.
 
-Require Import Arith.
+(** Finally, we can prove the main theorem. *)
 
 Section constFold_ok.
   Variable prog : program.
@@ -416,10 +431,16 @@ Section constFold_ok.
     cofix;
       destruct 1; crush; eauto;
         repeat match goal with
-                 | [ H : regmapCompat _ _ |- run _ _ (match get ?RM ?R with Some _ => _ | None => _ end) _ ] =>
+                 | [ H : regmapCompat _ _
+                   |- run _ _ (match get ?RM ?R with
+                                 | Some _ => _
+                                 | None => _
+                               end) _ ] =>
                    generalize (H R); destruct (get RM R); crush
                end.
   Qed.
 End constFold_ok.
+
+(** If we print the proof term that was generated, we can verify that the proof is structured as a [cofix], with each co-recursive call properly guarded. *)
 
 Print constFold_ok.
