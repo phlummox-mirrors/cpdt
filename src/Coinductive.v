@@ -83,12 +83,15 @@ Eval simpl in approx trues 10.
      : list bool
      ]] *)
 
+(* begin thide *)
 (** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints %\textit{%#<i>#consume#</i>#%}% values of inductive types, with restrictions on which %\textit{%#<i>#arguments#</i>#%}% may be passed in recursive calls.  Dually, co-fixpoints %\textit{%#<i>#produce#</i>#%}% values of co-inductive types, with restrictions on what may be done with the %\textit{%#<i>#results#</i>#%}% of co-recursive calls.
 
 The restriction for co-inductive types shows up as the %\textit{%#<i>#guardedness condition#</i>#%}%, and it can be broken into two parts.  First, consider this stream definition, which would be legal in Haskell.
 
 [[
+(* end thide *)
 CoFixpoint looper : stream nat := looper.
+(* begin thide *)
 [[
 Error:
 Recursive definition of looper is ill-formed.
@@ -97,6 +100,7 @@ looper : stream nat
 
 unguarded recursive call in "looper"
 *)
+(* end thide *)
 
 (** The rule we have run afoul of here is that %\textit{%#<i>#every co-recursive call must be guarded by a constructor#</i>#%}%; that is, every co-recursive call must be a direct argument to a constructor of the co-inductive type we are generating.  It is a good thing that this rule is enforced.  If the definition of [looper] were accepted, our [approx] function would run forever when passed [looper], and we would have fallen into inconsistency.
 
@@ -131,16 +135,21 @@ Section map'.
   Variables A B : Set.
   Variable f : A -> B.
 
+(* begin thide *)
   (** [[
+(* end thide *)
 
   CoFixpoint map' (s : stream A) : stream B :=
     match s with
       | Cons h t => interleave (Cons (f h) (map' s)) (Cons (f h) (map' s))
-    end. *)
+    end.
+(* begin thide *)
+   *)
 
   (** We get another error message about an unguarded recursive call.  This is because we are violating the second guardedness condition, which says that, not only must co-recursive calls be arguments to constructors, there must also %\textit{%#<i>#not be anything but [match]es and calls to constructors of the same co-inductive type#</i>#%}% wrapped around these immediate uses of co-recursive calls.  The actual implemented rule for guardedness is a little more lenient than what we have just stated, but you can count on the illegality of any exception that would enhance the expressive power of co-recursion.
 
      Why enforce a rule like this?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Perhaps this other function might be defined mutually with [map'].  It might deconstruct its first argument, retrieving [map' s] from within [Cons (f h) (map' s)].  Next it might try a [match] on this retrieved value, which amounts to deconstructing [map' s].  To figure out how this [match] turns out, we need to know the top-level structure of [map' s], but this is exactly what we started out trying to determine!  We run into a loop in the evaluation process, and we have reached a witness of inconsistency if we are evaluating [approx (map' s) 1] for any [s]. *)
+(* end thide *)
 End map'.
 
 
@@ -156,6 +165,7 @@ Definition ones' := map S zeroes.
 Theorem ones_eq : ones = ones'.
 
   (** However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)
+(* begin thide *)
 Abort.
 
 (** Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a %\textit{%#<i>#co-inductive proposition#</i>#%}%.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
@@ -303,6 +313,7 @@ Theorem ones_eq' : stream_eq ones ones'.
 
   Guarded. *)
 Abort.
+(* end thide *)
 
 (** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.  We will see examples of effective co-inductive proving in later chapters. *)
 
