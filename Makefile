@@ -1,6 +1,6 @@
 MODULES_NODOC := Tactics
 MODULES_PROSE := Intro
-MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive
+MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)

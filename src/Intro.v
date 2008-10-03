@@ -191,6 +191,8 @@ Inductive Predicates & \texttt{Predicates.v} \\
 \hline
 Infinite Data and Proofs & \texttt{Coinductive.v} \\
 \hline
+Subset Types and Variations & \texttt{Subset.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)

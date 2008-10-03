@@ -1,0 +1,269 @@
+(* Copyright (c) 2008, Adam Chlipala
+ * 
+ * This work is licensed under a
+ * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
+ * Unported License.
+ * The license text is available at:
+ *   http://creativecommons.org/licenses/by-nc-nd/3.0/
+ *)
+
+(* begin hide *)
+Require Import List.
+
+Require Import Tactics.
+
+Set Implicit Arguments.
+(* end hide *)
+
+
+(** %\chapter{Subset Types and Variations}% *)
+
+(** So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\textit{%#<i>#dependent types#</i>#%}% to integrate programming, specification, and proving into a single phase. *)
+
+
+(** * Introducing Subset Types *)
+
+(** Let us consider several ways of implementing the natural number predecessor function.  We start by displaying the definition from the standard library: *)
+
+Print pred.
+(** [[
+
+pred = fun n : nat => match n with
+                      | 0 => 0
+                      | S u => u
+                      end
+     : nat -> nat
+]] *)
+
+(** We can use a new command, [Extraction], to produce an OCaml version of this function. *)
+
+Extraction pred.
+
+(** %\begin{verbatim}
+(** val pred : nat -> nat **)
+
+let pred = function
+  | O -> O
+  | S u -> u
+\end{verbatim}%
+
+#<pre>
+(** val pred : nat -> nat **)
+
+let pred = function
+  | O -> O
+  | S u -> u
+</pre># *)
+
+(** Returning 0 as the predecessor of 0 can come across as somewhat of a hack.  In some situations, we might like to be sure that we never try to take the predecessor of 0.  We can enforce this by giving [pred] a stronger, dependent type. *)
+
+Lemma zgtz : 0 > 0 -> False.
+  crush.
+Qed.
+
+Definition pred_strong1 (n : nat) : n > 0 -> nat :=
+  match n return (n > 0 -> nat) with
+    | O => fun pf : 0 > 0 => match zgtz pf with end
+    | S n' => fun _ => n'
+  end.
+
+(** We expand the type of [pred] to include a %\textit{%#<i>#proof#</i>#%}% that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a %\textit{%#<i>#dependent#</i>#%}% type, because its type depends on the %\textit{%#<i>#value#</i>#%}% of the argument [n].
+
+There are two aspects of the definition of [pred_strong1] that may be surprising.  First, we took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Second, there is the [return] clause for the [match], which we saw briefly in Chapter 2.  Let us see what happens if we write this function in the way that at first seems most natural. *)
+
+(** [[
+Definition pred_strong1' (n : nat) (pf : n > 0) : nat :=
+  match n with
+    | O => match zgtz pf with end
+    | S n' => n'
+  end.
+
+  [[
+Error: In environment
+n : nat
+pf : n > 0
+The term "pf" has type "n > 0" while it is expected to have type 
+"0 > 0"
+]]
+
+The term [zgtz pf] fails to type-check.  Somehow the type checker has failed to take into account information that follows from which [match] branch that term appears in.  The problem is that, by default, [match] does not let us use such implied information.  To get refined typing, we must always add special [match] annotations.
+
+In this case, we must use a [return] annotation to declare the relationship between the %\textit{%#<i>#value#</i>#%}% of the [match] discriminee and the %\textit{%#<i>#type#</i>#%}% of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship.
+
+Why does Coq not infer this relationship for us?  Certainly, it is not hard to imagine heuristics that would handle this particular case and many others.  In general, however, the inference problem is undecidable.  The known undecidable problem of %\textit{%#<i>#higher-order unification#</i>#%}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
+
+Let us now take a look at the OCaml code Coq generates for [pred_strong1]. *)
+
+Extraction pred_strong1.
+
+(** %\begin{verbatim}
+(** val pred_strong1 : nat -> nat **)
+
+let pred_strong1 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+\end{verbatim}%
+
+#<pre>
+(** val pred_strong1 : nat -> nat **)
+
+let pred_strong1 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+</pre># *)
+
+(** The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: program components of type [Prop] are erased systematically.
+
+We can reimplement our dependently-typed [pred] based on %\textit{%#<i>#subset types#</i>#%}%, defined in the standard library with the type family [sig]. *)
+
+Print sig.
+(** [[
+
+Inductive sig (A : Type) (P : A -> Prop) : Type :=
+    exist : forall x : A, P x -> sig P
+For sig: Argument A is implicit
+For exist: Argument A is implicit
+]]
+
+[sig] is a Curry-Howard twin of [ex], except that [sig] is in [Type], while [ex] is in [Prop].  That means that [sig] values can survive extraction, while [ex] proofs will always be erased.  The actual details of extraction of [sig]s are more subtle, as we will see shortly.
+
+We rewrite [pred_strong1], using some syntactic sugar for subset types. *)
+
+Locate "{ _ : _ | _ }".
+(** [[
+
+Notation            Scope     
+"{ x : A  |  P }" := sig (fun x : A => P)
+                      : type_scope
+                      (default interpretation)
+ ]] *)
+
+Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
+  match s with
+    | exist O pf => match zgtz pf with end
+    | exist (S n') _ => n'
+  end.
+
+Extraction pred_strong2.
+
+(** %\begin{verbatim}
+(** val pred_strong2 : nat -> nat **)
+
+let pred_strong2 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+\end{verbatim}%
+
+#<pre>
+(** val pred_strong2 : nat -> nat **)
+
+let pred_strong2 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+</pre>#
+
+We arrive at the same OCaml code as was extracted from [pred_strong1], which may seem surprising at first.  The reason is that a value of [sig] is a pair of two pieces, a value and a proof about it.  Extraction erases the proof, which reduces the constructor [exist] of [sig] to taking just a single argument.  An optimization eliminates uses of datatypes with single constructors taking single arguments, and we arrive back where we started.
+
+We can continue on in the process of refining [pred]'s type.  Let us change its result type to capture that the output is really the predecessor of the input. *)
+
+Definition pred_strong3 (s : {n : nat | n > 0}) : {m : nat | proj1_sig s = S m} :=
+  match s return {m : nat | proj1_sig s = S m} with
+    | exist 0 pf => match zgtz pf with end
+    | exist (S n') _ => exist _ n' (refl_equal _)
+  end.
+
+(** The function [proj1_sig] extracts the base value from a subset type.  Besides the use of that function, the only other new thing is the use of the [exist] constructor to build a new [sig] value, and the details of how to do that follow from the output of our earlier [Print] command.
+
+By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
+
+Extraction pred_strong3.
+
+(** %\begin{verbatim}
+(** val pred_strong3 : nat -> nat **)
+
+let pred_strong3 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+\end{verbatim}%
+
+#<pre>
+(** val pred_strong3 : nat -> nat **)
+
+let pred_strong3 = function
+  | O -> assert false (* absurd case *)
+  | S n' -> n'
+</pre>#
+
+We have managed to reach a type that is, in a formal sense, the most expressive possible for [pred].  Any other implementation of the same type must have the same input-output behavior.  However, there is still room for improvement in making this kind of code easier to write.  Here is a version that takes advantage of tactic-based theorem proving.  We switch back to passing a separate proof argument instead of using a subset type for the function's input, because this leads to cleaner code. *)
+
+Definition pred_strong4 (n : nat) : n > 0 -> {m : nat | n = S m}.
+  refine (fun n =>
+    match n return (n > 0 -> {m : nat | n = S m}) with
+      | O => fun _ => False_rec _ _
+      | S n' => fun _ => exist _ n' _
+    end).
+
+  (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  We do most of the work with the [refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
+
+     [[
+
+2 subgoals
+  
+  n : nat
+  _ : 0 > 0
+  ============================
+   False
+]]
+
+[[
+
+subgoal 2 is:
+ S n' = S n'
+ ]]
+
+We can see that the first subgoal comes from the second underscore passed to [False_rec], and the second subgoal comes from the second underscore passed to [exist].  In the first case, we see that, though we bound the proof variable with an underscore, it is still available in our proof context.  It is hard to refer to underscore-named variables in manual proofs, but automation makes short work of them.  Both subgoals are easy to discharge that way, so let us back up and ask to prove all subgoals automatically. *)
+
+  Undo.
+  refine (fun n =>
+    match n return (n > 0 -> {m : nat | n = S m}) with
+      | O => fun _ => False_rec _ _
+      | S n' => fun _ => exist _ n' _
+    end); crush.
+Defined.
+
+(** We end the "proof" with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our prooof script constructed. *)
+
+Print pred_strong4.
+(** [[
+
+pred_strong4 = 
+fun n : nat =>
+match n as n0 return (n0 > 0 -> {m : nat | n0 = S m}) with
+| 0 =>
+    fun _ : 0 > 0 =>
+    False_rec {m : nat | 0 = S m}
+      (Bool.diff_false_true
+         (Bool.absurd_eq_true false
+            (Bool.diff_false_true
+               (Bool.absurd_eq_true false (pred_strong4_subproof n _)))))
+| S n' =>
+    fun _ : S n' > 0 =>
+    exist (fun m : nat => S n' = S m) n' (refl_equal (S n'))
+end
+     : forall n : nat, n > 0 -> {m : nat | n = S m}
+]]
+
+We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof.
+
+We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment. *)
+
+Notation "!" := (False_rec _ _).
+Notation "[ e ]" := (exist _ e _).
+
+Definition pred_strong5 (n : nat) : n > 0 -> {m : nat | n = S m}.
+  refine (fun n =>
+    match n return (n > 0 -> {m : nat | n = S m}) with
+      | O => fun _ => !
+      | S n' => fun _ => [n']
+    end); crush.
+Defined.
