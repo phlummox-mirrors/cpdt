@@ -267,3 +267,103 @@ Definition pred_strong5 (n : nat) : n > 0 -> {m : nat | n = S m}.
       | S n' => fun _ => [n']
     end); crush.
 Defined.
+
+
+(** * Decidable Proposition Types *)
+
+(** There is another type in the standard library which captures the idea of program values that indicate which of two propositions is true. *)
+
+Print sumbool.
+(** [[
+
+Inductive sumbool (A : Prop) (B : Prop) : Set :=
+    left : A -> {A} + {B} | right : B -> {A} + {B}
+For left: Argument A is implicit
+For right: Argument B is implicit
+]] *)
+
+(** We can define some notations to make working with [sumbool] more convenient. *)
+
+Notation "'Yes'" := (left _ _).
+Notation "'No'" := (right _ _).
+Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
+
+(** The [Reduce] notation is notable because it demonstrates how [if] is overloaded in Coq.  The [if] form actually works when the test expression has any two-constructor inductive type.  Moreover, in the [then] and [else] branches, the appropriate constructor arguments are bound.  This is important when working with [sumbool]s, when we want to have the proof stored in the test expression available when proving the proof obligations generated in the appropriate branch.
+
+Now we can write [eq_nat_dec], which compares two natural numbers, returning either a proof of their equality or a proof of their inequality. *)
+
+Definition eq_nat_dec (n m : nat) : {n = m} + {n <> m}.
+  refine (fix f (n m : nat) {struct n} : {n = m} + {n <> m} :=
+    match n, m return {n = m} + {n <> m} with
+      | O, O => Yes
+      | S n', S m' => Reduce (f n' m')
+      | _, _ => No
+    end); congruence.
+Defined.
+
+(** Our definition extracts to reasonable OCaml code. *)
+
+Extraction eq_nat_dec.
+
+(** %\begin{verbatim}
+(** val eq_nat_dec : nat -> nat -> sumbool **)
+
+let rec eq_nat_dec n m =
+  match n with
+    | O -> (match m with
+              | O -> Left
+              | S n0 -> Right)
+    | S n' -> (match m with
+                 | O -> Right
+                 | S m' -> eq_nat_dec n' m')
+\end{verbatim}%
+
+#<pre>
+(** val eq_nat_dec : nat -> nat -> sumbool **)
+
+let rec eq_nat_dec n m =
+  match n with
+    | O -> (match m with
+              | O -> Left
+              | S n0 -> Right)
+    | S n' -> (match m with
+                 | O -> Right
+                 | S m' -> eq_nat_dec n' m')
+</pre>#
+
+Proving this kind of decidable equality result is so common that Coq comes with a tactic for automating it. *)
+
+Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
+  decide equality.
+Defined.
+
+(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses %\texttt{%#<tt>#Left#</tt>#%}% and %\texttt{%#<tt>#Right#</tt>#%}% constructors instead of the boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types. *)
+
+Extract Inductive sumbool => "bool" ["true" "false"].
+Extraction eq_nat_dec'.
+
+(** %\begin{verbatim}
+(** val eq_nat_dec' : nat -> nat -> bool **)
+
+let rec eq_nat_dec' n m0 =
+  match n with
+    | O -> (match m0 with
+              | O -> true
+              | S n0 -> false)
+    | S n0 -> (match m0 with
+                 | O -> false
+                 | S n1 -> eq_nat_dec' n0 n1)
+\end{verbatim}%
+
+#<pre>
+(** val eq_nat_dec' : nat -> nat -> bool **)
+
+let rec eq_nat_dec' n m0 =
+  match n with
+    | O -> (match m0 with
+              | O -> true
+              | S n0 -> false)
+    | S n0 -> (match m0 with
+                 | O -> false
+                 | S n1 -> eq_nat_dec' n0 n1)
+</pre># *)
