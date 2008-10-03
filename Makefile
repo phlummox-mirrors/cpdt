@@ -1,4 +1,4 @@
-MODULES_NODOC := Tactics
+MODULES_NODOC := Tactics MoreSpecif
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
