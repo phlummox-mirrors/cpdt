@@ -516,11 +516,15 @@ Defined.
 
 (** * A Type-Checking Example *)
 
+(** We can apply these specification types to build a certified type-checker for a simple expression language. *)
+
 Inductive exp : Set :=
 | Nat : nat -> exp
 | Plus : exp -> exp -> exp
 | Bool : bool -> exp
 | And : exp -> exp -> exp.
+
+(** We define a simple language of types and its typing rules, in the style introduced in Chapter 4. *)
 
 Inductive type : Set := TNat | TBool.
 
@@ -538,12 +542,18 @@ Inductive hasType : exp -> type -> Prop :=
   -> hasType e2 TBool
   -> hasType (And e1 e2) TBool.
 
-Definition eq_type_dec : forall (t1 t2 : type), {t1 = t2} + {t1 <> t2}.
+(** It will be helpful to have a function for comparing two types.  We build one using [decide equality]. *)
+
+Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
 
+(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to be to include "assertions" in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that, for a procedure that returns an arbitrary two-constructor type. *)
+
 Notation "e1 ;; e2" := (if e1 then e2 else ??)
   (right associativity, at level 60).
+
+(** With that notation defined, we can implement a [typeCheck] function, whose code is only more complex than what we would write in ML because it needs to include some extra type annotations.  Every [[[e]]] expression adds a [hasType] proof obligation, and [crush] makes short work of them when we add [hasType]'s constructors as hints. *)
 
 Definition typeCheck (e : exp) : {{t | hasType e t}}.
   Hint Constructors hasType.
@@ -567,14 +577,111 @@ Definition typeCheck (e : exp) : {{t | hasType e t}}.
     end); crush.
 Defined.
 
+(** Despite manipulating proofs, our type checker is easy to run. *)
+
 Eval simpl in typeCheck (Nat 0).
+(** [[
+
+     = [[TNat]]
+     : {{t | hasType (Nat 0) t}}
+     ]] *)
+
 Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
+(** [[
+
+     = [[TNat]]
+     : {{t | hasType (Plus (Nat 1) (Nat 2)) t}}
+     ]] *)
+
 Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
+(** [[
+
+     = ??
+     : {{t | hasType (Plus (Nat 1) (Bool false)) t}}
+     ]] *)
+
+(** The type-checker also extracts to some reasonable OCaml code. *)
+
+Extraction typeCheck.
+
+(** %\begin{verbatim}
+(** val typeCheck : exp -> type0 maybe **)
+
+let rec typeCheck = function
+  | Nat n -> Found TNat
+  | Plus (e1, e2) ->
+      (match typeCheck e1 with
+         | Unknown -> Unknown
+         | Found t1 ->
+             (match typeCheck e2 with
+                | Unknown -> Unknown
+                | Found t2 ->
+                    (match eq_type_dec t1 TNat with
+                       | true ->
+                           (match eq_type_dec t2 TNat with
+                              | true -> Found TNat
+                              | false -> Unknown)
+                       | false -> Unknown)))
+  | Bool b -> Found TBool
+  | And (e1, e2) ->
+      (match typeCheck e1 with
+         | Unknown -> Unknown
+         | Found t1 ->
+             (match typeCheck e2 with
+                | Unknown -> Unknown
+                | Found t2 ->
+                    (match eq_type_dec t1 TBool with
+                       | true ->
+                           (match eq_type_dec t2 TBool with
+                              | true -> Found TBool
+                              | false -> Unknown)
+                       | false -> Unknown)))
+\end{verbatim}%
+
+#<pre>
+(** val typeCheck : exp -> type0 maybe **)
+
+let rec typeCheck = function
+  | Nat n -> Found TNat
+  | Plus (e1, e2) ->
+      (match typeCheck e1 with
+         | Unknown -> Unknown
+         | Found t1 ->
+             (match typeCheck e2 with
+                | Unknown -> Unknown
+                | Found t2 ->
+                    (match eq_type_dec t1 TNat with
+                       | true ->
+                           (match eq_type_dec t2 TNat with
+                              | true -> Found TNat
+                              | false -> Unknown)
+                       | false -> Unknown)))
+  | Bool b -> Found TBool
+  | And (e1, e2) ->
+      (match typeCheck e1 with
+         | Unknown -> Unknown
+         | Found t1 ->
+             (match typeCheck e2 with
+                | Unknown -> Unknown
+                | Found t2 ->
+                    (match eq_type_dec t1 TBool with
+                       | true ->
+                           (match eq_type_dec t2 TBool with
+                              | true -> Found TBool
+                              | false -> Unknown)
+                       | false -> Unknown)))
+</pre># *)
+
+(** %\smallskip%
+
+We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
 
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
   (right associativity, at level 60).
 
-Theorem hasType_det : forall e t1,
+(** Next, we prove a helpful lemma, which states that a given expression can have at most one type. *)
+
+Lemma hasType_det : forall e t1,
   hasType e t1
   -> forall t2,
     hasType e t2
@@ -582,10 +689,16 @@ Theorem hasType_det : forall e t1,
   induction 1; inversion 1; crush.
 Qed.
 
+(** Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
+
 Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~hasType e t}.
   Hint Constructors hasType.
-  Hint Resolve hasType_det.
+  (** We register all of the typing rules as hints. *)
 
+  Hint Resolve hasType_det.
+  (** [hasType_det] will also be useful for proving proof obligations with contradictory contexts.  Since its statement includes [forall]-bound variables that do not appear in its conclusion, only [eauto] will apply this hint. *)
+
+  (** Finally, the implementation of [typeCheck] can be transcribed literally, simply switching notations as needed. *)
   refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~hasType e t} :=
     match e return {t : type | hasType e t} + {forall t, ~hasType e t} with
       | Nat _ => [[[TNat]]]
@@ -603,8 +716,34 @@ Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~hasType
         eq_type_dec t2 TBool;;;
         [[[TBool]]]
     end); clear F; crush' tt hasType; eauto.
+
+  (** We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  The [crush] variant [crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
 Defined.
 
+(** The short implementation here hides just how time-saving automation is.  Every use of one of the notations adds a proof obligation, giving us 12 in total.  Most of these obligations require multiple inversions and either uses of [hasType_det] or applications of [hasType] rules.
+
+The results of simplifying calls to [typeCheck'] look deceptively similar to the results for [typeCheck], but now the types of the results provide more information. *)
+
 Eval simpl in typeCheck' (Nat 0).
+(** [[
+
+     = [[[TNat]]]
+     : {t : type | hasType (Nat 0) t} +
+       {(forall t : type, ~ hasType (Nat 0) t)}
+       ]] *)
+
 Eval simpl in typeCheck' (Plus (Nat 1) (Nat 2)).
+(** [[
+
+     = [[[TNat]]]
+     : {t : type | hasType (Plus (Nat 1) (Nat 2)) t} +
+       {(forall t : type, ~ hasType (Plus (Nat 1) (Nat 2)) t)}
+       ]] *)
+
 Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
+(** [[
+
+     = !!
+     : {t : type | hasType (Plus (Nat 1) (Bool false)) t} +
+       {(forall t : type, ~ hasType (Plus (Nat 1) (Bool false)) t)}
+       ]] *)
