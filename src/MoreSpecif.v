@@ -40,6 +40,9 @@ Notation "x <- e1 ; e2" := (match e1 with
                            end)
 (right associativity, at level 60) : specif_scope.
 
+Notation "!!" := (inright _ _) : specif_scope.
+Notation "[[[ x ]]]" := (inleft _ [x]) : specif_scope.
+
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
                                | inleft (exist x _) => e2
