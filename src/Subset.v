@@ -233,7 +233,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
     end); crush.
 Defined.
 
-(** We end the "proof" with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our prooof script constructed. *)
+(** We end the "proof" with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our proof script constructed. *)
 
 Print pred_strong4.
 (** [[
