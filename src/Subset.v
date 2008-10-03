@@ -204,7 +204,7 @@ Definition pred_strong4 (n : nat) : n > 0 -> {m : nat | n = S m}.
       | O => fun _ => False_rec _ _
       | S n' => fun _ => exist _ n' _
     end).
-
+(* begin thide *)
   (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  We do most of the work with the [refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
 
      [[
@@ -231,6 +231,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
       | O => fun _ => False_rec _ _
       | S n' => fun _ => exist _ n' _
     end); crush.
+(* end thide *)
 Defined.
 
 (** We end the "proof" with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our proof script constructed. *)
@@ -374,6 +375,7 @@ let rec eq_nat_dec' n m0 =
 
 We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
 
+(* begin thide *)
 Notation "x || y" := (if x then Yes else Reduce y) (at level 50).
 
 (** Let us use it for building a function that decides list membership.  We need to assume the existence of an equality decision procedure for the type of list elements. *)
@@ -397,6 +399,7 @@ End In_dec.
 (** [In_dec] has a reasonable extraction to OCaml. *)
 
 Extraction In_dec.
+(* end thide *)
 
 (** %\begin{verbatim}
 (** val in_dec : ('a1 -> 'a1 -> bool) -> 'a1 -> 'a1 list -> bool **)
@@ -544,6 +547,7 @@ Inductive hasType : exp -> type -> Prop :=
 
 (** It will be helpful to have a function for comparing two types.  We build one using [decide equality]. *)
 
+(* begin thide *)
 Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
@@ -554,8 +558,10 @@ Notation "e1 ;; e2" := (if e1 then e2 else ??)
   (right associativity, at level 60).
 
 (** With that notation defined, we can implement a [typeCheck] function, whose code is only more complex than what we would write in ML because it needs to include some extra type annotations.  Every [[[e]]] expression adds a [hasType] proof obligation, and [crush] makes short work of them when we add [hasType]'s constructors as hints. *)
+(* end thide *)
 
 Definition typeCheck (e : exp) : {{t | hasType e t}}.
+(* begin thide *)
   Hint Constructors hasType.
 
   refine (fix F (e : exp) : {{t | hasType e t}} :=
@@ -575,6 +581,7 @@ Definition typeCheck (e : exp) : {{t | hasType e t}}.
         eq_type_dec t2 TBool;;
         [[TBool]]
     end); crush.
+(* end thide *)
 Defined.
 
 (** Despite manipulating proofs, our type checker is easy to run. *)
@@ -676,6 +683,7 @@ let rec typeCheck = function
 
 We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
 
+(* begin thide *)
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
   (right associativity, at level 60).
 
@@ -691,7 +699,9 @@ Qed.
 
 (** Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
 
+(* end thide *)
 Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~hasType e t}.
+(* begin thide *)
   Hint Constructors hasType.
   (** We register all of the typing rules as hints. *)
 
@@ -718,6 +728,7 @@ Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~hasType
     end); clear F; crush' tt hasType; eauto.
 
   (** We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  The [crush] variant [crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
+(* end thide *)
 Defined.
 
 (** The short implementation here hides just how time-saving automation is.  Every use of one of the notations adds a proof obligation, giving us 12 in total.  Most of these obligations require multiple inversions and either uses of [hasType_det] or applications of [hasType] rules.
