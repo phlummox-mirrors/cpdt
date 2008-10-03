@@ -367,3 +367,128 @@ let rec eq_nat_dec' n m0 =
                  | O -> false
                  | S n1 -> eq_nat_dec' n0 n1)
 </pre># *)
+
+(** %\smallskip%
+
+We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
+
+Notation "x || y" := (if x then Yes else Reduce y) (at level 50).
+
+(** Let us use it for building a function that decides list membership.  We need to assume the existence of an equality decision procedure for the type of list elements. *)
+
+Section In_dec.
+  Variable A : Set.
+  Variable A_eq_dec : forall x y : A, {x = y} + {x <> y}.
+
+  (** The final function is easy to write using the techniques we have developed so far. *)
+
+  Definition In_dec : forall (x : A) (ls : list A), {In x ls} + { ~In x ls}.
+    refine (fix f (x : A) (ls : list A) {struct ls}
+      : {In x ls} + { ~In x ls} :=
+      match ls return {In x ls} + { ~In x ls} with
+	| nil => No
+	| x' :: ls' => A_eq_dec x x' || f x ls'
+      end); crush.
+  Qed.
+End In_dec.
+
+(** [In_dec] has a reasonable extraction to OCaml. *)
+
+Extraction In_dec.
+
+(** %\begin{verbatim}
+(** val in_dec : ('a1 -> 'a1 -> bool) -> 'a1 -> 'a1 list -> bool **)
+
+let rec in_dec a_eq_dec x = function
+  | Nil -> false
+  | Cons (x', ls') ->
+      (match a_eq_dec x x' with
+         | true -> true
+         | false -> in_dec a_eq_dec x ls')
+\end{verbatim}%
+
+#<pre>
+(** val in_dec : ('a1 -> 'a1 -> bool) -> 'a1 -> 'a1 list -> bool **)
+
+let rec in_dec a_eq_dec x = function
+  | Nil -> false
+  | Cons (x', ls') ->
+      (match a_eq_dec x x' with
+         | true -> true
+         | false -> in_dec a_eq_dec x ls')
+</pre># *)
+
+
+(** * Partial Subset Types *)
+
+Inductive maybe (A : Type) (P : A -> Prop) : Set :=
+| Unknown : maybe P
+| Found : forall x : A, P x -> maybe P.
+
+Notation "{{ x | P }}" := (maybe (fun x => P)).
+Notation "??" := (Unknown _).
+Notation "[[ x ]]" := (Found _ x _).
+
+Notation "x <- e1 ; e2" := (match e1 with
+                             | Unknown => ??
+                             | Found x _ => e2
+                           end)
+(right associativity, at level 60).
+
+Notation "e1 ;; e2" := (if e1 then e2 else ??)
+  (right associativity, at level 60).
+
+
+(** * A Type-Checking Example *)
+
+Inductive exp : Set :=
+| Nat : nat -> exp
+| Plus : exp -> exp -> exp
+| Bool : bool -> exp
+| And : exp -> exp -> exp.
+
+Inductive type : Set := TNat | TBool.
+
+Inductive hasType : exp -> type -> Prop :=
+| HtNat : forall n,
+  hasType (Nat n) TNat
+| HtPlus : forall e1 e2,
+  hasType e1 TNat
+  -> hasType e2 TNat
+  -> hasType (Plus e1 e2) TNat
+| HtBool : forall b,
+  hasType (Bool b) TBool
+| HtAnd : forall e1 e2,
+  hasType e1 TBool
+  -> hasType e2 TBool
+  -> hasType (And e1 e2) TBool.
+
+Definition eq_type_dec : forall (t1 t2 : type), {t1 = t2} + {t1 <> t2}.
+  decide equality.
+Defined.
+
+Definition typeCheck (e : exp) : {{t | hasType e t}}.
+  Hint Constructors hasType.
+
+  refine (fix F (e : exp) : {{t | hasType e t}} :=
+    match e return {{t | hasType e t}} with
+      | Nat _ => [[TNat]]
+      | Plus e1 e2 =>
+        t1 <- F e1;
+        t2 <- F e2;
+        eq_type_dec t1 TNat;;
+        eq_type_dec t2 TNat;;
+        [[TNat]]
+      | Bool _ => [[TBool]]
+      | And e1 e2 =>
+        t1 <- F e1;
+        t2 <- F e2;
+        eq_type_dec t1 TBool;;
+        eq_type_dec t2 TBool;;
+        [[TBool]]
+    end); crush.
+Defined.
+
+Eval simpl in typeCheck (Nat 0).
+Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
+Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
