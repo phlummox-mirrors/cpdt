@@ -421,13 +421,58 @@ let rec in_dec a_eq_dec x = function
 
 (** * Partial Subset Types *)
 
+(** Our final implementation of dependent predecessor used a very specific argument type to ensure that execution could always complete normally.  Sometimes we want to allow execution to fail, and we want a more principled way of signaling that than returning a default value, as [pred] does for [0].  One approach is to define this type family [maybe], which is a version of [sig] that allows obligation-free failure. *)
+
 Inductive maybe (A : Type) (P : A -> Prop) : Set :=
 | Unknown : maybe P
 | Found : forall x : A, P x -> maybe P.
 
+(** We can define some new notations, analogous to those we defined for subset types. *)
+
 Notation "{{ x | P }}" := (maybe (fun x => P)).
 Notation "??" := (Unknown _).
 Notation "[[ x ]]" := (Found _ x _).
+
+(** Now our next version of [pred] is trivial to write. *)
+
+Definition pred_strong6 (n : nat) : {{m | n = S m}}.
+  refine (fun n =>
+    match n return {{m | n = S m}} with
+      | O => ??
+      | S n' => [[n']]
+    end); trivial.
+Defined.
+
+(** Because we used [maybe], one valid implementation of the type we gave [pred_strong6] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family [sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
+
+Print sumor.
+(** [[
+
+Inductive sumor (A : Type) (B : Prop) : Type :=
+    inleft : A -> A + {B} | inright : B -> A + {B}
+For inleft: Argument A is implicit
+For inright: Argument B is implicit
+]] *)
+
+(** We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
+
+Notation "!!" := (inright _ _).
+Notation "[[[ x ]]]" := (inleft _ [x]).
+
+(** Now we are ready to give the final version of possibly-failing predecessor.  The [sumor]-based type that we use is maximally expressive; any implementation of the type has the same input-output behavior. *)
+
+Definition pred_strong7 (n : nat) : {m : nat | n = S m} + {n = 0}.
+  refine (fun n =>
+    match n return {m : nat | n = S m} + {n = 0} with
+      | O => !!
+      | S n' => [[[n']]]
+    end); trivial.
+Defined.
+
+
+(** * Monadic Notations *)
+
+(** We can treat [maybe] like a monad, in the same way that the Haskell [Maybe] type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful. *)
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -435,8 +480,36 @@ Notation "x <- e1 ; e2" := (match e1 with
                            end)
 (right associativity, at level 60).
 
-Notation "e1 ;; e2" := (if e1 then e2 else ??)
-  (right associativity, at level 60).
+(** The meaning of [x <- e1; e2] is: First run [e1].  If it fails to find an answer, then announce failure for our derived computation, too.  If [e1] %\textit{%#<i>#does#</i>#%}% find an answer, pass that answer on to [e2] to find the final result.  The variable [x] can be considered bound in [e2].
+
+   This notation is very helpful for composing richly-typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
+
+Definition doublePred (n1 n2 : nat) : {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
+  refine (fun n1 n2 =>
+    m1 <- pred_strong6 n1;
+    m2 <- pred_strong6 n2;
+    [[(m1, m2)]]); tauto.
+Defined.
+
+(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function. *)
+
+(** printing <-- $\longleftarrow$ *)
+
+Notation "x <-- e1 ; e2" := (match e1 with
+                               | inright _ => !!
+                               | inleft (exist x _) => e2
+                             end)
+(right associativity, at level 60).
+
+(** printing * $\times$ *)
+
+Definition doublePred' (n1 n2 : nat) : {p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
+  + {n1 = 0 \/ n2 = 0}.
+  refine (fun n1 n2 =>
+    m1 <-- pred_strong7 n1;
+    m2 <-- pred_strong7 n2;
+    [[[(m1, m2)]]]); tauto.
+Defined.
 
 
 (** * A Type-Checking Example *)
@@ -467,6 +540,9 @@ Definition eq_type_dec : forall (t1 t2 : type), {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
 
+Notation "e1 ;; e2" := (if e1 then e2 else ??)
+  (right associativity, at level 60).
+
 Definition typeCheck (e : exp) : {{t | hasType e t}}.
   Hint Constructors hasType.
 
@@ -492,3 +568,45 @@ Defined.
 Eval simpl in typeCheck (Nat 0).
 Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
 Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
+
+Print sumor.
+
+
+
+Notation "e1 ;;; e2" := (if e1 then e2 else !!)
+  (right associativity, at level 60).
+
+Theorem hasType_det : forall e t1,
+  hasType e t1
+  -> forall t2,
+    hasType e t2
+    -> t1 = t2.
+  induction 1; inversion 1; crush.
+Qed.
+
+Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~hasType e t}.
+  Hint Constructors hasType.
+  Hint Resolve hasType_det.
+
+  refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~hasType e t} :=
+    match e return {t : type | hasType e t} + {forall t, ~hasType e t} with
+      | Nat _ => [[[TNat]]]
+      | Plus e1 e2 =>
+        t1 <-- F e1;
+        t2 <-- F e2;
+        eq_type_dec t1 TNat;;;
+        eq_type_dec t2 TNat;;;
+        [[[TNat]]]
+      | Bool _ => [[[TBool]]]
+      | And e1 e2 =>
+        t1 <-- F e1;
+        t2 <-- F e2;
+        eq_type_dec t1 TBool;;;
+        eq_type_dec t2 TBool;;;
+        [[[TBool]]]
+    end); clear F; crush' tt hasType; eauto.
+Defined.
+
+Eval simpl in typeCheck' (Nat 0).
+Eval simpl in typeCheck' (Plus (Nat 1) (Nat 2)).
+Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
