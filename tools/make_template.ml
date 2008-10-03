@@ -20,7 +20,7 @@ let rec initial last_was_empty =
               if line.[String.length line - 2] = '*' && line.[String.length line - 1] = ')' then
 	        initial last_was_empty
 	      else
-	        comment last_was_empty
+	        comment 1 last_was_empty
             else begin
               print_endline line;
               initial false
@@ -29,15 +29,29 @@ let rec initial last_was_empty =
 	    print_endline line;
 	    initial false
 
-and comment last_was_empty =
+and comment count last_was_empty =
   match read_line () with
   | None -> ()
   | Some line ->
-      if String.length line >= 2 && line.[String.length line - 2] = '*'
+      if String.length line >= 2 && line.[0] = '(' && line.[1] = '*' then
+	if String.length line >= 2 && line.[String.length line - 2] = '*'
+	    && line.[String.length line - 1] = ')' then
+	  comment count last_was_empty
+	else
+	  comment (count+1) last_was_empty
+      else if String.length line >= 2 && line.[String.length line - 2] = '*'
 	  && line.[String.length line - 1] = ')' then
-	initial last_was_empty
+	if try
+	  let idx = String.index line '(' in
+	  idx < String.length line - 1 && line.[idx + 1] = '*'
+	with Not_found -> false then
+	  comment count last_was_empty
+	else if count = 1 then
+	  initial last_was_empty
+	else
+	  comment (count-1) last_was_empty
       else
-	comment last_was_empty
+	comment count last_was_empty
 
 and thide last_was_empty =
   match read_line () with
