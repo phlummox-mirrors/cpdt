@@ -16,7 +16,9 @@ Set Implicit Arguments.
 (* end hide *)
 
 
-(** %\chapter{Introducing Inductive Types}% *)
+(** %\part{Basic Programming and Proving}
+
+\chapter{Introducing Inductive Types}% *)
 
 (** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq. *)
 

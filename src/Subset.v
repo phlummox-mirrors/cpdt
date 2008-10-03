@@ -16,7 +16,9 @@ Set Implicit Arguments.
 (* end hide *)
 
 
-(** %\chapter{Subset Types and Variations}% *)
+(** %\part{Programming with Dependent Types}
+
+\chapter{Subset Types and Variations}% *)
 
 (** So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\textit{%#<i>#dependent types#</i>#%}% to integrate programming, specification, and proving into a single phase. *)
 
@@ -568,10 +570,6 @@ Defined.
 Eval simpl in typeCheck (Nat 0).
 Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
 Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
-
-Print sumor.
-
-
 
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
   (right associativity, at level 60).
