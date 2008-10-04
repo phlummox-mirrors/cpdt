@@ -112,6 +112,6 @@ Ltac crush' lemmas invOne :=
     in (sintuition; rewriter;
       repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
         repeat (simplHyp invOne; intuition));
-      un_done; sintuition; try omega).
+      un_done; sintuition; try omega; try (elimtype False; omega)).
 
 Ltac crush := crush' tt fail.
