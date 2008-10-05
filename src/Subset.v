@@ -758,3 +758,27 @@ Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
      : {t : type | hasType (Plus (Nat 1) (Bool false)) t} +
        {(forall t : type, ~ hasType (Plus (Nat 1) (Bool false)) t)}
        ]] *)
+
+
+(** * Exercises *)
+
+(** All of the notations defined in this chapter, plus some extras, are available for import from the module [MoreSpecif] of the book source.
+
+%\begin{enumerate}%#<ol>#
+%\item%#<li># Write a function of type [forall n m : nat, {n <= m} + {n > m}].  That is, this function decides whether one natural is less than another, and its dependent type guarantees that its results are accurate.#</li>#
+
+%\item%#<li># %\begin{enumerate}%#<ol>#
+  %\item%#<li># Define [var], a type of propositional variables, as a synonym for [nat].#</li>#
+  %\item%#<li># Define an inductive type [prop] of propositional logic formulas, consisting of variables, negation, and binary conjunction and disjunction.#</li>#
+  %\item%#<li># Define a function [propDenote] from variable truth assignments and [prop]s to [Prop], based on the usual meanings of the connectives.  Represent truth assignments as functions from [var] to [bool].#</li>#
+  %\item%#<li># Define a function [bool_true_dec] that checks whether a boolean is true, with a maximally expressive dependent type.  That is, the function should have type [forall b, {b = true} + {b = true -> False}]. #</li>#
+  %\item%#<li># Define a function [decide] that determines whether a particular [prop] is true under a particular truth assignment.  That is, the function should have type [forall (truth : var -> bool) (p : prop), {propDenote truth p} + { ~propDenote truth p}].  This function is probably easiest to write in the usual tactical style, instead of programming with [refine].  [bool_true_dec] may come in handy as a hint.#</li>#
+  %\item%#<li># Define a function [negate] that returns a simplified version of the negation of a [prop].  That is, the function should have type [forall p : prop, {p' : prop | forall truth, propDenote truth p <-> ~propDenote truth p'}].  To simplify a variable, just negate it.  Simplify a negation by returning its argument.  Simplify conjunctions and disjunctions using De Morgan's laws, negating the arguments recursively and switching the kind of connective.  [decide] may be useful in some of the proof obligations, even if you do not use it in the computational part of [negate]'s definition.  Lemmas like [decide] allow us to compensate for the lack of a general Law of the Excluded Middle in CIC.#</li>#
+#</ol>#%\end{enumerate}% #</li>#
+
+%\item%#<li># Implement the DPLL satisfiability decision procedure for boolean formulas in conjunctive normal form, with a dependent type that guarantees its correctness.  An example of a reasonable type for this function would be [forall f : formula, {truth : tvals | formulaTrue truth f} + {forall truth, ~formulaTrue truth f}].  Implement at least "the basic backtracking algorithm" as defined here:
+  %\begin{center}\url{http://en.wikipedia.org/wiki/DPLL_algorithm}\end{center}%
+  #<blockquote><a href="http://en.wikipedia.org/wiki/DPLL_algorithm">http://en.wikipedia.org/wiki/DPLL_algorithm</a></blockquote>#
+It might also be instructive to implement the unit propagation and pure literal elimination optimizations described there or some other optimizations that have been used in modern SAT solvers.#</li>#
+   
+#</ol>#%\end{enumerate}% *)
