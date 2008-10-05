@@ -193,6 +193,8 @@ Infinite Data and Proofs & \texttt{Coinductive.v} \\
 \hline
 Subset Types and Variations & \texttt{Subset.v} \\
 \hline
+More Dependent Types & \texttt{MoreDep.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
