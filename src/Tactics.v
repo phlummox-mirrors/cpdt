@@ -24,6 +24,7 @@ Ltac appHyps f :=
 Ltac inList x ls :=
   match ls with
     | x => idtac
+    | (_, x) => idtac
     | (?LS, _) => inList x LS
   end.
 
@@ -55,6 +56,9 @@ Ltac simplHyp invOne :=
 
     | [ H : ?F _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
     | [ H : ?F _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
+    | [ H : ?F _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
+    | [ H : ?F _ _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
+    | [ H : ?F _ _ _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
   end.
 
 Ltac rewriteHyp :=
