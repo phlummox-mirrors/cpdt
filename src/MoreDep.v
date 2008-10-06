@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import List.
+Require Import Arith Bool List.
 
 Require Import Tactics.
 
@@ -134,3 +134,211 @@ Definition hd n (ls : ilist (S n)) : A := hd' ls.
 (** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
 
 End ilist.
+
+
+(** * A Tagless Interpreter *)
+
+(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime ineffiency and gives us more confidence that our implementation is correct. *)
+
+Inductive type : Set :=
+| Nat : type
+| Bool : type
+| Prod : type -> type -> type.
+
+Inductive exp : type -> Set :=
+| NConst : nat -> exp Nat
+| Plus : exp Nat -> exp Nat -> exp Nat
+| Eq : exp Nat -> exp Nat -> exp Bool
+
+| BConst : bool -> exp Bool
+| And : exp Bool -> exp Bool -> exp Bool
+| If : forall t, exp Bool -> exp t -> exp t -> exp t
+
+| Pair : forall t1 t2, exp t1 -> exp t2 -> exp (Prod t1 t2)
+| Fst : forall t1 t2, exp (Prod t1 t2) -> exp t1
+| Snd : forall t1 t2, exp (Prod t1 t2) -> exp t2.
+
+(** We have a standard algebraic datatype [type], defining a type language of naturals, booleans, and product (pair) types.  Then we have the indexed inductive type [exp], where the argument to [exp] tells us the encoded type of an expression.  In effect, we are defining the typing rules for expressions simultaneously with the syntax.
+
+   We can give types and expressions semantics in a new style, based critically on the chance for %\textit{%#<i>#type-level computation#</i>#%}%. *)
+
+Fixpoint typeDenote (t : type) : Set :=
+  match t with
+    | Nat => nat
+    | Bool => bool
+    | Prod t1 t2 => typeDenote t1 * typeDenote t2
+  end%type.
+
+(** [typeDenote] compiles types of our object language into "native" Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  We will deal more explicitly with notations and notation scopes in later chapters.
+
+   We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
+
+Fixpoint expDenote t (e : exp t) {struct e} : typeDenote t :=
+  match e in (exp t) return (typeDenote t) with
+    | NConst n => n
+    | Plus e1 e2 => expDenote e1 + expDenote e2
+    | Eq e1 e2 => if eq_nat_dec (expDenote e1) (expDenote e2) then true else false
+
+    | BConst b => b
+    | And e1 e2 => expDenote e1 && expDenote e2
+    | If _ e' e1 e2 => if expDenote e' then expDenote e1 else expDenote e2
+
+    | Pair _ _ e1 e2 => (expDenote e1, expDenote e2)
+    | Fst _ _ e' => fst (expDenote e')
+    | Snd _ _ e' => snd (expDenote e')
+  end.
+
+(** Again we find that an [in] annotation is essential for type-checking a function.  Besides that, the definition is routine.  In fact, it is less complicated than what we would write in ML or Haskell 98, since we do not need to worry about pushing final values in and out of an algebraic datatype.  The only unusual thing is the use of an expression of the form [if E then true else false] in the [Eq] case.  Remember that [eq_nat_dec] has a rich dependent type, rather than a simple boolean type.  Coq's native [if] is overloaded to work on a test of any two-constructor type, so we can use [if] to build a simple boolean from the [sumbool] that [eq_nat_dec] returns.
+
+   We can implement our old favorite, a constant folding function, and prove it correct.  It will be useful to write a function [pairOut] that checks if an [exp] of [Prod] type is a pair, returning its two components if so.  Unsurprisingly, a first attempt leads to a type error.
+
+[[
+Definition pairOut t1 t2 (e : exp (Prod t1 t2)) : option (exp t1 * exp t2) :=
+  match e in (exp (Prod t1 t2)) return option (exp t1 * exp t2) with
+    | Pair _ _ e1 e2 => Some (e1, e2)
+    | _ => None
+  end.
+
+[[
+Error: The reference t2 was not found in the current environment
+]]
+
+We run again into the problem of not being able to specify non-variable arguments in [in] clauses.  The problem would just be hopeless without a use of an [in] clause, though, since the result type of the [match] depends on an argument to [exp].  Our solution will be to use a more general type, as we did for [hd].  First, we define a type-valued function to use in assigning a type to [pairOut]. *)
+
+Definition pairOutType (t : type) :=
+  match t with
+    | Prod t1 t2 => option (exp t1 * exp t2)
+    | _ => unit
+  end.
+
+(** When passed a type that is a product, [pairOutType] returns our final desired type.  On any other input type, [pairOutType] returns [unit], since we do not care about extracting components of non-pairs.  Now we can write another helper function to provide the default behavior of [pairOut], which we will apply for inputs that are not literal pairs. *)
+
+Definition pairOutDefault (t : type) :=
+  match t return (pairOutType t) with
+    | Prod _ _ => None
+    | _ => tt
+  end.
+
+(** Now [pairOut] is deceptively easy to write. *)
+
+Definition pairOut t (e : exp t) :=
+  match e in (exp t) return (pairOutType t) with
+    | Pair _ _ e1 e2 => Some (e1, e2)
+    | _ => pairOutDefault _
+  end.
+
+(** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages, but is similar to what goes on with Haskell type classes.
+
+With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden. *)
+
+Fixpoint cfold t (e : exp t) {struct e} : exp t :=
+  match e in (exp t) return (exp t) with
+    | NConst n => NConst n
+    | Plus e1 e2 =>
+      let e1' := cfold e1 in
+      let e2' := cfold e2 in
+      match e1', e2' with
+        | NConst n1, NConst n2 => NConst (n1 + n2)
+        | _, _ => Plus e1' e2'
+      end
+    | Eq e1 e2 =>
+      let e1' := cfold e1 in
+      let e2' := cfold e2 in
+      match e1', e2' with
+        | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
+        | _, _ => Eq e1' e2'
+      end
+
+    | BConst b => BConst b
+    | And e1 e2 =>
+      let e1' := cfold e1 in
+      let e2' := cfold e2 in
+      match e1', e2' with
+        | BConst b1, BConst b2 => BConst (b1 && b2)
+        | _, _ => And e1' e2'
+      end
+    | If _ e e1 e2 =>
+      let e' := cfold e in
+      match e' with
+        | BConst true => cfold e1
+        | BConst false => cfold e2
+        | _ => If e' (cfold e1) (cfold e2)
+      end
+
+    | Pair _ _ e1 e2 => Pair (cfold e1) (cfold e2)
+    | Fst _ _ e =>
+      let e' := cfold e in
+      match pairOut e' with
+        | Some p => fst p
+        | None => Fst e'
+      end
+    | Snd _ _ e =>
+      let e' := cfold e in
+      match pairOut e' with
+        | Some p => snd p
+        | None => Snd e'
+      end
+  end.
+
+(** The correctness theorem for [cfold] turns out to be easy to prove, once we get over one serious hurdle. *)
+
+Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+  induction e; crush.
+
+(** The first remaining subgoal is:
+
+   [[
+
+  expDenote (cfold e1) + expDenote (cfold e2) =
+   expDenote
+     match cfold e1 with
+     | NConst n1 =>
+         match cfold e2 with
+         | NConst n2 => NConst (n1 + n2)
+         | Plus _ _ => Plus (cfold e1) (cfold e2)
+         | Eq _ _ => Plus (cfold e1) (cfold e2)
+         | BConst _ => Plus (cfold e1) (cfold e2)
+         | And _ _ => Plus (cfold e1) (cfold e2)
+         | If _ _ _ _ => Plus (cfold e1) (cfold e2)
+         | Pair _ _ _ _ => Plus (cfold e1) (cfold e2)
+         | Fst _ _ _ => Plus (cfold e1) (cfold e2)
+         | Snd _ _ _ => Plus (cfold e1) (cfold e2)
+         end
+     | Plus _ _ => Plus (cfold e1) (cfold e2)
+     | Eq _ _ => Plus (cfold e1) (cfold e2)
+     | BConst _ => Plus (cfold e1) (cfold e2)
+     | And _ _ => Plus (cfold e1) (cfold e2)
+     | If _ _ _ _ => Plus (cfold e1) (cfold e2)
+     | Pair _ _ _ _ => Plus (cfold e1) (cfold e2)
+     | Fst _ _ _ => Plus (cfold e1) (cfold e2)
+     | Snd _ _ _ => Plus (cfold e1) (cfold e2)
+     end
+     ]]
+
+     We would like to do a case analysis on [cfold e1], and we attempt that in the way that has worked so far.
+
+     [[
+  destruct (cfold e1).
+
+  [[
+User error: e1 is used in hypothesis e
+]]
+
+    Coq gives us another cryptic error message.  Like so many others, this one basically means that Coq is not able to build some proof about dependent types.  It is hard to generate helpful and specific error messages for problems like this, since that would require some kind of understanding of the dependency structure of a piece of code.  We will encounter many examples of case-specific tricks for recovering from errors like this one.
+
+    For our current proof, we can use a tactic [dep_destruct] defined in the book [Tactics] module.  General elimination/inversion of dependently-typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  [dep_destruct] makes a best effort to handle some common cases.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box. *)
+  
+  dep_destruct (cfold e1).
+
+  (** This successfully breaks the subgoal into 5 new subgoals, one for each constructor of [exp] that could produce an [exp Nat].  Note that [dep_destruct] is successful in ruling out the other cases automatically, in effect automating some of the work that we have done manually in implementing functions like [hd] and [pairOut].
+
+     This is the only new trick we need to learn to complete the proof.  We can back up and give a short, automated proof. *)
+
+  Restart.
+
+  induction e; crush;
+    repeat (match goal with
+              | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
+              | [ |- (if ?E then _ else _) = _ ] => destruct E
+            end; crush).
+Qed.
