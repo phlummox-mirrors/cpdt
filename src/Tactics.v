@@ -111,14 +111,17 @@ Ltac un_done :=
            | [ H : done _ |- _ ] => clear H
          end.
 
-Ltac crush' lemmas invOne :=
+Ltac crush'' tryLemmas lemmas invOne :=
   let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence
     in (sintuition; rewriter;
-      repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
-        repeat (simplHyp invOne; intuition));
-      un_done; sintuition; try omega; try (elimtype False; omega)).
+      match tryLemmas with
+        | true => repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
+          repeat (simplHyp invOne; intuition)); un_done
+        | _ => idtac
+      end; sintuition; try omega; try (elimtype False; omega)).
 
-Ltac crush := crush' tt fail.
+Ltac crush := crush'' false tt fail.
+Ltac crush' := crush'' true.
 
 Theorem dep_destruct : forall (T : Type) (T' : T -> Type) x (v : T' x) (P : T' x -> Prop),
   (forall x' (v' : T' x') (Heq : x' = x), P (match Heq in (_ = x) return (T' x) with
