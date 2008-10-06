@@ -24,7 +24,26 @@ Notation "'Yes'" := (left _ _) : specif_scope.
 Notation "'No'" := (right _ _) : specif_scope.
 Notation "'Reduce' x" := (if x then Yes else No) (at level 50) : specif_scope.
 
-Notation "x || y" := (if x then Yes else Reduce y) (at level 50) : specif_scope.
+Notation "x || y" := (if x then Yes else Reduce y) (at level 50, left associativity) : specif_scope.
+
+Section sumbool_and.
+  Variables P1 Q1 P2 Q2 : Prop.
+
+  Variable x1 : {P1} + {Q1}.
+  Variable x2 : {P2} + {Q2}.
+
+  Definition sumbool_and : {P1 /\ P2} + {Q1 \/ Q2} :=
+    match x1 with
+      | left HP1 =>
+        match x2 with
+          | left HP2 => left _ (conj HP1 HP2)
+          | right HQ2 => right _ (or_intror _ HQ2)
+        end
+      | right HQ1 => right _ (or_introl _ HQ1)
+    end.
+End sumbool_and.
+
+Infix "&&" := sumbool_and (at level 40, left associativity) : specif_scope.
 
 Inductive maybe (A : Type) (P : A -> Prop) : Set :=
 | Unknown : maybe P

@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Arith Bool List.
 
-Require Import Tactics.
+Require Import Tactics MoreSpecif.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -342,3 +342,136 @@ User error: e1 is used in hypothesis e
               | [ |- (if ?E then _ else _) = _ ] => destruct E
             end; crush).
 Qed.
+
+
+(** * A Certified Regular Expression Matcher *)
+
+Require Import Ascii String.
+Open Scope string_scope.
+
+Inductive regexp : (string -> Prop) -> Set :=
+| Char : forall ch : ascii,
+  regexp (fun s => s = String ch "")
+| Concat : forall P1 P2 (r1 : regexp P1) (r2 : regexp P2),
+  regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2).
+
+Open Scope specif_scope.
+
+Lemma length_emp : length "" <= 0.
+  crush.
+Qed.
+
+Lemma append_emp : forall s, s = "" ++ s.
+  crush.
+Qed.
+
+Ltac substring :=
+  crush;
+  repeat match goal with
+           | [ |- context[match ?N with O => _ | S _ => _ end] ] => destruct N; crush
+         end.
+
+Lemma substring_le : forall s n m,
+  length (substring n m s) <= m.
+  induction s; substring.
+Qed.
+
+Lemma substring_all : forall s,
+  substring 0 (length s) s = s.
+  induction s; substring.
+Qed.
+
+Lemma substring_none : forall s n,
+  substring n 0 s = EmptyString.
+  induction s; substring.
+Qed.
+
+Hint Rewrite substring_all substring_none : cpdt.
+
+Lemma substring_split : forall s m,
+  substring 0 m s ++ substring m (length s - m) s = s.
+  induction s; substring.
+Qed.
+
+Lemma length_app1 : forall s1 s2,
+  length s1 <= length (s1 ++ s2).
+  induction s1; crush.
+Qed.
+
+Hint Resolve length_emp append_emp substring_le substring_split length_app1.
+
+Lemma substring_app_fst : forall s2 s1 n,
+  length s1 = n
+  -> substring 0 n (s1 ++ s2) = s1.
+  induction s1; crush.
+Qed.
+
+Lemma substring_app_snd : forall s2 s1 n,
+  length s1 = n
+  -> substring n (length (s1 ++ s2) - n) (s1 ++ s2) = s2.
+  Hint Rewrite <- minus_n_O : cpdt.
+
+  induction s1; crush.
+Qed.
+
+Hint Rewrite substring_app_fst substring_app_snd using assumption : cpdt.
+
+Section split.
+  Variables P1 P2 : string -> Prop.
+  Variable P1_dec : forall s, {P1 s} + {~P1 s}.
+  Variable P2_dec : forall s, {P2 s} + {~P2 s}.
+
+  Variable s : string.
+
+  Definition split' (n : nat) : n <= length s
+    -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
+    + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2}.
+    refine (fix F (n : nat) : n <= length s
+      -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
+      + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2} :=
+      match n return n <= length s
+        -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
+        + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2} with
+        | O => fun _ => Reduce (P1_dec "" && P2_dec s)
+        | S n' => fun _ => (P1_dec (substring 0 (S n') s) && P2_dec (substring (S n') (length s - S n') s))
+          || F n' _
+      end); clear F; crush; eauto 7;
+    match goal with
+      | [ _ : length ?S <= 0 |- _ ] => destruct S
+      | [ _ : length ?S' <= S ?N |- _ ] =>
+        generalize (eq_nat_dec (length S') (S N)); destruct 1
+    end; crush.
+  Defined.
+
+  Definition split : {exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2}
+    + {forall s1 s2, s = s1 ++ s2 -> ~P1 s1 \/ ~P2 s2}.
+    refine (Reduce (split' (n := length s) _)); crush; eauto.
+  Defined.
+End split.
+
+Implicit Arguments split [P1 P2].
+
+Lemma app_cong : forall x1 y1 x2 y2,
+  x1 = x2
+  -> y1 = y2
+  -> x1 ++ y1 = x2 ++ y2.
+  congruence.
+Qed.
+
+Hint Resolve app_cong.
+
+Definition matches P (r : regexp P) s : {P s} + { ~P s}.
+  refine (fix F P (r : regexp P) s : {P s} + { ~P s} :=
+    match r with
+      | Char ch => string_dec s (String ch "")
+      | Concat _ _ r1 r2 => Reduce (split (F _ r1) (F _ r2) s)
+    end); crush;
+  match goal with
+    | [ H : _ |- _ ] => generalize (H _ _ (refl_equal _))
+  end;
+  tauto.
+Defined.
+
+Example hi := Concat (Char "h"%char) (Char "i"%char).
+Eval simpl in matches hi "hi".
+Eval simpl in matches hi "bye".
