@@ -353,7 +353,9 @@ Inductive regexp : (string -> Prop) -> Set :=
 | Char : forall ch : ascii,
   regexp (fun s => s = String ch "")
 | Concat : forall P1 P2 (r1 : regexp P1) (r2 : regexp P2),
-  regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2).
+  regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2)
+| Or : forall P1 P2 (r1 : regexp P1) (r2 : regexp P2),
+  regexp (fun s => P1 s \/ P2 s).
 
 Open Scope specif_scope.
 
@@ -465,6 +467,7 @@ Definition matches P (r : regexp P) s : {P s} + { ~P s}.
     match r with
       | Char ch => string_dec s (String ch "")
       | Concat _ _ r1 r2 => Reduce (split (F _ r1) (F _ r2) s)
+      | Or _ _ r1 r2 => F _ r1 s || F _ r2 s
     end); crush;
   match goal with
     | [ H : _ |- _ ] => generalize (H _ _ (refl_equal _))
@@ -475,3 +478,9 @@ Defined.
 Example hi := Concat (Char "h"%char) (Char "i"%char).
 Eval simpl in matches hi "hi".
 Eval simpl in matches hi "bye".
+
+Example a_b := Or (Char "a"%char) (Char "b"%char).
+Eval simpl in matches a_b "".
+Eval simpl in matches a_b "a".
+Eval simpl in matches a_b "aa".
+Eval simpl in matches a_b "b".
