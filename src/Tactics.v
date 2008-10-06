@@ -7,7 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-Require Import List.
+Require Import Eqdep List.
 
 Require Omega.
 
@@ -47,11 +47,11 @@ Ltac simplHyp invOne :=
 
     | [ H : ?F _ = ?F _ |- _ ] => injection H;
       match goal with
-        | [ |- _ = _ -> _ ] => clear H; intros; try subst
+        | [ |- _ = _ -> _ ] => try clear H; intros; try subst
       end
     | [ H : ?F _ _ = ?F _ _ |- _ ] => injection H;
       match goal with
-        | [ |- _ = _ -> _ = _ -> _ ] => clear H; intros; try subst
+        | [ |- _ = _ -> _ = _ -> _ ] => try clear H; intros; try subst
       end
 
     | [ H : ?F _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
@@ -119,3 +119,42 @@ Ltac crush' lemmas invOne :=
       un_done; sintuition; try omega; try (elimtype False; omega)).
 
 Ltac crush := crush' tt fail.
+
+Theorem dep_destruct : forall (T : Type) (T' : T -> Type) x (v : T' x) (P : T' x -> Prop),
+  (forall x' (v' : T' x') (Heq : x' = x), P (match Heq in (_ = x) return (T' x) with
+                                               | refl_equal => v'
+                                             end))
+  -> P v.
+  intros.
+  generalize (H _ v (refl_equal _)); trivial.
+Qed.
+
+Ltac dep_destruct E :=
+  let doit A :=
+    let T := type of A in
+      generalize dependent E;
+        let e := fresh "e" in
+          intro e; pattern e;
+            apply (@dep_destruct T);
+              let x := fresh "x" with v := fresh "v"  in
+                intros x v; destruct v; crush;
+                  let bestEffort Heq E tac :=
+                    repeat match goal with
+                             | [ H : context[E] |- _ ] =>
+                               match H with
+                                 | Heq => fail 1
+                                 | _ => generalize dependent H
+                               end
+                           end;
+                    generalize Heq; tac Heq; clear Heq; intro Heq;
+                      rewrite (UIP_refl _ _ Heq); intros in
+                  repeat match goal with
+                           | [ Heq : ?X = ?X |- _ ] =>
+                             generalize (UIP_refl _ _ Heq); intro; subst; clear Heq
+                           | [ Heq : ?E = _ |- _ ] => bestEffort Heq E ltac:(fun E => rewrite E)
+                           | [ Heq : _ = ?E |- _ ] => bestEffort Heq E ltac:(fun E => rewrite <- E)
+                         end
+                  in match type of E with
+                       | _ _ ?A => doit A
+                       | _ ?A => doit A
+                     end.
