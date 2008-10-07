@@ -349,7 +349,7 @@ Qed.
 Require Import Ascii String.
 Open Scope string_scope.
 
-Inductive regexp : (string -> Prop) -> Set :=
+Inductive regexp : (string -> Prop) -> Type :=
 | Char : forall ch : ascii,
   regexp (fun s => s = String ch "")
 | Concat : forall P1 P2 (r1 : regexp P1) (r2 : regexp P2),

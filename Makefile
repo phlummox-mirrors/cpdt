@@ -15,8 +15,8 @@ coq: Makefile.coq
 
 Makefile.coq: Makefile $(VS)
 	coq_makefile $(VS) \
-		COQC = "coqc -I src -impredicative-set \
-			-dump-glob $(GLOBALS)" \
+		COQC = "coqc -I src -dump-glob $(GLOBALS)" \
+		COQDEP = "coqdep -I src" \
 		-o Makefile.coq
 
 clean:: Makefile.coq

@@ -45,7 +45,7 @@ End sumbool_and.
 
 Infix "&&" := sumbool_and (at level 40, left associativity) : specif_scope.
 
-Inductive maybe (A : Type) (P : A -> Prop) : Set :=
+Inductive maybe (A : Set) (P : A -> Prop) : Set :=
 | Unknown : maybe P
 | Found : forall x : A, P x -> maybe P.
 

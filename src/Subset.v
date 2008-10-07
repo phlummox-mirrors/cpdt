@@ -428,7 +428,7 @@ let rec in_dec a_eq_dec x = function
 
 (** Our final implementation of dependent predecessor used a very specific argument type to ensure that execution could always complete normally.  Sometimes we want to allow execution to fail, and we want a more principled way of signaling that than returning a default value, as [pred] does for [0].  One approach is to define this type family [maybe], which is a version of [sig] that allows obligation-free failure. *)
 
-Inductive maybe (A : Type) (P : A -> Prop) : Set :=
+Inductive maybe (A : Set) (P : A -> Prop) : Set :=
 | Unknown : maybe P
 | Found : forall x : A, P x -> maybe P.
 
