@@ -26,7 +26,7 @@ As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#<
 There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program.  The best way to add settings that will be shared by many source files is to add a custom variable setting to your %\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
 %\begin{verbatim}%#<pre>#(custom-set-variables
   ...
-  '(coq-prog-args '("-impredicative-set" "-I" "/path/to/cpdt/src"))
+  '(coq-prog-args '("-I" "/path/to/cpdt/src"))
   ...
 )#</pre>#%\end{verbatim}%
 The extra arguments demonstrated here are the proper choices for working with the code for this book.  The ellipses stand for other Emacs customization settings you may already have.  It can be helpful to save several alternate sets of flags in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, with all but one commented out within the %\texttt{%#<tt>#custom-set-variables#</tt>#%}% block at any given time.
