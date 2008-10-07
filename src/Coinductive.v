@@ -412,7 +412,7 @@ Definition regmapCompat (rm : regmap nat) (rm' : regmap (option nat)) :=
 (** remove printing * *)
 Ltac compat := unfold regmapCompat in *; crush;
   match goal with
-    | [ |- match get _ ?R with Some _ => _ | None => _ end ] => destruct R; crush
+    | [ H : _ |- match get _ ?R with Some _ => _ | None => _ end ] => generalize (H R); destruct R; crush
   end.
 
 Lemma regmapCompat_set_None : forall rm rm' r n,
