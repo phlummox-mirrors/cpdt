@@ -537,8 +537,8 @@ Lemma substring_suffix_emp' : forall s n m,
 Qed.
 
 Lemma substring_suffix_emp : forall s n m,
-  m > 0
-  -> substring n m s = ""
+  substring n m s = ""
+  -> m > 0
   -> n >= length s.
   destruct m as [| m]; [crush | intros; apply substring_suffix_emp' with m; assumption].
 Qed.
@@ -656,11 +656,25 @@ Section dec_star.
     Defined.
   End dec_star''.
 
+  Lemma star_length_contra : forall n,
+    length s > n
+    -> n >= length s
+    -> False.
+    crush.
+  Qed.
+
+  Lemma star_length_flip : forall n n',
+    length s - n <= S n'
+    -> length s > n
+    -> length s - n > 0.
+    crush.
+  Qed.
+
+  Hint Resolve star_length_contra star_length_flip substring_suffix_emp.
+
   Definition dec_star' (n n' : nat) : length s - n' <= n
     -> {star P (substring n' (length s - n') s)}
     + {~star P (substring n' (length s - n') s)}.
-    About dec_star''.
-
     refine (fix F (n n' : nat) {struct n} : length s - n' <= n
       -> {star P (substring n' (length s - n') s)}
       + {~star P (substring n' (length s - n') s)} :=
@@ -671,16 +685,14 @@ Section dec_star.
         | S n'' => fun _ =>
           le_gt_dec (length s) n'
           || dec_star'' (n := n') (star P) (fun n0 _ => Reduce (F n'' n0 _)) (length s - n')
-      end); clear F; crush; eauto.
-
-    apply star_substring_inv in H; crush; eauto.
-
-    assert (n' >= length s); [ | omega].
-    apply substring_suffix_emp with (length s - n'); crush.
-
-    assert (S x <= length s - n'); [ omega | ].
-    apply _1 in H1.
-    tauto.
+      end); clear F; crush; eauto;
+    match goal with
+      | [ H : star _ _ |- _ ] => apply star_substring_inv in H; crush; eauto
+    end;
+    match goal with
+      | [ H1 : _ < _ - _, H2 : forall l' : nat, _ <= _ - _ -> _ |- _ ] =>
+        generalize (H2 _ (lt_le_S _ _ H1)); tauto
+    end.
   Defined.
 
   Definition dec_star : {star P s} + { ~star P s}.
@@ -699,8 +711,6 @@ Lemma app_cong : forall x1 y1 x2 y2,
 Qed.
 
 Hint Resolve app_cong.
-
-
 
 Definition matches P (r : regexp P) s : {P s} + { ~P s}.
   refine (fix F P (r : regexp P) s : {P s} + { ~P s} :=
