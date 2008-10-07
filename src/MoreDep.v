@@ -346,6 +346,10 @@ Qed.
 
 (** * A Certified Regular Expression Matcher *)
 
+(** Another interesting example is regular expressions with dependent types that express which predicates over strings particular regexps implement.  We can then assign a dependent type to a regular expression matching function, guaranteeing that it always decides the string property that we expect it to decide.
+
+   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts. *)
+
 Require Import Ascii String.
 Open Scope string_scope.
 
@@ -360,6 +364,23 @@ Section star.
     -> star (s1 ++ s2).
 End star.
 
+(** Now we can make our first attempt at defining a [regexp] type that is indexed by predicates on strings.  Here is a reasonable-looking definition that is restricted to constant characters and concatenation.
+
+[[
+Inductive regexp : (string -> Prop) -> Set :=
+| Char : forall ch : ascii,
+  regexp (fun s => s = String ch "")
+| Concat : forall (P1 P2 : string -> Prop) (r1 : regexp P1) (r2 : regexp P2),
+  regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2).
+
+[[
+User error: Large non-propositional inductive types must be in Type
+]]
+
+What is a large inductive type?  In Coq, it is an inductive type that has a constructor which quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
+
+It turns out that allowing large inductive types in [Set] leads to contradictions when combined with certain kinds of classical logic reasoning.  Thus, by default, such types are ruled out.  There is a simple fix for our [regexp] definition, which is to place our new type in [Type].  While fixing the problem, we also expand the list of constructors to cover the remaining regular expression operators. *)
+
 Inductive regexp : (string -> Prop) -> Type :=
 | Char : forall ch : ascii,
   regexp (fun s => s = String ch "")
@@ -370,6 +391,9 @@ Inductive regexp : (string -> Prop) -> Type :=
 | Star : forall P (r : regexp P),
   regexp (star P).
 
+(** Many theorems about strings are useful for implementing a certified regexp matcher, and few of them are in the [Strings] library.  The book source includes statements, proofs, and hint commands for a handful of such omittted theorems.  Since they are orthogonal to our use of dependent types, we hide them in the rendered versions of this book. *)
+
+(* begin hide *)
 Open Scope specif_scope.
 
 Lemma length_emp : length "" <= 0.
@@ -397,7 +421,7 @@ Lemma substring_all : forall s,
 Qed.
 
 Lemma substring_none : forall s n,
-  substring n 0 s = EmptyString.
+  substring n 0 s = "".
   induction s; substring.
 Qed.
 
@@ -430,13 +454,20 @@ Lemma substring_app_snd : forall s2 s1 n,
 Qed.
 
 Hint Rewrite substring_app_fst substring_app_snd using (trivial; fail) : cpdt.
+(* end hide *)
+
+(** A few auxiliary functions help us in our final matcher definition.  The function [split] will be used to implement the regexp concatenation case. *)
 
 Section split.
   Variables P1 P2 : string -> Prop.
   Variable P1_dec : forall s, {P1 s} + { ~P1 s}.
   Variable P2_dec : forall s, {P2 s} + { ~P2 s}.
+  (** We require a choice of two arbitrary string predicates and functions for deciding them. *)
 
   Variable s : string.
+  (** Our computation will take place relative to a single fixed string, so it is easiest to make it a [Variable], rather than an explicit argument to our functions. *)
+
+  (** [split'] is the workhorse behind [split].  It searches through the possible ways of splitting [s] into two pieces, checking the two predicates against each such pair.  [split'] progresses right-to-left, from splitting all of [s] into the first piece to splitting all of [s] into the second piece.  It takes an extra argument, [n], which specifies how far along we are in this search process. *)
 
   Definition split' (n : nat) : n <= length s
     -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
@@ -448,7 +479,8 @@ Section split.
         -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
         + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2} with
         | O => fun _ => Reduce (P1_dec "" && P2_dec s)
-        | S n' => fun _ => (P1_dec (substring 0 (S n') s) && P2_dec (substring (S n') (length s - S n') s))
+        | S n' => fun _ => (P1_dec (substring 0 (S n') s)
+            && P2_dec (substring (S n') (length s - S n') s))
           || F n' _
       end); clear F; crush; eauto 7;
     match goal with
@@ -458,6 +490,18 @@ Section split.
     end; crush.
   Defined.
 
+  (** There is one subtle point in the [split'] code that is worth mentioning.  The main body of the function is a [match] on [n].  In the case where [n] is known to be [S n'], we write [S n'] in several places where we might be tempted to write [n].  However, without further work to craft proper [match] annotations, the type-checker does not use the equality between [n] and [S n'].  Thus, it is common to see patterns repeated in [match] case bodies in dependently-typed Coq code.  We can at least use a [let] expression to avoid copying the pattern more than once, replacing the first case body with:
+
+     [[
+
+        | S n' => fun _ => let n := S n' in
+          (P1_dec (substring 0 n s)
+            && P2_dec (substring n (length s - n) s))
+          || F n' _
+     ]]
+
+     [split] itself is trivial to implement in terms of [split'].  We just ask [split'] to begin its search with [n = length s]. *)
+
   Definition split : {exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2}
     + {forall s1 s2, s = s1 ++ s2 -> ~P1 s1 \/ ~P2 s2}.
     refine (Reduce (split' (n := length s) _)); crush; eauto.
@@ -466,6 +510,7 @@ End split.
 
 Implicit Arguments split [P1 P2].
 
+(* begin hide *)
 Lemma app_empty_end : forall s, s ++ "" = s.
   induction s; crush.
 Qed.
@@ -557,11 +602,17 @@ Lemma plus_n_Sm' : forall n m : nat, S (n + m) = m + S n.
 Qed.
 
 Hint Rewrite minus_minus using omega : cpdt.
+(* end hide *)
+
+(** One more helper function will come in handy: [dec_star], for implementing another linear search through ways of splitting a string, this time for implementing the Kleene star. *)
 
 Section dec_star.
   Variable P : string -> Prop.
   Variable P_dec : forall s, {P s} + { ~P s}.
 
+  (** Some new lemmas and hints about the [star] type family are useful here.  We omit them here; they are included in the book source at this point. *)
+
+  (* begin hide *)
   Hint Constructors star.
 
   Lemma star_empty : forall s,
@@ -623,28 +674,38 @@ Section dec_star.
         | [ H : star _ _ |- _ ] => generalize (star_inv H); do 3 crush; eauto
       end.
   Qed.
+  (* end hide *)
+
+  (** The function [dec_star''] implements a single iteration of the star.  That is, it tries to find a string prefix matching [P], and it calls a parameter function on the remainder of the string. *)
 
   Section dec_star''.
     Variable n : nat.
+    (** [n] is the length of the prefix of [s] that we have already processed. *)
 
     Variable P' : string -> Prop.
     Variable P'_dec : forall n' : nat, n' > n
       -> {P' (substring n' (length s - n') s)}
       + { ~P' (substring n' (length s - n') s)}.
+    (** When we use [dec_star''], we will instantiate [P'_dec] with a function for continuing the search for more instances of [P] in [s]. *)
+
+    (** Now we come to [dec_star''] itself.  It takes as an input a natural [l] that records how much of the string has been searched so far, as we did for [split'].  The return type expresses that [dec_star''] is looking for an index into [s] that splits [s] into a nonempty prefix and a suffix, such that the prefix satisfies [P] and the suffix satisfies [P']. *)
 
     Definition dec_star'' (l : nat)
       : {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l
-        -> ~P (substring n (S l') s) \/ ~P' (substring (n + S l') (length s - (n + S l')) s)}.
+        -> ~P (substring n (S l') s)
+        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)}.
       refine (fix F (l : nat) : {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l
-        -> ~P (substring n (S l') s) \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} :=
+        -> ~P (substring n (S l') s)
+        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} :=
       match l return {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l ->
-        ~P (substring n (S l') s) \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} with
+        ~P (substring n (S l') s)
+        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} with
         | O => _
         | S l' =>
           (P_dec (substring n (S l') s) && P'_dec (n' := n + S l') _)
@@ -656,6 +717,7 @@ Section dec_star.
     Defined.
   End dec_star''.
 
+  (* begin hide *)
   Lemma star_length_contra : forall n,
     length s > n
     -> n >= length s
@@ -671,16 +733,19 @@ Section dec_star.
   Qed.
 
   Hint Resolve star_length_contra star_length_flip substring_suffix_emp.
+  (* end hide *)
 
+  (** The work of [dec_star''] is nested inside another linear search by [dec_star'], which provides the final functionality we need, but for arbitrary suffixes of [s], rather than just for [s] overall. *)
+  
   Definition dec_star' (n n' : nat) : length s - n' <= n
     -> {star P (substring n' (length s - n') s)}
-    + {~star P (substring n' (length s - n') s)}.
+    + { ~star P (substring n' (length s - n') s)}.
     refine (fix F (n n' : nat) {struct n} : length s - n' <= n
       -> {star P (substring n' (length s - n') s)}
-      + {~star P (substring n' (length s - n') s)} :=
+      + { ~star P (substring n' (length s - n') s)} :=
       match n return length s - n' <= n
         -> {star P (substring n' (length s - n') s)}
-        + {~star P (substring n' (length s - n') s)} with
+        + { ~star P (substring n' (length s - n') s)} with
         | O => fun _ => Yes
         | S n'' => fun _ =>
           le_gt_dec (length s) n'
@@ -695,6 +760,8 @@ Section dec_star.
     end.
   Defined.
 
+  (** Finally, we have [dec_star].  It has a straightforward implementation.  We introduce a spurious match on [s] so that [simpl] will know to reduce calls to [dec_star].  The heuristic that [simpl] uses is only to unfold identifier definitions when doing so would simplify some [match] expression. *)
+
   Definition dec_star : {star P s} + { ~star P s}.
     refine (match s with
               | "" => Reduce (dec_star' (n := length s) 0 _)
@@ -703,6 +770,7 @@ Section dec_star.
   Defined.
 End dec_star.
 
+(* begin hide *)
 Lemma app_cong : forall x1 y1 x2 y2,
   x1 = x2
   -> y1 = y2
@@ -711,6 +779,9 @@ Lemma app_cong : forall x1 y1 x2 y2,
 Qed.
 
 Hint Resolve app_cong.
+(* end hide *)
+
+(** With these helper functions completed, the implementation of our [matches] function is refreshingly straightforward.  We only need one small piece of specific tactic work beyond what [crush] does for us. *)
 
 Definition matches P (r : regexp P) s : {P s} + { ~P s}.
   refine (fix F P (r : regexp P) s : {P s} + { ~P s} :=
@@ -722,10 +793,10 @@ Definition matches P (r : regexp P) s : {P s} + { ~P s}.
     end); crush;
   match goal with
     | [ H : _ |- _ ] => generalize (H _ _ (refl_equal _))
-  end;
-  tauto.
+  end; tauto.
 Defined.
 
+(* begin hide *)
 Example hi := Concat (Char "h"%char) (Char "i"%char).
 Eval simpl in matches hi "hi".
 Eval simpl in matches hi "bye".
@@ -741,3 +812,4 @@ Eval simpl in matches a_star "".
 Eval simpl in matches a_star "a".
 Eval simpl in matches a_star "b".
 Eval simpl in matches a_star "aa".
+(* end hide *)
