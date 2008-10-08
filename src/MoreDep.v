@@ -56,11 +56,15 @@ The term "ls2" has type "ilist n2" while it is expected to have type
 
   We see the return of a problem we have considered before.  Without explicit annotations, Coq does not enrich our typing assumptions in the branches of a [match] expression.  It is clear that the unification variable [?14] should be resolved to 0 in this context, so that we have [0 + n2] reducing to [n2], but Coq does not realize that.  We cannot fix the problem using just the simple [return] clauses we applied in the last chapter.  We need to combine a [return] clause with a new kind of annotation, an [in] clause. *)
 
+(* EX: Implement concatenation *)
+
+(* begin thide *)
 Fixpoint app n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) {struct ls1} : ilist (n1 + n2) :=
   match ls1 in (ilist n1) return (ilist (n1 + n2)) with
     | Nil => ls2
     | Cons _ x ls1' => Cons x (app ls1' ls2)
   end.
+(* end thide *)
 
 (** This version of [app] passes the type checker.  Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What [in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
 
@@ -68,6 +72,9 @@ We may use [in] clauses only to bind names for the arguments of an inductive typ
 
 Our [app] function could be typed in so-called %\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  We could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
+(* EX: Implement injection from normal lists *)
+
+(* begin thide *)
 Fixpoint inject (ls : list A) : ilist (length ls) :=
   match ls return (ilist (length ls)) with
     | nil => Nil
@@ -85,6 +92,9 @@ Fixpoint unject n (ls : ilist n) {struct ls} : list A :=
 Theorem inject_inverse : forall ls, unject (inject ls) = ls.
   induction ls; crush.
 Qed.
+(* end thide *)
+
+(* EX: Implement statically-checked "car"/"hd" *)
 
 (** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.
 
@@ -123,6 +133,7 @@ In this and other cases, we feel like we want [in] clauses with type family argu
 
 Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
 
+(* begin thide *)
 Definition hd' n (ls : ilist n) :=
   match ls in (ilist n) return (match n with O => unit | S _ => A end) with
     | Nil => tt
@@ -130,6 +141,7 @@ Definition hd' n (ls : ilist n) :=
   end.
 
 Definition hd n (ls : ilist (S n)) : A := hd' ls.
+(* end thide *)
 
 (** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
 
@@ -205,6 +217,9 @@ Error: The reference t2 was not found in the current environment
 
 We run again into the problem of not being able to specify non-variable arguments in [in] clauses.  The problem would just be hopeless without a use of an [in] clause, though, since the result type of the [match] depends on an argument to [exp].  Our solution will be to use a more general type, as we did for [hd].  First, we define a type-valued function to use in assigning a type to [pairOut]. *)
 
+(* EX: Define a function [pairOut : forall t1 t2, exp (Prod t1 t2) -> option (exp t1 * exp t2)] *)
+
+(* begin thide *)
 Definition pairOutType (t : type) :=
   match t with
     | Prod t1 t2 => option (exp t1 * exp t2)
@@ -226,6 +241,7 @@ Definition pairOut t (e : exp t) :=
     | Pair _ _ e1 e2 => Some (e1, e2)
     | _ => pairOutDefault _
   end.
+(* end thide *)
 
 (** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages, but is similar to what goes on with Haskell type classes.
 
@@ -283,6 +299,7 @@ Fixpoint cfold t (e : exp t) {struct e} : exp t :=
 (** The correctness theorem for [cfold] turns out to be easy to prove, once we get over one serious hurdle. *)
 
 Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+(* begin thide *)
   induction e; crush.
 
 (** The first remaining subgoal is:
@@ -342,9 +359,12 @@ User error: e1 is used in hypothesis e
               | [ |- (if ?E then _ else _) = _ ] => destruct E
             end; crush).
 Qed.
+(* end thide *)
 
 
 (** Dependently-Typed Red-Black Trees *)
+
+(** TODO: Add commentary for this section. *)
 
 Inductive color : Set := Red | Black.
 
@@ -353,6 +373,9 @@ Inductive rbtree : color -> nat -> Set :=
 | RedNode : forall n, rbtree Black n -> nat-> rbtree Black n -> rbtree Red n
 | BlackNode : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rbtree Black (S n).
 
+(* EX: Prove that every [rbtree] is balanced. *)
+
+(* begin thide *)
 Require Import Max Min.
 
 Section depth.
@@ -380,10 +403,10 @@ Lemma depth_max' : forall c n (t : rbtree c n), match c with
   induction t; crush;
     match goal with
       | [ |- context[max ?X ?Y] ] => destruct (max_dec X Y)
-    end; crush.
-
-  destruct c1; crush.
-  destruct c2; crush.
+    end; crush;
+    repeat (match goal with
+              | [ H : context[match ?C with Red => _ | Black => _ end] |- _ ] => destruct C
+            end; crush).
 Qed.
 
 Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
@@ -393,6 +416,7 @@ Qed.
 Theorem balanced : forall c n (t : rbtree c n), 2 * depth min t + 1 >= depth max t.
   intros; generalize (depth_min t); generalize (depth_max t); crush.
 Qed.
+(* end thide *)
 
 
 Inductive rtree : nat -> Set :=
@@ -413,6 +437,9 @@ Section present.
       | RedNode' _ _ _ a y b => present a \/ x = y \/ present b
     end.
 End present.
+
+Locate "{ _ : _ & _ }".
+Print sigT.
 
 Notation "{< x >}" := (existT _ _ x).
 
