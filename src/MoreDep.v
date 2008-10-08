@@ -362,7 +362,7 @@ Qed.
 (* end thide *)
 
 
-(** Dependently-Typed Red-Black Trees *)
+(** * Dependently-Typed Red-Black Trees *)
 
 (** TODO: Add commentary for this section. *)
 
