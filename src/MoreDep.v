@@ -353,6 +353,48 @@ Inductive rbtree : color -> nat -> Set :=
 | RedNode : forall n, rbtree Black n -> nat-> rbtree Black n -> rbtree Red n
 | BlackNode : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rbtree Black (S n).
 
+Require Import Max Min.
+
+Section depth.
+  Variable f : nat -> nat -> nat.
+
+  Fixpoint depth c n (t : rbtree c n) {struct t} : nat :=
+    match t with
+      | Leaf => 0
+      | RedNode _ t1 _ t2 => S (f (depth t1) (depth t2))
+      | BlackNode _ _ _ t1 _ t2 => S (f (depth t1) (depth t2))
+    end.
+End depth.
+
+Theorem depth_min : forall c n (t : rbtree c n), depth min t >= n.
+  induction t; crush;
+    match goal with
+      | [ |- context[min ?X ?Y] ] => destruct (min_dec X Y)
+    end; crush.
+Qed.
+
+Lemma depth_max' : forall c n (t : rbtree c n), match c with
+                                                  | Red => depth max t <= 2 * n + 1
+                                                  | Black => depth max t <= 2 * n
+                                                end.
+  induction t; crush;
+    match goal with
+      | [ |- context[max ?X ?Y] ] => destruct (max_dec X Y)
+    end; crush.
+
+  destruct c1; crush.
+  destruct c2; crush.
+Qed.
+
+Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
+  intros; generalize (depth_max' t); destruct c; crush.
+Qed.
+
+Theorem balanced : forall c n (t : rbtree c n), 2 * depth min t + 1 >= depth max t.
+  intros; generalize (depth_min t); generalize (depth_max t); crush.
+Qed.
+
+
 Inductive rtree : nat -> Set :=
 | RedNode' : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rtree n.
 
@@ -366,7 +408,7 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
         | t1' => fun t2 =>
           match t2 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
             | RedNode _ b x c => fun a d => {<RedNode (BlackNode a y b) x (BlackNode c data d)>}
-            | b => fun a t => {<BlackNode a data b>}
+            | b => fun a t => {<BlackNode (RedNode a y b) data t>}
           end t1'
       end t2
   end.
@@ -379,10 +421,26 @@ Definition balance2 n (a : rtree n) (data : nat) c2 :=
         | t1' => fun t2 =>
           match t2 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
             | RedNode _ c z' d => fun b a => {<RedNode (BlackNode a data b) z (BlackNode c z' d)>}
-            | b => fun t a => {<BlackNode a data b>}
+            | b => fun a t => {<BlackNode t data (RedNode a z b)>}
           end t1'
       end t2
   end.
+
+Section present.
+  Variable x : nat.
+
+  Fixpoint present c n (t : rbtree c n) {struct t} : Prop :=
+    match t with
+      | Leaf => False
+      | RedNode _ a y b => present a \/ x = y \/ present b
+      | BlackNode _ _ _ a y b => present a \/ x = y \/ present b
+    end.
+
+  Definition rpresent n (t : rtree n) : Prop :=
+    match t with
+      | RedNode' _ _ _ a y b => present a \/ x = y \/ present b
+    end.
+End present.
 
 Section insert.
   Variable x : nat.
@@ -434,75 +492,108 @@ Section insert.
   Definition insert c n (t : rbtree c n) : insertResult c n :=
     makeBlack (ins t).
 
-  Fixpoint present c n (t : rbtree c n) {struct t} : bool :=
-    match t with
-      | Leaf => false
-      | RedNode _ a y b =>
-        if eq_nat_dec x y
-          then true
-          else if le_lt_dec x y
-            then present a
-            else present b
-      | BlackNode _ _ _ a y b =>
-        if eq_nat_dec x y
-          then true
-          else if le_lt_dec x y
-            then present a
-            else present b
-    end.
+  Record rbtree' : Set := Rbtree' {
+    rtC : color;
+    rtN : nat;
+    rtT : rbtree rtC rtN
+  }.
 
-  Definition rpresent n (t : rtree n) : bool :=
-    match t with
-      | RedNode' _ _ _ a y b =>
-        if eq_nat_dec x y
-          then true
-          else if le_lt_dec x y
-            then present a
-            else present b
-    end.
+  Section present.
+    Variable z : nat.
+
+    Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
+      present z (projT2 (balance1 a y b))
+      <-> rpresent z a \/ z = y \/ present z b.
+      destruct a; crush;
+        repeat match goal with
+                 | [ H : context[match ?T with
+                                   | Leaf => _
+                                   | RedNode _ _ _ _ => _
+                                   | BlackNode _ _ _ _ _ _ => _
+                                 end] |- _ ] => pose T; dep_destruct T; crush
+                 | [ |- context[match ?T with
+                                  | Leaf => _
+                                  | RedNode _ _ _ _ => _
+                                  | BlackNode _ _ _ _ _ _ => _
+                                end] ] => pose T; dep_destruct T; crush
+               end.
+    Qed.
+
+    Lemma present_balance2 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
+      present z (projT2 (balance2 a y b))
+      <-> rpresent z a \/ z = y \/ present z b.
+      destruct a; crush;
+        repeat match goal with
+                 | [ H : context[match ?T with
+                                   | Leaf => _
+                                   | RedNode _ _ _ _ => _
+                                   | BlackNode _ _ _ _ _ _ => _
+                                 end] |- _ ] => pose T; dep_destruct T; crush
+                 | [ |- context[match ?T with
+                                  | Leaf => _
+                                  | RedNode _ _ _ _ => _
+                                  | BlackNode _ _ _ _ _ _ => _
+                                end] ] => pose T; dep_destruct T; crush
+               end.
+    Qed.
+
+    Definition present_insResult c n :=
+      match c return (rbtree c n -> insResult c n -> Prop) with
+        | Red => fun t r => rpresent z r <-> z = x \/ present z t
+        | Black => fun t r => present z (projT2 r) <-> z = x \/ present z t
+      end.
+
+    Theorem present_ins : forall c n (t : rbtree c n),
+      present_insResult t (ins t).
+      induction t; crush;
+        repeat (match goal with
+                  | [ H : context[if ?E then _ else _] |- _ ] => destruct E
+                  | [ |- context[if ?E then _ else _] ] => destruct E
+                  | [ H : context[match ?C with Red => _ | Black => _ end] |- _ ] => destruct C
+                end; crush);
+        try match goal with
+              | [ H : context[balance1 ?A ?B ?C] |- _ ] =>
+                generalize (present_balance1 A B C)
+            end;
+        try match goal with
+              | [ H : context[balance2 ?A ?B ?C] |- _ ] =>
+                generalize (present_balance2 A B C)
+            end;
+        try match goal with
+              | [ |- context[balance1 ?A ?B ?C] ] =>
+                generalize (present_balance1 A B C)
+            end;
+        try match goal with
+              | [ |- context[balance2 ?A ?B ?C] ] =>
+                generalize (present_balance2 A B C)
+            end;
+        intuition;
+          match goal with
+            | [ z : nat, x : nat |- _ ] =>
+              match goal with
+                | [ H : z = x |- _ ] => rewrite H in *; clear H
+              end
+          end;
+          tauto.
+    Qed.
+
+    Theorem present_insert_Red : forall n (t : rbtree Red n),
+      present z (insert t)
+      <-> (z = x \/ present z t).
+      unfold insert; inversion t;
+        generalize (present_ins t); simpl;
+          dep_destruct (ins t); tauto.
+    Qed.
+
+    Theorem present_insert_Black : forall n (t : rbtree Black n),
+      present z (projT2 (insert t))
+      <-> (z = x \/ present z t).
+      unfold insert; inversion t;
+        generalize (present_ins t); simpl;
+          dep_destruct (ins t); tauto.
+    Qed.
+  End present.
 End insert.
-
-
-Require Import Max Min.
-
-Section depth.
-  Variable f : nat -> nat -> nat.
-
-  Fixpoint depth c n (t : rbtree c n) {struct t} : nat :=
-    match t with
-      | Leaf => 0
-      | RedNode _ t1 _ t2 => S (f (depth t1) (depth t2))
-      | BlackNode _ _ _ t1 _ t2 => S (f (depth t1) (depth t2))
-    end.
-End depth.
-
-Theorem depth_min : forall c n (t : rbtree c n), depth min t >= n.
-  induction t; crush;
-    match goal with
-      | [ |- context[min ?X ?Y] ] => destruct (min_dec X Y)
-    end; crush.
-Qed.
-
-Lemma depth_max' : forall c n (t : rbtree c n), match c with
-                                                  | Red => depth max t <= 2 * n + 1
-                                                  | Black => depth max t <= 2 * n
-                                                end.
-  induction t; crush;
-    match goal with
-      | [ |- context[max ?X ?Y] ] => destruct (max_dec X Y)
-    end; crush.
-
-  destruct c1; crush.
-  destruct c2; crush.
-Qed.
-
-Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
-  intros; generalize (depth_max' t); destruct c; crush.
-Qed.
-
-Theorem balanced : forall c n (t : rbtree c n), 2 * depth min t + 1 >= depth max t.
-  intros; generalize (depth_min t); generalize (depth_max t); crush.
-Qed.
 
 
 (** * A Certified Regular Expression Matcher *)
