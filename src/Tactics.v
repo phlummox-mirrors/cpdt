@@ -42,6 +42,9 @@ Ltac all f ls :=
   end.
 
 Ltac simplHyp invOne :=
+  let invert H F :=
+    inList F invOne; (inversion H; fail)
+    || (inversion H; [idtac]; clear H; try subst) in
   match goal with
     | [ H : ex _ |- _ ] => destruct H
 
@@ -54,11 +57,11 @@ Ltac simplHyp invOne :=
         | [ |- _ = _ -> _ = _ -> _ ] => try clear H; intros; try subst
       end
 
-    | [ H : ?F _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
-    | [ H : ?F _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
-    | [ H : ?F _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
-    | [ H : ?F _ _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
-    | [ H : ?F _ _ _ _ _ |- _ ] => inList F invOne; inversion H; [idtac]; clear H; try subst
+    | [ H : ?F _ |- _ ] => invert H F
+    | [ H : ?F _ _ |- _ ] => invert H F
+    | [ H : ?F _ _ _ |- _ ] => invert H F
+    | [ H : ?F _ _ _ _ |- _ ] => invert H F
+    | [ H : ?F _ _ _ _ _ |- _ ] => invert H F
   end.
 
 Ltac rewriteHyp :=
