@@ -398,6 +398,22 @@ Qed.
 Inductive rtree : nat -> Set :=
 | RedNode' : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rtree n.
 
+Section present.
+  Variable x : nat.
+
+  Fixpoint present c n (t : rbtree c n) {struct t} : Prop :=
+    match t with
+      | Leaf => False
+      | RedNode _ a y b => present a \/ x = y \/ present b
+      | BlackNode _ _ _ a y b => present a \/ x = y \/ present b
+    end.
+
+  Definition rpresent n (t : rtree n) : Prop :=
+    match t with
+      | RedNode' _ _ _ a y b => present a \/ x = y \/ present b
+    end.
+End present.
+
 Notation "{< x >}" := (existT _ _ x).
 
 Definition balance1 n (a : rtree n) (data : nat) c2 :=
@@ -425,22 +441,6 @@ Definition balance2 n (a : rtree n) (data : nat) c2 :=
           end t1'
       end t2
   end.
-
-Section present.
-  Variable x : nat.
-
-  Fixpoint present c n (t : rbtree c n) {struct t} : Prop :=
-    match t with
-      | Leaf => False
-      | RedNode _ a y b => present a \/ x = y \/ present b
-      | BlackNode _ _ _ a y b => present a \/ x = y \/ present b
-    end.
-
-  Definition rpresent n (t : rtree n) : Prop :=
-    match t with
-      | RedNode' _ _ _ a y b => present a \/ x = y \/ present b
-    end.
-End present.
 
 Section insert.
   Variable x : nat.
