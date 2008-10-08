@@ -478,7 +478,7 @@ Section insert.
       | Black => { c' : color & rbtree c' n }
     end.
 
-  Definition makeBlack c n : insResult c n -> insertResult c n :=
+  Definition makeRbtree c n : insResult c n -> insertResult c n :=
     match c return insResult c n -> insertResult c n with
       | Red => fun r =>
         match r in rtree n return insertResult Red n with
@@ -487,16 +487,10 @@ Section insert.
       | Black => fun r => r
     end.
 
-  Implicit Arguments makeBlack [c n].
+  Implicit Arguments makeRbtree [c n].
 
   Definition insert c n (t : rbtree c n) : insertResult c n :=
-    makeBlack (ins t).
-
-  Record rbtree' : Set := Rbtree' {
-    rtC : color;
-    rtN : nat;
-    rtT : rbtree rtC rtN
-  }.
+    makeRbtree (ins t).
 
   Section present.
     Variable z : nat.
@@ -577,20 +571,21 @@ Section insert.
           tauto.
     Qed.
 
-    Theorem present_insert_Red : forall n (t : rbtree Red n),
-      present z (insert t)
-      <-> (z = x \/ present z t).
+    Ltac present_insert t :=
       unfold insert; inversion t;
         generalize (present_ins t); simpl;
           dep_destruct (ins t); tauto.
+
+    Theorem present_insert_Red : forall n (t : rbtree Red n),
+      present z (insert t)
+      <-> (z = x \/ present z t).
+      intros; present_insert t.
     Qed.
 
     Theorem present_insert_Black : forall n (t : rbtree Black n),
       present z (projT2 (insert t))
       <-> (z = x \/ present z t).
-      unfold insert; inversion t;
-        generalize (present_ins t); simpl;
-          dep_destruct (ins t); tauto.
+      intros; present_insert t.
     Qed.
   End present.
 End insert.
