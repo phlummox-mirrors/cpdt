@@ -1087,7 +1087,7 @@ Eval simpl in matches a_star "aa".
 %\item%#<li># Define a kind of dependently-typed lists, where a list's type index gives a lower bound on how many of its elements satisfy a particular predicate.  In particular, for an arbitrary set [A] and a predicate [P] over it:
 %\begin{enumerate}%#<ol>#
   %\item%#<li># Define a type [plist : nat -> Set].  Each [plist n] should be a list of [A]s, where it is guaranteed that at least [n] distinct elements satisfy [P].  There is wide latitude in choosing how to encode this.  You should try to avoid using subset types or any other mechanism based on annotating non-dependent types with propositions after-the-fact.#</li>#
-  %\item%#<li># Define a version of list concatenation that works on [plist]s.  The type of this new function should express as much information as possible about the outpit [plist].#</li>#
+  %\item%#<li># Define a version of list concatenation that works on [plist]s.  The type of this new function should express as much information as possible about the output [plist].#</li>#
   %\item%#<li># Define a function [plistOut] for translating [plist]s to normal [list]s.#</li>#
   %\item%#<li># Define a function [plistIn] for translating [list]s to [plist]s.  The type of [plistIn] should make it clear that the best bound on [P]-matching elements is chosen.  You may assume that you are given a dependently-typed function for deciding instances of [P].#</li>#
   %\item%#<li># Prove that, for any list [ls], [plistOut (plistIn ls) = ls].  This should be the only part of the exercise where you use tactic-based proving.#</li>#
