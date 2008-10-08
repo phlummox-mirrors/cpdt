@@ -495,40 +495,31 @@ Section insert.
   Section present.
     Variable z : nat.
 
-    Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
-      present z (projT2 (balance1 a y b))
-      <-> rpresent z a \/ z = y \/ present z b.
-      destruct a; crush;
-        repeat match goal with
-                 | [ H : context[match ?T with
-                                   | Leaf => _
-                                   | RedNode _ _ _ _ => _
-                                   | BlackNode _ _ _ _ _ _ => _
-                                 end] |- _ ] => pose T; dep_destruct T; crush
-                 | [ |- context[match ?T with
+    Ltac present_balance :=
+      crush;
+      repeat (match goal with
+                | [ H : context[match ?T with
                                   | Leaf => _
                                   | RedNode _ _ _ _ => _
                                   | BlackNode _ _ _ _ _ _ => _
-                                end] ] => pose T; dep_destruct T; crush
-               end.
+                                end] |- _ ] => dep_destruct T
+                | [ |- context[match ?T with
+                                 | Leaf => _
+                                 | RedNode _ _ _ _ => _
+                                 | BlackNode _ _ _ _ _ _ => _
+                                 end] ] => dep_destruct T
+              end; crush).
+
+    Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
+      present z (projT2 (balance1 a y b))
+      <-> rpresent z a \/ z = y \/ present z b.
+      destruct a; present_balance.
     Qed.
 
     Lemma present_balance2 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
       present z (projT2 (balance2 a y b))
       <-> rpresent z a \/ z = y \/ present z b.
-      destruct a; crush;
-        repeat match goal with
-                 | [ H : context[match ?T with
-                                   | Leaf => _
-                                   | RedNode _ _ _ _ => _
-                                   | BlackNode _ _ _ _ _ _ => _
-                                 end] |- _ ] => pose T; dep_destruct T; crush
-                 | [ |- context[match ?T with
-                                  | Leaf => _
-                                  | RedNode _ _ _ _ => _
-                                  | BlackNode _ _ _ _ _ _ => _
-                                end] ] => pose T; dep_destruct T; crush
-               end.
+      destruct a; present_balance.
     Qed.
 
     Definition present_insResult c n :=
