@@ -320,3 +320,101 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 (** We are starting to develop the tools behind dependent typing's amazing advantage over alternative approaches in several important areas.  Here, we have implemented complete syntax, typing rules, and evaluation semantics for simply-typed lambda calculus without even needing to define a syntactic substitution operation.  We did it all without a single line of proof, and our implementation is manifestly executable.  In a later chapter, we will meet other, more common approaches to language formalization.  Such approaches often state and prove explicit theorems about type safety of languages.  In the above example, we got type safety, termination, and other meta-theorems for free, by reduction to CIC, which we know has those properties. *)
 
 
+(** * Recursive Type Definitions *)
+
+(** There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as %\textit{%#<i>#recursive#</i>#%}% definitions. *)
+
+Section filist.
+  Variable A : Set.
+
+  Fixpoint filist (n : nat) : Set :=
+    match n with
+      | O => unit
+      | S n' => A * filist n'
+    end%type.
+
+  (** We say that a list of length 0 has no contents, and a list of length [S n'] is a pair of a data value and a list of length [n']. *)
+
+  Fixpoint findex (n : nat) : Set :=
+    match n with
+      | O => Empty_set
+      | S n' => option (findex n')
+    end.
+
+  (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail). *)
+
+  Fixpoint fget (n : nat) : filist n -> findex n -> A :=
+    match n return filist n -> findex n -> A with
+      | O => fun _ idx => match idx with end
+      | S n' => fun ls idx =>
+        match idx with
+          | None => fst ls
+          | Some idx' => fget n' (snd ls) idx'
+        end
+    end.
+
+  (** Our new [get] implementation needs only one dependent [match], which just copies the stated return type of the function.  Our choices of data structure implementations lead to just the right typing behavior for this new definition to work out. *)
+End filist.
+
+(** Heterogeneous lists are a little trickier to define with recursion, but we then reap similar benefits in simplicity of use. *)
+
+Section fhlist.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  Fixpoint fhlist (ls : list A) : Type :=
+    match ls with
+      | nil => unit
+      | x :: ls' => B x * fhlist ls'
+    end%type.
+
+  (** The definition of [fhlist] follows the definition of [filist], with the added wrinkle of dependently-typed data elements. *)
+
+  Variable elm : A.
+
+  Fixpoint fmember (ls : list A) : Type :=
+    match ls with
+      | nil => Empty_set
+      | x :: ls' => (x = elm) + fmember ls'
+    end%type.
+
+  (** The definition of [fmember] follows the definition of [findex].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [index] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
+
+     We know all of the tricks needed to write a first attempt at a [get] function for [fhlist]s.
+
+     [[
+
+  Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
+    match ls return fhlist ls -> fmember ls -> B elm with
+      | nil => fun _ idx => match idx with end
+      | _ :: ls' => fun mls idx =>
+        match idx with
+          | inl _ => fst mls
+          | inr idx' => fhget ls' (snd mls) idx'
+        end
+    end.
+
+    Only one problem remains.  The expression [fst mls] is not known to have the proper type.  To demonstrate that it does, we need to use the proof available in the [inl] case of the inner [match]. *)
+
+  Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
+    match ls return fhlist ls -> fmember ls -> B elm with
+      | nil => fun _ idx => match idx with end
+      | _ :: ls' => fun mls idx =>
+        match idx with
+          | inl pf => match pf with
+                        | refl_equal => fst mls
+                      end
+          | inr idx' => fhget ls' (snd mls) idx'
+        end
+    end.
+
+  (** By pattern-matching on the equality proof [pf], we make that equality known to the type-checker.  Exactly why this works can be seen by studying the definition of equality. *)
+
+  Print eq.
+  (** [[
+
+Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
+]]
+
+In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes.  All examples of similar dependent pattern matching that we have seen before require explicit annotations, but Coq implements a special case of annotation inference for matches on equality proofs. *)
+End fhlist.
