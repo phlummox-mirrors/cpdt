@@ -1,6 +1,7 @@
 MODULES_NODOC := Tactics MoreSpecif
 MODULES_PROSE := Intro
-MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset MoreDep
+MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
+	MoreDep DataStruct
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
