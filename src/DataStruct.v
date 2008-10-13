@@ -114,8 +114,36 @@ Section ilist.
 End ilist.
 
 Implicit Arguments Nil [A].
+Implicit Arguments First [n].
 
-(** Our [get] function is quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
+(** A few examples show how to make use of these definitions. *)
+
+Check Cons 0 (Cons 1 (Cons 2 Nil)).
+(** [[
+
+Cons 0 (Cons 1 (Cons 2 Nil))
+     : ilist nat 3
+]] *)
+Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) First.
+(** [[
+
+     = 0
+     : nat
+]] *)
+Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next First).
+(** [[
+
+     = 1
+     : nat
+]] *)
+Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
+(** [[
+
+     = 2
+     : nat
+]] *)
+
+(** Our [get] function is also quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
 
 Section ilist_map.
   Variables A B : Set.
@@ -183,3 +211,112 @@ Section hlist.
         end x (hget mls')
     end.
 End hlist.
+
+Implicit Arguments MNil [A B].
+Implicit Arguments MCons [A B x ls].
+
+Implicit Arguments MFirst [A elm ls].
+Implicit Arguments MNext [A elm x ls].
+
+(** By putting the parameters [A] and [B] in [Type], we allow some very higher-order uses.  For instance, one use of [hlist] is for the simple heterogeneous lists that we referred to earlier. *)
+
+Definition someTypes : list Set := nat :: bool :: nil.
+
+Example someValues : hlist (fun T : Set => T) someTypes :=
+  MCons 5 (MCons true MNil).
+
+Eval simpl in hget someValues MFirst.
+(** [[
+
+     = 5
+     : (fun T : Set => T) nat
+]] *)
+Eval simpl in hget someValues (MNext MFirst).
+(** [[
+
+     = true
+     : (fun T : Set => T) bool
+]] *)
+
+(** We can also build indexed lists of pairs in this way. *)
+
+Example somePairs : hlist (fun T : Set => T * T)%type someTypes :=
+  MCons (1, 2) (MCons (true, false) MNil).
+
+(** ** A Lambda Calculus Interpreter *)
+
+(** Heterogeneous lists are very useful in implementing interpreters for functional programming languages.  Using the types and operations we have already defined, it is trivial to write an interpreter for simply-typed lambda calculus.  Our interpreter can alternatively be thought of as a denotational semantics.
+
+   We start with an algebraic datatype for types. *)
+
+Inductive type : Set :=
+| Unit : type
+| Arrow : type -> type -> type.
+
+(** Now we can define a type family for expressions.  An [exp ts t] will stand for an expression that has type [t] and whose free variables have types in the list [ts].  We effectively use the de Bruijn variable representation, which we will discuss in more detail in later chapters.  Variables are represented as [member] values; that is, a variable is more or less a constructive proof that a particular type is found in the type environment. *)
+
+Inductive exp : list type -> type -> Set :=
+| Const : forall ts, exp ts Unit
+
+| Var : forall ts t, member t ts -> exp ts t
+| App : forall ts dom ran, exp ts (Arrow dom ran) -> exp ts dom -> exp ts ran
+| Abs : forall ts dom ran, exp (dom :: ts) ran -> exp ts (Arrow dom ran).
+
+Implicit Arguments Const [ts].
+
+(** We write a simple recursive function to translate [type]s into [Set]s. *)
+
+Fixpoint typeDenote (t : type) : Set :=
+  match t with
+    | Unit => unit
+    | Arrow t1 t2 => typeDenote t1 -> typeDenote t2
+  end.
+
+(** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly-typed environments to final values.  An environment for a free variable list [ts] is simply a [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [MCons] to extend the environment in the [Abs] case. *)
+
+Fixpoint expDenote ts t (e : exp ts t) {struct e} : hlist typeDenote ts -> typeDenote t :=
+  match e in exp ts t return hlist typeDenote ts -> typeDenote t with
+    | Const _ => fun _ => tt
+
+    | Var _ _ mem => fun s => hget s mem
+    | App _ _ _ e1 e2 => fun s => (expDenote e1 s) (expDenote e2 s)
+    | Abs _ _ _ e' => fun s => fun x => expDenote e' (MCons x s)
+  end.
+
+(** Like for previous examples, our interpreter is easy to run with [simpl]. *)
+
+Eval simpl in expDenote Const MNil.
+(** [[
+
+    = tt
+     : typeDenote Unit
+]] *)
+Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
+(** [[
+
+     = fun x : unit => x
+     : typeDenote (Arrow Unit Unit)
+]] *)
+Eval simpl in expDenote (Abs (dom := Unit)
+  (Abs (dom := Unit) (Var (MNext MFirst)))) MNil.
+(** [[
+
+     = fun x _ : unit => x
+     : typeDenote (Arrow Unit (Arrow Unit Unit))
+]] *)
+Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) MNil.
+(** [[
+
+     = fun _ x0 : unit => x0
+     : typeDenote (Arrow Unit (Arrow Unit Unit))
+]] *)
+Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
+(** [[
+
+     = tt
+     : typeDenote Unit
+]] *)
+
+(** We are starting to develop the tools behind dependent typing's amazing advantage over alternative approaches in several important areas.  Here, we have implemented complete syntax, typing rules, and evaluation semantics for simply-typed lambda calculus without even needing to define a syntactic substitution operation.  We did it all without a single line of proof, and our implementation is manifestly executable.  In a later chapter, we will meet other, more common approaches to language formalization.  Such approaches often state and prove explicit theorems about type safety of languages.  In the above example, we got type safety, termination, and other meta-theorems for free, by reduction to CIC, which we know has those properties. *)
+
+
