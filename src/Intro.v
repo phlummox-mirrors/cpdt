@@ -195,6 +195,8 @@ Subset Types and Variations & \texttt{Subset.v} \\
 \hline
 More Dependent Types & \texttt{MoreDep.v} \\
 \hline
+Dependent Data Structures & \texttt{DataStruct.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
