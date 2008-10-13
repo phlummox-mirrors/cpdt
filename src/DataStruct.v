@@ -115,6 +115,8 @@ End ilist.
 
 Implicit Arguments Nil [A].
 
+(** Our [get] function is quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
+
 Section ilist_map.
   Variables A B : Set.
   Variable f : A -> B.
@@ -125,12 +127,59 @@ Section ilist_map.
       | Cons _ x ls' => Cons (f x) (imap ls')
     end.
 
-  Theorem get_imap : forall n (ls : ilist A n) (idx : index n),
+  (** It is easy to prove that [get] "distributes over" [imap] calls.  The only tricky bit is remembering to use the [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
+
+  Theorem get_imap : forall n (idx : index n) (ls : ilist A n),
     get (imap ls) idx = f (get ls idx).
-    induction ls; crush;
-      match goal with
-        | [ |- context[match ?IDX with First _ => _ | Next _ _ => _ end] ] =>
-          dep_destruct IDX; crush
-      end.
+    induction ls; dep_destruct idx; crush.
   Qed.
 End ilist_map.
+
+
+(** * Heterogeneous Lists *)
+
+(** Programmers who move to statically-typed functional languages from "scripting languages" often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a "type-level" list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and it we can do it much more cleanly and directly in Coq. *)
+
+Section hlist.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  (** We parameterize our heterogeneous lists by a type [A] and an [A]-indexed type [B]. *)
+
+  Inductive hlist : list A -> Type :=
+  | MNil : hlist nil
+  | MCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
+
+  (** We can implement a variant of the last section's [get] function for [hlist]s.  To get the dependent typing to work out, we will need to index our element selectors by the types of data that they point to. *)
+
+  Variable elm : A.
+
+  Inductive member : list A -> Type :=
+  | MFirst : forall ls, member (elm :: ls)
+  | MNext : forall x ls, member ls -> member (x :: ls).
+
+  (** Because the element [elm] that we are "searching for" in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
+
+     We can use [member] to adapt our definition of [get] to [hlists].  The same basic [match] tricks apply.  In the [MCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
+
+  Fixpoint hget ls (mls : hlist ls) {struct mls} : member ls -> B elm :=
+    match mls in hlist ls return member ls -> B elm with
+      | MNil => fun mem =>
+        match mem in member ls' return (match ls' with
+                                          | nil => B elm
+                                          | _ :: _ => unit
+                                        end) with
+          | MFirst _ => tt
+          | MNext _ _ _ => tt
+        end
+      | MCons _ _ x mls' => fun mem =>
+        match mem in member ls' return (match ls' with
+                                          | nil => Empty_set
+                                          | x' :: ls'' =>
+                                            B x' -> (member ls'' -> B elm) -> B elm
+                                        end) with
+          | MFirst _ => fun x _ => x
+          | MNext _ _ mem' => fun _ get_mls' => get_mls' mem'
+        end x (hget mls')
+    end.
+End hlist.
