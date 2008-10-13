@@ -418,3 +418,155 @@ Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
 
 In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes.  All examples of similar dependent pattern matching that we have seen before require explicit annotations, but Coq implements a special case of annotation inference for matches on equality proofs. *)
 End fhlist.
+
+
+(** * Data Structures as Index Functions *)
+
+(** Indexed lists can be useful in defining other inductive types with constructors that take variable numbers of arguments.  In this section, we consider parameterized trees with arbitrary branching factor. *)
+
+Section tree.
+  Variable A : Set.
+
+  Inductive tree : Set :=
+  | Leaf : A -> tree
+  | Node : forall n, ilist tree n -> tree.
+End tree.
+
+(** Every [Node] of a [tree] has a natural number argument, which gives the number of child trees in the second argument, typed with [ilist].  We can define two operations on trees of naturals: summing their elements and incrementing their elements.  It is useful to define a generic fold function on [ilist]s first. *)
+
+Section ifoldr.
+  Variables A B : Set.
+  Variable f : A -> B -> B.
+  Variable i : B.
+
+  Fixpoint ifoldr n (ls : ilist A n) {struct ls} : B :=
+    match ls with
+      | Nil => i
+      | Cons _ x ls' => f x (ifoldr ls')
+    end.
+End ifoldr.
+
+Fixpoint sum (t : tree nat) : nat :=
+  match t with
+    | Leaf n => n
+    | Node _ ls => ifoldr (fun t' n => sum t' + n) O ls
+  end.
+
+Fixpoint inc (t : tree nat) : tree nat :=
+  match t with
+    | Leaf n => Leaf (S n)
+    | Node _ ls => Node (imap inc ls)
+  end.
+
+(** Now we might like to prove that [inc] does not decrease a tree's [sum]. *)
+
+Theorem sum_inc : forall t, sum (inc t) >= sum t.
+  induction t; crush.
+  (** [[
+
+  n : nat
+  i : ilist (tree nat) n
+  ============================
+   ifoldr (fun (t' : tree nat) (n0 : nat) => sum t' + n0) 0 (imap inc i) >=
+   ifoldr (fun (t' : tree nat) (n0 : nat) => sum t' + n0) 0 i
+   ]]
+
+   We are left with a single subgoal which does not seem provable directly.  This is the same problem that we met in Chapter 3 with other nested inductive types. *)
+
+  Check tree_ind.
+  (** [[
+
+tree_ind
+     : forall (A : Set) (P : tree A -> Prop),
+       (forall a : A, P (Leaf a)) ->
+       (forall (n : nat) (i : ilist (tree A) n), P (Node i)) ->
+       forall t : tree A, P t
+]]
+
+The automatically-generated induction principle is too weak.  For the [Node] case, it gives us no inductive hypothesis.  We could write our own induction principle, as we did in Chapter 3, but there is an easier way, if we are willing to alter the definition of [tree]. *)
+Abort.
+
+Reset tree.
+
+(** First, let us try using our recursive definition of [ilist]s instead of the inductive version. *)
+
+Section tree.
+  Variable A : Set.
+
+  (** [[
+
+  Inductive tree : Set :=
+  | Leaf : A -> tree
+  | Node : forall n, filist tree n -> tree.
+
+[[
+
+Error: Non strictly positive occurrence of "tree" in
+ "forall n : nat, filist tree n -> tree"
+]]
+
+  The special-case rule for nested datatypes only works with nested uses of other inductive types, which could be replaced with uses of new mutually-inductive types.  We defined [filist] recursively, so it may not be used for nested recursion.
+
+  Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, reflexive types.  Instead of merely using [index] to get elements out of [ilist], we can %\textit{%#<i>#define#</i>#%}% [ilist] in terms of [index].  For the reasons outlined above, it turns out to be easier to work with [findex] in place of [index]. *)
+
+  Inductive tree : Set :=
+  | Leaf : A -> tree
+  | Node : forall n, (findex n -> tree) -> tree.
+
+  (** A [Node] is indexed by a natural number [n], and the node's [n] children are represented as a function from [findex n] to trees, which is isomorphic to the [ilist]-based representation that we used above. *)
+End tree.
+
+Implicit Arguments Node [A n].
+
+(** We can redefine [sum] and [inc] for our new [tree] type.  Again, it is useful to define a generic fold function first.  This time, it takes in a function whose range is some [findex] type, and it folds another function over the results of calling the first function at every possible [findex] value. *)
+
+Section rifoldr.
+  Variables A B : Set.
+  Variable f : A -> B -> B.
+  Variable i : B.
+
+  Fixpoint rifoldr (n : nat) : (findex n -> A) -> B :=
+    match n return (findex n -> A) -> B with
+      | O => fun _ => i
+      | S n' => fun get => f (get None) (rifoldr n' (fun idx => get (Some idx)))
+    end.
+End rifoldr.
+
+Implicit Arguments rifoldr [A B n].
+
+Fixpoint sum (t : tree nat) : nat :=
+  match t with
+    | Leaf n => n
+    | Node _ f => rifoldr plus O (fun idx => sum (f idx))
+  end.
+
+Fixpoint inc (t : tree nat) : tree nat :=
+  match t with
+    | Leaf n => Leaf (S n)
+    | Node _ f => Node (fun idx => inc (f idx))
+  end.
+
+(** Now we are ready to prove the theorem where we got stuck before.  We will not need to define any new induction principle, but it %\textit{%#<i>#will#</i>#%}% be helpful to prove some lemmas. *)
+
+Lemma plus_ge : forall x1 y1 x2 y2,
+  x1 >= x2
+  -> y1 >= y2
+  -> x1 + y1 >= x2 + y2.
+  crush.
+Qed.
+
+Lemma sum_inc' : forall n (f1 f2 : findex n -> nat),
+  (forall idx, f1 idx >= f2 idx)
+  -> rifoldr plus 0 f1 >= rifoldr plus 0 f2.
+  Hint Resolve plus_ge.
+
+  induction n; crush.
+Qed.
+
+Theorem sum_inc : forall t, sum (inc t) >= sum t.
+  Hint Resolve sum_inc'.
+
+  induction t; crush.
+Qed.
+
+(** Even if Coq would generate complete induction principles automatically for nested inductive definitions like the one we started with, there would still be advantages to using this style of reflexive encoding.  We see one of those advantages in the definition of [inc], where we did not need to use any kind of auxiliary function.  In general, reflexive encodings often admit direct implementations of operations that would require recursion if performed with more traditional inductive data structures. *)
