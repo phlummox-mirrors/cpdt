@@ -843,6 +843,6 @@ e ::= x | b | inl e | inr e | case e of [p => e]* | _ => e
 
   [x] stands for a variable, and [b] stands for a boolean constant.  The production for [case] expressions means that a pattern-match includes zero or more pairs of patterns and expressions, along with a default case.
 
-  Your interpreter should be implemented in the style demonstrated in this chapter.  That is, your definition of expressions should use dependent types to combine syntax and typing rules, such that the type of an expression tells the types of variables that are in scope.  You should implement a simple recursive function translating types [t] to [Set], and your interpreter should produce values in the image of this translation.#</li>#
+  Your interpreter should be implemented in the style demonstrated in this chapter.  That is, your definition of expressions should use dependent types and de Bruijn indices to combine syntax and typing rules, such that the type of an expression tells the types of variables that are in scope.  You should implement a simple recursive function translating types [t] to [Set], and your interpreter should produce values in the image of this translation.#</li>#
 
 #</ol>#%\end{enumerate}% *)
