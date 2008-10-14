@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import List.
+Require Import Arith List.
 
 Require Import Tactics.
 
@@ -419,6 +419,8 @@ Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
 In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes.  All examples of similar dependent pattern matching that we have seen before require explicit annotations, but Coq implements a special case of annotation inference for matches on equality proofs. *)
 End fhlist.
 
+Implicit Arguments fhget [A B elm ls].
+
 
 (** * Data Structures as Index Functions *)
 
@@ -570,3 +572,174 @@ Theorem sum_inc : forall t, sum (inc t) >= sum t.
 Qed.
 
 (** Even if Coq would generate complete induction principles automatically for nested inductive definitions like the one we started with, there would still be advantages to using this style of reflexive encoding.  We see one of those advantages in the definition of [inc], where we did not need to use any kind of auxiliary function.  In general, reflexive encodings often admit direct implementations of operations that would require recursion if performed with more traditional inductive data structures. *)
+
+(** ** Another Interpreter Example *)
+
+Inductive type' : Type :=
+| Nat' : type'
+| Bool' : type'.
+
+Inductive exp' : type' -> Type :=
+| NConst : nat -> exp' Nat'
+| Plus : exp' Nat' -> exp' Nat' -> exp' Nat'
+| Eq : exp' Nat' -> exp' Nat' -> exp' Bool'
+
+| BConst : bool -> exp' Bool'
+| Cond : forall n t, (findex n -> exp' Bool')
+  -> (findex n -> exp' t) -> exp' t -> exp' t.
+
+Definition type'Denote (t : type') : Set :=
+  match t with
+    | Nat' => nat
+    | Bool' => bool
+  end.
+
+Section cond.
+  Variable A : Set.
+  Variable default : A.
+
+  Fixpoint cond (n : nat) : (findex n -> bool) -> (findex n -> A) -> A :=
+    match n return (findex n -> bool) -> (findex n -> A) -> A with
+      | O => fun _ _ => default
+      | S n' => fun tests bodies =>
+        if tests None
+          then bodies None
+          else cond n'
+            (fun idx => tests (Some idx))
+            (fun idx => bodies (Some idx))
+    end.
+End cond.
+
+Implicit Arguments cond [A n].
+
+Fixpoint exp'Denote t (e : exp' t) {struct e} : type'Denote t :=
+  match e in exp' t return type'Denote t with
+    | NConst n =>
+      n
+    | Plus e1 e2 =>
+      exp'Denote e1 + exp'Denote e2
+    | Eq e1 e2 =>
+      if eq_nat_dec (exp'Denote e1) (exp'Denote e2) then true else false
+
+    | BConst b =>
+      b
+    | Cond _ _ tests bodies default =>
+      cond
+      (exp'Denote default)
+      (fun idx => exp'Denote (tests idx))
+      (fun idx => exp'Denote (bodies idx))
+  end.
+
+Section cfoldCond.
+  Variable t : type'.
+  Variable default : exp' t.
+
+  Fixpoint cfoldCond (n : nat) : (findex n -> exp' Bool') -> (findex n -> exp' t) -> exp' t :=
+    match n return (findex n -> exp' Bool') -> (findex n -> exp' t) -> exp' t with
+      | O => fun _ _ => default
+      | S n' => fun tests bodies =>
+        match tests None with
+          | BConst true => bodies None
+          | BConst false => cfoldCond n'
+            (fun idx => tests (Some idx))
+            (fun idx => bodies (Some idx))
+          | _ =>
+            let e := cfoldCond n'
+              (fun idx => tests (Some idx))
+              (fun idx => bodies (Some idx)) in
+            match e in exp' t return exp' Bool' -> exp' t -> exp' t with
+              | Cond n _ tests' bodies' default' => fun test body =>
+                Cond
+                (S n)
+                (fun idx => match idx with
+                              | None => test
+                              | Some idx => tests' idx
+                            end)
+                (fun idx => match idx with
+                              | None => body
+                              | Some idx => bodies' idx
+                            end)
+                default'
+              | e => fun test body =>
+                Cond
+                1
+                (fun _ => test)
+                (fun _ => body)
+                e
+            end (tests None) (bodies None)
+        end
+    end.
+End cfoldCond.
+
+Implicit Arguments cfoldCond [t n].
+
+Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
+  match e in exp' t return exp' t with
+    | NConst n => NConst n
+    | Plus e1 e2 =>
+      let e1' := cfold e1 in
+      let e2' := cfold e2 in
+      match e1', e2' with
+        | NConst n1, NConst n2 => NConst (n1 + n2)
+        | _, _ => Plus e1' e2'
+      end
+    | Eq e1 e2 =>
+      let e1' := cfold e1 in
+      let e2' := cfold e2 in
+      match e1', e2' with
+        | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
+        | _, _ => Eq e1' e2'
+      end
+
+    | BConst b => BConst b
+    | Cond _ _ tests bodies default =>
+      cfoldCond
+      (cfold default)
+      (fun idx => cfold (tests idx))
+      (fun idx => cfold (bodies idx))
+  end.
+
+Lemma cfoldCond_correct : forall t (default : exp' t)
+  n (tests : findex n -> exp' Bool') (bodies : findex n -> exp' t),
+  exp'Denote (cfoldCond default tests bodies)
+  = exp'Denote (Cond n tests bodies default).
+  induction n; crush;
+    match goal with
+      | [ IHn : forall tests bodies, _, tests : _ -> _, bodies : _ -> _ |- _ ] =>
+        generalize (IHn (fun idx => tests (Some idx)) (fun idx => bodies (Some idx)));
+          clear IHn; intro IHn
+    end;
+    repeat (match goal with
+              | [ |- context[match ?E with
+                               | NConst _ => _
+                               | Plus _ _ => _
+                               | Eq _ _ => _
+                               | BConst _ => _
+                               | Cond _ _ _ _ _ => _
+                             end] ] => dep_destruct E
+              | [ |- context[if ?B then _ else _] ] => destruct B
+            end; crush).
+Qed.
+
+Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : findex n -> bool)
+  (bodies bodies' : findex n -> A),
+  (forall idx, tests idx = tests' idx)
+  -> (forall idx, bodies idx = bodies' idx)
+  -> cond default tests bodies
+  = cond default tests' bodies'.
+  induction n; crush;
+    match goal with
+      | [ |- context[if ?E then _ else _] ] => destruct E
+    end; crush.
+Qed.
+
+Theorem cfold_correct : forall t (e : exp' t),
+  exp'Denote (cfold e) = exp'Denote e.
+  Hint Rewrite cfoldCond_correct : cpdt.
+  Hint Resolve cond_ext.
+
+  induction e; crush;
+    repeat (match goal with
+              | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
+            end; crush).
+Qed.
