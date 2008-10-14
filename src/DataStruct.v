@@ -34,6 +34,9 @@ Section ilist.
 
   (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family [index], where [index n] is isomorphic to [{m : nat | m < n}].  Such a type family is also often called [Fin] or similar, standing for "finite." *)
 
+  (* EX: Define a function [get] for extracting an [ilist] element by position. *)
+
+(* begin thide *)
   Inductive index : nat -> Set :=
   | First : forall n, index (S n)
   | Next : forall n, index n -> index (S n).
@@ -111,10 +114,13 @@ Section ilist.
           | Next _ idx' => fun get_ls' => get_ls' idx'
         end (get ls')
     end.
+(* end thide *)
 End ilist.
 
 Implicit Arguments Nil [A].
+(* begin thide *)
 Implicit Arguments First [n].
+(* end thide *)
 
 (** A few examples show how to make use of these definitions. *)
 
@@ -124,6 +130,7 @@ Check Cons 0 (Cons 1 (Cons 2 Nil)).
 Cons 0 (Cons 1 (Cons 2 Nil))
      : ilist nat 3
 ]] *)
+(* begin thide *)
 Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) First.
 (** [[
 
@@ -142,6 +149,7 @@ Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
      = 2
      : nat
 ]] *)
+(* end thide *)
 
 (** Our [get] function is also quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
 
@@ -159,8 +167,10 @@ Section ilist_map.
 
   Theorem get_imap : forall n (idx : index n) (ls : ilist A n),
     get (imap ls) idx = f (get ls idx).
+(* begin thide *)
     induction ls; dep_destruct idx; crush.
   Qed.
+(* end thide *)
 End ilist_map.
 
 
@@ -172,14 +182,21 @@ Section hlist.
   Variable A : Type.
   Variable B : A -> Type.
 
+  (* EX: Define a type [hlist] indexed by a [list A], where the type of each element is determined by running [B] on the corresponding element of the index list. *)
+
   (** We parameterize our heterogeneous lists by a type [A] and an [A]-indexed type [B]. *)
 
+(* begin thide *)
   Inductive hlist : list A -> Type :=
   | MNil : hlist nil
   | MCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
 
   (** We can implement a variant of the last section's [get] function for [hlist]s.  To get the dependent typing to work out, we will need to index our element selectors by the types of data that they point to. *)
 
+(* end thide *)
+  (* EX: Define an analogue to [get] for [hlist]s. *)
+
+(* begin thide *)
   Variable elm : A.
 
   Inductive member : list A -> Type :=
@@ -210,17 +227,22 @@ Section hlist.
           | MNext _ _ mem' => fun _ get_mls' => get_mls' mem'
         end x (hget mls')
     end.
+(* end thide *)
 End hlist.
 
+(* begin thide *)
 Implicit Arguments MNil [A B].
 Implicit Arguments MCons [A B x ls].
 
 Implicit Arguments MFirst [A elm ls].
 Implicit Arguments MNext [A elm x ls].
+(* end thide *)
 
 (** By putting the parameters [A] and [B] in [Type], we allow some very higher-order uses.  For instance, one use of [hlist] is for the simple heterogeneous lists that we referred to earlier. *)
 
 Definition someTypes : list Set := nat :: bool :: nil.
+
+(* begin thide *)
 
 Example someValues : hlist (fun T : Set => T) someTypes :=
   MCons 5 (MCons true MNil).
@@ -243,6 +265,9 @@ Eval simpl in hget someValues (MNext MFirst).
 Example somePairs : hlist (fun T : Set => T * T)%type someTypes :=
   MCons (1, 2) (MCons (true, false) MNil).
 
+(* end thide *)
+
+
 (** ** A Lambda Calculus Interpreter *)
 
 (** Heterogeneous lists are very useful in implementing interpreters for functional programming languages.  Using the types and operations we have already defined, it is trivial to write an interpreter for simply-typed lambda calculus.  Our interpreter can alternatively be thought of as a denotational semantics.
@@ -258,9 +283,11 @@ Inductive type : Set :=
 Inductive exp : list type -> type -> Set :=
 | Const : forall ts, exp ts Unit
 
+(* begin thide *)
 | Var : forall ts t, member t ts -> exp ts t
 | App : forall ts dom ran, exp ts (Arrow dom ran) -> exp ts dom -> exp ts ran
 | Abs : forall ts dom ran, exp (dom :: ts) ran -> exp ts (Arrow dom ran).
+(* end thide *)
 
 Implicit Arguments Const [ts].
 
@@ -274,6 +301,9 @@ Fixpoint typeDenote (t : type) : Set :=
 
 (** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly-typed environments to final values.  An environment for a free variable list [ts] is simply a [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [MCons] to extend the environment in the [Abs] case. *)
 
+(* EX: Define an interpreter for [exp]s. *)
+
+(* begin thide *)
 Fixpoint expDenote ts t (e : exp ts t) {struct e} : hlist typeDenote ts -> typeDenote t :=
   match e in exp ts t return hlist typeDenote ts -> typeDenote t with
     | Const _ => fun _ => tt
@@ -317,6 +347,8 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
      : typeDenote Unit
 ]] *)
 
+(* end thide *)
+
 (** We are starting to develop the tools behind dependent typing's amazing advantage over alternative approaches in several important areas.  Here, we have implemented complete syntax, typing rules, and evaluation semantics for simply-typed lambda calculus without even needing to define a syntactic substitution operation.  We did it all without a single line of proof, and our implementation is manifestly executable.  In a later chapter, we will meet other, more common approaches to language formalization.  Such approaches often state and prove explicit theorems about type safety of languages.  In the above example, we got type safety, termination, and other meta-theorems for free, by reduction to CIC, which we know has those properties. *)
 
 
@@ -324,9 +356,12 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 
 (** There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as %\textit{%#<i>#recursive#</i>#%}% definitions. *)
 
+(* EX: Come up with an alternate [ilist] definition that makes it easier to write [get]. *)
+
 Section filist.
   Variable A : Set.
 
+(* begin thide *)
   Fixpoint filist (n : nat) : Set :=
     match n with
       | O => unit
@@ -354,14 +389,18 @@ Section filist.
     end.
 
   (** Our new [get] implementation needs only one dependent [match], which just copies the stated return type of the function.  Our choices of data structure implementations lead to just the right typing behavior for this new definition to work out. *)
+(* end thide *)
 End filist.
 
 (** Heterogeneous lists are a little trickier to define with recursion, but we then reap similar benefits in simplicity of use. *)
+
+(* EX: Come up with an alternate [hlist] definition that makes it easier to write [hget]. *)
 
 Section fhlist.
   Variable A : Type.
   Variable B : A -> Type.
 
+(* begin thide *)
   Fixpoint fhlist (ls : list A) : Type :=
     match ls with
       | nil => unit
@@ -417,6 +456,7 @@ Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
 ]]
 
 In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes.  All examples of similar dependent pattern matching that we have seen before require explicit annotations, but Coq implements a special case of annotation inference for matches on equality proofs. *)
+(* end thide *)
 End fhlist.
 
 Implicit Arguments fhget [A B elm ls].
@@ -463,6 +503,7 @@ Fixpoint inc (t : tree nat) : tree nat :=
 (** Now we might like to prove that [inc] does not decrease a tree's [sum]. *)
 
 Theorem sum_inc : forall t, sum (inc t) >= sum t.
+(* begin thide *)
   induction t; crush.
   (** [[
 
@@ -571,6 +612,8 @@ Theorem sum_inc : forall t, sum (inc t) >= sum t.
   induction t; crush.
 Qed.
 
+(* end thide *)
+
 (** Even if Coq would generate complete induction principles automatically for nested inductive definitions like the one we started with, there would still be advantages to using this style of reflexive encoding.  We see one of those advantages in the definition of [inc], where we did not need to use any kind of auxiliary function.  In general, reflexive encodings often admit direct implementations of operations that would require recursion if performed with more traditional inductive data structures. *)
 
 (** ** Another Interpreter Example *)
@@ -585,8 +628,10 @@ Inductive exp' : type' -> Type :=
 | Eq : exp' Nat -> exp' Nat -> exp' Bool
 
 | BConst : bool -> exp' Bool
+(* begin thide *)
 | Cond : forall n t, (findex n -> exp' Bool)
   -> (findex n -> exp' t) -> exp' t -> exp' t.
+(* end thide *)
 
 (** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [findex n -> exp' Bool], and the bodies are represented with a function of type [findex n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.
 
@@ -600,6 +645,7 @@ Definition type'Denote (t : type') : Set :=
 
 (** To implement the expression interpreter, it is useful to have the following function that implements the functionality of [Cond] without involving any syntax. *)
 
+(* begin thide *)
 Section cond.
   Variable A : Set.
   Variable default : A.
@@ -617,6 +663,7 @@ Section cond.
 End cond.
 
 Implicit Arguments cond [A n].
+(* end thide *)
 
 (** Now the expression interpreter is straightforward to write. *)
 
@@ -632,14 +679,17 @@ Fixpoint exp'Denote t (e : exp' t) {struct e} : type'Denote t :=
     | BConst b =>
       b
     | Cond _ _ tests bodies default =>
+(* begin thide *)
       cond
       (exp'Denote default)
       (fun idx => exp'Denote (tests idx))
       (fun idx => exp'Denote (bodies idx))
+(* end thide *)
   end.
 
 (** We will implement a constant-folding function that optimizes conditionals, removing cases with known-[false] tests and cases that come after known-[true] tests.  A function [cfoldCond] implements the heart of this logic.  The convoy pattern is used again near the end of the implementation. *)
 
+(* begin thide *)
 Section cfoldCond.
   Variable t : type'.
   Variable default : exp' t.
@@ -683,6 +733,7 @@ Section cfoldCond.
 End cfoldCond.
 
 Implicit Arguments cfoldCond [t n].
+(* end thide *)
 
 (** Like for the interpreters, most of the action was in this helper function, and [cfold] itself is easy to write. *)
 
@@ -706,12 +757,15 @@ Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
 
     | BConst b => BConst b
     | Cond _ _ tests bodies default =>
+(* begin thide *)
       cfoldCond
       (cfold default)
       (fun idx => cfold (tests idx))
       (fun idx => cfold (bodies idx))
+(* end thide *)
   end.
 
+(* begin thide *)
 (** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly-automated one, with the only wrinkle being a guided instantation of the quantifiers in the induction hypothesis. *)
 
 Lemma cfoldCond_correct : forall t (default : exp' t)
@@ -751,9 +805,11 @@ Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : findex n -> bo
 Qed.
 
 (** Now the final theorem is easy to prove.  We add our two lemmas as hints and perform standard automation with pattern-matching of subterms to destruct. *)
+(* end thide *)
 
 Theorem cfold_correct : forall t (e : exp' t),
   exp'Denote (cfold e) = exp'Denote e.
+(* begin thide *)
   Hint Rewrite cfoldCond_correct : cpdt.
   Hint Resolve cond_ext.
 
@@ -762,3 +818,4 @@ Theorem cfold_correct : forall t (e : exp' t),
               | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
             end; crush).
 Qed.
+(* end thide *)
