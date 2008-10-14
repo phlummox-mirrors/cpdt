@@ -575,24 +575,30 @@ Qed.
 
 (** ** Another Interpreter Example *)
 
-Inductive type' : Type :=
-| Nat' : type'
-| Bool' : type'.
+(** We develop another example of variable-arity constructors, in the form of optimization of a small expression language with a construct like Scheme's %\texttt{%#<tt>#cond#</tt>#%}%.  Each of our conditional expressions takes a list of pairs of boolean tests and bodies.  The value of the conditional comes from the body of the first test in the list to evaluate to [true].  To simplify the interpreter we will write, we force each conditional to include a final, default case. *)
+
+Inductive type' : Type := Nat | Bool.
 
 Inductive exp' : type' -> Type :=
-| NConst : nat -> exp' Nat'
-| Plus : exp' Nat' -> exp' Nat' -> exp' Nat'
-| Eq : exp' Nat' -> exp' Nat' -> exp' Bool'
+| NConst : nat -> exp' Nat
+| Plus : exp' Nat -> exp' Nat -> exp' Nat
+| Eq : exp' Nat -> exp' Nat -> exp' Bool
 
-| BConst : bool -> exp' Bool'
-| Cond : forall n t, (findex n -> exp' Bool')
+| BConst : bool -> exp' Bool
+| Cond : forall n t, (findex n -> exp' Bool)
   -> (findex n -> exp' t) -> exp' t -> exp' t.
+
+(** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [findex n -> exp' Bool], and the bodies are represented with a function of type [findex n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.
+
+We start implementing our interpreter with a standard type denotation function. *)
 
 Definition type'Denote (t : type') : Set :=
   match t with
-    | Nat' => nat
-    | Bool' => bool
+    | Nat => nat
+    | Bool => bool
   end.
+
+(** To implement the expression interpreter, it is useful to have the following function that implements the functionality of [Cond] without involving any syntax. *)
 
 Section cond.
   Variable A : Set.
@@ -612,6 +618,8 @@ End cond.
 
 Implicit Arguments cond [A n].
 
+(** Now the expression interpreter is straightforward to write. *)
+
 Fixpoint exp'Denote t (e : exp' t) {struct e} : type'Denote t :=
   match e in exp' t return type'Denote t with
     | NConst n =>
@@ -630,12 +638,15 @@ Fixpoint exp'Denote t (e : exp' t) {struct e} : type'Denote t :=
       (fun idx => exp'Denote (bodies idx))
   end.
 
+(** We will implement a constant-folding function that optimizes conditionals, removing cases with known-[false] tests and cases that come after known-[true] tests.  A function [cfoldCond] implements the heart of this logic.  The convoy pattern is used again near the end of the implementation. *)
+
 Section cfoldCond.
   Variable t : type'.
   Variable default : exp' t.
 
-  Fixpoint cfoldCond (n : nat) : (findex n -> exp' Bool') -> (findex n -> exp' t) -> exp' t :=
-    match n return (findex n -> exp' Bool') -> (findex n -> exp' t) -> exp' t with
+  Fixpoint cfoldCond (n : nat)
+    : (findex n -> exp' Bool) -> (findex n -> exp' t) -> exp' t :=
+    match n return (findex n -> exp' Bool) -> (findex n -> exp' t) -> exp' t with
       | O => fun _ _ => default
       | S n' => fun tests bodies =>
         match tests None with
@@ -647,12 +658,12 @@ Section cfoldCond.
             let e := cfoldCond n'
               (fun idx => tests (Some idx))
               (fun idx => bodies (Some idx)) in
-            match e in exp' t return exp' Bool' -> exp' t -> exp' t with
-              | Cond n _ tests' bodies' default' => fun test body =>
+            match e in exp' t return exp' t -> exp' t with
+              | Cond n _ tests' bodies' default' => fun body =>
                 Cond
                 (S n)
                 (fun idx => match idx with
-                              | None => test
+                              | None => tests None
                               | Some idx => tests' idx
                             end)
                 (fun idx => match idx with
@@ -660,18 +671,20 @@ Section cfoldCond.
                               | Some idx => bodies' idx
                             end)
                 default'
-              | e => fun test body =>
+              | e => fun body =>
                 Cond
                 1
-                (fun _ => test)
+                (fun _ => tests None)
                 (fun _ => body)
                 e
-            end (tests None) (bodies None)
+            end (bodies None)
         end
     end.
 End cfoldCond.
 
 Implicit Arguments cfoldCond [t n].
+
+(** Like for the interpreters, most of the action was in this helper function, and [cfold] itself is easy to write. *)
 
 Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
   match e in exp' t return exp' t with
@@ -699,8 +712,10 @@ Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
       (fun idx => cfold (bodies idx))
   end.
 
+(** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly-automated one, with the only wrinkle being a guided instantation of the quantifiers in the induction hypothesis. *)
+
 Lemma cfoldCond_correct : forall t (default : exp' t)
-  n (tests : findex n -> exp' Bool') (bodies : findex n -> exp' t),
+  n (tests : findex n -> exp' Bool) (bodies : findex n -> exp' t),
   exp'Denote (cfoldCond default tests bodies)
   = exp'Denote (Cond n tests bodies default).
   induction n; crush;
@@ -721,6 +736,8 @@ Lemma cfoldCond_correct : forall t (default : exp' t)
             end; crush).
 Qed.
 
+(** It is also useful to know that the result of a call to [cond] is not changed by substituting new tests and bodies functions, so long as the new functions have the same input-output behavior as the old.  It turns out that, in Coq, it is not possible to prove in general that functions related in this way are equal.  We treat this issue with our discussion of axioms in a later chapter.  For now, it suffices to prove that the particular function [cond] is %\textit{%#<i>#extensional#</i>#%}%; that is, it is unaffected by substitution of functions with input-output equivalents. *)
+
 Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : findex n -> bool)
   (bodies bodies' : findex n -> A),
   (forall idx, tests idx = tests' idx)
@@ -732,6 +749,8 @@ Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : findex n -> bo
       | [ |- context[if ?E then _ else _] ] => destruct E
     end; crush.
 Qed.
+
+(** Now the final theorem is easy to prove.  We add our two lemmas as hints and perform standard automation with pattern-matching of subterms to destruct. *)
 
 Theorem cfold_correct : forall t (e : exp' t),
   exp'Denote (cfold e) = exp'Denote e.
