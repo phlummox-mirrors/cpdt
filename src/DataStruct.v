@@ -819,3 +819,16 @@ Theorem cfold_correct : forall t (e : exp' t),
             end; crush).
 Qed.
 (* end thide *)
+
+
+(** * Exercises *)
+
+(** Some of the type family definitions from this chapter are duplicated in the [DepList] module of the book source.  Only the recursive versions of length-indexed and heterogeneous lists are included, and they are renamed without the [f] prefixes, e.g., [ilist] in place of [filist].
+
+%\begin{enumerate}%#<ol>#
+
+%\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [itree] indexed by trees.  The structure of an [itree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [itree] by path.  Define a function [itmap2] for "mapping over two trees in parallel."  That is, [itmap2] takes in two [itree]s with the same index tree, and it forms a new [itree] with the same index by applying a binary function pointwise.
+
+  Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and reflexive.#</li>#
+   
+#</ol>#%\end{enumerate}% *)
