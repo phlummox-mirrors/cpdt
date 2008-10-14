@@ -823,6 +823,8 @@ Qed.
 
 (** * Exercises *)
 
+(** remove printing * *)
+
 (** Some of the type family definitions from this chapter are duplicated in the [DepList] module of the book source.  Only the recursive versions of length-indexed and heterogeneous lists are included, and they are renamed without the [f] prefixes, e.g., [ilist] in place of [filist].
 
 %\begin{enumerate}%#<ol>#
@@ -830,5 +832,17 @@ Qed.
 %\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [itree] indexed by trees.  The structure of an [itree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [itree] by path.  Define a function [itmap2] for "mapping over two trees in parallel."  That is, [itmap2] takes in two [itree]s with the same index tree, and it forms a new [itree] with the same index by applying a binary function pointwise.
 
   Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and reflexive.#</li>#
-   
+
+%\item%#<li># Write a dependently-typed interpreter for a simple programming language with ML-style pattern-matching.  The language is defined informally by this grammar:
+
+  [[
+t ::= bool | t + t
+p ::= x | b | inl p | inr p
+e ::= x | b | inl e | inr e | case e of [p => e]* | _ => e
+]]
+
+  [x] stands for a variable, and [b] stands for a boolean constant.  The production for [case] expressions means that a pattern-match includes zero or more pairs of patterns and expressions, along with a default case.
+
+  Your interpreter should be implemented in the style demonstrated in this chapter.  That is, your definition of expressions should use dependent types to combine syntax and typing rules, such that the type of an expression tells the types of variables that are in scope.  You should implement a simple recursive function translating types [t] to [Set], and your interpreter should produce values in the image of this translation.#</li>#
+
 #</ol>#%\end{enumerate}% *)
