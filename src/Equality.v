@@ -264,3 +264,209 @@ fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
 
 End fhlist_map.
 
+
+(** * Type-Casts in Theorem Statements *)
+
+(** Sometimes we need to use tricks with equality just to state the theorems that we care about.  To illustrate, we start by defining a concatenation function for [fhlist]s. *)
+
+Section fhapp.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  Fixpoint fhapp (ls1 ls2 : list A) {struct ls1}
+    : fhlist B ls1 -> fhlist B ls2 -> fhlist B (ls1 ++ ls2) :=
+    match ls1 return fhlist _ ls1 -> _ -> fhlist _ (ls1 ++ ls2) with
+      | nil => fun _ hls2 => hls2
+      | _ :: _ => fun hls1 hls2 => (fst hls1, fhapp _ _ (snd hls1) hls2)
+    end.
+
+  Implicit Arguments fhapp [ls1 ls2].
+
+  (** We might like to prove that [fhapp] is associative.
+
+     [[
+
+  Theorem fhapp_ass : forall ls1 ls2 ls3
+    (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
+    fhapp hls1 (fhapp hls2 hls3) = fhapp (fhapp hls1 hls2) hls3.
+
+     [[
+
+The term
+ "fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3) (fhapp (ls1:=ls1) (ls2:=ls2) hls1 hls2)
+    hls3" has type "fhlist B ((ls1 ++ ls2) ++ ls3)"
+ while it is expected to have type "fhlist B (ls1 ++ ls2 ++ ls3)"
+     ]]
+
+     This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is %\textit{%#<i>#intensional#</i>#%}%, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
+
+  Theorem fhapp_ass : forall ls1 ls2 ls3
+    (pf : (ls1 ++ ls2) ++ ls3 = ls1 ++ (ls2 ++ ls3))
+    (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
+    fhapp hls1 (fhapp hls2 hls3)
+    = match pf in (_ = ls) return fhlist _ ls with
+        | refl_equal => fhapp (fhapp hls1 hls2) hls3
+      end.
+    induction ls1; crush.
+
+    (** The first remaining subgoal looks trivial enough:
+
+       [[
+
+  ============================
+   fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3 =
+   match pf in (_ = ls) return (fhlist B ls) with
+   | refl_equal => fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3
+   end
+       ]]
+
+       We can try what worked in previous examples.
+
+       [[
+    case pf.
+
+       [[
+
+User error: Cannot solve a second-order unification problem
+         ]]
+
+        It seems we have reached another case where it is unclear how to use a dependent [match] to implement case analysis on our proof.  The [UIP_refl] theorem can come to our rescue again. *)
+
+    rewrite (UIP_refl _ _ pf).
+    (** [[
+
+  ============================
+   fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3 =
+   fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3
+        ]] *)
+
+    reflexivity.
+
+    (** Our second subgoal is trickier.
+
+       [[
+
+  pf : a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3
+  ============================
+   (a0,
+   fhapp (ls1:=ls1) (ls2:=ls2 ++ ls3) b
+     (fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3)) =
+   match pf in (_ = ls) return (fhlist B ls) with
+   | refl_equal =>
+       (a0,
+       fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
+         (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
+   end
+       ]]
+
+
+       [[
+
+    rewrite (UIP_refl _ _ pf).
+
+       [[
+The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
+ while it is expected to have type "?556 = ?556"
+       ]]
+
+       We can only apply [UIP_refl] on proofs of equality with syntactically equal operands, which is not the case of [pf] here.  We will need to manipulate the form of this subgoal to get us to a point where we may use [UIP_refl].  A first step is obtaining a proof suitable to use in applying the induction hypothesis.  Inversion on the structure of [pf] is sufficient for that. *)
+
+    injection pf; intro pf'.
+    (** [[
+
+  pf : a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3
+  pf' : (ls1 ++ ls2) ++ ls3 = ls1 ++ ls2 ++ ls3
+  ============================
+   (a0,
+   fhapp (ls1:=ls1) (ls2:=ls2 ++ ls3) b
+     (fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3)) =
+   match pf in (_ = ls) return (fhlist B ls) with
+   | refl_equal =>
+       (a0,
+       fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
+         (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
+   end
+   ]]
+
+   Now we can rewrite using the inductive hypothesis. *)
+
+    rewrite (IHls1 _ _ pf').
+    (** [[
+
+  ============================
+   (a0,
+   match pf' in (_ = ls) return (fhlist B ls) with
+   | refl_equal =>
+       fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
+         (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3
+   end) =
+   match pf in (_ = ls) return (fhlist B ls) with
+   | refl_equal =>
+       (a0,
+       fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
+         (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
+   end
+        ]]
+
+        We have made an important bit of progress, as now only a single call to [fhapp] appears in the conclusion.  Trying case analysis on our proofs still will not work, but there is a move we can make to enable it.  Not only does just one call to [fhapp] matter to us now, but it also %\textit{%#<i>#does not matter what the result of the call is#</i>#%}%.  In other words, the subgoal should remain true if we replace this [fhapp] call with a fresh variable.  The [generalize] tactic helps us do exactly that. *)
+
+    generalize (fhapp (fhapp b hls2) hls3).
+    (** [[
+
+   forall f : fhlist B ((ls1 ++ ls2) ++ ls3),
+   (a0,
+   match pf' in (_ = ls) return (fhlist B ls) with
+   | refl_equal => f
+   end) =
+   match pf in (_ = ls) return (fhlist B ls) with
+   | refl_equal => (a0, f)
+   end
+        ]]
+
+        The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but that is exactly the case here and for many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations only support variables in certain positions.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
+
+        In this case, it is helpful to generalize over our two proofs as well. *)
+
+    generalize pf pf'.
+    (** [[
+
+   forall (pf0 : a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3)
+     (pf'0 : (ls1 ++ ls2) ++ ls3 = ls1 ++ ls2 ++ ls3)
+     (f : fhlist B ((ls1 ++ ls2) ++ ls3)),
+   (a0,
+   match pf'0 in (_ = ls) return (fhlist B ls) with
+   | refl_equal => f
+   end) =
+   match pf0 in (_ = ls) return (fhlist B ls) with
+   | refl_equal => (a0, f)
+   end
+        ]]
+
+        To an experienced dependent types hacker, the appearance of this goal term calls for a celebration.  The formula has a critical property that indicates that our problems are over.  To get our proofs into the right form to apply [UIP_refl], we need to use associativity of list append to rewrite their types.  We could not do that before because other parts of the goal require the proofs to retain their original types.  In particular, the call to [fhapp] that we generalized must have type [(ls1 ++ ls2) ++ ls3], for some values of the list variables.  If we rewrite the type of the proof used to type-cast this value to something like [ls1 ++ ls2 ++ ls3 = ls1 ++ ls2 ++ ls3], then the lefthand side of the equality would no longer match the type of the term we are trying to cast.
+
+        However, now that we have generalized over the [fhapp] call, the type of the term being type-cast appears explicitly in the goal and %\textit{%#<i>#may be rewritten as well#</i>#%}%.  In particular, the final masterstroke is rewriting everywhere in our goal using associativity of list append. *)
+
+    rewrite app_ass.
+    (** [[
+
+  ============================
+   forall (pf0 : a :: ls1 ++ ls2 ++ ls3 = a :: ls1 ++ ls2 ++ ls3)
+     (pf'0 : ls1 ++ ls2 ++ ls3 = ls1 ++ ls2 ++ ls3)
+     (f : fhlist B (ls1 ++ ls2 ++ ls3)),
+   (a0,
+   match pf'0 in (_ = ls) return (fhlist B ls) with
+   | refl_equal => f
+   end) =
+   match pf0 in (_ = ls) return (fhlist B ls) with
+   | refl_equal => (a0, f)
+   end
+        ]]
+
+        We can see that we have achieved the crucial property: the type of each generalized equality proof has syntactically equal operands.  This makes it easy to finish the proof with [UIP_refl]. *)
+
+    intros.
+    rewrite (UIP_refl _ _ pf0).
+    rewrite (UIP_refl _ _ pf'0).
+    reflexivity.
+  Qed.
+End fhapp.
