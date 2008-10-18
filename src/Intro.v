@@ -197,6 +197,8 @@ More Dependent Types & \texttt{MoreDep.v} \\
 \hline
 Dependent Data Structures & \texttt{DataStruct.v} \\
 \hline
+Reasoning About Equality Proofs & \texttt{Equality.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
