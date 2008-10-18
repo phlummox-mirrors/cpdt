@@ -163,3 +163,8 @@ Ltac dep_destruct E :=
                        | _ _ ?A => doit A
                        | _ ?A => doit A
                      end.
+
+Ltac clear_all :=
+  repeat match goal with
+           | [ H : _ |- _ ] => clear H
+         end.

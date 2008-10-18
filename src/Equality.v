@@ -1,0 +1,266 @@
+(* Copyright (c) 2008, Adam Chlipala
+ * 
+ * This work is licensed under a
+ * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
+ * Unported License.
+ * The license text is available at:
+ *   http://creativecommons.org/licenses/by-nc-nd/3.0/
+ *)
+
+(* begin hide *)
+Require Import Eqdep List.
+
+Require Import Tactics.
+
+Set Implicit Arguments.
+(* end hide *)
+
+
+(** %\chapter{Reasoning About Equality Proofs}% *)
+
+(** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, we will focus on design patterns for circumventing these tricky issues, and we will introduce the different notions of equality as they are germane. *)
+
+
+(** * Heterogeneous Lists Revisited *)
+
+(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated "cursor" type. *)
+
+Section fhlist.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  Fixpoint fhlist (ls : list A) : Type :=
+    match ls with
+      | nil => unit
+      | x :: ls' => B x * fhlist ls'
+    end%type.
+
+  Variable elm : A.
+
+  Fixpoint fmember (ls : list A) : Type :=
+    match ls with
+      | nil => Empty_set
+      | x :: ls' => (x = elm) + fmember ls'
+    end%type.
+
+  Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
+    match ls return fhlist ls -> fmember ls -> B elm with
+      | nil => fun _ idx => match idx with end
+      | _ :: ls' => fun mls idx =>
+        match idx with
+          | inl pf => match pf with
+                        | refl_equal => fst mls
+                      end
+          | inr idx' => fhget ls' (snd mls) idx'
+        end
+    end.
+End fhlist.
+
+Implicit Arguments fhget [A B elm ls].
+
+(** We can define a [map]-like function for [fhlist]s. *)
+
+Section fhlist_map.
+  Variables A : Type.
+  Variables B C : A -> Type.
+  Variable f : forall x, B x -> C x.
+
+  Fixpoint fhmap (ls : list A) : fhlist B ls -> fhlist C ls :=
+    match ls return fhlist B ls -> fhlist C ls with
+      | nil => fun _ => tt
+      | _ :: _ => fun hls => (f (fst hls), fhmap _ (snd hls))
+    end.
+
+  Implicit Arguments fhmap [ls].
+
+  (** For the inductive versions of the [ilist] definitions, we proved a lemma about the interaction of [get] and [imap].  It was a strategic choice not to attempt such a proof for the definitions that we just gave, because that sets us on a collision course with the problems that are the subject of this chapter. *)
+
+  Variable elm : A.
+
+  Theorem get_imap : forall ls (mem : fmember elm ls) (hls : fhlist B ls),
+    fhget (fhmap hls) mem = f (fhget hls mem).
+    induction ls; crush.
+
+    (** Part of our single remaining subgoal is:
+
+       [[
+   
+  a0 : a = elm
+  ============================
+   match a0 in (_ = a2) return (C a2) with
+   | refl_equal => f a1
+   end = f match a0 in (_ = a2) return (B a2) with
+           | refl_equal => a1
+           end
+       ]]
+
+   This seems like a trivial enough obligation.  The equality proof [a0] must be [refl_equal], since that is the only constructor of [eq].  Therefore, both the [match]es reduce to the point where the conclusion follows by reflexivity.
+
+    [[
+
+    destruct a0.
+
+    [[
+User error: Cannot solve a second-order unification problem
+]]
+
+    This is one of Coq's standard error messages for informing us that its heuristics for attempting an instance of an undecidable problem about dependent typing have failed.  We might try to nudge things in the right direction by stating the lemma that we believe makes the conclusion trivial.
+
+    [[
+
+    assert (a0 = refl_equal _).
+
+    [[
+The term "refl_equal ?98" has type "?98 = ?98"
+ while it is expected to have type "a = elm"
+    ]]
+
+    In retrospect, the problem is not so hard to see.  Reflexivity proofs only show [x = x] for particular values of [x], whereas here we are thinking in terms of a proof of [a = elm], where the two sides of the equality are not equal syntactically.  Thus, the essential lemma we need does not even type-check!
+
+    Is it time to throw in the towel?  Luckily, the answer is "no."  In this chapter, we will see several useful patterns for proving obligations like this.
+
+    For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments. *)
+
+    case a0.
+    (** [[
+
+  ============================
+   f a1 = f a1
+   ]]
+
+    It seems that [destruct] was trying to be too smart for its own good. *)
+
+    reflexivity.
+  Qed.
+
+  (** It will be helpful to examine the proof terms generated by this sort of strategy.  A simpler example illustrates what is going on. *)
+
+  Lemma lemma1 : forall x (pf : x = elm), O = match pf with refl_equal => O end.
+    simple destruct pf; reflexivity.
+  Qed.
+
+  (** [simple destruct pf] is a convenient form for applying [case].  It runs [intro] to bring into scope all quantified variables up to its argument. *)
+
+  Print lemma1.
+
+  (** [[
+
+lemma1 = 
+fun (x : A) (pf : x = elm) =>
+match pf as e in (_ = y) return (0 = match e with
+                                     | refl_equal => 0
+                                     end) with
+| refl_equal => refl_equal 0
+end
+     : forall (x : A) (pf : x = elm), 0 = match pf with
+                                          | refl_equal => 0
+                                          end
+    ]]
+
+    Using what we know about shorthands for [match] annotations, we can write this proof in shorter form manually. *)
+
+  Definition lemma1' :=
+    fun (x : A) (pf : x = elm) =>
+      match pf return (0 = match pf with
+                             | refl_equal => 0
+                           end) with
+        | refl_equal => refl_equal 0
+      end.
+
+  (** Surprisingly, what seems at first like a %\textit{%#<i>#simpler#</i>#%}% lemma is harder to prove. *)
+
+  Lemma lemma2 : forall (x : A) (pf : x = x), O = match pf with refl_equal => O end.
+    (** [[
+
+    simple destruct pf.
+    
+      [[
+
+User error: Cannot solve a second-order unification problem
+      ]] *)
+  Abort.
+
+  (** Nonetheless, we can adapt the last manual proof to handle this theorem. *)
+
+  Definition lemma2' :=
+    fun (x : A) (pf : x = x) =>
+      match pf return (0 = match pf with
+                             | refl_equal => 0
+                           end) with
+        | refl_equal => refl_equal 0
+      end.
+
+  (** We can try to prove a lemma that would simplify proofs of many facts like [lemma2]: *)
+
+  Lemma lemma3 : forall (x : A) (pf : x = x), pf = refl_equal x.
+    (** [[
+
+    simple destruct pf.
+    
+      [[
+
+User error: Cannot solve a second-order unification problem
+      ]] *)
+  Abort.
+
+  (** This time, even our manual attempt fails.
+
+     [[
+
+  Definition lemma3' :=
+    fun (x : A) (pf : x = x) =>
+      match pf as pf' in (_ = x') return (pf' = refl_equal x') with
+        | refl_equal => refl_equal _
+      end.
+
+     [[
+
+The term "refl_equal x'" has type "x' = x'" while it is expected to have type
+ "x = x'"
+     ]]
+
+     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], refering to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the "real" value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
+
+     Nonetheless, it turns out that, with one catch, we %\textit{%#<i>#can#</i>#%}% prove this lemma. *)
+
+  Lemma lemma3 : forall (x : A) (pf : x = x), pf = refl_equal x.
+    intros; apply UIP_refl.
+  Qed.
+
+  Check UIP_refl.
+  (** [[
+
+UIP_refl
+     : forall (U : Type) (x : U) (p : x = x), p = refl_equal x
+     ]]
+
+     [UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an %\textit{%#<i>#axiom#</i>#%}%. *)
+
+  Print eq_rect_eq.
+  (** [[
+
+eq_rect_eq = 
+fun U : Type => Eq_rect_eq.eq_rect_eq U
+     : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+       x = eq_rect p Q x p h
+      ]]
+
+      [eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  [eq_rect] is the automatically-generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.
+
+      Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via "informal" metatheory.
+
+      This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
+
+  Print Streicher_K.
+(** [[
+
+Streicher_K = 
+fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
+     : forall (U : Type) (x : U) (P : x = x -> Prop),
+       P (refl_equal x) -> forall p : x = x, P p
+  ]]
+
+  This is the unfortunately-named "Streicher's axiom K," which says that a predicate on properly-typed equality proofs holds of all such proofs if it holds of reflexivity. *)
+
+End fhlist_map.
+
