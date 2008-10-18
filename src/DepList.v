@@ -15,15 +15,15 @@ Set Implicit Arguments.
 
 
 Section ilist.
-  Variable A : Set.
+  Variable A : Type.
 
-  Fixpoint ilist (n : nat) : Set :=
+  Fixpoint ilist (n : nat) : Type :=
     match n with
       | O => unit
       | S n' => A * ilist n'
     end%type.
 
-  Fixpoint index (n : nat) : Set :=
+  Fixpoint index (n : nat) : Type :=
     match n with
       | O => Empty_set
       | S n' => option (index n')
