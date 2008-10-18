@@ -21,6 +21,80 @@ Set Implicit Arguments.
 (** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, we will focus on design patterns for circumventing these tricky issues, and we will introduce the different notions of equality as they are germane. *)
 
 
+(** * The Definitional Equality *)
+
+(** We have seen many examples so far where proof goals follow "by computation."  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\textit{%#<i>#definitional equality#</i>#%}%.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+
+   The [cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [1] when applied to [0]. *)
+
+Definition pred' (x : nat) :=
+  match x with
+    | O => O
+    | S n' => let y := n' in y
+  end.
+
+Theorem reduce_me : pred' 1 = 0.
+  (** CIC follows the traditions of lambda calculus in associating reduction rules with Greek letters.  Coq can certainly be said to support the familiar alpha reduction rule, which allows capture-avoiding renaming of bound variables, but we never need to apply alpha explicitly, since Coq uses a de Bruijn representation that encodes terms canonically.
+
+     The delta rule is for unfolding global definitions.  We can use it here to unfold the definition of [pred'].  We do this with the [cbv] tactic, which takes a list of reduction rules and makes as many call-by-value reduction steps as possible, using only those rules.  There is an analogous tactic [lazy] for call-by-name reduction. *)
+
+  cbv delta.
+  (** [[
+
+  ============================
+   (fun x : nat => match x with
+                   | 0 => 0
+                   | S n' => let y := n' in y
+                   end) 1 = 0
+      ]]
+
+      At this point, we want to apply the famous beta reduction of lambda calculus, to simplify the application of a known function abstraction. *)
+
+  cbv beta.
+  (** [[
+
+  ============================
+   match 1 with
+   | 0 => 0
+   | S n' => let y := n' in y
+   end = 0
+   ]]
+
+   Next on the list is the iota reduction, which simplifies a single [match] term by determining which pattern matches. *)
+
+  cbv iota.
+  (** [[
+
+  ============================
+   (fun n' : nat => let y := n' in y) 0 = 0
+      ]]
+
+   Now we need another beta reduction. *)
+
+  cbv beta.
+  (** [[
+
+  ============================
+   (let y := 0 in y) = 0
+      ]]
+   
+      The final reduction rule is zeta, which replaces a [let] expression by its body with the appropriate term subsituted. *)
+
+  cbv zeta.
+  (** [[
+
+  ============================
+   0 = 0
+   ]] *)
+
+  reflexivity.
+Qed.
+
+(** The standard [eq] relation is critically dependent on the definitional equality.  [eq] is often called a %\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
+
+   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, we will introduce effective proof methods for goals that use proofs of the standard propositional equality "as data." *)
+
+
 (** * Heterogeneous Lists Revisited *)
 
 (** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated "cursor" type. *)
