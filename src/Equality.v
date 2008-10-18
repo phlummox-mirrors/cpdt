@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Eqdep JMeq List.
 
-Require Import Tactics.
+Require Import MoreSpecif Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -723,4 +723,64 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
 
-(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always intercovert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements. *)
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always intercovert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
+
+   It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases. *)
+
+
+(** * Equality of Functions *)
+
+(** The following seems like a reasonable theorem to want to hold, and it does hold in set theory. [[
+
+   Theorem S_eta : S = (fun n => S n).
+
+   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be %\textit{%#<i>#extensional#</i>#%}%.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We %\textit{%#<i>#can#</i>#%}% assert function extensionality as an axiom. *)
+
+Axiom ext_eq : forall A B (f g : A -> B),
+  (forall x, f x = g x)
+  -> f = g.
+
+(** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [S_eta] is trivial. *)
+
+Theorem S_eta : S = (fun n => S n).
+  apply ext_eq; reflexivity.
+Qed.
+
+(** The same axiom can help us prove equality of types, where we need to "reason under quantifiers." *)
+
+Theorem forall_eq : (forall x : nat, match x with
+                                      | O => True
+                                      | S _ => True
+                                    end)
+  = (forall _ : nat, True).
+
+  (** There are no immediate opportunities to apply [ext_eq], but we can use [change] to fix that. *)
+
+  change ((forall x : nat, (fun x => match x with
+                                       | 0 => True
+                                       | S _ => True
+                                     end) x) = (nat -> True)).
+  rewrite (ext_eq (fun x => match x with
+                              | 0 => True
+                              | S _ => True
+                            end) (fun _ => True)).
+  (** [[
+
+2 subgoals
+  
+  ============================
+   (nat -> True) = (nat -> True)
+
+subgoal 2 is:
+ forall x : nat, match x with
+                 | 0 => True
+                 | S _ => True
+                 end = True
+      ]] *)
+
+
+  reflexivity.
+
+  destruct x; constructor.
+Qed.
+
