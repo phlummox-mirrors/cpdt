@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import Eqdep List.
+Require Import Eqdep JMeq List.
 
 Require Import Tactics.
 
@@ -470,3 +470,113 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
     reflexivity.
   Qed.
 End fhapp.
+
+Implicit Arguments fhapp [A B ls1 ls2].
+
+
+(** * Heterogeneous Equality *)
+
+(** There is another equality predicate, defined in the [JMeq] module of the standard library, implementing %\textit{%#<i>#heterogeneous equality#</i>#%}%. *)
+
+Print JMeq.
+(** [[
+
+Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
+    JMeq_refl : JMeq x x
+    ]]
+
+[JMeq] stands for "John Major equality," a name coined by Conor McBride as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] %\textit{%#<i>#on arguments of different types#</i>#%}%.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+
+Infix "==" := JMeq (at level 70, no associativity).
+
+Definition lemma3' (A : Type) (x : A) (pf : x = x) : pf == refl_equal x :=
+  match pf return (pf == refl_equal _) with
+    | refl_equal => JMeq_refl _
+  end.
+
+(** There is no quick way to write such a proof by tactics, but the underlying proof term that we want is trivial.
+
+   Suppose that we want to use [lemma3'] to establish another lemma of the kind of we have run into several times so far. *)
+
+Lemma lemma4 : forall (A : Type) (x : A) (pf : x = x),
+  O = match pf with refl_equal => O end.
+  intros; rewrite (lemma3' pf); reflexivity.
+Qed.
+
+(** All in all, refreshingly straightforward, but there really is no such thing as a free lunch.  The use of [rewrite] is implemented in terms of an axiom: *)
+
+Check JMeq_eq.
+(** [[
+
+JMeq_eq
+     : forall (A : Type) (x y : A), x == y -> x = y
+    ]] *)
+
+(** It may be surprising that we cannot prove that heterogeneous equality implies normal equality.  The difficulties are the same kind we have seen so far, based on limitations of [match] annotations.
+
+   We can redo our [fhapp] associativity proof based around [JMeq]. *)
+
+Section fhapp'.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  (** This time, the naive theorem statement type-checks. *)
+
+  Theorem fhapp_ass' : forall ls1 ls2 ls3
+    (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
+    fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
+    induction ls1; crush.
+
+    (** Even better, [crush] discharges the first subgoal automatically.  The second subgoal is:
+
+       [[
+
+  ============================
+   (a0,
+   fhapp (B:=B) (ls1:=ls1) (ls2:=ls2 ++ ls3) b
+     (fhapp (B:=B) (ls1:=ls2) (ls2:=ls3) hls2 hls3)) ==
+   (a0,
+   fhapp (B:=B) (ls1:=ls1 ++ ls2) (ls2:=ls3)
+     (fhapp (B:=B) (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
+       ]]
+
+       It looks like one rewrite with the inductive hypothesis should be enough to make the goal trivial.
+
+       [[
+
+    rewrite IHls1.
+
+       [[
+
+Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
+ "fhlist B (ls1 ++ ?1572 ++ ?1573)"
+       ]]
+
+       We see that [JMeq] is not a silver bullet.  We can use it to simplify the statements of equality facts, but the Coq type-checker uses non-trivial heterogeneous equality facts no more readily than it uses standard equality facts.  Here, the problem is that the form [(e1, e2)] is syntactic sugar for an explicit application of a constructor of an inductive type.  That application mentions the type of each tuple element explicitly, and our [rewrite] tries to change one of those elements without updating the corresponding type argument.
+
+       We can get around this problem by another multiple use of [generalize].  We want to bring into the goal the proper instance of the inductive hypothesis, and we also want to generalize the two relevant uses of [fhapp]. *)
+
+    generalize (fhapp b (fhapp hls2 hls3))
+      (fhapp (fhapp b hls2) hls3)
+      (IHls1 _ _ b hls2 hls3).
+    (** [[
+
+  ============================
+   forall (f : fhlist B (ls1 ++ ls2 ++ ls3))
+     (f0 : fhlist B ((ls1 ++ ls2) ++ ls3)), f == f0 -> (a0, f) == (a0, f0)
+        ]]
+
+        Now we can rewrite with append associativity, as before. *)
+
+    rewrite app_ass.
+    (** [[
+
+  ============================
+   forall f f0 : fhlist B (ls1 ++ ls2 ++ ls3), f == f0 -> (a0, f) == (a0, f0)
+       ]]
+
+       From this point, the goal is trivial. *)
+
+    intros f f0 H; rewrite H; reflexivity.
+  Qed.
+End fhapp'.
