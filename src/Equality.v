@@ -489,18 +489,18 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
 
 Infix "==" := JMeq (at level 70, no associativity).
 
-Definition lemma3' (A : Type) (x : A) (pf : x = x) : pf == refl_equal x :=
+Definition UIP_refl' (A : Type) (x : A) (pf : x = x) : pf == refl_equal x :=
   match pf return (pf == refl_equal _) with
     | refl_equal => JMeq_refl _
   end.
 
 (** There is no quick way to write such a proof by tactics, but the underlying proof term that we want is trivial.
 
-   Suppose that we want to use [lemma3'] to establish another lemma of the kind of we have run into several times so far. *)
+   Suppose that we want to use [UIP_refl'] to establish another lemma of the kind of we have run into several times so far. *)
 
 Lemma lemma4 : forall (A : Type) (x : A) (pf : x = x),
   O = match pf with refl_equal => O end.
-  intros; rewrite (lemma3' pf); reflexivity.
+  intros; rewrite (UIP_refl' pf); reflexivity.
 Qed.
 
 (** All in all, refreshingly straightforward, but there really is no such thing as a free lunch.  The use of [rewrite] is implemented in terms of an axiom: *)
@@ -580,3 +580,73 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
     intros f f0 H; rewrite H; reflexivity.
   Qed.
 End fhapp'.
+
+
+(** * Equivalence of Equality Axioms *)
+
+(** Assuming axioms (like axiom K and [JMeq_eq]) is a hazardous business.  The due diligence associated with it is necessarily global in scope, since two axioms may be consistent alone but inconsistent together.  It turns out that all of the major axioms proposed for reasoning about equality in Coq are logically equivalent, so that we only need to pick one to assert without proof.  In this section, we demonstrate this by showing how each the previous two sections' approaches reduces to the other logically.
+
+   To show that [JMeq] and its axiom let us prove [UIP_refl], we start from the lemma [UIP_refl'] from the previous section.  The rest of the proof is trivial. *)
+
+Lemma UIP_refl'' : forall (A : Type) (x : A) (pf : x = x), pf = refl_equal x.
+  intros; rewrite (UIP_refl' pf); reflexivity.
+Qed.
+
+(** The other direction is perhaps more interesting.  Assume that we only have the axiom of the [Eqdep] module available.  We can define [JMeq] in a way that satisfies the same interface as the combination of the [JMeq] module's inductive definition and axiom. *)
+
+Definition JMeq' (A : Type) (x : A) (B : Type) (y : B) : Prop :=
+  exists pf : B = A, x = match pf with refl_equal => y end.
+
+Infix "===" := JMeq' (at level 70, no associativity).
+
+(** We say that, by definition, [x] and [y] are equal if and only if there exists a proof [pf] that their types are equal, such that [x] equals the result of casting [y] with [pf].  This statement can look strange from the standpoint of classical math, where we almost never mention proofs explicitly with quantifiers in formulas, but it is perfectly legal Coq code.
+
+   We can easily prove a theorem with the same type as that of the [JMeq_refl] constructor of [JMeq]. *)
+
+(** remove printing exists *)
+Theorem JMeq_refl' : forall (A : Type) (x : A), x === x.
+  intros; unfold JMeq'; exists (refl_equal A); reflexivity.
+Qed.
+
+(** printing exists $\exists$ *)
+
+(** The proof of an analogue to [JMeq_eq] is a little more interesting, but most of the action is in appealing to [UIP_refl]. *)
+
+Theorem JMeq_eq' : forall (A : Type) (x y : A),
+  x === y -> x = y.
+  unfold JMeq'; intros.
+  (** [[
+
+  H : exists pf : A = A,
+        x = match pf in (_ = T) return T with
+            | refl_equal => y
+            end
+  ============================
+   x = y
+      ]] *)
+
+  destruct H.
+  (** [[
+
+  x0 : A = A
+  H : x = match x0 in (_ = T) return T with
+          | refl_equal => y
+          end
+  ============================
+   x = y
+      ]] *)
+
+  rewrite H.
+  (** [[
+
+  x0 : A = A
+  ============================
+   match x0 in (_ = T) return T with
+   | refl_equal => y
+   end = y
+      ]] *)
+
+  rewrite (UIP_refl _ _ x0); reflexivity.
+Qed.
+
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always intercovert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements. *)
