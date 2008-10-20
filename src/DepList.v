@@ -64,6 +64,11 @@ Section hlist.
       | x :: ls' => (x = elm) + member ls'
     end%type.
 
+  Definition hfirst (x : A) (ls : list A) (pf : x = elm) : member (x :: ls) :=
+    inl _ pf.
+  Definition hnext (x : A) (ls : list A) (m : member ls) : member (x :: ls) :=
+    inr _ m.
+
   Fixpoint hget (ls : list A) : hlist ls -> member ls -> B elm :=
     match ls return hlist ls -> member ls -> B elm with
       | nil => fun _ idx => match idx with end
@@ -87,6 +92,9 @@ Implicit Arguments hnil [A B].
 Implicit Arguments hcons [A B x ls].
 Implicit Arguments hget [A B elm ls].
 Implicit Arguments happ [A B ls1 ls2].
+
+Implicit Arguments hfirst [A elm x ls].
+Implicit Arguments hnext [A elm x ls].
 
 Infix ":::" := hcons (right associativity, at level 60).
 Infix "+++" := happ (right associativity, at level 60).
