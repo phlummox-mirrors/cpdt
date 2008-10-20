@@ -819,3 +819,40 @@ subgoal 2 is:
   destruct x; constructor.
 Qed.
 (* end thide *)
+
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># Implement and prove correct a substitution function for simply-typed lambda calculus.  In particular:
+%\begin{enumerate}%#<ol>#
+  %\item%#<li># Define a datatype [type] of lambda types, including just booleans and function types.#</li>#
+  %\item%#<li># Define a type family [exp : list type -> type -> Type] of lambda expressions, including boolean constants, variables, and function application and abstraction.#</li>#
+  %\item%#<li># Implement a definitional interpreter for [exp]s, by way of a recursive function over expressions and substitutions for free variables, like in the related example from the last chapter.#</li>#
+  %\item%#<li># Implement a function [subst : forall t' ts t, exp (t' :: ts) t -> exp ts t' -> exp ts t].  The type of the first expression indicates that its most recently bound free variable has type [t'].  The second expression also has type [t'], and the job of [subst] is to substitute the second expression for every occurrence of the "first" variable of the first expression.#</li>#
+  %\item%#<li># Prove that [subst] preserves program meanings.  That is, prove
+  [[
+forall t' ts t (e : exp (t' :: ts) t) (e' : exp ts t') (s : hlist typeDenote ts),
+  expDenote (subst e e') s = expDenote e (expDenote e' s ::: s)
+  ]]
+  where [:::] is an infix operator for heterogeneous "cons" that is defined in the book's [DepList] module.#</li>#
+#</ol>#%\end{enumerate}%
+  The material presented up to this point should be sufficient to enable a good solution of this exercise, with enough ingenuity.  If you get stuck, it may be helpful to use the following structure.  None of these elements need to appear in your solution, but we can at least guarantee that there is a reasonable solution based on them.
+%\begin{enumerate}%#<ol>#
+  %\item%#<li># The [DepList] module will be useful.  You can get the standard dependent list definitions there, instead of copying-and-pasting from the last chapter.  It is worth reading the source for that module over, since it defines some new helpful functions and notations that we did not use last chapter.#</li>#
+  %\item%#<li># Define a recursive function [liftVar : forall ts1 ts2 t t', member t (ts1 ++ ts2) -> member t (ts1 ++ t' :: ts2)].  This function should "lift" a de Bruijn variable so that its type refers to a new variable inserted somewhere in the index list.#</li>#
+  %\item%#<li># Define a recursive function [lift' : forall ts t (e : exp ts t) ts1 ts2 t', ts = ts1 ++ ts2 -> exp (ts1 ++ t' :: ts2) t] which performs a similar lifting on an [exp].  The convoluted type is to get around restrictions on [match] annotations.  We delay "realizing" that the first index of [e] is built with list concatenation until after a dependent [match], and the new explicit proof argument must be used to cast some terms that come up in the [match] body.#</li>#
+  %\item%#<li># Define a function [lift : forall ts t t', exp ts t -> exp (t' :: ts) t], which handles simpler top-level lifts.  This should be an easy one-liner based on [lift'].#</li>#
+  %\item%#<li># Define a recursive function [substVar : forall ts1 ts2 t t', member t (ts1 ++ t' :: ts2) -> (t' = t) + member t (ts1 ++ ts2)].  This function is the workhorse behind substitution applied to a variable.  It returns [inl] to indicate that the variable we pass to it is the variable that we are substituting for, and it returns [inr] to indicate that the variable we are examining is %\textit{%#<i>#not#</i>#%}% the one we are substituting for.  In the first case, we get a proof that the necessary typing relationship holds, and, in the second case, we get the original variable modified to reflect the removal of the substitutee from the typing context.#</li>#
+  %\item%#<li># Define a recursive function [subst' : forall ts t (e : exp ts t) ts1 t' ts2, ts = ts1 ++ t' :: ts2 -> exp (ts1 ++ ts2) t' -> exp (ts1 ++ ts2) t].  This is the workhorse of substitution in expressions, employing the same proof-passing trick as for [lift'].  You will probably want to use [lift] somewhere in the definition of [subst'].#</li>#
+  %\item%#<li># Now [subst] should be a one-liner, defined in terms of [subst'].#</li>#
+  %\item%#<li># Prove a correctness theorem for each auxiliary function, leading up to the proof of [subst] correctness.#</li>#
+  %\item%#<li># All of the reasoning about equality proofs in these theorems follows a regular pattern.  If you have an equality proof that you want to replace with [refl_equal] somehow, run [generalize] on that proof variable.  Your goal is to get to the point where you can [rewrite] with the original proof to change the type of the generalized version.  To avoid type errors (the infamous "second-order unification" failure messages), it will be helpful to run [generalize] on other pieces of the proof context that mention the equality's lefthand side.  You might also want to use [generalize dependent], which generalizes not just one variable but also all variables whose types depend on it.  [generalize dependent] has the sometimes-helpful property of removing from the context all variables that it generalizes.  Once you do manage the mind-bending trick of using the equality proof to rewrite its own type, you will be able to rewrite with [UIP_refl].#</li>#
+  %\item%#<li># A variant of the [ext_eq] axiom from the end of this chapter is available in the book module [Axioms], and you will probably want to use it in the [lift'] and [subst'] correctness proofs.#</li>#
+  %\item%#<li># The [change] tactic should come in handy in the proofs about [lift] and [subst], where you want to introduce "extraneous" list concatenations with [nil] to match the forms of earlier theorems.#</li>#
+  %\item%#<li># Be careful about [destruct]ing a term "too early."  You can use [generalize] on proof terms to bring into the proof context any important propositions about the term.  Then, when you [destruct] the term, it is updated in the extra propositions, too.  The [case_eq] tactic is another alternative to this approach, based on saving an equality between the original term and its new form.#</li>#
+#</ol>#%\end{enumerate}%
+#</li>#
+   
+#</ol>#%\end{enumerate}% *)
