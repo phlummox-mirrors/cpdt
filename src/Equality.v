@@ -37,7 +37,7 @@ Theorem reduce_me : pred' 1 = 0.
 (* begin thide *)
   (** CIC follows the traditions of lambda calculus in associating reduction rules with Greek letters.  Coq can certainly be said to support the familiar alpha reduction rule, which allows capture-avoiding renaming of bound variables, but we never need to apply alpha explicitly, since Coq uses a de Bruijn representation that encodes terms canonically.
 
-     The delta rule is for unfolding global definitions.  We can use it here to unfold the definition of [pred'].  We do this with the [cbv] tactic, which takes a list of reduction rules and makes as many call-by-value reduction steps as possible, using only those rules.  There is an analogous tactic [lazy] for call-by-name reduction. *)
+     The delta rule is for unfolding global definitions.  We can use it here to unfold the definition of [pred'].  We do this with the [cbv] tactic, which takes a list of reduction rules and makes as many call-by-value reduction steps as possible, using only those rules.  There is an analogous tactic [lazy] for call-by-need reduction. *)
 
   cbv delta.
   (** [[
