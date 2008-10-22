@@ -199,6 +199,8 @@ Dependent Data Structures & \texttt{DataStruct.v} \\
 \hline
 Reasoning About Equality Proofs & \texttt{Equality.v} \\
 \hline
+Proof Search in Ltac & \texttt{Match.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
