@@ -833,7 +833,7 @@ Qed.
 
   Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and index function.#</li>#
 
-%\item%#<li># Write a dependently-typed interpreter for a simple programming language with ML-style pattern-matching.  The language is defined informally by this grammar:
+%\item%#<li># Write a dependently-typed interpreter for a simple programming language with ML-style pattern-matching, using one of the encodings of heterogeneous lists to represent the different branches of a [case] expression.  (There are other ways to represent the same thing, but the point of this exercise is to practice using those heterogeneous list types.)  The object language is defined informally by this grammar:
 
   [[
 t ::= bool | t + t
