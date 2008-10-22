@@ -831,7 +831,7 @@ Qed.
 
 %\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [htree] indexed by trees.  The structure of an [htree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [htree] by path.  Define a function [htmap2] for "mapping over two trees in parallel."  That is, [htmap2] takes in two [htree]s with the same index tree, and it forms a new [htree] with the same index by applying a binary function pointwise.
 
-  Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and reflexive.#</li>#
+  Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and index function.#</li>#
 
 %\item%#<li># Write a dependently-typed interpreter for a simple programming language with ML-style pattern-matching.  The language is defined informally by this grammar:
 
