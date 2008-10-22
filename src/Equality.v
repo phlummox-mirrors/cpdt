@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Eqdep JMeq List.
 
-Require Import MoreSpecif Tactics.
+Require Import Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
