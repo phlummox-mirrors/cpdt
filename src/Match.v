@@ -85,10 +85,102 @@ End forall_and.
       | [ H : forall x, ?P x /\ _ |- _ ] => apply (proj1 (H X))
     end.
 
-    [[
+   [[
 User error: Bound head variable
-    ]]
+   ]]
 
-    Coq's [auto] hint databases work as tables mapping %\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
+   Coq's [auto] hint databases work as tables mapping %\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
 
-    This restriction on [Extern] hints is the main limitation of the [auto] mechanism, preventing us from using it for general context simplifications that are not keyed off of the form of the conclusion.  This is perhaps just as well, since we can often code more efficient tactics with specialized Ltac programs, and we will see how in later sections of the chapter. *)
+   This restriction on [Extern] hints is the main limitation of the [auto] mechanism, preventing us from using it for general context simplifications that are not keyed off of the form of the conclusion.  This is perhaps just as well, since we can often code more efficient tactics with specialized Ltac programs, and we will see how in later sections of the chapter.
+
+   We have used [Hint Rewrite] in many examples so far.  [crush] uses these hints by calling [autorewrite].  Our rewrite hints have taken the form [Hint Rewrite lemma : cpdt], adding them to the [cpdt] rewrite database.  This is because, in contrast to [auto], [autorewrite] has no default database.  Thus, we set the convention that [crush] uses the [cpdt] database.
+
+   This example shows a direct use of [autorewrite]. *)
+
+Section autorewrite.
+  Variable A : Set.
+  Variable f : A -> A.
+
+  Hypothesis f_f : forall x, f (f x) = f x.
+
+  Hint Rewrite f_f : my_db.
+
+  Lemma f_f_f : forall x, f (f (f x)) = f x.
+    intros; autorewrite with my_db; reflexivity.
+  Qed.
+
+  (** There are a few ways in which [autorewrite] can lead to trouble when insufficient care is taken in choosing hints.  First, the set of hints may define a nonterminating rewrite system, in which case invocations to [autorewrite] may not terminate.  Second, we may add hints that "lead [autorewrite] down the wrong path."  For instance: *)
+
+  Section garden_path.
+    Variable g : A -> A.
+    Hypothesis f_g : forall x, f x = g x.
+    Hint Rewrite f_g : my_db.
+
+    Lemma f_f_f' : forall x, f (f (f x)) = f x.
+      intros; autorewrite with my_db.
+      (** [[
+
+============================
+ g (g (g x)) = g x
+          ]] *)
+    Abort.
+
+    (** Our new hint was used to rewrite the goal into a form where the old hint could no longer be applied.  This "non-monotonicity" of rewrite hints contrasts with the situation for [auto], where new hints may slow down proof search but can never "break" old proofs. *)
+
+  Reset garden_path.
+
+  (** [autorewrite] works with quantified equalities that include additional premises, but we must be careful to avoid similar incorrect rewritings. *)
+
+  Section garden_path.
+    Variable P : A -> Prop.
+    Variable g : A -> A.
+    Hypothesis f_g : forall x, P x -> f x = g x.
+    Hint Rewrite f_g : my_db.
+
+    Lemma f_f_f' : forall x, f (f (f x)) = f x.
+      intros; autorewrite with my_db.
+      (** [[
+
+  ============================
+   g (g (g x)) = g x
+
+subgoal 2 is:
+ P x
+subgoal 3 is:
+ P (f x)
+subgoal 4 is:
+ P (f x)
+          ]] *)
+    Abort.
+
+    (** The inappropriate rule fired the same three times as before, even though we know we will not be able to prove the premises. *)
+
+  Reset garden_path.
+
+  (** Our final, successful, attempt uses an extra argument to [Hint Rewrite] that specifies a tactic to apply to generated premises. *)
+
+  Section garden_path.
+    Variable P : A -> Prop.
+    Variable g : A -> A.
+    Hypothesis f_g : forall x, P x -> f x = g x.
+    Hint Rewrite f_g using assumption : my_db.
+
+    Lemma f_f_f' : forall x, f (f (f x)) = f x.
+      intros; autorewrite with my_db; reflexivity.
+    Qed.
+
+    (** [autorewrite] will still use [f_g] when the generated premise is among our assumptions. *)
+
+    Lemma f_f_f_g : forall x, P x -> f (f x) = g x.
+      intros; autorewrite with my_db; reflexivity.
+    Qed.
+  End garden_path.
+
+  (** It can also be useful to use the [autorewrite with db in *] form, which does rewriting in hypotheses, as well as in the conclusion. *)
+
+  Lemma in_star : forall x y, f (f (f (f x))) = f (f y)
+    -> f x = f (f (f y)).
+    intros; autorewrite with my_db in *; assumption.
+  Qed.
+
+End autorewrite.
