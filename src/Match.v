@@ -546,7 +546,45 @@ Goal False.
 Abort.
 
 
-(** * Proof Search in Continuation-Passing Style *)
+(** * Recursive Proof Search *)
+
+(** Deciding how to instantiate quantifiers is one of the hardest parts of automated first-order theorem proving.  For a given problem, we can consider all possible bounded-length sequences of quantifier instantiations, applying only propositional reasoning at the end.  This is probably a bad idea for almost all goals, but it makes for a nice example of recursive proof search procedures in Ltac.
+
+   We can consider the maximum "dependency chain" length for a first-order proof.  We define the chain length for a hypothesis to be 0, and the chain length for an instantiation of a quantified fact to be one greater than the length for that fact.  The tactic [inster n] is meant to try all possible proofs with chain length at most [n]. *)
+
+Ltac inster n :=
+  intuition;
+    match n with
+      | S ?n' =>
+        match goal with
+          | [ H : forall x : ?T, _, x : ?T |- _ ] => generalize (H x); inster n'
+        end
+    end.
+
+(** [inster] begins by applying propositional simplification.  Next, it checks if any chain length remains.  If so, it tries all possible ways of instantiating quantified hypotheses with properly-typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
+
+   We can verify the efficacy of [inster] with two short examples.  The built-in [firstorder] tactic (with no extra arguments) is able to prove the first but not the second. *)
+
+Section test_inster.
+  Variable A : Set.
+  Variables P Q : A -> Prop.
+  Variable f : A -> A.
+  Variable g : A -> A -> A.
+
+  Hypothesis H1 : forall x y, P (g x y) -> Q (f x).
+
+  Theorem test_inster : forall x y, P (g x y) -> Q (f x).
+    intros; inster 2.
+  Qed.
+
+  Hypothesis H3 : forall u v, P u /\ P v /\ u <> v -> P (g u v).
+  Hypothesis H4 : forall u, Q (f u) -> P u /\ P (f u).
+
+  Theorem test_inster2 : forall x y, x <> y -> P x -> Q (f y) -> Q (f x).
+    intros; inster 3.
+  Qed.
+End test_inster.
+
 
 Definition imp (P1 P2 : Prop) := P1 -> P2.
 
