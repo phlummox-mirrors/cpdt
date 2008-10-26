@@ -267,7 +267,7 @@ Ltac my_tauto :=
 Section propositional.
   Variables P Q R : Prop.
 
-  Theorem and_comm : (P \/ Q \/ False) /\ (P -> Q) -> True /\ Q.
+  Theorem propositional : (P \/ Q \/ False) /\ (P -> Q) -> True /\ Q.
     my_tauto.
   Qed.
 End propositional.
@@ -544,4 +544,145 @@ Goal False.
    False
    ]] *)
 Abort.
+
+
+(** * Proof Search in Continuation-Passing Style *)
+
+Definition imp (P1 P2 : Prop) := P1 -> P2.
+
+Infix "-->" := imp (no associativity, at level 95).
+
+Ltac imp := unfold imp; firstorder.
+
+Theorem and_True_prem : forall P Q,
+  (P /\ True --> Q)
+  -> (P --> Q).
+  imp.
+Qed.
+
+Theorem and_True_conc : forall P Q,
+  (P --> Q /\ True)
+  -> (P --> Q).
+  imp.
+Qed.
+
+Theorem assoc_prem1 : forall P Q R S,
+  (P /\ (Q /\ R) --> S)
+  -> ((P /\ Q) /\ R --> S).
+  imp.
+Qed.
+
+Theorem assoc_prem2 : forall P Q R S,
+  (Q /\ (P /\ R) --> S)
+  -> ((P /\ Q) /\ R --> S).
+  imp.
+Qed.
+
+Theorem comm_prem : forall P Q R,
+  (P /\ Q --> R)
+  -> (Q /\ P --> R).
+  imp.
+Qed.
+
+Theorem assoc_conc1 : forall P Q R S,
+  (S --> P /\ (Q /\ R))
+  -> (S --> (P /\ Q) /\ R).
+  imp.
+Qed.
+
+Theorem assoc_conc2 : forall P Q R S,
+  (S --> Q /\ (P /\ R))
+  -> (S --> (P /\ Q) /\ R).
+  imp.
+Qed.
+
+Theorem comm_conc : forall P Q R,
+  (R --> P /\ Q)
+  -> (R --> Q /\ P).
+  imp.
+Qed.
+
+Ltac search_prem tac :=
+  let rec search P :=
+    tac
+    || (apply and_True_prem; tac)
+    || match P with
+         | ?P1 /\ ?P2 =>
+           (apply assoc_prem1; search P1)
+           || (apply assoc_prem2; search P2)
+       end
+  in match goal with
+       | [ |- ?P /\ _ --> _ ] => search P
+       | [ |- _ /\ ?P --> _ ] => apply comm_prem; search P
+       | [ |- _ --> _ ] => progress (tac || (apply and_True_prem; tac))
+     end.
+
+Ltac search_conc tac :=
+  let rec search P :=
+    tac
+    || (apply and_True_conc; tac)
+    || match P with
+         | ?P1 /\ ?P2 =>
+           (apply assoc_conc1; search P1)
+           || (apply assoc_conc2; search P2)
+       end
+  in match goal with
+       | [ |- _ --> ?P /\ _ ] => search P
+       | [ |- _ --> _ /\ ?P ] => apply comm_conc; search P
+       | [ |- _ --> _ ] => progress (tac || (apply and_True_conc; tac))
+     end.
+
+Theorem False_prem : forall P Q,
+  False /\ P --> Q.
+  imp.
+Qed.
+
+Theorem True_conc : forall P Q : Prop,
+  (P --> Q)
+  -> (P --> True /\ Q).
+  imp.
+Qed.
+
+Theorem Match : forall P Q R : Prop,
+  (Q --> R)
+  -> (P /\ Q --> P /\ R).
+  imp.
+Qed.
+
+Theorem ex_prem : forall (T : Type) (P : T -> Prop) (Q R : Prop),
+  (forall x, P x /\ Q --> R)
+  -> (ex P /\ Q --> R).
+  imp.
+Qed.
+
+Theorem ex_conc : forall (T : Type) (P : T -> Prop) (Q R : Prop) x,
+  (Q --> P x /\ R)
+  -> (Q --> ex P /\ R).
+  imp.
+Qed.
+
+Theorem imp_True : forall P,
+  P --> True.
+  imp.
+Qed.
+
+Ltac matcher :=
+  intros;
+    repeat search_prem ltac:(apply False_prem || (apply ex_prem; intro));
+      repeat search_conc ltac:(apply True_conc || eapply ex_conc || search_prem ltac:(apply Match));
+        try apply imp_True.
+
+Theorem t2 : forall P Q : Prop,
+  Q /\ (P /\ False) /\ P --> P /\ Q.
+  matcher.
+Qed.
+
+Theorem t3 : forall P Q R : Prop,
+  P /\ Q --> Q /\ R /\ P.
+  matcher.
+Abort.
+
+Theorem t4 : forall (P : nat -> Prop) Q, (exists x, P x /\ Q) --> Q /\ (exists x, P x).
+  matcher.
+Qed.
 
