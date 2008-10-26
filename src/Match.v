@@ -440,3 +440,108 @@ Abort.
    The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.
 
    No matter which version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the infinite-looping behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the "already present" check and leading to different behavior. *)
+
+
+(** * Functional Programming in Ltac *)
+
+(** Ltac supports quite convenient functional programming, with a Lisp-with-syntax kind of flavor.  However, there are a few syntactic conventions involved in getting programs to be accepted.  The Ltac syntax is optimized for tactic-writing, so one has to deal with some inconveniences in writing more standard functional programs.
+
+   To illustrate, let us try to write a simple list length function.  We start out writing it just like in Gallina, simply replacing [Fixpoint] (and its annotations) with [Ltac].
+
+   [[
+Ltac length ls :=
+  match ls with
+    | nil => O
+    | _ :: ls' => S (length ls')
+  end.
+
+   [[
+Error: The reference ls' was not found in the current environment
+   ]]
+
+   At this point, we hopefully remember that pattern variable names must be prefixed by question marks in Ltac.
+
+   [[
+Ltac length ls :=
+  match ls with
+    | nil => O
+    | _ :: ?ls' => S (length ls')
+  end.
+
+[[
+Error: The reference S was not found in the current environment
+]]
+
+   The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to "escape into" the Gallina parsing nonterminal. *)
+
+Ltac length ls :=
+  match ls with
+    | nil => O
+    | _ :: ?ls' => constr:(S (length ls'))
+  end.
+
+(** This definition is accepted.  It can be a little awkward to test Ltac definitions like this.  Here is one method. *)
+
+Goal False.
+  let n := length (1 :: 2 :: 3 :: nil) in
+    pose n.
+  (** [[
+
+  n := S (length (2 :: 3 :: nil)) : nat
+  ============================
+   False
+   ]]
+
+   [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)Abort.
+
+Reset length.
+
+(** The thing to remember is that Gallina terms built by tactics must be bound explicitly via [let] or a similar technique, rather than inserting Ltac calls directly in other Gallina terms. *)
+
+Ltac length ls :=
+  match ls with
+    | nil => O
+    | _ :: ?ls' =>
+      let ls'' := length ls' in
+        constr:(S ls'')
+  end.
+
+Goal False.
+  let n := length (1 :: 2 :: 3 :: nil) in
+    pose n.
+  (** [[
+
+  n := 3 : nat
+  ============================
+   False
+   ]] *)
+Abort.
+
+(** We can also use anonymous function expressions and local function definitions in Ltac, as this example of a standard list [map] function shows. *)
+
+Ltac map T f :=
+  let rec map' ls :=
+    match ls with
+      | nil => constr:(@nil T)
+      | ?x :: ?ls' =>
+        let x' := f x in
+          let ls'' := map' ls' in
+            constr:(x' :: ls'')
+    end in
+  map'.
+
+(** Ltac functions can have no implicit arguments.  It may seem surprising that we need to pass [T], the carried type of the output list, explicitly.  We cannot just use [type of f], because [f] is an Ltac term, not a Gallina term, and Ltac programs are dynamically typed.  [f] could use very syntactic methods to decide to return differently typed terms for different inputs.  We also could not replace [constr:(@nil T)] with [constr:nil], because we have no strongly-typed context to use to infer the parameter to [nil].  Luckily, we do have sufficient context within [constr:(x' :: ls'')].
+
+Sometimes we need to employ the opposite direction of "nonterminal escape," when we want to pass a complicated tactic expression as an argument to another tactic, as we might want to do in invoking [map]. *)
+
+Goal False.
+  let ls := map (nat * nat)%type ltac:(fun x => constr:(x, x)) (1 :: 2 :: 3 :: nil) in
+    pose ls.
+  (** [[
+
+  l := (1, 1) :: (2, 2) :: (3, 3) :: nil : list (nat * nat)
+  ============================
+   False
+   ]] *)
+Abort.
+
