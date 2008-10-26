@@ -412,3 +412,31 @@ Section firstorder'.
     Coq loops forever at this point.  What went wrong? *)
   Abort.
 End firstorder'.
+
+(** A few examples should illustrate the issue.  Here we see a [match]-based proof that works fine: *)
+
+Theorem t1 : forall x : nat, x = x.
+  match goal with
+    | [ |- forall x, _ ] => trivial
+  end.
+Qed.
+
+(** This one fails. *)
+
+Theorem t1' : forall x : nat, x = x.
+(** [[
+
+  match goal with
+    | [ |- forall x, ?P ] => trivial
+  end.
+
+    [[
+User error: No matching clauses for match goal
+    ]] *)
+Abort.
+
+(** The problem is that unification variables may not contain locally-bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.
+
+   The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.
+
+   No matter which version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the infinite-looping behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the "already present" check and leading to different behavior. *)
