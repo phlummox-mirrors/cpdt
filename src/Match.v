@@ -184,3 +184,231 @@ subgoal 4 is:
   Qed.
 
 End autorewrite.
+
+
+(** * Ltac Programming Basics *)
+
+(** We have already seen many examples of Ltac programs.  In the rest of this chapter, we attempt to give a more principled introduction to the important features and design patterns.
+
+   One common use for [match] tactics is identification of subjects for case analysis, as we see in this tactic definition. *)
+
+Ltac find_if :=
+  match goal with
+    | [ |- if ?X then _ else _ ] => destruct X
+  end.
+
+(** The tactic checks if the conclusion is an [if], [destruct]ing the test expression if so.  Certain classes of theorem are trivial to prove automatically with such a tactic. *)
+
+Theorem hmm : forall (a b c : bool),
+  if a
+    then if b
+      then True
+      else True
+    else if c
+      then True
+      else True.
+  intros; repeat find_if; constructor.
+Qed.
+
+(** The [repeat] that we use here is called a %\textit{%#<i>#tactical#</i>#%}%, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on %\textit{%#<i>#their#</i>#%}% generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
+
+   Another very useful Ltac building block is %\textit{%#<i>#context patterns#</i>#%}%. *)
+
+Ltac find_if_inside :=
+  match goal with
+    | [ |- context[if ?X then _ else _] ] => destruct X
+  end.
+
+(** The behavior of this tactic is to find any subterm of the conclusion that is an [if] and then [destruct] the test expression.  This version subsumes [find_if]. *)
+
+Theorem hmm' : forall (a b c : bool),
+  if a
+    then if b
+      then True
+      else True
+    else if c
+      then True
+      else True.
+  intros; repeat find_if_inside; constructor.
+Qed.
+
+(** We can also use [find_if_inside] to prove goals that [find_if] does not simplify sufficiently. *)
+
+Theorem duh2 : forall (a b : bool),
+  (if a then 42 else 42) = (if b then 42 else 42).
+  intros; repeat find_if_inside; reflexivity.
+Qed.
+
+(** Many decision procedures can be coded in Ltac via "[repeat match] loops."  For instance, we can implement a subset of the functionality of [tauto]. *)
+
+Ltac my_tauto :=
+  repeat match goal with
+	   | [ H : ?P |- ?P ] => exact H
+
+	   | [ |- True ] => constructor
+	   | [ |- _ /\ _ ] => constructor
+	   | [ |- _ -> _ ] => intro
+
+	   | [ H : False |- _ ] => destruct H
+	   | [ H : _ /\ _ |- _ ] => destruct H
+	   | [ H : _ \/ _ |- _ ] => destruct H
+
+	   | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] =>
+	     let H := fresh "H" in
+	       generalize (H1 H2); clear H1; intro H
+	 end.
+
+(** Since [match] patterns can share unification variables between hypothesis and conclusion patterns, it is easy to figure out when the conclusion matches a hypothesis.  The [exact] tactic solves a goal completely when given a proof term of the proper type.
+
+   It is also trivial to implement the "introduction rules" for a few of the connectives.  Implementing elimination rules is only a little more work, since we must bind a name for a hypothesis to [destruct].
+
+   The last rule implements modus ponens.  The most interesting part is the use of the Ltac-level [let] with a [fresh] expression.  [fresh] takes in a name base and returns a fresh hypothesis variable based on that name.  We use the new name variable [H] as the name we assign to the result of modus ponens.  The use of [generalize] changes our conclusion to be an implication from [Q].  We clear the original hypothesis and move [Q] into the context with name [H]. *)
+
+Section propositional.
+  Variables P Q R : Prop.
+
+  Theorem and_comm : (P \/ Q \/ False) /\ (P -> Q) -> True /\ Q.
+    my_tauto.
+  Qed.
+End propositional.
+
+(** It was relatively easy to implement modus ponens, because we do not lose information by clearing every implication that we use.  If we want to implement a similarly-complete procedure for quantifier instantiation, we need a way to ensure that a particular proposition is not already included among our hypotheses.  To do that effectively, we first need to learn a bit more about the semantics of [match].
+
+It is tempting to assume that [match] works like it does in ML.  In fact, there are a few critical differences in its behavior.  One is that we may include arbitrary expressions in patterns, instead of being restricted to variables and constructors.  Another is that the same variable may appear multiple times, inducing an implicit equality constraint.
+
+There is a related pair of two other differences that are much more important than the others.  [match] has a %\textit{%#<i>#backtracking semantics for failure#</i>#%}%.  In ML, pattern matching works by finding the first pattern to match and then executing its body.  If the body raises an exception, then the overall match raises the same exception.  In Coq, failures in case bodies instead trigger continued search through the list of cases.
+
+For instance, this (unnecessarily verbose) proof script works: *)
+
+Theorem m1 : True.
+  match goal with
+    | [ |- _ ] => intro
+    | [ |- True ] => constructor
+  end.
+Qed.
+
+(** The first case matches trivially, but its body tactic fails, since the conclusion does not begin with a quantifier or implication.  In a similar ML match, that would mean that the whole pattern-match fails.  In Coq, we backtrack and try the next pattern, which also matches.  Its body tactic succeeds, so the overall tactic succeeds as well.
+
+   The example shows how failure can move to a different pattern within a [match].  Failure can also trigger an attempt to find %\textit{%#<i>#a different way of matching a single pattern#</i>#%}%.  Consider another example: *)
+
+Theorem m2 : forall P Q R : Prop, P -> Q -> R -> Q.
+  intros; match goal with
+            | [ H : _ |- _ ] => pose H
+          end.
+  (** [[
+
+    r := H1 : R
+  ============================
+   Q
+   ]]
+
+   By applying [pose], a convenient debugging tool for "leaking information out of [match]es," we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
+
+  match goal with
+    | [ H : _ |- _ ] => exact H
+  end.
+Qed.
+
+(** The tactic first unifies [H] with [H1], as before, but [exact H] fails in that case, so the tactic engine searches for more possible values of [H].  Eventually, it arrives at the correct value, so that [exact H] and the overall tactic succeed. *)
+
+(** Now we are equipped to implement a tactic for checking that a proposition is not among our hypotheses: *)
+
+Ltac notHyp P :=
+  match goal with
+    | [ _ : P |- _ ] => fail 1
+    | _ =>
+      match P with
+        | ?P1 /\ ?P2 => first [ notHyp P1 | notHyp P2 | fail 2 ]
+        | _ => idtac
+      end
+  end.
+
+(** We use the equality checking that is built into pattern-matching to see if there is a hypothesis that matches the proposition exactly.  If so, we use the [fail] tactic.  Without arguments, [fail] signals normal tactic failure, as you might expect.  When [fail] is passed an argument [n], [n] is used to count outwards through the enclosing cases of backtracking search.  In this case, [fail 1] says "fail not just in this pattern-matching branch, but for the whole [match]."  The second case will never be tried when the [fail 1] is reached.
+
+This second case, used when [P] matches no hypothesis, checks if [P] is a conjunction.  Other simplifications may have split conjunctions into their component formulas, so we need to check that at least one of those components is also not represented.  To achieve this, we apply the [first] tactical, which takes a list of tactics and continues down the list until one of them does not fail.  The [fail 2] at the end says to [fail] both the [first] and the [match] wrapped around it.
+
+The body of the [?P1 /\ ?P2] case guarantees that, if it is reached, we either succeed completely or fail completely.  Thus, if we reach the wildcard case, [P] is not a conjunction.  We use [idtac], a tactic that would be silly to apply on its own, since its effect is to succeed at doing nothing.  Nonetheless, [idtac] is a useful placeholder for cases like what we see here.
+
+With the non-presence check implemented, it is easy to build a tactic that takes as input a proof term and adds its conclusion as a new hypothesis, only if that conclusion is not already present, failing otherwise. *)
+
+Ltac extend pf :=
+  let t := type of pf in
+    notHyp t; generalize pf; intro.
+
+(** We see the useful [type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].
+
+   With these tactics defined, we can write a tactic [completer] for adding to the context all consequences of a set of simple first-order formulas. *)
+
+Ltac completer :=
+  repeat match goal with
+           | [ |- _ /\ _ ] => constructor
+	   | [ H : _ /\ _ |- _ ] => destruct H
+           | [ H : ?P -> ?Q, H' : ?P |- _ ] =>
+             generalize (H H'); clear H; intro H
+           | [ |- forall x, _ ] => intro
+
+           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
+             extend (H X H')
+         end.
+
+(** We use the same kind of conjunction and implication handling as previously.  Note that, since [->] is the special non-dependent case of [forall], the fourth rule handles [intro] for implications, too.
+
+   In the fifth rule, when we find a [forall] fact [H] with a premise matching one of our hypotheses, we add the appropriate instantiation of [H]'s conclusion, if we have not already added it.
+
+   We can check that [completer] is working properly: *)
+
+Section firstorder.
+  Variable A : Set.
+  Variables P Q R S : A -> Prop.
+
+  Hypothesis H1 : forall x, P x -> Q x /\ R x.
+  Hypothesis H2 : forall x, R x -> S x.
+
+  Theorem fo : forall x, P x -> S x.
+    completer.
+    (** [[
+
+  x : A
+  H : P x
+  H0 : Q x
+  H3 : R x
+  H4 : S x
+  ============================
+   S x
+   ]] *)
+
+    assumption.
+  Qed.
+End firstorder.
+
+(** We narrowly avoided a subtle pitfall in our definition of [completer].  Let us try another definition that even seems preferable to the original, to the untrained eye. *)
+
+Ltac completer' :=
+  repeat match goal with
+           | [ |- _ /\ _ ] => constructor
+	   | [ H : _ /\ _ |- _ ] => destruct H
+           | [ H : ?P -> _, H' : ?P |- _ ] =>
+             generalize (H H'); clear H; intro H
+           | [ |- forall x, _ ] => intro
+
+           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
+             extend (H X H')
+         end.
+
+(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
+
+Section firstorder'.
+  Variable A : Set.
+  Variables P Q R S : A -> Prop.
+
+  Hypothesis H1 : forall x, P x -> Q x /\ R x.
+  Hypothesis H2 : forall x, R x -> S x.
+
+  Theorem fo' : forall x, P x -> S x.
+    (** [[
+
+    completer'.
+
+    Coq loops forever at this point.  What went wrong? *)
+  Abort.
+End firstorder'.
