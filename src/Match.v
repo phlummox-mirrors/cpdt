@@ -585,12 +585,19 @@ Section test_inster.
   Qed.
 End test_inster.
 
+(** The style employed in the definition of [inster] can seem very counterintuitive to functional programmers.  Usually, functional programs accumulate state changes in explicit arguments to recursive functions.  In Ltac, the state of the current subgoal is always implicit.  Nonetheless, in contrast to general imperative programming, it is easy to undo any changes to this state, and indeed such "undoing" happens automatically at failures within [match]es.  In this way, Ltac programming is similar to programming in Haskell with a stateful failure monad that supports a composition operator along the lines of the [first] tactical.
+
+   Functional programming purists may react indignantly to the suggestion of programming this way.  Nonetheless, as with other kinds of "monadic programming," many problems are much simpler to solve with Ltac than they would be with explicit, pure proof manipulation in ML or Haskell.  To demonstrate, we will write a basic simplification procedure for logical implications.
+
+   This procedure is inspired by one for separation logic, where conjuncts in formulas are thought of as "resources," such that we lose no completeness by "crossing out" equal conjuncts on the two sides of an implication.  This process is complicated by the fact that, for reasons of modularity, our formulas can have arbitrary nested tree structure (branching at conjunctions) and may include existential quantifiers.  It is helpful for the matching process to "go under" quantifiers and in fact decide how to instantiate existential quantifiers in the conclusion.
+
+   To distinguish the implications that our tactic handles from the implications that will show up as "plumbing" in various lemmas, we define a wrapper definition, a notation, and a tactic. *)
 
 Definition imp (P1 P2 : Prop) := P1 -> P2.
-
 Infix "-->" := imp (no associativity, at level 95).
-
 Ltac imp := unfold imp; firstorder.
+
+(** These lemmas about [imp] will be useful in the tactic that we will write. *)
 
 Theorem and_True_prem : forall P Q,
   (P /\ True --> Q)
@@ -640,6 +647,8 @@ Theorem comm_conc : forall P Q R,
   imp.
 Qed.
 
+(** The first order of business in crafting our [matcher] tactic will be auxiliary support for searching through formula trees.  The [search_prem] tactic implements running its tactic argument [tac] on every subformula of an [imp] premise.  As it traverses a tree, [search_prem] applies some of the above lemmas to rewrite the goal to bring different subformulas to the head of the goal.  That is, for every subformula [P] of the implication premise, we want [P] to "have a turn," where the premise is rearranged into the form [P /\ Q] for some [Q].  The tactic [tac] should expect to see a goal in this form and focus its attention on the first conjunct of the premise. *)
+
 Ltac search_prem tac :=
   let rec search P :=
     tac
@@ -655,6 +664,12 @@ Ltac search_prem tac :=
        | [ |- _ --> _ ] => progress (tac || (apply and_True_prem; tac))
      end.
 
+(** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.
+
+   [search] itself tries the same tricks as in the last case of the final [match].  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
+
+   We will also want a dual function [search_conc], which does tree search through an [imp] conclusion. *)
+
 Ltac search_conc tac :=
   let rec search P :=
     tac
@@ -669,6 +684,8 @@ Ltac search_conc tac :=
        | [ |- _ --> _ /\ ?P ] => apply comm_conc; search P
        | [ |- _ --> _ ] => progress (tac || (apply and_True_conc; tac))
      end.
+
+(** Now we can prove a number of lemmas that are suitable for application by our search tactics.  A lemma that is meant to handle a premise should have the form [P /\ Q --> R] for some interesting [P], and a lemma that is meant to handle a conclusion should have the form [P --> Q /\ R] for some interesting [Q]. *)
 
 Theorem False_prem : forall P Q,
   False /\ P --> Q.
@@ -699,28 +716,76 @@ Theorem ex_conc : forall (T : Type) (P : T -> Prop) (Q R : Prop) x,
   imp.
 Qed.
 
+(** We will also want a "base case" lemma for finishing proofs where cancelation has removed every constituent of the conclusion. *)
+
 Theorem imp_True : forall P,
   P --> True.
   imp.
 Qed.
 
+(** Our final [matcher] tactic is now straightforward.  First, we [intros] all variables into scope.  Then we attempt simple premise simplifications, finishing the proof upon finding [False] and eliminating any existential quantifiers that we find.  After that, we search through the conclusion.  We remove [True] conjuncts, remove existential quantifiers by introducing unification variables for their bound variables, and search for matching premises to cancel.  Finally, when no more progress is made, we see if the goal has become trivial and can be solved by [imp_True]. *)
+
 Ltac matcher :=
   intros;
     repeat search_prem ltac:(apply False_prem || (apply ex_prem; intro));
-      repeat search_conc ltac:(apply True_conc || eapply ex_conc || search_prem ltac:(apply Match));
-        try apply imp_True.
+      repeat search_conc ltac:(apply True_conc || eapply ex_conc
+        || search_prem ltac:(apply Match));
+      try apply imp_True.
+
+(** Our tactic succeeds at proving a simple example. *)
 
 Theorem t2 : forall P Q : Prop,
   Q /\ (P /\ False) /\ P --> P /\ Q.
   matcher.
 Qed.
 
+(** In the generated proof, we find a trace of the workings of the search tactics. *)
+
+Print t2.
+(** [[
+
+t2 = 
+fun P Q : Prop =>
+comm_prem (assoc_prem1 (assoc_prem2 (False_prem (P:=P /\ P /\ Q) (P /\ Q))))
+     : forall P Q : Prop, Q /\ (P /\ False) /\ P --> P /\ Q
+]] *)
+
+(** We can also see that [matcher] is well-suited for cases where some human intervention is needed after the automation finishes. *)
+
 Theorem t3 : forall P Q R : Prop,
   P /\ Q --> Q /\ R /\ P.
   matcher.
+  (** [[
+
+  ============================
+   True --> R
+   ]]
+
+   [matcher] canceled those conjuncts that it was able to cancel, leaving a simplified subgoal for us, much as [intuition] does. *)
 Abort.
+
+(** [matcher] even succeeds at guessing quantifier instantiations.  It is the unification that occurs in uses of the [Match] lemma that does the real work here. *)
 
 Theorem t4 : forall (P : nat -> Prop) Q, (exists x, P x /\ Q) --> Q /\ (exists x, P x).
   matcher.
 Qed.
+
+Print t4.
+
+(** [[
+
+t4 = 
+fun (P : nat -> Prop) (Q : Prop) =>
+and_True_prem
+  (ex_prem (P:=fun x : nat => P x /\ Q)
+     (fun x : nat =>
+      assoc_prem2
+        (Match (P:=Q)
+           (and_True_conc
+              (ex_conc (fun x0 : nat => P x0) x
+                 (Match (P:=P x) (imp_True (P:=True))))))))
+     : forall (P : nat -> Prop) (Q : Prop),
+       (exists x : nat, P x /\ Q) --> Q /\ (exists x : nat, P x)
+]] *)
+
 
