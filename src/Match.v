@@ -40,6 +40,7 @@ The basic hints for [auto] and [eauto] are [Hint Immediate lemma], asking to try
 All of these [Hint] commands can be issued alternatively with a more primitive hint kind, [Extern].  A few examples should do best to explain how [Hint Extern] works. *)
 
 Theorem bool_neq : true <> false.
+(* begin thide *)
   auto.
   (** [crush] would have discharged this goal, but the default hint database for [auto] contains no hint that applies. *)
 Abort.
@@ -51,6 +52,7 @@ Hint Extern 1 (_ <> _) => congruence.
 Theorem bool_neq : true <> false.
   auto.
 Qed.
+(* end thide *)
 
 (** Our hint says: "whenever the conclusion matches the pattern [_ <> _], try applying [congruence]."  The [1] is a cost for this rule.  During proof search, whenever multiple rules apply, rules are tried in increasing cost order, so it pays to assign high costs to relatively expensive [Extern] hints.
 
@@ -63,6 +65,7 @@ Section forall_and.
   Hypothesis both : forall x, P x /\ Q x.
 
   Theorem forall_and : forall z, P z.
+(* begin thide *)
     crush.
     (** [crush] makes no progress beyond what [intros] would have accomplished.  [auto] will not apply the hypothesis [both] to prove the goal, because the conclusion of [both] does not unify with the conclusion of the goal.  However, we can teach [auto] to handle this kind of goal. *)
 
@@ -73,6 +76,7 @@ Section forall_and.
 
     auto.
   Qed.
+(* end thide *)
 
   (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  [proj1] is a function from the standard library for extracting a proof of [R] from a proof of [R /\ S]. *)
 End forall_and.
@@ -163,16 +167,22 @@ subgoal 4 is:
     Variable P : A -> Prop.
     Variable g : A -> A.
     Hypothesis f_g : forall x, P x -> f x = g x.
+(* begin thide *)
     Hint Rewrite f_g using assumption : my_db.
+(* end thide *)
 
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
+(* begin thide *)
       intros; autorewrite with my_db; reflexivity.
     Qed.
+(* end thide *)
 
     (** [autorewrite] will still use [f_g] when the generated premise is among our assumptions. *)
 
     Lemma f_f_f_g : forall x, P x -> f (f x) = g x.
+(* begin thide *)
       intros; autorewrite with my_db; reflexivity.
+(* end thide *)
     Qed.
   End garden_path.
 
@@ -180,7 +190,9 @@ subgoal 4 is:
 
   Lemma in_star : forall x y, f (f (f (f x))) = f (f y)
     -> f x = f (f (f y)).
+(* begin thide *)
     intros; autorewrite with my_db in *; assumption.
+(* end thide *)
   Qed.
 
 End autorewrite.
@@ -192,10 +204,12 @@ End autorewrite.
 
    One common use for [match] tactics is identification of subjects for case analysis, as we see in this tactic definition. *)
 
+(* begin thide *)
 Ltac find_if :=
   match goal with
     | [ |- if ?X then _ else _ ] => destruct X
   end.
+(* end thide *)
 
 (** The tactic checks if the conclusion is an [if], [destruct]ing the test expression if so.  Certain classes of theorem are trivial to prove automatically with such a tactic. *)
 
@@ -207,17 +221,21 @@ Theorem hmm : forall (a b c : bool),
     else if c
       then True
       else True.
+(* begin thide *)
   intros; repeat find_if; constructor.
 Qed.
+(* end thide *)
 
 (** The [repeat] that we use here is called a %\textit{%#<i>#tactical#</i>#%}%, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on %\textit{%#<i>#their#</i>#%}% generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
 
    Another very useful Ltac building block is %\textit{%#<i>#context patterns#</i>#%}%. *)
 
+(* begin thide *)
 Ltac find_if_inside :=
   match goal with
     | [ |- context[if ?X then _ else _] ] => destruct X
   end.
+(* end thide *)
 
 (** The behavior of this tactic is to find any subterm of the conclusion that is an [if] and then [destruct] the test expression.  This version subsumes [find_if]. *)
 
@@ -229,18 +247,23 @@ Theorem hmm' : forall (a b c : bool),
     else if c
       then True
       else True.
+(* begin thide *)
   intros; repeat find_if_inside; constructor.
 Qed.
+(* end thide *)
 
 (** We can also use [find_if_inside] to prove goals that [find_if] does not simplify sufficiently. *)
 
-Theorem duh2 : forall (a b : bool),
+Theorem hmm2 : forall (a b : bool),
   (if a then 42 else 42) = (if b then 42 else 42).
+(* begin thide *)
   intros; repeat find_if_inside; reflexivity.
 Qed.
+(* end thide *)
 
 (** Many decision procedures can be coded in Ltac via "[repeat match] loops."  For instance, we can implement a subset of the functionality of [tauto]. *)
 
+(* begin thide *)
 Ltac my_tauto :=
   repeat match goal with
 	   | [ H : ?P |- ?P ] => exact H
@@ -257,6 +280,7 @@ Ltac my_tauto :=
 	     let H := fresh "H" in
 	       generalize (H1 H2); clear H1; intro H
 	 end.
+(* end thide *)
 
 (** Since [match] patterns can share unification variables between hypothesis and conclusion patterns, it is easy to figure out when the conclusion matches a hypothesis.  The [exact] tactic solves a goal completely when given a proof term of the proper type.
 
@@ -268,8 +292,10 @@ Section propositional.
   Variables P Q R : Prop.
 
   Theorem propositional : (P \/ Q \/ False) /\ (P -> Q) -> True /\ Q.
+(* begin thide *)
     my_tauto.
   Qed.
+(* end thide *)
 End propositional.
 
 (** It was relatively easy to implement modus ponens, because we do not lose information by clearing every implication that we use.  If we want to implement a similarly-complete procedure for quantifier instantiation, we need a way to ensure that a particular proposition is not already included among our hypotheses.  To do that effectively, we first need to learn a bit more about the semantics of [match].
@@ -285,7 +311,9 @@ Theorem m1 : True.
     | [ |- _ ] => intro
     | [ |- True ] => constructor
   end.
+(* begin thide *)
 Qed.
+(* end thide *)
 
 (** The first case matches trivially, but its body tactic fails, since the conclusion does not begin with a quantifier or implication.  In a similar ML match, that would mean that the whole pattern-match fails.  In Coq, we backtrack and try the next pattern, which also matches.  Its body tactic succeeds, so the overall tactic succeeds as well.
 
@@ -304,15 +332,18 @@ Theorem m2 : forall P Q R : Prop, P -> Q -> R -> Q.
 
    By applying [pose], a convenient debugging tool for "leaking information out of [match]es," we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
 
+(* begin thide *)
   match goal with
     | [ H : _ |- _ ] => exact H
   end.
 Qed.
+(* end thide *)
 
 (** The tactic first unifies [H] with [H1], as before, but [exact H] fails in that case, so the tactic engine searches for more possible values of [H].  Eventually, it arrives at the correct value, so that [exact H] and the overall tactic succeed. *)
 
 (** Now we are equipped to implement a tactic for checking that a proposition is not among our hypotheses: *)
 
+(* begin thide *)
 Ltac notHyp P :=
   match goal with
     | [ _ : P |- _ ] => fail 1
@@ -322,6 +353,7 @@ Ltac notHyp P :=
         | _ => idtac
       end
   end.
+(* end thide *)
 
 (** We use the equality checking that is built into pattern-matching to see if there is a hypothesis that matches the proposition exactly.  If so, we use the [fail] tactic.  Without arguments, [fail] signals normal tactic failure, as you might expect.  When [fail] is passed an argument [n], [n] is used to count outwards through the enclosing cases of backtracking search.  In this case, [fail 1] says "fail not just in this pattern-matching branch, but for the whole [match]."  The second case will never be tried when the [fail 1] is reached.
 
@@ -331,14 +363,17 @@ The body of the [?P1 /\ ?P2] case guarantees that, if it is reached, we either s
 
 With the non-presence check implemented, it is easy to build a tactic that takes as input a proof term and adds its conclusion as a new hypothesis, only if that conclusion is not already present, failing otherwise. *)
 
+(* begin thide *)
 Ltac extend pf :=
   let t := type of pf in
     notHyp t; generalize pf; intro.
+(* end thide *)
 
 (** We see the useful [type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].
 
    With these tactics defined, we can write a tactic [completer] for adding to the context all consequences of a set of simple first-order formulas. *)
 
+(* begin thide *)
 Ltac completer :=
   repeat match goal with
            | [ |- _ /\ _ ] => constructor
@@ -350,6 +385,7 @@ Ltac completer :=
            | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
              extend (H X H')
          end.
+(* end thide *)
 
 (** We use the same kind of conjunction and implication handling as previously.  Note that, since [->] is the special non-dependent case of [forall], the fourth rule handles [intro] for implications, too.
 
@@ -365,6 +401,7 @@ Section firstorder.
   Hypothesis H2 : forall x, R x -> S x.
 
   Theorem fo : forall x, P x -> S x.
+(* begin thide *)
     completer.
     (** [[
 
@@ -379,10 +416,12 @@ Section firstorder.
 
     assumption.
   Qed.
+(* end thide *)
 End firstorder.
 
 (** We narrowly avoided a subtle pitfall in our definition of [completer].  Let us try another definition that even seems preferable to the original, to the untrained eye. *)
 
+(* begin thide *)
 Ltac completer' :=
   repeat match goal with
            | [ |- _ /\ _ ] => constructor
@@ -394,6 +433,7 @@ Ltac completer' :=
            | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
              extend (H X H')
          end.
+(* end thide *)
 
 (** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
 
@@ -405,12 +445,14 @@ Section firstorder'.
   Hypothesis H2 : forall x, R x -> S x.
 
   Theorem fo' : forall x, P x -> S x.
+(* begin thide *)
     (** [[
 
     completer'.
 
     Coq loops forever at this point.  What went wrong? *)
   Abort.
+(* end thide *)
 End firstorder'.
 
 (** A few examples should illustrate the issue.  Here we see a [match]-based proof that works fine: *)
@@ -419,10 +461,13 @@ Theorem t1 : forall x : nat, x = x.
   match goal with
     | [ |- forall x, _ ] => trivial
   end.
+(* begin thide *)
 Qed.
+(* end thide *)
 
 (** This one fails. *)
 
+(* begin thide *)
 Theorem t1' : forall x : nat, x = x.
 (** [[
 
@@ -434,6 +479,7 @@ Theorem t1' : forall x : nat, x = x.
 User error: No matching clauses for match goal
     ]] *)
 Abort.
+(* end thide *)
 
 (** The problem is that unification variables may not contain locally-bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.
 
@@ -443,6 +489,8 @@ Abort.
 
 
 (** * Functional Programming in Ltac *)
+
+(* EX: Write a list length function in Ltac. *)
 
 (** Ltac supports quite convenient functional programming, with a Lisp-with-syntax kind of flavor.  However, there are a few syntactic conventions involved in getting programs to be accepted.  The Ltac syntax is optimized for tactic-writing, so one has to deal with some inconveniences in writing more standard functional programs.
 
@@ -474,6 +522,7 @@ Error: The reference S was not found in the current environment
 
    The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to "escape into" the Gallina parsing nonterminal. *)
 
+(* begin thide *)
 Ltac length ls :=
   match ls with
     | nil => O
@@ -516,9 +565,13 @@ Goal False.
    False
    ]] *)
 Abort.
+(* end thide *)
+
+(* EX: Write a list map function in Ltac. *)
 
 (** We can also use anonymous function expressions and local function definitions in Ltac, as this example of a standard list [map] function shows. *)
 
+(* begin thide *)
 Ltac map T f :=
   let rec map' ls :=
     match ls with
@@ -544,6 +597,7 @@ Goal False.
    False
    ]] *)
 Abort.
+(* end thide *)
 
 
 (** * Recursive Proof Search *)
@@ -552,6 +606,7 @@ Abort.
 
    We can consider the maximum "dependency chain" length for a first-order proof.  We define the chain length for a hypothesis to be 0, and the chain length for an instantiation of a quantified fact to be one greater than the length for that fact.  The tactic [inster n] is meant to try all possible proofs with chain length at most [n]. *)
 
+(* begin thide *)
 Ltac inster n :=
   intuition;
     match n with
@@ -560,6 +615,7 @@ Ltac inster n :=
           | [ H : forall x : ?T, _, x : ?T |- _ ] => generalize (H x); inster n'
         end
     end.
+(* end thide *)
 
 (** [inster] begins by applying propositional simplification.  Next, it checks if any chain length remains.  If so, it tries all possible ways of instantiating quantified hypotheses with properly-typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
 
@@ -649,6 +705,7 @@ Qed.
 
 (** The first order of business in crafting our [matcher] tactic will be auxiliary support for searching through formula trees.  The [search_prem] tactic implements running its tactic argument [tac] on every subformula of an [imp] premise.  As it traverses a tree, [search_prem] applies some of the above lemmas to rewrite the goal to bring different subformulas to the head of the goal.  That is, for every subformula [P] of the implication premise, we want [P] to "have a turn," where the premise is rearranged into the form [P /\ Q] for some [Q].  The tactic [tac] should expect to see a goal in this form and focus its attention on the first conjunct of the premise. *)
 
+(* begin thide *)
 Ltac search_prem tac :=
   let rec search P :=
     tac
@@ -731,6 +788,7 @@ Ltac matcher :=
       repeat search_conc ltac:(apply True_conc || eapply ex_conc
         || search_prem ltac:(apply Match));
       try apply imp_True.
+(* end thide *)
 
 (** Our tactic succeeds at proving a simple example. *)
 
@@ -787,5 +845,3 @@ and_True_prem
      : forall (P : nat -> Prop) (Q : Prop),
        (exists x : nat, P x /\ Q) --> Q /\ (exists x : nat, P x)
 ]] *)
-
-
