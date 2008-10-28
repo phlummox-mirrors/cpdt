@@ -92,3 +92,5 @@ Open Local Scope partial_scope.
 Delimit Scope partial_scope with partial.
 
 Notation "'Reduce' v" := (if v then Yes else No) : partial_scope.
+Notation "x || y" := (if x then Yes else Reduce y) : partial_scope.
+Notation "x && y" := (if x then Reduce y else No) : partial_scope.
