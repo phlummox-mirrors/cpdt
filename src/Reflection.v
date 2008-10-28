@@ -233,6 +233,8 @@ tautTrue
 
 (** * A Monoid Expression Simplifier *)
 
+(** Proof by reflection does not require encoding of all of the syntax in a goal.  We can insert "variables" in our syntax types to allow injection of arbitrary pieces, even if we cannot apply specialized reasoning to them.  In this section, we explore that possibility by writing a tactic for normalizing monoid equations. *)
+
 Section monoid.
   Variable A : Set.
   Variable e : A.
@@ -244,10 +246,16 @@ Section monoid.
   Hypothesis identl : forall a, e + a = a.
   Hypothesis identr : forall a, a + e = a.
 
+  (** We add variables and hypotheses characterizing an arbitrary instance of the algebraic structure of monoids.  We have an associative binary operator and an identity element for it.
+
+     It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a "catch-all" case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
+
   Inductive mexp : Set :=
   | Ident : mexp
   | Var : A -> mexp
   | Op : mexp -> mexp -> mexp.
+
+  (** Next, we write an "un-reflect" function. *)
 
   Fixpoint mdenote (me : mexp) : A :=
     match me with
@@ -256,11 +264,15 @@ Section monoid.
       | Op me1 me2 => mdenote me1 + mdenote me2
     end.
 
+  (** We will normalize expressions by flattening them into lists, via associativity, so it is helpful to have a denotation function for lists of monoid values. *)
+
   Fixpoint mldenote (ls : list A) : A :=
     match ls with
       | nil => e
       | x :: ls' => x + mldenote ls'
     end.
+
+  (** The flattening function itself is easy to implement. *)
 
   Fixpoint flatten (me : mexp) : list A :=
     match me with
@@ -269,7 +281,10 @@ Section monoid.
       | Op me1 me2 => flatten me1 ++ flatten me2
     end.
 
-  Lemma flatten_correct' : forall ml2 ml1, f (mldenote ml1) (mldenote ml2) = mldenote (ml1 ++ ml2).
+  (** [flatten] has a straightforward correctness proof in terms of our [denote] functions. *)
+
+  Lemma flatten_correct' : forall ml2 ml1,
+    mldenote ml1 + mldenote ml2 = mldenote (ml1 ++ ml2).
     induction ml1; crush.
   Qed.
 
@@ -279,37 +294,69 @@ Section monoid.
     induction me; crush.
   Qed.
 
-  Theorem monoid_reflect : forall m1 m2,
-    mldenote (flatten m1) = mldenote (flatten m2)
-    -> mdenote m1 = mdenote m2.
+  (** Now it is easy to prove a theorem that will be the main tool behind our simplification tactic. *)
+
+  Theorem monoid_reflect : forall me1 me2,
+    mldenote (flatten me1) = mldenote (flatten me2)
+    -> mdenote me1 = mdenote me2.
     intros; repeat rewrite flatten_correct; assumption.
   Qed.
 
-  Ltac reflect m :=
-    match m with
+  (** We implement reflection into the [mexp] type. *)
+
+  Ltac reflect me :=
+    match me with
       | e => Ident
-      | ?m1 + ?m2 =>
-        let r1 := reflect m1 in
-        let r2 := reflect m2 in
+      | ?me1 + ?me2 =>
+        let r1 := reflect me1 in
+        let r2 := reflect me2 in
           constr:(Op r1 r2)
-      | _ => constr:(Var m)
+      | _ => constr:(Var me)
     end.
+
+  (** The final [monoid] tactic works on goals that equate two monoid terms.  We reflect each and change the goal to refer to the reflected versions, finishing off by applying [monoid_reflect] and simplifying uses of [mldenote]. *)
 
   Ltac monoid :=
     match goal with
-      | [ |- ?m1 = ?m2 ] =>
-        let r1 := reflect m1 in
-        let r2 := reflect m2 in
+      | [ |- ?me1 = ?me2 ] =>
+        let r1 := reflect me1 in
+        let r2 := reflect me2 in
           change (mdenote r1 = mdenote r2);
             apply monoid_reflect; simpl mldenote
     end.
 
+  (** We can make short work of theorems like this one: *)
+
   Theorem t1 : forall a b c d, a + b + c + d = a + (b + c) + d.
-    intros.
-    monoid.
+    intros; monoid.
+    (** [[
+
+  ============================
+   a + (b + (c + (d + e))) = a + (b + (c + (d + e)))
+        ]]
+
+        [monoid] has canonicalized both sides of the equality, such that we can finish the proof by reflexivity. *)
+
     reflexivity.
   Qed.
+
+  (** It is interesting to look at the form of the proof. *)
+
+  Print t1.
+  (** [[
+
+t1 = 
+fun a b c d : A =>
+monoid_reflect (Op (Op (Op (Var a) (Var b)) (Var c)) (Var d))
+  (Op (Op (Var a) (Op (Var b) (Var c))) (Var d))
+  (refl_equal (a + (b + (c + (d + e)))))
+     : forall a b c d : A, a + b + c + d = a + (b + c) + d
+      ]]
+
+      The proof term contains only restatements of the equality operands in reflected form, followed by a use of reflexivity on the shared canonical form. *)
 End monoid.
+
+(** Extensions of this basic approach are used in the implementations of the [ring] and [field] tactics that come packaged with Coq. *)
 
 
 (** * A Smarter Tautology Solver *)
