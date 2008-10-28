@@ -136,3 +136,96 @@ User error: No matching clauses for match goal
 
   As usual, the type-checker performs no reductions to simplify error messages.  If we reduced the first term ourselves, we would see that [check_even 255] reduces to a [No], so that the first term is equivalent to [True], which certainly does not unify with [isEven 255]. *)
 Abort.
+
+
+(** * Reflecting the Syntax of a Trivial Tautology Language *)
+
+(** We might also like to have reflective proofs of trivial tautologies like this one: *)
+
+Theorem true_galore : (True /\ True) -> (True \/ (True /\ (True -> True))).
+  tauto.
+Qed.
+
+Print true_galore.
+
+(** [[
+
+true_galore = 
+fun H : True /\ True =>
+and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
+     : True /\ True -> True \/ True /\ (True -> True)
+    ]]
+
+    As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
+
+   To write a reflective procedure for this class of goals, we will need to get into the actual "reflection" part of "proof by reflection."  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\textit{%#<i>#reflect#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
+
+Inductive taut : Set :=
+| TautTrue : taut
+| TautAnd : taut -> taut -> taut
+| TautOr : taut -> taut -> taut
+| TautImp : taut -> taut -> taut.
+
+(** We write a recursive function to "unreflect" this syntax back to [Prop]. *)
+
+Fixpoint tautDenote (t : taut) : Prop :=
+  match t with
+    | TautTrue => True
+    | TautAnd t1 t2 => tautDenote t1 /\ tautDenote t2
+    | TautOr t1 t2 => tautDenote t1 \/ tautDenote t2
+    | TautImp t1 t2 => tautDenote t1 -> tautDenote t2
+  end.
+
+(** It is easy to prove that every formula in the range of [tautDenote] is true. *)
+
+Theorem tautTrue : forall t, tautDenote t.
+  induction t; crush.
+Qed.
+
+(** To use [tautTrue] to prove particular formulas, we need to implement the syntax reflection process.  A recursive Ltac function does the job. *)
+
+Ltac tautReflect P :=
+  match P with
+    | True => TautTrue
+    | ?P1 /\ ?P2 =>
+      let t1 := tautReflect P1 in
+      let t2 := tautReflect P2 in
+        constr:(TautAnd t1 t2)
+    | ?P1 \/ ?P2 =>
+      let t1 := tautReflect P1 in
+      let t2 := tautReflect P2 in
+        constr:(TautOr t1 t2)
+    | ?P1 -> ?P2 =>
+      let t1 := tautReflect P1 in
+      let t2 := tautReflect P2 in
+        constr:(TautImp t1 t2)
+  end.
+
+(** With [tautReflect] available, it is easy to finish our reflective tactic.  We look at the goal formula, reflect it, and apply [tautTrue] to the reflected formula. *)
+
+Ltac obvious :=
+  match goal with
+    | [ |- ?P ] =>
+      let t := tautReflect P in
+        exact (tautTrue t)
+  end.
+
+(** We can verify that [obvious] solves our original example, with a proof term that does not mention details of the proof. *)
+
+Theorem true_galore' : (True /\ True) -> (True \/ (True /\ (True -> True))).
+  obvious.
+Qed.
+
+Print true_galore'.
+
+(** [[
+
+true_galore' = 
+tautTrue
+  (TautImp (TautAnd TautTrue TautTrue)
+     (TautOr TautTrue (TautAnd TautTrue (TautImp TautTrue TautTrue))))
+     : True /\ True -> True \/ True /\ (True -> True)
+
+    ]]
+
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
