@@ -231,6 +231,87 @@ tautTrue
     It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
 
 
+(** * A Monoid Expression Simplifier *)
+
+Section monoid.
+  Variable A : Set.
+  Variable e : A.
+  Variable f : A -> A -> A.
+
+  Infix "+" := f.
+
+  Hypothesis assoc : forall a b c, (a + b) + c = a + (b + c).
+  Hypothesis identl : forall a, e + a = a.
+  Hypothesis identr : forall a, a + e = a.
+
+  Inductive mexp : Set :=
+  | Ident : mexp
+  | Var : A -> mexp
+  | Op : mexp -> mexp -> mexp.
+
+  Fixpoint mdenote (me : mexp) : A :=
+    match me with
+      | Ident => e
+      | Var v => v
+      | Op me1 me2 => mdenote me1 + mdenote me2
+    end.
+
+  Fixpoint mldenote (ls : list A) : A :=
+    match ls with
+      | nil => e
+      | x :: ls' => x + mldenote ls'
+    end.
+
+  Fixpoint flatten (me : mexp) : list A :=
+    match me with
+      | Ident => nil
+      | Var x => x :: nil
+      | Op me1 me2 => flatten me1 ++ flatten me2
+    end.
+
+  Lemma flatten_correct' : forall ml2 ml1, f (mldenote ml1) (mldenote ml2) = mldenote (ml1 ++ ml2).
+    induction ml1; crush.
+  Qed.
+
+  Theorem flatten_correct : forall me, mdenote me = mldenote (flatten me).
+    Hint Resolve flatten_correct'.
+
+    induction me; crush.
+  Qed.
+
+  Theorem monoid_reflect : forall m1 m2,
+    mldenote (flatten m1) = mldenote (flatten m2)
+    -> mdenote m1 = mdenote m2.
+    intros; repeat rewrite flatten_correct; assumption.
+  Qed.
+
+  Ltac reflect m :=
+    match m with
+      | e => Ident
+      | ?m1 + ?m2 =>
+        let r1 := reflect m1 in
+        let r2 := reflect m2 in
+          constr:(Op r1 r2)
+      | _ => constr:(Var m)
+    end.
+
+  Ltac monoid :=
+    match goal with
+      | [ |- ?m1 = ?m2 ] =>
+        let r1 := reflect m1 in
+        let r2 := reflect m2 in
+          change (mdenote r1 = mdenote r2);
+            apply monoid_reflect; simpl mldenote
+    end.
+
+  Theorem t1 : forall a b c d, a + b + c + d = a + (b + c) + d.
+    intros.
+    monoid.
+    reflexivity.
+  Qed.
+End monoid.
+
+
 (** * A Smarter Tautology Solver *)
 
 Require Import Quote.
