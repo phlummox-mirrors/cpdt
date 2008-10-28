@@ -29,7 +29,9 @@ Inductive isEven : nat -> Prop :=
 | Even_O : isEven O
 | Even_SS : forall n, isEven n -> isEven (S (S n)).
 
+(* begin thide *)
 Ltac prove_even := repeat constructor.
+(* end thide *)
 
 Theorem even_256 : isEven 256.
   prove_even.
@@ -65,6 +67,7 @@ Open Local Scope partial_scope.
 
 (** We bring into scope some notations for the [partial] type.  These overlap with some of the notations we have seen previously for specification types, so they were placed in a separate scope that needs separate opening. *)
 
+(* begin thide *)
 Definition check_even (n : nat) : [isEven n].
   Hint Constructors isEven.
 
@@ -93,6 +96,7 @@ Ltac prove_even_reflective :=
   match goal with
     | [ |- isEven ?N] => exact (partialOut (check_even N))
   end.
+(* end thide *)
 
 (** We identify which natural number we are considering, and we "prove" its evenness by pulling the proof out of the appropriate [check_even] call. *)
 
@@ -160,6 +164,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
    To write a reflective procedure for this class of goals, we will need to get into the actual "reflection" part of "proof by reflection."  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\textit{%#<i>#reflect#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
 
+(* begin thide *)
 Inductive taut : Set :=
 | TautTrue : taut
 | TautAnd : taut -> taut -> taut
@@ -211,6 +216,7 @@ Ltac obvious :=
   end.
 
 (** We can verify that [obvious] solves our original example, with a proof term that does not mention details of the proof. *)
+(* end thide *)
 
 Theorem true_galore' : (True /\ True) -> (True \/ (True /\ (True -> True))).
   obvious.
@@ -250,6 +256,7 @@ Section monoid.
 
      It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a "catch-all" case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
 
+(* begin thide *)
   Inductive mexp : Set :=
   | Ident : mexp
   | Var : A -> mexp
@@ -327,6 +334,8 @@ Section monoid.
 
   (** We can make short work of theorems like this one: *)
 
+(* end thide *)
+
   Theorem t1 : forall a b c d, a + b + c + d = a + (b + c) + d.
     intros; monoid.
     (** [[
@@ -367,6 +376,7 @@ End monoid.
 
 Require Import Quote.
 
+(* begin thide *)
 Inductive formula : Set :=
 | Atomic : index -> formula
 | Truth : formula
@@ -507,6 +517,7 @@ Ltac my_tauto :=
   match goal with
     | [ |- formulaDenote ?m ?f ] => exact (partialOut (my_tauto m f))
   end.
+(* end thide *)
 
 (** A few examples demonstrate how the tactic works. *)
 
