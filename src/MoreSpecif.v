@@ -73,3 +73,22 @@ Notation "e1 ;; e2" := (if e1 then e2 else ??)
 
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
   (right associativity, at level 60) : specif_scope.
+
+
+Section partial.
+  Variable P : Prop.
+
+  Inductive partial : Set :=
+  | Proved : P -> partial
+  | Uncertain : partial.
+End partial.
+
+Notation "[ P ]" := (partial P) : type_scope.
+
+Notation "'Yes'" := (Proved _) : partial_scope.
+Notation "'No'" := (Uncertain _) : partial_scope.
+
+Open Local Scope partial_scope.
+Delimit Scope partial_scope with partial.
+
+Notation "'Reduce' v" := (if v then Yes else No) : partial_scope.
