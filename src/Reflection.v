@@ -26,8 +26,8 @@ Set Implicit Arguments.
 (** Proving that particular natural number constants are even is certainly something we would rather have happen automatically.  The Ltac-programming techniques that we learned in the last chapter make it easy to implement such a procedure. *)
 
 Inductive isEven : nat -> Prop :=
-  | Even_O : isEven O
-  | Even_SS : forall n, isEven n -> isEven (S (S n)).
+| Even_O : isEven O
+| Even_SS : forall n, isEven n -> isEven (S (S n)).
 
 Ltac prove_even := repeat constructor.
 
@@ -229,3 +229,160 @@ tautTrue
     ]]
 
     It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
+
+
+(** * A Smarter Tautology Solver *)
+
+Require Import Quote.
+
+Inductive formula : Set :=
+| Atomic : index -> formula
+| Truth : formula
+| Falsehood : formula
+| And : formula -> formula -> formula
+| Or : formula -> formula -> formula
+| Imp : formula -> formula -> formula.
+
+Definition asgn := varmap Prop.
+
+Definition imp (P1 P2 : Prop) := P1 -> P2.
+Infix "-->" := imp (no associativity, at level 95).
+
+Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
+  match f with
+    | Atomic v => varmap_find False v atomics
+    | Truth => True
+    | Falsehood => False
+    | And f1 f2 => formulaDenote atomics f1 /\ formulaDenote atomics f2
+    | Or f1 f2 => formulaDenote atomics f1 \/ formulaDenote atomics f2
+    | Imp f1 f2 => formulaDenote atomics f1 --> formulaDenote atomics f2
+  end.
+
+Section my_tauto.
+  Variable atomics : asgn.
+
+  Definition holds (v : index) := varmap_find False v atomics.
+
+  Require Import ListSet.
+
+  Definition index_eq : forall x y : index, {x = y} + {x <> y}.
+    decide equality.
+  Defined.
+
+  Definition add (s : set index) (v : index) := set_add index_eq v s.
+  Definition In_dec : forall v (s : set index), {In v s} + {~In v s}.
+    Open Local Scope specif_scope.
+
+    intro; refine (fix F (s : set index) : {In v s} + {~In v s} :=
+      match s return {In v s} + {~In v s} with
+        | nil => No
+        | v' :: s' => index_eq v' v || F s'
+      end); crush.
+  Defined.
+
+  Fixpoint allTrue (s : set index) : Prop :=
+    match s with
+      | nil => True
+      | v :: s' => holds v /\ allTrue s'
+    end.
+
+  Theorem allTrue_add : forall v s,
+    allTrue s
+    -> holds v
+    -> allTrue (add s v).
+    induction s; crush;
+      match goal with
+        | [ |- context[if ?E then _ else _] ] => destruct E
+      end; crush.
+  Qed.
+
+  Theorem allTrue_In : forall v s,
+    allTrue s
+    -> set_In v s
+    -> varmap_find False v atomics.
+    induction s; crush.
+  Qed.
+
+  Hint Resolve allTrue_add allTrue_In.
+
+  Open Local Scope partial_scope.
+
+  Definition forward (f : formula) (known : set index) (hyp : formula)
+    (cont : forall known', [allTrue known' -> formulaDenote atomics f])
+    : [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f].
+    refine (fix F (f : formula) (known : set index) (hyp : formula)
+      (cont : forall known', [allTrue known' -> formulaDenote atomics f]){struct hyp}
+      : [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f] :=
+      match hyp return [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f] with
+        | Atomic v => Reduce (cont (add known v))
+        | Truth => Reduce (cont known)
+        | Falsehood => Yes
+        | And h1 h2 =>
+          Reduce (F (Imp h2 f) known h1 (fun known' =>
+            Reduce (F f known' h2 cont)))
+        | Or h1 h2 => F f known h1 cont && F f known h2 cont
+        | Imp _ _ => Reduce (cont known)
+      end); crush.
+  Defined.
+
+  Definition backward (known : set index) (f : formula) : [allTrue known -> formulaDenote atomics f].
+    refine (fix F (known : set index) (f : formula) : [allTrue known -> formulaDenote atomics f] :=
+      match f return [allTrue known -> formulaDenote atomics f] with
+        | Atomic v => Reduce (In_dec v known)
+        | Truth => Yes
+        | Falsehood => No
+        | And f1 f2 => F known f1 && F known f2
+        | Or f1 f2 => F known f1 || F known f2
+        | Imp f1 f2 => forward f2 known f1 (fun known' => F known' f2)
+      end); crush; eauto.
+  Defined.
+
+  Definition my_tauto (f : formula) : [formulaDenote atomics f].
+    intro; refine (Reduce (backward nil f)); crush.
+  Defined.
+End my_tauto.
+
+Ltac my_tauto :=
+  repeat match goal with
+           | [ |- forall x : ?P, _ ] =>
+             match type of P with
+               | Prop => fail 1
+               | _ => intro
+             end
+         end;
+  quote formulaDenote;
+  match goal with
+    | [ |- formulaDenote ?m ?f ] => exact (partialOut (my_tauto m f))
+  end.
+
+Theorem mt1 : True.
+  my_tauto.
+Qed.
+
+Print mt1.
+
+Theorem mt2 : forall x y : nat, x = y --> x = y.
+  my_tauto.
+Qed.
+
+Print mt2.
+
+Theorem mt3 : forall x y z,
+  (x < y /\ y > z) \/ (y > z /\ x < S y)
+  --> y > z /\ (x < y \/ x < S y).
+  my_tauto.
+Qed.
+
+Print mt3.
+
+Theorem mt4 : True /\ True /\ True /\ True /\ True /\ True /\ False --> False.
+  my_tauto.
+Qed.
+
+Print mt4.
+
+Theorem mt4' : True /\ True /\ True /\ True /\ True /\ True /\ False -> False.
+  tauto.
+Qed.
+
+Print mt4'.
