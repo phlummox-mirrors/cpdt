@@ -1,7 +1,7 @@
 MODULES_NODOC := Axioms Tactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
-	MoreDep DataStruct Equality Match
+	MoreDep DataStruct Equality Match Reflection
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)

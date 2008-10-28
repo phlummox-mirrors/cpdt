@@ -201,6 +201,8 @@ Reasoning About Equality Proofs & \texttt{Equality.v} \\
 \hline
 Proof Search in Ltac & \texttt{Match.v} \\
 \hline
+Proof by Reflection & \texttt{Reflection.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
