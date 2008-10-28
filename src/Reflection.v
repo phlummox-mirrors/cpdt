@@ -361,6 +361,10 @@ End monoid.
 
 (** * A Smarter Tautology Solver *)
 
+(** Now we are ready to revisit our earlier tautology solver example.  We want to broaden the scope of the tactic to include formulas whose truth is not syntactically apparent.  We will want to allow injection of arbitrary formulas, like we allowed arbitrary monoid expressions in the last example.  Since we are working in a richer theory, it is important to be able to use equalities between different injected formulas.  For instance, we cannott prove [P -> P] by translating the formula into a value like [Imp (Var P) (Var P)], because a Gallina function has no way of comparing the two [P]s for equality.
+
+   To arrive at a nice implementation satisfying these criteria, we introduce the [quote] tactic and its associated library. *)
+
 Require Import Quote.
 
 Inductive formula : Set :=
@@ -371,10 +375,16 @@ Inductive formula : Set :=
 | Or : formula -> formula -> formula
 | Imp : formula -> formula -> formula.
 
-Definition asgn := varmap Prop.
+(** The type [index] comes from the [Quote] library and represents a countable variable type.  The rest of [formula]'s definition should be old hat by now.
+
+   The [quote] tactic will implement injection from [Prop] into [formula] for us, but it is not quite as smart as we might like.  In particular, it interprets implications incorrectly, so we will need to declare a wrapper definition for implication, as we did in the last chapter. *)
 
 Definition imp (P1 P2 : Prop) := P1 -> P2.
 Infix "-->" := imp (no associativity, at level 95).
+
+(** Now we can define our denotation function. *)
+
+Definition asgn := varmap Prop.
 
 Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
   match f with
@@ -386,10 +396,14 @@ Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
     | Imp f1 f2 => formulaDenote atomics f1 --> formulaDenote atomics f2
   end.
 
+(** The [varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
+
 Section my_tauto.
   Variable atomics : asgn.
 
   Definition holds (v : index) := varmap_find False v atomics.
+
+  (** We define some shorthand for a particular variable being true, and now we are ready to define some helpful functions based on the [ListSet] module of the standard library, which (unsurprisingly) presents a view of lists as sets. *)
 
   Require Import ListSet.
 
@@ -398,6 +412,7 @@ Section my_tauto.
   Defined.
 
   Definition add (s : set index) (v : index) := set_add index_eq v s.
+
   Definition In_dec : forall v (s : set index), {In v s} + {~In v s}.
     Open Local Scope specif_scope.
 
@@ -407,6 +422,8 @@ Section my_tauto.
         | v' :: s' => index_eq v' v || F s'
       end); crush.
   Defined.
+
+  (** We define what it means for all members of an index set to represent true propositions, and we prove some lemmas about this notion. *)
 
   Fixpoint allTrue (s : set index) : Prop :=
     match s with
@@ -435,6 +452,8 @@ Section my_tauto.
 
   Open Local Scope partial_scope.
 
+  (** Now we can write a function [forward] which implements deconstruction of hypotheses.  It has a dependent type, in the style of Chapter 6, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
+
   Definition forward (f : formula) (known : set index) (hyp : formula)
     (cont : forall known', [allTrue known' -> formulaDenote atomics f])
     : [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f].
@@ -453,6 +472,8 @@ Section my_tauto.
       end); crush.
   Defined.
 
+  (** A [backward] function implements analysis of the final goal.  It calls [forward] to handle implications. *)
+
   Definition backward (known : set index) (f : formula) : [allTrue known -> formulaDenote atomics f].
     refine (fix F (known : set index) (f : formula) : [allTrue known -> formulaDenote atomics f] :=
       match f return [allTrue known -> formulaDenote atomics f] with
@@ -465,10 +486,14 @@ Section my_tauto.
       end); crush; eauto.
   Defined.
 
+  (** A simple wrapper around [backward] gives us the usual type of a partial decision procedure. *)
+
   Definition my_tauto (f : formula) : [formulaDenote atomics f].
     intro; refine (Reduce (backward nil f)); crush.
   Defined.
 End my_tauto.
+
+(** Our final tactic implementation is now fairly straightforward.  First, we [intro] all quantifiers that do not bind [Prop]s.  Then we call the [quote] tactic, which implements the reflection for us.  Finally, we are able to construct an exact proof via [partialOut] and the [my_tauto] Gallina function. *)
 
 Ltac my_tauto :=
   repeat match goal with
@@ -483,17 +508,37 @@ Ltac my_tauto :=
     | [ |- formulaDenote ?m ?f ] => exact (partialOut (my_tauto m f))
   end.
 
+(** A few examples demonstrate how the tactic works. *)
+
 Theorem mt1 : True.
   my_tauto.
 Qed.
 
 Print mt1.
+(** [[
+
+mt1 = partialOut (my_tauto (Empty_vm Prop) Truth)
+     : True
+    ]]
+
+    We see [my_tauto] applied with an empty [varmap], since every subformula is handled by [formulaDenote]. *)
 
 Theorem mt2 : forall x y : nat, x = y --> x = y.
   my_tauto.
 Qed.
 
 Print mt2.
+(** [[
+
+mt2 = 
+fun x y : nat =>
+partialOut
+  (my_tauto (Node_vm (x = y) (Empty_vm Prop) (Empty_vm Prop))
+     (Imp (Atomic End_idx) (Atomic End_idx)))
+     : forall x y : nat, x = y --> x = y
+    ]]
+
+    Crucially, both instances of [x = y] are represented with the same index, [End_idx].  The value of this index only needs to appear once in the [varmap], whose form reveals that [varmap]s are represented as binary trees, where [index] values denote paths from tree roots to leaves. *)
 
 Theorem mt3 : forall x y z,
   (x < y /\ y > z) \/ (y > z /\ x < S y)
@@ -502,15 +547,65 @@ Theorem mt3 : forall x y z,
 Qed.
 
 Print mt3.
+(** [[
+
+fun x y z : nat =>
+partialOut
+  (my_tauto
+     (Node_vm (x < S y) (Node_vm (x < y) (Empty_vm Prop) (Empty_vm Prop))
+        (Node_vm (y > z) (Empty_vm Prop) (Empty_vm Prop)))
+     (Imp
+        (Or (And (Atomic (Left_idx End_idx)) (Atomic (Right_idx End_idx)))
+           (And (Atomic (Right_idx End_idx)) (Atomic End_idx)))
+        (And (Atomic (Right_idx End_idx))
+           (Or (Atomic (Left_idx End_idx)) (Atomic End_idx)))))
+     : forall x y z : nat,
+       x < y /\ y > z \/ y > z /\ x < S y --> y > z /\ (x < y \/ x < S y)
+    ]]
+
+    Our goal contained three distinct atomic formulas, and we see that a three-element [varmap] is generated.
+
+    It can be interesting to observe differences between the level of repetition in proof terms generated by [my_tauto] and [tauto] for especially trivial theorems. *)
 
 Theorem mt4 : True /\ True /\ True /\ True /\ True /\ True /\ False --> False.
   my_tauto.
 Qed.
 
 Print mt4.
+(** [[
+
+mt4 = 
+partialOut
+  (my_tauto (Empty_vm Prop)
+     (Imp
+        (And Truth
+           (And Truth
+              (And Truth (And Truth (And Truth (And Truth Falsehood))))))
+        Falsehood))
+     : True /\ True /\ True /\ True /\ True /\ True /\ False --> False
+    ]] *)
 
 Theorem mt4' : True /\ True /\ True /\ True /\ True /\ True /\ False -> False.
   tauto.
 Qed.
 
 Print mt4'.
+(** [[
+
+mt4' = 
+fun H : True /\ True /\ True /\ True /\ True /\ True /\ False =>
+and_ind
+  (fun (_ : True) (H1 : True /\ True /\ True /\ True /\ True /\ False) =>
+   and_ind
+     (fun (_ : True) (H3 : True /\ True /\ True /\ True /\ False) =>
+      and_ind
+        (fun (_ : True) (H5 : True /\ True /\ True /\ False) =>
+         and_ind
+           (fun (_ : True) (H7 : True /\ True /\ False) =>
+            and_ind
+              (fun (_ : True) (H9 : True /\ False) =>
+               and_ind (fun (_ : True) (H11 : False) => False_ind False H11)
+                 H9) H7) H5) H3) H1) H
+     : True /\ True /\ True /\ True /\ True /\ True /\ False -> False
+    ]] *)
+
