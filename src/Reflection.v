@@ -620,3 +620,67 @@ and_ind
      : True /\ True /\ True /\ True /\ True /\ True /\ False -> False
     ]] *)
 
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># Implement a reflective procedure for normalizing systems of linear equations over rational numbers.  In particular, the tactic should identify all hypotheses that are linear equations over rationals where the equation righthand sides are constants.  It should normalize each hypothesis to have a lefthand side that is a sum of products of constants and variables, with no variable appearing multiple times.  Then, your tactic should add together all of these equations to form a single new equation, possibly clearing the original equations.  Some coefficients may cancel in the addition, reducing the number of variables that appear.
+
+To work with rational numbers, import module [QArith] and use [Open Local Scope Q_scope].  All of the usual arithmetic operator notations will then work with rationals, and there are shorthands for constants 0 and 1.  Other rationals must be written as [num # den] for numerator [num] and denominator [den].  Use the infix operator [==] in place of [=], to deal with different ways of expressing the same number as a fraction.  For instance, a theorem and proof like this one should work with your tactic:
+
+[[
+  Theorem t2 : forall x y z, (2 # 1) * (x - (3 # 2) * y) == 15 # 1
+    -> z + (8 # 1) * x == 20 # 1
+    -> (-6 # 2) * y + (10 # 1) * x + z == 35 # 1.
+[[
+
+    intros; reflectContext; assumption.
+[[
+  Qed.
+
+  Your solution can work in any way that involves reflecting syntax and doing most calculation with a Gallina function.  These hints outline a particular possible solution.  Throughout, the [ring] tactic will be helpful for proving many simple facts about rationals, and tactics like [rewrite] are correctly overloaded to work with rational equality [==].
+
+%\begin{enumerate}%#<ol>#
+  %\item%#<li># Define an inductive type [exp] of expressions over rationals (which inhabit the Coq type [Q]).  Include variables (represented as natural numbers), constants, addition, substraction, and multiplication.#</li>#
+  %\item%#<li># Define a function [lookup] for reading an element out of a list of rationals, by its position in the list.#</li>#
+  %\item%#<li># Define a function [expDenote] that translates [exp]s, along with lists of rationals representing variable values, to [Q].#</li>#
+  %\item%#<li># Define a recursive function [eqsDenote] over [list (exp * Q)], characterizing when all of the equations are true.#</li>#
+  %\item%#<li># Fix a representation [lhs] of flattened expressions.  Where [len] is the number of variables, represent a flattened equation as [ilist Q len].  Each position of the list gives the coefficient of the corresponding variable.#</li>#
+  %\item%#<li># Write a recursive function [linearize] that takes a constant [k] and an expression [e] and optionally returns a [lhs] equivalent to [k * e].  This function returns [None] when it discovers that the input expression is not linear.  The parameter [len] of the [lhs] should be a parameter of [linearize], too.  The functions [singleton], [everywhere], and [map2] from [DepList] will probably be helpful.  It is also helpful to know that [Qplus] is the identifier for rational addition.#</li>#
+  %\item%#<li># Write a recursive function [linearizeEqs : list (exp * Q) -> option (lhs * Q)].  This function linearizes all of the equations in the list in turn, building up the sum of the equations.  It returns [None] if the linearization of any constituent equation fails.#</li>#
+  %\item%#<li># Define a denotation function for [lhs].#</li>#
+  %\item%#<li># Prove that, when [exp] linearization succeeds on constant [k] and expression [e], the linearized version has the same meaning as [k * e].#</li>#
+  %\item%#<li># Prove that, when [linearizeEqs] succeeds on an equation list [eqs], then the final summed-up equation is true whenever the original equation list is true.#</li>#
+  %\item%#<li># Write a tactic [findVarsHyps] to search through all equalities on rationals in the context, recursing through addition, subtraction, and multiplication to find the list of expressions that should be treated as variables.  This list should be suitable as an argument to [expDenote] and [eqsDenote], associating a [Q] value to each natural number that stands for a variable.#</li>#
+  %\item%#<li># Write a tactic [reflect] to reflect a [Q] expression into [exp], with respect to a given list of variable values.#</li>#
+  %\item%#<li># Write a tactic [reflectEqs] to reflect a formula that begins with a sequence of implications from linear equalities whose lefthand sides are expressed with [expDenote].  This tactic should build a [list (exp * Q)] representing the equations.  Remember to give an explicit type annotation when returning a nil list, as in [constr:(@nil (exp * Q))].#</li>#
+  %\item%#<li># Now this final tactic should do the job:
+[[
+  Ltac reflectContext :=
+    let ls := findVarsHyps in
+      repeat match goal with
+               | [ H : ?e == ?num # ?den |- _ ] =>
+                 let r := reflect ls e in
+                   change (expDenote ls r == num # den) in H;
+                   generalize H
+             end;
+      match goal with
+        | [ |- ?g ] => let re := reflectEqs g in
+            intros;
+              let H := fresh "H" in
+              assert (H : eqsDenote ls re); [ simpl in *; tauto
+                | repeat match goal with
+                           | [ H : expDenote _ _ == _ |- _ ] => clear H
+                         end;
+                generalize (linearizeEqsCorrect ls re H); clear H; simpl;
+                  match goal with
+                    | [ |- ?X == ?Y -> _ ] =>
+                      ring_simplify X Y; intro
+                  end ]
+      end.
+
+#</ol>#%\end{enumerate}%
+#</li>#
+   
+#</ol>#%\end{enumerate}% *)

@@ -9,7 +9,7 @@
 
 (* Dependent list types presented in Chapter 8 *)
 
-Require Import List.
+Require Import Arith List.
 
 Set Implicit Arguments.
 
@@ -22,6 +22,14 @@ Section ilist.
       | O => unit
       | S n' => A * ilist n'
     end%type.
+
+  Definition inil : ilist O := tt.
+  Definition icons n x (ls : ilist n) : ilist (S n) := (x, ls).
+
+  Definition hd n (ls : ilist (S n)) : A := fst ls.
+  Definition tl n (ls : ilist (S n)) : ilist n := snd ls.
+
+  Implicit Arguments icons [n].
 
   Fixpoint index (n : nat) : Type :=
     match n with
@@ -38,9 +46,45 @@ Section ilist.
           | Some idx' => get n' (snd ls) idx'
         end
     end.
+
+  Section everywhere.
+    Variable x : A.
+
+    Fixpoint everywhere (n : nat) : ilist n :=
+      match n return ilist n with
+        | O => inil
+        | S n' => icons x (everywhere n')
+      end.
+  End everywhere.
+
+  Section singleton.
+    Variables x default : A.
+
+    Fixpoint singleton (n m : nat) {struct n} : ilist n :=
+      match n return ilist n with
+        | O => inil
+        | S n' =>
+          match m with
+            | O => icons x (everywhere default n')
+            | S m' => icons default (singleton n' m')
+          end
+      end.
+  End singleton.
+
+  Section map2.
+    Variable f : A -> A -> A.
+
+    Fixpoint map2 (n : nat) : ilist n -> ilist n -> ilist n :=
+      match n return ilist n -> ilist n -> ilist n with
+        | O => fun _ _ => inil
+        | S n' => fun ls1 ls2 => icons (f (hd ls1) (hd ls2)) (map2 _ (tl ls1) (tl ls2))
+      end.
+  End map2.
 End ilist.
 
+Implicit Arguments icons [A n].
 Implicit Arguments get [A n].
+Implicit Arguments map2 [A n].
 
 Section hlist.
   Variable A : Type.
