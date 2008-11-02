@@ -16,9 +16,9 @@ Set Implicit Arguments.
 (* end hide *)
 
 
-(** %\section{Formalizing Programming Languages and Compilers}
+(** %\part{Formalizing Programming Languages and Compilers}
 
-   \chapter{First-Order Variable Representations}% *)
+   \chapter{First-Order Abstract Syntax}% *)
 
 (** TODO: Prose for this chapter *)
 
