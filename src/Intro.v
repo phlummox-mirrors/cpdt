@@ -203,6 +203,8 @@ Proof Search in Ltac & \texttt{Match.v} \\
 \hline
 Proof by Reflection & \texttt{Reflection.v} \\
 \hline
+First-Order Variable Representations & \texttt{Firstorder.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
