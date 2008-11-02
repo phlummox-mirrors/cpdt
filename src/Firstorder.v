@@ -113,10 +113,9 @@ Module Concrete.
     induction G' as [ | [x' t'] tl ]; crush; eauto 9.
   Qed.
 
-  Lemma weaken_lookup : forall G2 x t G',
-    G' # G2
-    -> forall G1, G1 ++ G2 |-v x : t
-      -> G1 ++ G' ++ G2 |-v x : t.
+  Lemma weaken_lookup : forall x t G' G1,
+    G1 |-v x : t
+    -> G1 ++ G' |-v x : t.
     Hint Resolve weaken_lookup'.
 
     induction G1 as [ | [x' t'] tl ]; crush;
@@ -127,27 +126,16 @@ Module Concrete.
 
   Hint Resolve weaken_lookup.
 
-  Lemma hasType_push : forall x t G1 G2 e t',
-    ((x, t) :: G1) ++ G2 |-e e : t'
-    -> (x, t) :: G1 ++ G2 |-e e : t'.
-    trivial.
-  Qed.
-
-  Hint Resolve hasType_push.
-
   Theorem weaken_hasType' : forall G' G e t,
     G |-e e : t
-      -> forall G1 G2, G = G1 ++ G2
-        -> G' # G2
-        -> G1 ++ G' ++ G2 |-e e : t.
+    -> G ++ G' |-e e : t.
     induction 1; crush; eauto.
   Qed.
 
-  Theorem weaken_hasType : forall G e t,
-    G |-e e : t
-    -> forall G', G' # G
-      -> G' ++ G |-e e : t.
-    intros; change (G' ++ G) with (nil ++ G' ++ G);
+  Theorem weaken_hasType : forall e t,
+    nil |-e e : t
+    -> forall G', G' |-e e : t.
+    intros; change G' with (nil ++ G');
       eapply weaken_hasType'; eauto.
   Qed.
 
@@ -157,15 +145,11 @@ Module Concrete.
     intros; rewrite (app_nil_end G); apply weaken_hasType; auto.
   Qed.
 
-  Theorem weaken_hasType1 : forall G e t,
-    G |-e e : t
-    -> forall x t', x ## G
-      -> (x, t') :: G |-e e : t.
-    intros; change ((x, t') :: G) with (((x, t') :: nil) ++ G);
-      apply weaken_hasType; crush;
-        match goal with
-          | [ H : (_, _) = (_, _) |- _ ] => injection H
-        end; crush; eauto.
+  Theorem weaken_hasType1 : forall e t,
+    nil |-e e : t
+    -> forall x t', (x, t') :: nil |-e e : t.
+    intros; change ((x, t') :: nil) with (((x, t') :: nil) ++ nil);
+      apply weaken_hasType; crush.
   Qed.
 
   Hint Resolve weaken_hasType_closed weaken_hasType1.
@@ -198,10 +182,10 @@ Module Concrete.
       inversion 2; crush; elimtype False; eauto.
     Qed.
 
-    Lemma subst_lookup : forall x' t G2,
+    Lemma subst_lookup : forall x' t,
       x <> x'
-      -> forall G1, G1 ++ (x, xt) :: G2 |-v x' : t
-        -> G1 ++ G2 |-v x' : t.
+      -> forall G1, G1 ++ (x, xt) :: nil |-v x' : t
+        -> G1 |-v x' : t.
       induction G1 as [ | [x'' t'] tl ]; crush;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
@@ -210,20 +194,22 @@ Module Concrete.
 
     Hint Resolve subst_lookup.
 
-    Lemma subst_lookup'' : forall G2 x' t,
-      x' ## G2
-      -> forall G1, x' ## G1
-        -> G1 ++ (x, xt) :: G2 |-v x' : t
-        -> t = xt.
+    Lemma subst_lookup'' : forall x' t G1,
+      x' ## G1
+      -> G1 ++ (x, xt) :: nil |-v x' : t
+      -> t = xt.
       Hint Resolve subst_lookup'.
 
       induction G1 as [ | [x'' t'] tl ]; crush; eauto;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
-        end; crush; elimtype False; eauto.
+        end; crush; elimtype False; eauto;
+        match goal with
+          | [ H : nil |-v _ : _ |- _ ] => inversion H
+        end.
     Qed.
 
-    Implicit Arguments subst_lookup'' [G2 x' t G1].
+    Implicit Arguments subst_lookup'' [x' t G1].
 
     Lemma disjoint_cons : forall x x' t (G : ctx),
       x ## G
@@ -237,10 +223,10 @@ Module Concrete.
 
     Hint Resolve disjoint_cons.
 
-    Lemma shadow_lookup : forall G2 v t t' G1,
+    Lemma shadow_lookup : forall v t t' G1,
       G1 |-v x : t'
-      -> G1 ++ (x, xt) :: G2 |-v v : t
-      -> G1 ++ G2 |-v v : t.
+      -> G1 ++ (x, xt) :: nil |-v v : t
+      -> G1 |-v v : t.
       induction G1 as [ | [x'' t''] tl ]; crush;
         match goal with
           | [ H : nil |-v _ : _ |- _ ] => inversion H
@@ -249,11 +235,11 @@ Module Concrete.
         end.
     Qed.
 
-    Lemma shadow_hasType' : forall G2 G e t,
+    Lemma shadow_hasType' : forall G e t,
       G |-e e : t
-      -> forall G1, G = G1 ++ (x, xt) :: G2
+      -> forall G1, G = G1 ++ (x, xt) :: nil
         -> forall t'', G1 |-v x : t''
-          -> G1 ++ G2 |-e e : t.
+          -> G1 |-e e : t.
       Hint Resolve shadow_lookup.
 
       induction 1; crush; eauto;
@@ -261,12 +247,12 @@ Module Concrete.
           | [ H : (?x0, _) :: _ ++ (x, _) :: _ |-e _ : _ |- _ ] =>
             destruct (var_eq x0 x); subst; eauto
         end.
-    Qed.      
+    Qed.
 
-    Lemma shadow_hasType : forall G1 G2 e t t'',
-      G1 ++ (x, xt) :: G2 |-e e : t
+    Lemma shadow_hasType : forall G1 e t t'',
+      G1 ++ (x, xt) :: nil |-e e : t
       -> G1 |-v x : t''
-      -> G1 ++ G2 |-e e : t.
+      -> G1 |-e e : t.
       intros; eapply shadow_hasType'; eauto.
     Qed.
 
@@ -274,25 +260,23 @@ Module Concrete.
 
     Theorem subst_hasType : forall G e2 t,
       G |-e e2 : t
-        -> forall G1 G2, G = G1 ++ (x, xt) :: G2
+        -> forall G1, G = G1 ++ (x, xt) :: nil
           -> x ## G1
-          -> x ## G2
-          -> G1 ++ G2 |-e subst e2 : t.
+          -> G1 |-e subst e2 : t.
       induction 1; crush;
         try match goal with
               | [ |- context[if ?E then _ else _] ] => destruct E
             end; crush; eauto 6;
         match goal with
-          | [ H1 : x ## _, H2 : x ## _, H3 : _ |-v x : _ |- _ ] =>
-            rewrite (subst_lookup'' H2 H1 H3)
+          | [ H1 : x ## _, H2 : _ |-v x : _ |- _ ] =>
+            rewrite (subst_lookup'' H1 H2)
         end; crush.
     Qed.
 
     Theorem subst_hasType_closed : forall e2 t,
       (x, xt) :: nil |-e e2 : t
       -> nil |-e subst e2 : t.
-      intros; change (nil ++ nil |-e subst e2 : t);
-        eapply subst_hasType; eauto.
+      intros; eapply subst_hasType; eauto.
     Qed.
   End subst.
 
@@ -323,7 +307,7 @@ Module Concrete.
 
   Hint Constructors step.
 
-  Theorem progress : forall G e t, G |-e e : t
+  Lemma progress' : forall G e t, G |-e e : t
     -> G = nil
     -> val e \/ exists e', e ==> e'.
     induction 1; crush; eauto;
@@ -335,14 +319,25 @@ Module Concrete.
              end.
   Qed.
 
-  Theorem preservation : forall G e t, G |-e e : t
+  Theorem progress : forall e t, nil |-e e : t
+    -> val e \/ exists e', e ==> e'.
+    intros; eapply progress'; eauto.
+  Qed.
+
+  Lemma preservation' : forall G e t, G |-e e : t
     -> G = nil
     -> forall e', e ==> e'
-      -> G |-e e' : t.
+      -> nil |-e e' : t.
     induction 1; inversion 2; crush; eauto;
       match goal with
         | [ H : _ |-e Abs _ _ : _ |- _ ] => inversion H
       end; eauto.
+  Qed.
+
+  Theorem preservation : forall e t, nil |-e e : t
+    -> forall e', e ==> e'
+      -> nil |-e e' : t.
+    intros; eapply preservation'; eauto.
   Qed.
 
 End Concrete.
