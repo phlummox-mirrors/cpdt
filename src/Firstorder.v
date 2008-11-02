@@ -78,46 +78,9 @@ Module Concrete.
 
   Hint Constructors hasType.
 
-  Notation "x ## G" := (forall t' : type, In (x, t') G -> False) (no associativity, at level 90).
-
-  Notation "G' # G" := (forall (x : var) (t : type), In (x, t) G -> x ## G') (no associativity, at level 90).
-
-  Lemma lookup_In : forall G x t,
-    G |-v x : t
-    -> In (x, t) G.
-    induction 1; crush.
-  Qed.
-
-  Hint Resolve lookup_In.
-
-  Lemma disjoint_invert1 : forall G x t G' x' t',
-    G |-v x : t
-    -> (x', t') :: G' # G
-    -> x <> x'.
-    crush; eauto.
-  Qed.
-
-  Lemma disjoint_invert2 : forall G' G p,
-    p :: G' # G
-    -> G' # G.
-    firstorder.
-  Qed.
-
-  Hint Resolve disjoint_invert1 disjoint_invert2.
-  Hint Extern 1 (_ <> _) => (intro; subst).
-
-  Lemma weaken_lookup' : forall G x t,
-    G |-v x : t
-    -> forall G', G' # G
-      -> G' ++ G |-v x : t.
-    induction G' as [ | [x' t'] tl ]; crush; eauto 9.
-  Qed.
-
   Lemma weaken_lookup : forall x t G' G1,
     G1 |-v x : t
     -> G1 ++ G' |-v x : t.
-    Hint Resolve weaken_lookup'.
-
     induction G1 as [ | [x' t'] tl ]; crush;
       match goal with
         | [ H : _ |-v _ : _ |- _ ] => inversion H; crush
@@ -145,14 +108,7 @@ Module Concrete.
     intros; rewrite (app_nil_end G); apply weaken_hasType; auto.
   Qed.
 
-  Theorem weaken_hasType1 : forall e t,
-    nil |-e e : t
-    -> forall x t', (x, t') :: nil |-e e : t.
-    intros; change ((x, t') :: nil) with (((x, t') :: nil) ++ nil);
-      apply weaken_hasType; crush.
-  Qed.
-
-  Hint Resolve weaken_hasType_closed weaken_hasType1.
+  Hint Resolve weaken_hasType_closed.
 
   Section subst.
     Variable x : var.
@@ -175,14 +131,9 @@ Module Concrete.
     Variable xt : type.
     Hypothesis Ht' : nil |-e e1 : xt.
 
-    Lemma subst_lookup' : forall G2 x' t,
-      x' ## G2
-      -> (x, xt) :: G2 |-v x' : t
-      -> t = xt.
-      inversion 2; crush; elimtype False; eauto.
-    Qed.
+    Notation "x # G" := (forall t' : type, In (x, t') G -> False) (no associativity, at level 90).
 
-    Lemma subst_lookup : forall x' t,
+    Lemma subst_lookup' : forall x' t,
       x <> x'
       -> forall G1, G1 ++ (x, xt) :: nil |-v x' : t
         -> G1 |-v x' : t.
@@ -192,14 +143,12 @@ Module Concrete.
         end; crush.
     Qed.
 
-    Hint Resolve subst_lookup.
+    Hint Resolve subst_lookup'.
 
-    Lemma subst_lookup'' : forall x' t G1,
-      x' ## G1
+    Lemma subst_lookup : forall x' t G1,
+      x' # G1
       -> G1 ++ (x, xt) :: nil |-v x' : t
       -> t = xt.
-      Hint Resolve subst_lookup'.
-
       induction G1 as [ | [x'' t'] tl ]; crush; eauto;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
@@ -209,19 +158,7 @@ Module Concrete.
         end.
     Qed.
 
-    Implicit Arguments subst_lookup'' [x' t G1].
-
-    Lemma disjoint_cons : forall x x' t (G : ctx),
-      x ## G
-      -> x' <> x
-      -> x ## (x', t) :: G.
-      firstorder;
-        match goal with
-          | [ H : (_, _) = (_, _) |- _ ] => injection H
-        end; crush.
-    Qed.
-
-    Hint Resolve disjoint_cons.
+    Implicit Arguments subst_lookup [x' t G1].
 
     Lemma shadow_lookup : forall v t t' G1,
       G1 |-v x : t'
@@ -258,18 +195,30 @@ Module Concrete.
 
     Hint Resolve shadow_hasType.
 
+    Lemma disjoint_cons : forall x x' t (G : ctx),
+      x # G
+      -> x' <> x
+      -> x # (x', t) :: G.
+      firstorder;
+        match goal with
+          | [ H : (_, _) = (_, _) |- _ ] => injection H
+        end; crush.
+    Qed.
+
+    Hint Resolve disjoint_cons.
+
     Theorem subst_hasType : forall G e2 t,
       G |-e e2 : t
         -> forall G1, G = G1 ++ (x, xt) :: nil
-          -> x ## G1
+          -> x # G1
           -> G1 |-e subst e2 : t.
       induction 1; crush;
         try match goal with
               | [ |- context[if ?E then _ else _] ] => destruct E
             end; crush; eauto 6;
         match goal with
-          | [ H1 : x ## _, H2 : _ |-v x : _ |- _ ] =>
-            rewrite (subst_lookup'' H1 H2)
+          | [ H1 : x # _, H2 : _ |-v x : _ |- _ ] =>
+            rewrite (subst_lookup H1 H2)
         end; crush.
     Qed.
 
@@ -424,14 +373,7 @@ Module DeBruijn.
     intros; rewrite (app_nil_end G); apply weaken_hasType; auto.
   Qed.
 
-  Theorem weaken_hasType1 : forall e t,
-    nil |-e e : t
-    -> forall t', t' :: nil |-e e : t.
-    intros; change (t' :: nil) with ((t' :: nil) ++ nil);
-      apply weaken_hasType; crush.
-  Qed.
-
-  Hint Resolve weaken_hasType_closed weaken_hasType1.
+  Hint Resolve weaken_hasType_closed.
 
   Section subst.
     Variable e1 : exp.
