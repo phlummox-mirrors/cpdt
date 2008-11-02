@@ -296,4 +296,53 @@ Module Concrete.
     Qed.
   End subst.
 
+  Hint Resolve subst_hasType_closed.
+
+  Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 80).
+
+  Inductive val : exp -> Prop :=
+  | VConst : forall b, val (Const b)
+  | VAbs : forall x e, val (Abs x e).
+
+  Hint Constructors val.
+
+  Reserved Notation "e1 ==> e2" (no associativity, at level 90).
+
+  Inductive step : exp -> exp -> Prop :=
+  | Beta : forall x e1 e2,
+    App (Abs x e1) e2 ==> [x ~> e2] e1
+  | Cong1 : forall e1 e2 e1',
+    e1 ==> e1'
+    -> App e1 e2 ==> App e1' e2
+  | Cong2 : forall e1 e2 e2',
+    val e1
+    -> e2 ==> e2'
+    -> App e1 e2 ==> App e1 e2'
+
+    where "e1 ==> e2" := (step e1 e2).
+
+  Hint Constructors step.
+
+  Theorem progress : forall G e t, G |-e e : t
+    -> G = nil
+    -> val e \/ exists e', e ==> e'.
+    induction 1; crush; eauto;
+      try match goal with
+            | [ H : _ |-e _ : _ --> _ |- _ ] => inversion H
+          end;
+      repeat match goal with
+               | [ H : _ |- _ ] => solve [ inversion H; crush; eauto ]
+             end.
+  Qed.
+
+  Theorem preservation : forall G e t, G |-e e : t
+    -> G = nil
+    -> forall e', e ==> e'
+      -> G |-e e' : t.
+    induction 1; inversion 2; crush; eauto;
+      match goal with
+        | [ H : _ |-e Abs _ _ : _ |- _ ] => inversion H
+      end; eauto.
+  Qed.
+
 End Concrete.
