@@ -48,8 +48,9 @@ Ltac simplHyp invOne :=
   match goal with
     | [ H : ex _ |- _ ] => destruct H
 
-    | [ H : ?F _ = ?F _ |- _ ] => injection H;
+    | [ H : ?F ?X = ?F ?Y |- _ ] => injection H;
       match goal with
+        | [ |- F X = F Y -> _ ] => fail 1
         | [ |- _ = _ -> _ ] => try clear H; intros; try subst
       end
     | [ H : ?F _ _ = ?F _ _ |- _ ] => injection H;
