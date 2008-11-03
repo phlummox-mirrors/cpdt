@@ -205,6 +205,8 @@ Proof by Reflection & \texttt{Reflection.v} \\
 \hline
 First-Order Abstract Syntax & \texttt{Firstorder.v} \\
 \hline
+Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
