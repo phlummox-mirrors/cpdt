@@ -84,31 +84,45 @@ Inductive Val : forall t, Exp t -> Prop :=
 
 Hint Constructors Val.
 
+Inductive Ctx : type -> type -> Type :=
+| AppCong1 : forall (dom ran : type),
+  Exp dom -> Ctx (dom --> ran) ran
+| AppCong2 : forall (dom ran : type),
+  Exp (dom --> ran) -> Ctx dom ran
+| PlusCong1 : Exp Nat -> Ctx Nat Nat
+| PlusCong2 : Exp Nat -> Ctx Nat Nat.
+
+Inductive isCtx : forall t1 t2, Ctx t1 t2 -> Prop :=
+| IsApp1 : forall dom ran (X : Exp dom), isCtx (AppCong1 ran X)
+| IsApp2 : forall dom ran (F : Exp (dom --> ran)), Val F -> isCtx (AppCong2 F)
+| IsPlus1 : forall E2, isCtx (PlusCong1 E2)
+| IsPlus2 : forall E1, Val E1 -> isCtx (PlusCong2 E1).
+
+Definition plug t1 t2 (C : Ctx t1 t2) : Exp t1 -> Exp t2 :=
+  match C in Ctx t1 t2 return Exp t1 -> Exp t2 with
+    | AppCong1 _ _ X => fun F => App F X
+    | AppCong2 _ _ F => fun X => App F X
+    | PlusCong1 E2 => fun E1 => Plus E1 E2
+    | PlusCong2 E1 => fun E2 => Plus E1 E2
+  end.
+
+Infix "@" := plug (no associativity, at level 60).
+
 Inductive Step : forall t, Exp t -> Exp t -> Prop :=
 | Beta : forall dom ran (B : Exp1 dom ran) (X : Exp dom),
   Val X
   -> App (Abs B) X ==> Subst X B
-| AppCong1 : forall dom ran (F : Exp (dom --> ran)) (X : Exp dom) F',
-  F ==> F'
-  -> App F X ==> App F' X
-| AppCong2 : forall dom ran (F : Exp (dom --> ran)) (X : Exp dom) X',
-  Val F
-  -> X ==> X'
-  -> App F X ==> App F X'
-
 | Sum : forall n1 n2,
   Plus (Const n1) (Const n2) ==> Const (n1 + n2)
-| PlusCong1 : forall E1 E2 E1',
-  E1 ==> E1'
-  -> Plus E1 E2 ==> Plus E1' E2
-| PlusCong2 : forall E1 E2 E2',
-  Val E1
-  -> E2 ==> E2'
-  -> Plus E1 E2 ==> Plus E1 E2'
+| Cong : forall t t' (C : Ctx t t') E E' E1,
+  isCtx C
+  -> E1 = C @ E
+  -> E ==> E'
+  -> E1 ==> C @ E'
 
   where "E1 ==> E2" := (Step E1 E2).
 
-Hint Constructors Step.
+Hint Constructors isCtx Step.
 
 Inductive Closed : forall t, Exp t -> Prop :=
 | CConst : forall b,
@@ -137,7 +151,7 @@ Ltac my_crush :=
   try (match goal with
          | [ H : ?F = ?G |- _ ] =>
            match goal with
-             | [ _ : F (fun _ => unit) = G (fun _ => unit) |- _ ] => fail 1
+             (*| [ _ : F (fun _ => unit) = G (fun _ => unit) |- _ ] => fail 1*)
              | _ =>
                let H' := fresh "H'" in
                  assert (H' : F (fun _ => unit) = G (fun _ => unit)); [ congruence
@@ -163,13 +177,15 @@ Ltac my_crush :=
              end
          end.
 
+Hint Extern 1 (_ = _ @ _) => simpl.
+
 Lemma progress' : forall t (E : Exp t),
   Closed E
   -> Val E \/ exists E', E ==> E'.
   induction 1; crush;
     repeat match goal with
              | [ H : Val _ |- _ ] => inversion H; []; clear H; my_crush
-           end; eauto.
+           end; eauto 6.
 Qed.
 
 Theorem progress : forall t (E : Exp t),
@@ -222,8 +238,6 @@ Theorem MultiStep_trans : forall t (E1 E2 E3 : Exp t),
   induction 1; eauto.
 Qed.
 
-Hint Resolve MultiStep_trans.
-
 Theorem Big_Val : forall t (E V : Exp t),
   E ===> V
   -> Val V.
@@ -238,70 +252,39 @@ Qed.
 
 Hint Resolve Big_Val Val_Big.
 
-Ltac uiper :=
-  repeat match goal with
-           | [ pf : _ = _ |- _ ] =>
-             generalize pf; subst; intro;
-               rewrite (UIP_refl _ _ pf); simpl;
-                 repeat match goal with
-                          | [ H : forall pf : ?X = ?X, _ |- _ ] =>
-                            generalize (H (refl_equal _)); clear H; intro H
-                        end
-         end.
-
-Lemma Multi_PlusCong1' : forall E2 t (pf : t = Nat) (E1 E1' : Exp t),
-  E1 ==>* E1'
-  -> Plus (match pf with refl_equal => E1 end) E2
-  ==>* Plus (match pf with refl_equal => E1' end) E2.
-  induction 1; crush; uiper; eauto.
-Qed.
-
-Lemma Multi_PlusCong1 : forall E1 E2 E1',
-  E1 ==>* E1'
-  -> Plus E1 E2 ==>* Plus E1' E2.
-  intros; generalize (Multi_PlusCong1' E2 (refl_equal _)); auto.
-Qed.
-
-Lemma Multi_PlusCong2' : forall E1 (_ : Val E1) t (pf : t = Nat) (E2 E2' : Exp t),
-  E2 ==>* E2'
-  -> Plus E1 (match pf with refl_equal => E2 end)
-  ==>* Plus E1 (match pf with refl_equal => E2' end).
-  induction 2; crush; uiper; eauto.
-Qed.
-
-Lemma Multi_PlusCong2 : forall E1 E2 E2',
-  Val E1
-  -> E2 ==>* E2'
-  -> Plus E1 E2 ==>* Plus E1 E2'.
-  intros E1 E2 E2' H; generalize (Multi_PlusCong2' H (refl_equal _)); auto.
-Qed.
-
-Lemma Multi_AppCong1' : forall dom ran E2 t (pf : t = dom --> ran) (E1 E1' : Exp t),
-  E1 ==>* E1'
-  -> App (match pf in _ = t' return Exp t' with refl_equal => E1 end) E2
-  ==>* App (match pf in _ = t' return Exp t' with refl_equal => E1' end) E2.
-  induction 1; crush; uiper; eauto.
-Qed.
-
-Lemma Multi_AppCong1 : forall dom ran (E1 : Exp (dom --> ran)) E2 E1',
-  E1 ==>* E1'
-  -> App E1 E2 ==>* App E1' E2.
-  intros; generalize (Multi_AppCong1' (ran := ran) E2 (refl_equal _)); auto.
-Qed.
-
-Lemma Multi_AppCong2 : forall dom ran (E1 : Exp (dom --> ran)) E2 E2',
-  Val E1
-  -> E2 ==>* E2'
-  -> App E1 E2 ==>* App E1 E2'.
+Lemma Multi_Cong : forall t t' (C : Ctx t t'),
+  isCtx C
+  -> forall E E', E ==>* E'
+    -> C @ E ==>* C @ E'.
   induction 2; crush; eauto.
 Qed.
 
-Hint Resolve Multi_PlusCong1 Multi_PlusCong2 Multi_AppCong1 Multi_AppCong2.
+Lemma Multi_Cong' : forall t t' (C : Ctx t t') E1 E2 E E',
+  isCtx C
+  -> E1 = C @ E
+  -> E2 = C @ E'
+  -> E ==>* E'
+  -> E1 ==>* E2.
+  crush; apply Multi_Cong; auto.
+Qed.
+
+Hint Resolve Multi_Cong'.
+
+Ltac mtrans E :=
+  match goal with
+    | [ |- E ==>* _ ] => fail 1
+    | _ => apply MultiStep_trans with E; [ solve [ eauto ] | eauto ]
+  end.
 
 Theorem Big_Multi : forall t (E V : Exp t),
   E ===> V
   -> E ==>* V.
-  induction 1; crush; eauto 8.
+  induction 1; crush; eauto;
+    repeat match goal with
+             | [ n1 : _, E2 : _ |- _ ] => mtrans (Plus (Const n1) E2)
+             | [ n1 : _, n2 : _ |- _ ] => mtrans (Plus (Const n1) (Const n2))
+             | [ B : _, E2 : _ |- _ ] => mtrans (App (Abs B) E2)
+           end.
 Qed.
 
 Lemma Big_Val' : forall t (V1 V2 : Exp t),
@@ -320,6 +303,9 @@ Lemma Multi_Big' : forall t (E E' : Exp t),
   induction 1; crush; eauto;
     match goal with
       | [ H : _ ===> _ |- _ ] => inversion H; my_crush; eauto
+    end;
+    match goal with
+      | [ H : isCtx _ |- _ ] => inversion H; my_crush; eauto
     end.
 Qed.
 
