@@ -102,13 +102,7 @@ Module Concrete.
       eapply weaken_hasType'; eauto.
   Qed.
 
-  Theorem weaken_hasType_closed : forall e t,
-    nil |-e e : t
-    -> forall G, G |-e e : t.
-    intros; rewrite (app_nil_end G); apply weaken_hasType; auto.
-  Qed.
-
-  Hint Resolve weaken_hasType_closed.
+  Hint Resolve weaken_hasType.
 
   Section subst.
     Variable x : var.
@@ -243,7 +237,8 @@ Module Concrete.
 
   Inductive step : exp -> exp -> Prop :=
   | Beta : forall x e1 e2,
-    App (Abs x e1) e2 ==> [x ~> e2] e1
+    val e2
+    -> App (Abs x e1) e2 ==> [x ~> e2] e1
   | Cong1 : forall e1 e2 e1',
     e1 ==> e1'
     -> App e1 e2 ==> App e1' e2
@@ -367,13 +362,7 @@ Module DeBruijn.
       eapply weaken_hasType'; eauto.
   Qed.
 
-  Theorem weaken_hasType_closed : forall e t,
-    nil |-e e : t
-    -> forall G, G |-e e : t.
-    intros; rewrite (app_nil_end G); apply weaken_hasType; auto.
-  Qed.
-
-  Hint Resolve weaken_hasType_closed.
+  Hint Resolve weaken_hasType.
 
   Section subst.
     Variable e1 : exp.
@@ -465,7 +454,8 @@ Module DeBruijn.
 
   Inductive step : exp -> exp -> Prop :=
   | Beta : forall e1 e2,
-    App (Abs e1) e2 ==> [O ~> e2] e1
+    val e2
+    -> App (Abs e1) e2 ==> [O ~> e2] e1
   | Cong1 : forall e1 e2 e1',
     e1 ==> e1'
     -> App e1 e2 ==> App e1' e2
