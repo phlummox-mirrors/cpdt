@@ -142,3 +142,18 @@ Implicit Arguments hnext [A elm x ls].
 
 Infix ":::" := hcons (right associativity, at level 60).
 Infix "+++" := happ (right associativity, at level 60).
+
+Section hmap.
+  Variable A : Type.
+  Variables B1 B2 : A -> Type.
+
+  Variable f : forall x, B1 x -> B2 x.
+
+  Fixpoint hmap (ls : list A) : hlist B1 ls -> hlist B2 ls :=
+    match ls return hlist B1 ls -> hlist B2 ls with
+      | nil => fun _ => hnil
+      | _ :: _ => fun hl => f (fst hl) ::: hmap _ (snd hl)
+    end.
+End hmap.
+
+Implicit Arguments hmap [A B1 B2 ls].
