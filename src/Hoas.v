@@ -125,8 +125,8 @@ Inductive Step : forall t, Exp t -> Exp t -> Prop :=
 Hint Constructors isCtx Step.
 
 Inductive Closed : forall t, Exp t -> Prop :=
-| CConst : forall b,
-  Closed (Const b)
+| CConst : forall n,
+  Closed (Const n)
 | CPlus : forall E1 E2,
   Closed E1
   -> Closed E2
@@ -368,6 +368,8 @@ Lemma fold_Cfold1 : forall t1 t2 (E : Exp1 t1 t2),
   reflexivity.
 Qed.
 
+Hint Rewrite fold_Cfold1 : fold.
+
 Lemma fold_Subst_Cfold1 : forall t1 t2 (E : Exp1 t1 t2) (V : Exp t1),
   (fun _ => flatten (cfold (E _ (V _))))
   = Subst V (Cfold1 E).
@@ -401,37 +403,6 @@ Qed.
 
 Hint Rewrite fold_Subst : fold.
 
-Definition ExpN (G : list type) (t : type) := forall var, hlist var G -> exp var t.
-
-Definition ConstN G (n : nat) : ExpN G Nat :=
-  fun _ _ => Const' n.
-Definition VarN G t (m : member t G) : ExpN G t := fun _ s => Var (hget s m).
-Definition PlusN G (E1 E2 : ExpN G Nat) : ExpN G Nat :=
-  fun _ s => Plus' (E1 _ s) (E2 _ s).
-Definition AppN G dom ran (F : ExpN G (dom --> ran)) (X : ExpN G dom) : ExpN G ran :=
-  fun _ s => App' (F _ s) (X _ s).
-Definition AbsN G dom ran (B : ExpN (dom :: G) ran) : ExpN G (dom --> ran) :=
-  fun _ s => Abs' (fun x => B _ (x ::: s)).
-
-Inductive ClosedN : forall G t, ExpN G t -> Prop :=
-| CConstN : forall G b,
-  ClosedN (ConstN G b)
-| CPlusN : forall G (E1 E2 : ExpN G _),
-  ClosedN E1
-  -> ClosedN E2
-  -> ClosedN (PlusN E1 E2)
-| CAppN : forall G dom ran (E1 : ExpN G (dom --> ran)) E2,
-  ClosedN E1
-  -> ClosedN E2
-  -> ClosedN (AppN E1 E2)
-| CAbsN : forall G dom ran (E1 : ExpN (dom :: G) ran),
-  ClosedN E1
-  -> ClosedN (AbsN E1).
-
-Axiom closedN : forall G t (E : ExpN G t), ClosedN E.
-
-Hint Resolve closedN.
-
 Section Closed1.
   Variable xt : type.
 
@@ -446,8 +417,8 @@ Section Closed1.
     fun _ s => Abs' (fun x => B _ x _ s).
 
   Inductive Closed1 : forall t, Exp1 xt t -> Prop :=
-  | CConst1 : forall b,
-    Closed1 (Const1 b)
+  | CConst1 : forall n,
+    Closed1 (Const1 n)
   | CPlus1 : forall E1 E2,
     Closed1 E1
     -> Closed1 E2
@@ -464,285 +435,94 @@ End Closed1.
 
 Hint Resolve closed1.
 
-Definition CfoldN G t (E : ExpN G t) : ExpN G t := fun _ s => cfold (E _ s).
-
-Theorem fold_CfoldN : forall G t (E : ExpN G t),
-  (fun _ s => cfold (E _ s)) = CfoldN E.
-  reflexivity.
-Qed.
-
-Definition SubstN t1 G t2 (E1 : ExpN G t1) (E2 : ExpN (G ++ t1 :: nil) t2) : ExpN G t2 :=
-  fun _ s => flatten (E2 _ (hmap (@Var _) s +++ E1 _ s ::: hnil)).
-
-Lemma fold_SubstN : forall t1 G t2 (E1 : ExpN G t1) (E2 : ExpN (G ++ t1 :: nil) t2),
-  (fun _ s => flatten (E2 _ (hmap (@Var _) s +++ E1 _ s ::: hnil))) = SubstN E1 E2.
-  reflexivity.
-Qed.
-
-Hint Rewrite fold_CfoldN fold_SubstN : fold.
-
-Ltac ssimp := unfold Subst, Cfold, CfoldN, SubstN in *; simpl in *; autorewrite with fold in *;
+Ltac ssimp := unfold Subst, Cfold in *; simpl in *; autorewrite with fold in *;
   repeat match goal with
            | [ xt : type |- _ ] =>
              rewrite (@fold_Subst xt) in *
          end;
   autorewrite with fold in *.
 
-Ltac uiper :=
-  repeat match goal with
-           | [ H : _ = _ |- _ ] =>
-             generalize H; subst; intro H; rewrite (UIP_refl _ _ H)
-         end.
+Lemma Cfold_Subst' : forall t (E V : Exp t),
+  E ===> V
+  -> forall t' B (V' : Exp t') V'', E = Cfold (Subst V' B)
+    -> V = Cfold V'' 
+    -> Closed1 B
+    -> Subst (Cfold V') (Cfold1 B) ===> Cfold V''.
+  induction 1; inversion 3; my_crush; ssimp; my_crush.
 
-Section eq_arg.
-  Variable A : Type.
-  Variable B : A -> Type.
-
-  Variable x : A.
-
-  Variables f g : forall x, B x.
-  Hypothesis Heq : f = g.
-
-  Theorem eq_arg : f x = g x.
-    congruence.
-  Qed.
-End eq_arg.
-
-Implicit Arguments eq_arg [A B f g].
-
-(*Lemma Cfold_Subst_comm : forall G t (E : ExpN G t),
-  ClosedN E
-  -> forall t1 G' (pf : G = G' ++ t1 :: nil) V,
-    CfoldN (SubstN V (match pf in _ = G return ExpN G _ with refl_equal => E end))
-    = SubstN (CfoldN V) (CfoldN (match pf in _ = G return ExpN G _ with refl_equal => E end)).
-  induction 1; my_crush; uiper; ssimp; crush;
-    unfold ExpN; do 2 ext_eq.
-
-  generalize (eq_arg x0 (eq_arg x (IHClosedN1 _ _ (refl_equal _) V))).
-  generalize (eq_arg x0 (eq_arg x (IHClosedN2 _ _ (refl_equal _) V))).
-  crush.
-
-  match goal with
-    | [ |- _ = flatten (match ?E with
-                          | Const' _ => _
-                          | Plus' _ _ => _
-                          | Var _ _ => _
-                          | App' _ _ _ _ => _
-                          | Abs' _ _ _ => _
-                        end) ] => dep_destruct E
-  end; crush.
-
-  match goal with
-    | [ |- _ = flatten (match ?E with
-                          | Const' _ => _
-                          | Plus' _ _ => _
-                          | Var _ _ => _
-                          | App' _ _ _ _ => _
-                          | Abs' _ _ _ => _
-                        end) ] => dep_destruct E
-  end; crush.
-
-  match goal with
-    | [ |- match ?E with
-             | Const' _ => _
-             | Plus' _ _ => _
-             | Var _ _ => _
-             | App' _ _ _ _ => _
-             | Abs' _ _ _ => _
-           end = _ ] => dep_destruct E
-  end; crush.
-  rewrite <- H2.
-
-  dep_destruct e.
-  intro 
-  
+  rewrite <- H0; auto.
 
   apply cheat.
-
-  unfold ExpN; do 2 ext_eq.
-  generalize (eq_arg x0 (eq_arg x (IHClosedN1 _ _ (refl_equal _) V))).
-  generalize (eq_arg x0 (eq_arg x (IHClosedN2 _ _ (refl_equal _) V))).
-  congruence.
-
-  unfold ExpN; do 2 ext_eq.
-  f_equal.
-  ext_eq.
-  exact (eq_arg (x1 ::: x0) (eq_arg x (IHClosedN _ (dom :: G') (refl_equal _) (fun _ s => V _ (snd s))))).
-Qed.*)
-
-Lemma Cfold_Subst' : forall t (E V' : Exp t),
-  E ===> V'
-  -> forall G xt (V : ExpN G xt) B, E = SubstN V B
-    -> ClosedN B
-    -> Subst (Cfold V) (Cfold1 B) ===> Cfold V'.
-  induction 1; inversion 2; my_crush; ssimp.
-
-  auto.
-
+  apply cheat.
   apply cheat.
 
-  my_crush.
-  econstructor.
-  instantiate (1 := Cfold1 B).
-  unfold Subst, Cfold1 in *; eauto.
-  unfold Subst, Cfold1 in *; eauto.
-  unfold Subst, Cfold; eauto.
+  repeat rewrite (@fold_Subst_Cfold1 t') in *.
+  repeat rewrite fold_Cfold in *.
+  apply SApp with (Cfold1 B) V2.
 
-  my_crush; ssimp.
-  
-  
-    
+  unfold Abs, Subst, Cfold, Cfold1 in *.
+  match goal with
+    | [ |- _ ===> ?F ] =>
+      replace F with (fun var => cfold (Abs' (fun x : var _ => B var x)))
+  end.
+  apply IHBigStep1; auto.
+  apply cheat.
+  reflexivity.
 
-  Lemma Cfold_Subst' : forall t (B : Exp1 xt t),
-    Closed1 B
-    -> forall V', Subst V B ===> V'
-      -> Subst (Cfold V) (Cfold1 B) ===> Cfold V'.
-    induction 1; my_crush; ssimp.
+  replace V2 with (Cfold V2).
+  unfold Cfold, Subst.
+  apply IHBigStep2; auto.
+  apply cheat.
+  apply cheat.
 
-    inversion H; my_crush.
+  replace V2 with (Cfold V2).
+  unfold Subst, Cfold.
+  apply IHBigStep3; auto.
+  apply cheat.
+  apply cheat.
 
-    apply cheat.
-
-    inversion H1; my_crush.
-    econstructor.
-    instantiate (1 := Cfold1 B).
-    eauto.
-    change (Abs (Cfold1 B)) with (Cfold (Abs B)).
-    auto.
-    eauto.
-    eauto.
-
-    apply IHClosed1_1.
-    eauto.
-
-    match goal with
-      | [ (*H : ?F = ?G,*) H2 : ?X (fun _ => unit) = ?Y _ _ _ _ (fun _ => unit) |- _ ] =>
-        idtac(*match X with
-          | Y => fail 1
-          | _ =>
-            idtac(*assert (X = Y); [ unfold Exp; apply ext_eq; intro var;
-              let H' := fresh "H'" in
-                assert (H' : F var = G var); [ congruence
-                  | match type of H' with
-                      | ?X = ?Y =>
-                        let X := eval hnf in X in
-                          let Y := eval hnf in Y in
-                            change (X = Y) in H'
-                    end; injection H'; clear H'; my_crush' ]
-              | my_crush'; clear H2 ]*)
-        end*)
-    end.
-
-    clear H5 H3.
-    my_crush.
-
-
-    unfold Subst in *; simpl in *; autorewrite with fold in *.
-    
-
-  Check fold_Subst.
-  
-  repeat rewrite (@fold_Subst t1) in *.
-
-  simp (Subst (t2 := Nat) V).
-  
-
-  induction 1; my_crush.
-End Exp1.
-
-Axiom closed1 : forall t1 t2 (E : Exp1 t1 t2), Closed1 E.
-
-
-
-Lemma Cfold_Subst' : forall t1 (V : Exp t1) t2 (B : Exp1 t1 t2),
-  Closed1 B
-  -> forall V', Subst V B ===> V'
-    -> Subst (Cfold V) (Cfold1 B) ===> Cfold V'.
-  induction 1; my_crush.
-
-  unfold Subst in *; simpl in *; autorewrite with fold in *.
-  inversion H; my_crush.
-
-  unfold Subst in *; simpl in *; autorewrite with fold in *.
-  Check fold_Subst.
-  
-  repeat rewrite (@fold_Subst t1) in *.
-
-  simp (Subst (t2 := Nat) V).
-  
-
-  induction 1; my_crush.
+  apply cheat.  
+Qed.
 
 Theorem Cfold_Subst : forall t1 t2 (V : Exp t1) B (V' : Exp t2),
-  Subst V B ===> V'
+  Subst (Cfold V) (Cfold1 B) ===> Cfold V'
   -> Subst (Cfold V) (Cfold1 B) ===> Cfold V'.
+  Hint Resolve Cfold_Subst'.
+
+  eauto.
+Qed.
+
+Hint Resolve Cfold_Subst.
 
 Theorem Cfold_correct : forall t (E V : Exp t),
   E ===> V
   -> Cfold E ===> Cfold V.
-  induction 1; unfold Cfold in *; crush; simp; auto.
+  induction 1; unfold Cfold in *; crush; ssimp; eauto.
 
-  simp.
-  simp.
-  apply cheat.
-
-  simp.
-  econstructor; eauto.
-  
-
-
-  match goal with
-    | [ |- ?E ===> ?V ] =>
-      try simp1 ltac:(fun E' => change (E' ===> V));
-        try match goal with
-              | [ |- ?E' ===> _ ] =>
-                simp1 ltac:(fun V' => change (E' ===> V'))
-            end
-    | [ H : ?E ===> ?V |- _ ] =>
-      try simp1 ltac:(fun E' => change (E' ===> V) in H);
-        try match type of H with
-              | ?E' ===> _ =>
-                simp1 ltac:(fun V' => change (E' ===> V') in H)
-            end
-  end.
-  simp.
-
-  let H := IHBigStep1 in
-  match type of H with
-    | ?E ===> ?V => 
-      try simp1 ltac:(fun E' => change (E' ===> V) in H);
-        try match type of H with
-          | ?E' ===> _ =>
-            simp1 ltac:(fun V' => change (E' ===> V') in H)
+  change ((fun H1 : type -> Type =>
+    match Cfold E1 H1 with
+      | Const' n3 =>
+        match Cfold E2 H1 with
+          | Const' n4 => Const' (var:=H1) (n3 + n4)
+          | Plus' _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+          | Var _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+          | App' _ _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+          | Abs' _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
         end
-  end.
+      | Plus' _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+      | Var _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+      | App' _ _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+      | Abs' _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
+    end) ===> Const (n1 + n2)).
 
-try simp1 ltac:(fun E' => change (E' ===> V) in H)
-  end.
+  Ltac simp :=
+    repeat match goal with
+             | [ H : _ = Cfold _ |- _ ] => rewrite <- H in *
+             | [ H : Const _ ===> Const _ |- _ ] =>
+               inversion H; clear H; my_crush
+           end.
 
-  simp.
-
-  try simp1 ltac:(fun E' => change (fun H : type -> Type => cfold (E1 H)) with E' in IHBigStep1).
-    try simp1 ltac:(fun V' => change (fun H : type -> Type =>
-      Abs' (dom:=dom) (fun x : H dom => cfold (B H x))) with V' in IHBigStep1).
-  
-  simp1 ltac:(fun E => change ((fun H : type -> Type => cfold (E1 H)) ===> E) in IHBigStep1).
-
-  change ((fun H : type -> Type => cfold (E1 H)) ===> Abs (fun _ x => cfold (B _ x))) in IHBigStep1.
-    (fun H : type -> Type =>
-      Abs' (dom:=dom) (fun x : H dom => cfold (B H x)))
-
-  fold Cfold.
-
-
-
-Definition ExpN (G : list type) (t : type) := forall var, hlist var G -> exp var t.
-
-Definition ConstN G (n : nat) : ExpN G Nat :=
-  fun _ _ => Const' n.
-Definition PlusN G (E1 E2 : ExpN G Nat) : ExpN G Nat :=
-  fun _ s => Plus' (E1 _ s) (E2 _ s).
-Definition AppN G dom ran (F : ExpN G (dom --> ran)) (X : ExpN G dom) : ExpN G ran :=
-  fun _ s => App' (F _ s) (X _ s).
-Definition AbsN G dom ran (B : ExpN (dom :: G) ran) : ExpN G (dom --> ran) :=
-  fun _ s => Abs' (fun x => B _ (x ::: s)).
+  generalize (closed (Cfold E1)); inversion 1; my_crush; simp;
+    try solve [ ssimp; simp; eauto ];
+      generalize (closed (Cfold E2)); inversion 1; my_crush; simp; ssimp; simp; eauto.
+Qed.
