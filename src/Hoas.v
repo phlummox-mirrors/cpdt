@@ -57,6 +57,94 @@ Definition App dom ran (F : Exp (dom --> ran)) (X : Exp dom) : Exp ran :=
 Definition Abs dom ran (B : Exp1 dom ran) : Exp (dom --> ran) :=
   fun _ => Abs' (B _).
 
+Definition zero := Const 0.
+Definition one := Const 1.
+Definition one_again := Plus zero one.
+Definition ident : Exp (Nat --> Nat) := Abs (fun _ X => Var X).
+Definition app_ident := App ident one_again.
+Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
+  Abs' (fun f => Abs' (fun x => App' (Var f) (Var x))).
+Definition app_ident' := App (App app ident) one_again.
+
+Fixpoint countVars t (e : exp (fun _ => unit) t) {struct e} : nat :=
+  match e with
+    | Const' _ => 0
+    | Plus' e1 e2 => countVars e1 + countVars e2
+    | Var _ _ => 1
+    | App' _ _ e1 e2 => countVars e1 + countVars e2
+    | Abs' _ _ e' => countVars (e' tt)
+  end.
+
+Definition CountVars t (E : Exp t) : nat := countVars (E _).
+
+Eval compute in CountVars zero.
+Eval compute in CountVars one.
+Eval compute in CountVars one_again.
+Eval compute in CountVars ident.
+Eval compute in CountVars app_ident.
+Eval compute in CountVars app.
+Eval compute in CountVars app_ident'.
+
+Fixpoint countOne t (e : exp (fun _ => bool) t) {struct e} : nat :=
+  match e with
+    | Const' _ => 0
+    | Plus' e1 e2 => countOne e1 + countOne e2
+    | Var _ true => 1
+    | Var _ false => 0
+    | App' _ _ e1 e2 => countOne e1 + countOne e2
+    | Abs' _ _ e' => countOne (e' false)
+  end.
+
+Definition CountOne t1 t2 (E : Exp1 t1 t2) : nat :=
+  countOne (E _ true).
+
+Definition ident1 : Exp1 Nat Nat := fun _ X => Var X.
+Definition add_self : Exp1 Nat Nat := fun _ X => Plus' (Var X) (Var X).
+Definition app_zero : Exp1 (Nat --> Nat) Nat := fun _ X => App' (Var X) (Const' 0).
+Definition app_ident1 : Exp1 Nat Nat := fun _ X => App' (Abs' (fun Y => Var Y)) (Var X).
+
+Eval compute in CountOne ident1.
+Eval compute in CountOne add_self.
+Eval compute in CountOne app_zero.
+Eval compute in CountOne app_ident1.
+
+Section ToString.
+  Open Scope string_scope.
+
+  Fixpoint natToString (n : nat) : string :=
+    match n with
+      | O => "O"
+      | S n' => "S(" ++ natToString n' ++ ")"
+    end.
+
+  Fixpoint toString t (e : exp (fun _ => string) t) (cur : string) {struct e} : string * string :=
+    match e with
+      | Const' n => (cur, natToString n)
+      | Plus' e1 e2 =>
+        let (cur', s1) := toString e1 cur in
+        let (cur'', s2) := toString e2 cur' in
+        (cur'', "(" ++ s1 ++ ") + (" ++ s2 ++ ")")
+      | Var _ s => (cur, s)
+      | App' _ _ e1 e2 =>
+        let (cur', s1) := toString e1 cur in
+        let (cur'', s2) := toString e2 cur' in
+        (cur'', "(" ++ s1 ++ ") (" ++ s2 ++ ")")
+      | Abs' _ _ e' =>
+        let (cur', s) := toString (e' cur) (cur ++ "'") in
+        (cur', "(\" ++ cur ++ ", " ++ s ++ ")")
+    end.
+
+  Definition ToString t (E : Exp t) : string := snd (toString (E _) "x").
+End ToString.
+
+Eval compute in ToString zero.
+Eval compute in ToString one.
+Eval compute in ToString one_again.
+Eval compute in ToString ident.
+Eval compute in ToString app_ident.
+Eval compute in ToString app.
+Eval compute in ToString app_ident'.
+
 Section flatten.
   Variable var : type -> Type.
 
@@ -72,6 +160,11 @@ End flatten.
 
 Definition Subst t1 t2 (E1 : Exp t1) (E2 : Exp1 t1 t2) : Exp t2 := fun _ =>
   flatten (E2 _ (E1 _)).
+
+Eval compute in Subst one ident1.
+Eval compute in Subst one add_self.
+Eval compute in Subst ident app_zero.
+Eval compute in Subst one app_ident1.
 
 
 (** * A Type Soundness Proof *)
@@ -328,272 +421,4 @@ Theorem Multi_Big : forall t (E V : Exp t),
   -> Val V
   -> E ===> V.
   induction 1; crush; eauto.
-Qed.
-
-
-(** * Constant folding *)
-
-Section cfold.
-  Variable var : type -> Type.
-
-  Fixpoint cfold t (e : exp var t) {struct e} : exp var t :=
-    match e in exp _ t return exp _ t with
-      | Const' n => Const' n
-      | Plus' e1 e2 =>
-        let e1' := cfold e1 in
-        let e2' := cfold e2 in
-          match e1', e2' with
-            | Const' n1, Const' n2 => Const' (n1 + n2)
-            | _, _ => Plus' e1' e2'
-          end
-
-      | Var _ x => Var x
-      | App' _ _ e1 e2 => App' (cfold e1) (cfold e2)
-      | Abs' _ _ e' => Abs' (fun x => cfold (e' x))
-    end.
-End cfold.
-
-Definition Cfold t (E : Exp t) : Exp t := fun _ => cfold (E _).
-Definition Cfold1 t1 t2 (E : Exp1 t1 t2) : Exp1 t1 t2 := fun _ x => cfold (E _ x).
-
-Lemma fold_Cfold : forall t (E : Exp t),
-  (fun _ => cfold (E _)) = Cfold E.
-  reflexivity.
-Qed.
-
-Hint Rewrite fold_Cfold : fold.
-
-Lemma fold_Cfold1 : forall t1 t2 (E : Exp1 t1 t2),
-  (fun _ x => cfold (E _ x)) = Cfold1 E.
-  reflexivity.
-Qed.
-
-Hint Rewrite fold_Cfold1 : fold.
-
-Lemma fold_Subst_Cfold1 : forall t1 t2 (E : Exp1 t1 t2) (V : Exp t1),
-  (fun _ => flatten (cfold (E _ (V _))))
-  = Subst V (Cfold1 E).
-  reflexivity.
-Qed.
-
-Axiom cheat : forall T, T.
-
-
-Lemma fold_Const : forall n, (fun _ => Const' n) = Const n.
-  reflexivity.
-Qed.
-Lemma fold_Plus : forall (E1 E2 : Exp _), (fun _ => Plus' (E1 _) (E2 _)) = Plus E1 E2.
-  reflexivity.
-Qed.
-Lemma fold_App : forall dom ran (F : Exp (dom --> ran)) (X : Exp dom),
-  (fun _ => App' (F _) (X _)) = App F X.
-  reflexivity.
-Qed.
-Lemma fold_Abs : forall dom ran (B : Exp1 dom ran),
-  (fun _ => Abs' (B _)) = Abs B.
-  reflexivity.
-Qed.
-
-Hint Rewrite fold_Const fold_Plus fold_App fold_Abs : fold.
-
-Lemma fold_Subst : forall t1 t2 (E1 : Exp1 t1 t2) (V : Exp t1),
-  (fun _ => flatten (E1 _ (V _))) = Subst V E1.
-  reflexivity.
-Qed.
-
-Hint Rewrite fold_Subst : fold.
-
-Section Closed1.
-  Variable xt : type.
-
-  Definition Const1 (n : nat) : Exp1 xt Nat :=
-    fun _ _ => Const' n.
-  Definition Var1 : Exp1 xt xt := fun _ x => Var x.
-  Definition Plus1 (E1 E2 : Exp1 xt Nat) : Exp1 xt Nat :=
-    fun _ s => Plus' (E1 _ s) (E2 _ s).
-  Definition App1 dom ran (F : Exp1 xt (dom --> ran)) (X : Exp1 xt dom) : Exp1 xt ran :=
-    fun _ s => App' (F _ s) (X _ s).
-  Definition Abs1 dom ran (B : forall var, var dom -> Exp1 xt ran) : Exp1 xt (dom --> ran) :=
-    fun _ s => Abs' (fun x => B _ x _ s).
-
-  Inductive Closed1 : forall t, Exp1 xt t -> Prop :=
-  | CConst1 : forall n,
-    Closed1 (Const1 n)
-  | CPlus1 : forall E1 E2,
-    Closed1 E1
-    -> Closed1 E2
-    -> Closed1 (Plus1 E1 E2)
-  | CApp1 : forall dom ran (E1 : Exp1 _ (dom --> ran)) E2,
-    Closed1 E1
-    -> Closed1 E2
-    -> Closed1 (App1 E1 E2)
-  | CAbs1 : forall dom ran (E1 : forall var, var dom -> Exp1 _ ran),
-    Closed1 (Abs1 E1).
-
-  Axiom closed1 : forall t (E : Exp1 xt t), Closed1 E.
-End Closed1.
-
-Hint Resolve closed1.
-
-Ltac ssimp := unfold Subst, Cfold in *; simpl in *; autorewrite with fold in *;
-  repeat match goal with
-           | [ xt : type |- _ ] =>
-             rewrite (@fold_Subst xt) in *
-         end;
-  autorewrite with fold in *.
-
-Lemma cfold_thorough : forall var t (e : exp var t),
-  cfold (cfold e) = cfold e.
-  induction e; crush; try (f_equal; ext_eq; eauto);
-    match goal with
-      | [ e1 : exp _ Nat, e2 : exp _ Nat |- _ ] =>
-        dep_destruct (cfold e1); crush;
-        dep_destruct (cfold e2); crush
-    end.
-Qed.
-
-Lemma Cfold_thorough : forall t (E : Exp t),
-  Cfold (Cfold E) = Cfold E.
-  intros; unfold Cfold, Exp; ext_eq;
-    apply cfold_thorough.
-Qed.
-
-Hint Resolve Cfold_thorough.
-
-Section eq_arg.
-  Variable A : Type.
-  Variable B : A -> Type.
-
-  Variable x : A.
-
-  Variables f g : forall x, B x.
-  Hypothesis Heq : f = g.
-
-  Theorem eq_arg : f x = g x.
-    congruence.
-  Qed.
-End eq_arg.
-
-Implicit Arguments eq_arg [A B f g].
-
-Lemma Cfold_Subst_thorough : forall t1 (V : Exp t1) t2 (B : Exp1 t1 t2),
-  Subst (Cfold V) (Cfold1 B) = Cfold (Subst (Cfold V) (Cfold1 B)).
-
-Lemma Cfold_Step_thorough' : forall t (E V : Exp t),
-  E ===> V
-  -> forall E', E = Cfold E'
-    -> Cfold V = V.
-  induction 1; crush.
-  apply IHBigStep3 with (Subst V2 B).
-  
-  generalize (closed E'); inversion 1; my_crush.
-
-  generalize (eq_arg (fun _ => Set) H2); ssimp.
-  dep_destruct (cfold (E0 (fun _ => Set))); try discriminate;
-    dep_destruct (cfold (E3 (fun _ => Set))); discriminate.
-
-  ssimp; my_crush.
-
-  rewrite <- (IHBigStep2 _ (refl_equal _)).
-  generalize (IHBigStep1 _ (refl_equal _)).
-  my_crush.
-  ssimp.
-  assert (B = Cfold1 B).
-  generalize H2; clear_all; my_crush.
-  unfold Exp1; ext_eq.
-  generalize (eq_arg x H2); injection 1; my_crush.
-
-  rewrite H8.
-  
-
-  my_crush.
-
-Lemma Cfold_thorough : forall t (E V : Exp t),
-  Cfold E ===> V
-  -> V = Cfold V.
-
-Lemma Cfold_Subst' : forall t (E V : Exp t),
-  E ===> V
-  -> forall t' B (V' : Exp t') V'', E = Cfold (Subst V' B)
-    -> V = Cfold V'' 
-    -> Closed1 B
-    -> Subst (Cfold V') (Cfold1 B) ===> Cfold V''.
-  induction 1; inversion 3; my_crush; ssimp; my_crush.
-
-  rewrite <- H0; auto.
-
-  apply cheat.
-  apply cheat.
-  apply cheat.
-
-  repeat rewrite (@fold_Subst_Cfold1 t') in *.
-  repeat rewrite fold_Cfold in *.
-  apply SApp with (Cfold1 B) V2.
-
-  unfold Abs, Subst, Cfold, Cfold1 in *.
-  match goal with
-    | [ |- _ ===> ?F ] =>
-      replace F with (fun var => cfold (Abs' (fun x : var _ => B var x)))
-  end.
-  apply IHBigStep1; auto.
-  ssimp.
-  apply cheat.
-  reflexivity.
-
-  replace V2 with (Cfold V2).
-  unfold Cfold, Subst.
-  apply IHBigStep2; auto.
-  apply cheat.
-  apply cheat.
-
-  replace V2 with (Cfold V2).
-  unfold Subst, Cfold.
-  apply IHBigStep3; auto.
-  apply cheat.
-  apply cheat.
-
-  apply cheat.  
-Qed.
-
-Theorem Cfold_Subst : forall t1 t2 (V : Exp t1) B (V' : Exp t2),
-  Subst (Cfold V) (Cfold1 B) ===> Cfold V'
-  -> Subst (Cfold V) (Cfold1 B) ===> Cfold V'.
-  Hint Resolve Cfold_Subst'.
-
-  eauto.
-Qed.
-
-Hint Resolve Cfold_Subst.
-
-Theorem Cfold_correct : forall t (E V : Exp t),
-  E ===> V
-  -> Cfold E ===> Cfold V.
-  induction 1; crush; ssimp; eauto.
-
-  change ((fun H1 : type -> Type =>
-    match Cfold E1 H1 with
-      | Const' n3 =>
-        match Cfold E2 H1 with
-          | Const' n4 => Const' (var:=H1) (n3 + n4)
-          | Plus' _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-          | Var _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-          | App' _ _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-          | Abs' _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-        end
-      | Plus' _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-      | Var _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-      | App' _ _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-      | Abs' _ _ _ => Plus' (cfold (E1 H1)) (cfold (E2 H1))
-    end) ===> Const (n1 + n2)).
-
-  Ltac simp :=
-    repeat match goal with
-             | [ H : _ = Cfold _ |- _ ] => rewrite <- H in *
-             | [ H : Const _ ===> Const _ |- _ ] =>
-               inversion H; clear H; my_crush
-           end.
-
-  generalize (closed (Cfold E1)); inversion 1; my_crush; simp;
-    try solve [ ssimp; simp; eauto ];
-      generalize (closed (Cfold E2)); inversion 1; my_crush; simp; ssimp; simp; eauto.
 Qed.
