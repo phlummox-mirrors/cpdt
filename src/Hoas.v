@@ -8,9 +8,9 @@
  *)
 
 (* begin hide *)
-Require Import Arith Eqdep String List.
+Require Import Eqdep String List.
 
-Require Import Axioms DepList Tactics.
+Require Import Axioms Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
