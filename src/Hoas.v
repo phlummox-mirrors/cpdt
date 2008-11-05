@@ -442,6 +442,76 @@ Ltac ssimp := unfold Subst, Cfold in *; simpl in *; autorewrite with fold in *;
          end;
   autorewrite with fold in *.
 
+Lemma cfold_thorough : forall var t (e : exp var t),
+  cfold (cfold e) = cfold e.
+  induction e; crush; try (f_equal; ext_eq; eauto);
+    match goal with
+      | [ e1 : exp _ Nat, e2 : exp _ Nat |- _ ] =>
+        dep_destruct (cfold e1); crush;
+        dep_destruct (cfold e2); crush
+    end.
+Qed.
+
+Lemma Cfold_thorough : forall t (E : Exp t),
+  Cfold (Cfold E) = Cfold E.
+  intros; unfold Cfold, Exp; ext_eq;
+    apply cfold_thorough.
+Qed.
+
+Hint Resolve Cfold_thorough.
+
+Section eq_arg.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  Variable x : A.
+
+  Variables f g : forall x, B x.
+  Hypothesis Heq : f = g.
+
+  Theorem eq_arg : f x = g x.
+    congruence.
+  Qed.
+End eq_arg.
+
+Implicit Arguments eq_arg [A B f g].
+
+Lemma Cfold_Subst_thorough : forall t1 (V : Exp t1) t2 (B : Exp1 t1 t2),
+  Subst (Cfold V) (Cfold1 B) = Cfold (Subst (Cfold V) (Cfold1 B)).
+
+Lemma Cfold_Step_thorough' : forall t (E V : Exp t),
+  E ===> V
+  -> forall E', E = Cfold E'
+    -> Cfold V = V.
+  induction 1; crush.
+  apply IHBigStep3 with (Subst V2 B).
+  
+  generalize (closed E'); inversion 1; my_crush.
+
+  generalize (eq_arg (fun _ => Set) H2); ssimp.
+  dep_destruct (cfold (E0 (fun _ => Set))); try discriminate;
+    dep_destruct (cfold (E3 (fun _ => Set))); discriminate.
+
+  ssimp; my_crush.
+
+  rewrite <- (IHBigStep2 _ (refl_equal _)).
+  generalize (IHBigStep1 _ (refl_equal _)).
+  my_crush.
+  ssimp.
+  assert (B = Cfold1 B).
+  generalize H2; clear_all; my_crush.
+  unfold Exp1; ext_eq.
+  generalize (eq_arg x H2); injection 1; my_crush.
+
+  rewrite H8.
+  
+
+  my_crush.
+
+Lemma Cfold_thorough : forall t (E V : Exp t),
+  Cfold E ===> V
+  -> V = Cfold V.
+
 Lemma Cfold_Subst' : forall t (E V : Exp t),
   E ===> V
   -> forall t' B (V' : Exp t') V'', E = Cfold (Subst V' B)
@@ -466,6 +536,7 @@ Lemma Cfold_Subst' : forall t (E V : Exp t),
       replace F with (fun var => cfold (Abs' (fun x : var _ => B var x)))
   end.
   apply IHBigStep1; auto.
+  ssimp.
   apply cheat.
   reflexivity.
 
@@ -497,7 +568,7 @@ Hint Resolve Cfold_Subst.
 Theorem Cfold_correct : forall t (E V : Exp t),
   E ===> V
   -> Cfold E ===> Cfold V.
-  induction 1; unfold Cfold in *; crush; ssimp; eauto.
+  induction 1; crush; ssimp; eauto.
 
   change ((fun H1 : type -> Type =>
     match Cfold E1 H1 with
