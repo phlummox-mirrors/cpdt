@@ -233,54 +233,11 @@ Inductive Closed : forall t, Exp t -> Prop :=
 
 Axiom closed : forall t (E : Exp t), Closed E.
 
-Ltac my_subst :=
-  repeat match goal with
-           | [ x : type |- _ ] => subst x
-         end.
-
 Ltac my_crush' :=
-  crush; my_subst;
+  crush;
   repeat (match goal with
             | [ H : _ |- _ ] => generalize (inj_pairT2 _ _ _ _ _ H); clear H
-          end; crush; my_subst).
-
-Ltac equate_conj F G :=
-  match constr:(F, G) with
-    | (_ ?x1, _ ?x2) => constr:(x1 = x2)
-    | (_ ?x1 ?y1, _ ?x2 ?y2) => constr:(x1 = x2 /\ y1 = y2)
-    | (_ ?x1 ?y1 ?z1, _ ?x2 ?y2 ?z2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2)
-    | (_ ?x1 ?y1 ?z1 ?u1, _ ?x2 ?y2 ?z2 ?u2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2)
-    | (_ ?x1 ?y1 ?z1 ?u1 ?v1, _ ?x2 ?y2 ?z2 ?u2 ?v2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2 /\ v1 = v2)
-  end.
-
-Ltac my_crush :=
-  my_crush';
-  repeat (match goal with
-            | [ H : ?F = ?G |- _ ] =>
-              (let H' := fresh "H'" in
-                assert (H' : F (fun _ => unit) = G (fun _ => unit)); [ congruence
-                  | discriminate || injection H'; clear H' ];
-                my_crush';
-                repeat match goal with
-                         | [ H : context[fun _ => unit] |- _ ] => clear H
-                       end;
-                match type of H with
-                  | ?F = ?G =>
-                    let ec := equate_conj F G in
-                      let var := fresh "var" in
-                        assert ec; [ intuition; unfold Exp; apply ext_eq; intro var;
-                          assert (H' : F var = G var); try congruence;
-                            match type of H' with
-                              | ?X = ?Y =>
-                                let X := eval hnf in X in
-                                  let Y := eval hnf in Y in
-                                    change (X = Y) in H'
-                            end; injection H'; my_crush'; tauto
-                          | intuition; subst ]
-                end);
-              clear H
-          end; my_crush');
-  my_crush'.
+          end; crush).
 
 Hint Extern 1 (_ = _ @ _) => simpl.
 
@@ -289,7 +246,7 @@ Lemma progress' : forall t (E : Exp t),
   -> Val E \/ exists E', E ==> E'.
   induction 1; crush;
     repeat match goal with
-             | [ H : Val _ |- _ ] => inversion H; []; clear H; my_crush
+             | [ H : Val _ |- _ ] => inversion H; []; clear H; my_crush'
            end; eauto 6.
 Qed.
 
@@ -400,6 +357,44 @@ Lemma Big_Val' : forall t (V1 V2 : Exp t),
 Qed.
 
 Hint Resolve Big_Val'.
+
+Ltac equate_conj F G :=
+  match constr:(F, G) with
+    | (_ ?x1, _ ?x2) => constr:(x1 = x2)
+    | (_ ?x1 ?y1, _ ?x2 ?y2) => constr:(x1 = x2 /\ y1 = y2)
+    | (_ ?x1 ?y1 ?z1, _ ?x2 ?y2 ?z2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2)
+    | (_ ?x1 ?y1 ?z1 ?u1, _ ?x2 ?y2 ?z2 ?u2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2)
+    | (_ ?x1 ?y1 ?z1 ?u1 ?v1, _ ?x2 ?y2 ?z2 ?u2 ?v2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2 /\ v1 = v2)
+  end.
+
+Ltac my_crush :=
+  my_crush';
+  repeat (match goal with
+            | [ H : ?F = ?G |- _ ] =>
+              (let H' := fresh "H'" in
+                assert (H' : F (fun _ => unit) = G (fun _ => unit)); [ congruence
+                  | discriminate || injection H'; clear H' ];
+                my_crush';
+                repeat match goal with
+                         | [ H : context[fun _ => unit] |- _ ] => clear H
+                       end;
+                match type of H with
+                  | ?F = ?G =>
+                    let ec := equate_conj F G in
+                      let var := fresh "var" in
+                        assert ec; [ intuition; unfold Exp; apply ext_eq; intro var;
+                          assert (H' : F var = G var); try congruence;
+                            match type of H' with
+                              | ?X = ?Y =>
+                                let X := eval hnf in X in
+                                  let Y := eval hnf in Y in
+                                    change (X = Y) in H'
+                            end; injection H'; my_crush'; tauto
+                          | intuition; subst ]
+                end);
+              clear H
+          end; my_crush');
+  my_crush'.
 
 Lemma Multi_Big' : forall t (E E' : Exp t),
   E ==> E'
