@@ -46,6 +46,7 @@ Implicit Arguments Var [var t].
 Implicit Arguments Abs' [var dom ran].
 
 Definition Exp t := forall var, exp var t.
+(* begin thide *)
 Definition Exp1 t1 t2 := forall var, var t1 -> exp var t2.
 
 Definition Const (n : nat) : Exp Nat :=
@@ -56,6 +57,9 @@ Definition App dom ran (F : Exp (dom --> ran)) (X : Exp dom) : Exp ran :=
   fun _ => App' (F _) (X _).
 Definition Abs dom ran (B : Exp1 dom ran) : Exp (dom --> ran) :=
   fun _ => Abs' (B _).
+(* end thide *)
+
+(* EX: Define appropriate shorthands, so that these definitions type-check. *)
 
 Definition zero := Const 0.
 Definition one := Const 1.
@@ -66,6 +70,9 @@ Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
   Abs' (fun f => Abs' (fun x => App' (Var f) (Var x))).
 Definition app_ident' := App (App app ident) one_again.
 
+(* EX: Define a function to count the number of variable occurrences in an [Exp]. *)
+
+(* begin thide *)
 Fixpoint countVars t (e : exp (fun _ => unit) t) {struct e} : nat :=
   match e with
     | Const' _ => 0
@@ -76,6 +83,7 @@ Fixpoint countVars t (e : exp (fun _ => unit) t) {struct e} : nat :=
   end.
 
 Definition CountVars t (E : Exp t) : nat := countVars (E _).
+(* end thide *)
 
 Eval compute in CountVars zero.
 Eval compute in CountVars one.
@@ -85,6 +93,9 @@ Eval compute in CountVars app_ident.
 Eval compute in CountVars app.
 Eval compute in CountVars app_ident'.
 
+(* EX: Define a function to count the number of occurrences of a single distinguished variable. *)
+
+(* begin thide *)
 Fixpoint countOne t (e : exp (fun _ => bool) t) {struct e} : nat :=
   match e with
     | Const' _ => 0
@@ -97,6 +108,7 @@ Fixpoint countOne t (e : exp (fun _ => bool) t) {struct e} : nat :=
 
 Definition CountOne t1 t2 (E : Exp1 t1 t2) : nat :=
   countOne (E _ true).
+(* end thide *)
 
 Definition ident1 : Exp1 Nat Nat := fun _ X => Var X.
 Definition add_self : Exp1 Nat Nat := fun _ X => Plus' (Var X) (Var X).
@@ -108,6 +120,9 @@ Eval compute in CountOne add_self.
 Eval compute in CountOne app_zero.
 Eval compute in CountOne app_ident1.
 
+(* EX: Define a function to pretty-print [Exp]s as strings. *)
+
+(* begin thide *)
 Section ToString.
   Open Scope string_scope.
 
@@ -136,6 +151,7 @@ Section ToString.
 
   Definition ToString t (E : Exp t) : string := snd (toString (E _) "x").
 End ToString.
+(* end thide *)
 
 Eval compute in ToString zero.
 Eval compute in ToString one.
@@ -145,6 +161,9 @@ Eval compute in ToString app_ident.
 Eval compute in ToString app.
 Eval compute in ToString app_ident'.
 
+(* EX: Define a substitution function. *)
+
+(* begin thide *)
 Section flatten.
   Variable var : type -> Type.
 
@@ -160,6 +179,7 @@ End flatten.
 
 Definition Subst t1 t2 (E1 : Exp t1) (E2 : Exp1 t1 t2) : Exp t2 := fun _ =>
   flatten (E2 _ (E1 _)).
+(* end thide *)
 
 Eval compute in Subst one ident1.
 Eval compute in Subst one add_self.
@@ -217,6 +237,9 @@ Inductive Step : forall t, Exp t -> Exp t -> Prop :=
 
 Hint Constructors isCtx Step.
 
+(* EX: Prove type soundness. *)
+
+(* begin thide *)
 Inductive Closed : forall t, Exp t -> Prop :=
 | CConst : forall n,
   Closed (Const n)
@@ -254,6 +277,7 @@ Theorem progress : forall t (E : Exp t),
   Val E \/ exists E', E ==> E'.
   intros; apply progress'; apply closed.
 Qed.
+(* end thide *)
 
 
 (** * Big-Step Semantics *)
@@ -280,6 +304,9 @@ Inductive BigStep : forall t, Exp t -> Exp t -> Prop :=
 
 Hint Constructors BigStep.
 
+(* EX: Prove the equivalence of the small- and big-step semantics. *)
+
+(* begin thide *)
 Reserved Notation "E1 ==>* E2" (no associativity, at level 90).
 
 Inductive MultiStep : forall t, Exp t -> Exp t -> Prop :=
@@ -417,3 +444,4 @@ Theorem Multi_Big : forall t (E V : Exp t),
   -> E ===> V.
   induction 1; crush; eauto.
 Qed.
+(* end thide *)
