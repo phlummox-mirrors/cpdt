@@ -67,6 +67,15 @@ Module STLC.
   Notation "\ x , e" := (Abs (fun x => e)) (at level 78).
   Notation "\ ! , e" := (Abs (fun _ => e)) (at level 78).
 
+  Definition zero : Exp Nat := fun _ => ^0.
+  Definition one : Exp Nat := fun _ => ^1.
+  Definition zpo : Exp Nat := fun _ => zero _ +^ one _.
+  Definition ident : Exp (Nat --> Nat) := fun _ => \x, #x.
+  Definition app_ident : Exp Nat := fun _ => ident _ @ zpo _.
+  Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
+    \f, \x, #f @ #x.
+  Definition app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
+
   Fixpoint typeDenote (t : type) : Set :=
     match t with
       | Nat => nat
@@ -85,6 +94,14 @@ Module STLC.
     end.
 
   Definition ExpDenote t (e : Exp t) := expDenote (e _).
+
+  Eval compute in ExpDenote zero.
+  Eval compute in ExpDenote one.
+  Eval compute in ExpDenote zpo.
+  Eval compute in ExpDenote ident.
+  Eval compute in ExpDenote app_ident.
+  Eval compute in ExpDenote app.
+  Eval compute in ExpDenote app_ident'.
 
   Section cfold.
     Variable var : type -> Type.
@@ -191,7 +208,7 @@ Module PSLC.
   Notation "# v" := (Var v) (at level 70).
 
   Notation "^ n" := (Const n) (at level 70).
-  Infix "+^" := Plus (left associativity, at level 79).
+  Infix "+^" := Plus (left associativity, at level 78).
 
   Infix "@" := App (left associativity, at level 77).
   Notation "\ x , e" := (Abs (fun x => e)) (at level 78).
@@ -203,6 +220,18 @@ Module PSLC.
 
   Notation "'case' e 'of' x => e1 | y => e2" := (SumCase e (fun x => e1) (fun y => e2))
     (at level 79).
+
+  Definition swap : Exp (Nat ** Nat --> Nat ** Nat) := fun _ =>
+    \p, [#2 #p, #1 #p].
+  Definition zo : Exp (Nat ** Nat) := fun _ => [^0, ^1].
+  Definition swap_zo : Exp (Nat ** Nat) := fun _ => swap _ @ zo _.
+
+  Definition natOut : Exp (Nat ++ Nat --> Nat) := fun _ =>
+    \s, case #s of x => #x | y => #y +^ #y.
+  Definition ns1 : Exp (Nat ++ Nat) := fun _ => Inl (^3).
+  Definition ns2 : Exp (Nat ++ Nat) := fun _ => Inr (^5).
+  Definition natOut_ns1 : Exp Nat := fun _ => natOut _ @ ns1 _.
+  Definition natOut_ns2 : Exp Nat := fun _ => natOut _ @ ns2 _.
 
   Fixpoint typeDenote (t : type) : Set :=
     match t with
@@ -237,8 +266,36 @@ Module PSLC.
 
   Definition ExpDenote t (e : Exp t) := expDenote (e _).
 
+  Eval compute in ExpDenote swap.
+  Eval compute in ExpDenote zo.
+  Eval compute in ExpDenote swap_zo.
+
+  Eval compute in ExpDenote natOut.
+  Eval compute in ExpDenote ns1.
+  Eval compute in ExpDenote ns2.
+  Eval compute in ExpDenote natOut_ns1.
+  Eval compute in ExpDenote natOut_ns2.
+
   Section cfold.
     Variable var : type -> Type.
+
+    Definition pairOutType t :=
+      match t with
+        | t1 ** t2 => option (exp var t1 * exp var t2)
+        | _ => unit
+      end.
+
+    Definition pairOutDefault (t : type) : pairOutType t :=
+      match t return pairOutType t with
+        | _ ** _ => None
+        | _ => tt
+      end.
+
+    Definition pairOut t1 t2 (e : exp var (t1 ** t2)) : option (exp var t1 * exp var t2) :=
+      match e in exp _ t return pairOutType t with
+        | Pair _ _ e1 e2 => Some (e1, e2)
+        | _ => pairOutDefault _
+      end.
 
     Fixpoint cfold t (e : exp var t) {struct e} : exp var t :=
       match e in exp _ t return exp _ t with
@@ -257,8 +314,18 @@ Module PSLC.
         | Abs _ _ e' => Abs (fun x => cfold (e' x))
 
         | Pair _ _ e1 e2 => [cfold e1, cfold e2]
-        | Fst _ _ e' => #1 (cfold e')
-        | Snd _ _ e' => #2 (cfold e')
+        | Fst t1 _ e' =>
+          let e'' := cfold e' in
+            match pairOut e'' with
+              | None => #1 e''
+              | Some (e1, _) => e1
+            end
+        | Snd _ _ e' =>
+          let e'' := cfold e' in
+            match pairOut e'' with
+              | None => #2 e''
+              | Some (_, e2) => e2
+            end
 
         | Inl _ _ e' => Inl (cfold e')
         | Inr _ _ e' => Inr (cfold e')
@@ -271,13 +338,31 @@ Module PSLC.
 
   Definition Cfold t (E : Exp t) : Exp t := fun _ => cfold (E _).
 
+  Section pairs.
+    Variables A B : Type.
+
+    Variable v1 : A.
+    Variable v2 : B.
+    Variable v : A * B.
+
+    Theorem pair_eta1 : (v1, v2) = v -> v1 = fst v.
+      destruct v; crush.
+    Qed.
+
+    Theorem pair_eta2 : (v1, v2) = v -> v2 = snd v.
+      destruct v; crush.
+    Qed.
+  End pairs.
+
+  Hint Resolve pair_eta1 pair_eta2.
+
   Lemma cfold_correct : forall t (e : exp _ t),
     expDenote (cfold e) = expDenote e.
     induction e; crush; try (ext_eq; crush);
       repeat (match goal with
                 | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
                 | [ |- match ?E with inl _ => _ | inr _ => _ end = _ ] => destruct E
-              end; crush).
+              end; crush); eauto.
   Qed.
 
   Theorem Cfold_correct : forall t (E : Exp t),
