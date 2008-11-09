@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import String List.
 
-Require Import Axioms Tactics.
+Require Import AxiomsImpred Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -370,3 +370,188 @@ Module PSLC.
     unfold ExpDenote, Cfold; intros; apply cfold_correct.
   Qed.
 End PSLC.
+
+
+(** * Type Variables *)
+
+Module SysF.
+  Section vars.
+    Variable tvar : Type.
+
+    Inductive type : Type :=
+    | Nat : type
+    | Arrow : type -> type -> type
+    | TVar : tvar -> type
+    | All : (tvar -> type) -> type.
+
+    Notation "## v" := (TVar v) (at level 40).
+    Infix "-->" := Arrow (right associativity, at level 60).
+
+    Section Subst.
+      Variable t : type.
+
+      Inductive Subst : (tvar -> type) -> type -> Prop :=
+      | SNat : Subst (fun _ => Nat) Nat
+      | SArrow : forall dom ran dom' ran',
+        Subst dom dom'
+        -> Subst ran ran'
+        -> Subst (fun v => dom v --> ran v) (dom' --> ran')
+      | SVarEq : Subst TVar t
+      | SVarNe : forall v, Subst (fun _ => ##v) (##v)
+      | SAll : forall ran ran',
+        (forall v', Subst (fun v => ran v v') (ran' v'))
+        -> Subst (fun v => All (ran v)) (All ran').
+    End Subst.
+
+    Variable var : type -> Type.
+
+    Inductive exp : type -> Type :=
+    | Var : forall t,
+      var t
+      -> exp t
+
+    | Const : nat -> exp Nat
+    | Plus : exp Nat -> exp Nat -> exp Nat
+
+    | App : forall t1 t2,
+      exp (t1 --> t2)
+      -> exp t1
+      -> exp t2
+    | Abs : forall t1 t2,
+      (var t1 -> exp t2)
+      -> exp (t1 --> t2)
+
+    | TApp : forall tf,
+      exp (All tf)
+      -> forall t tf', Subst t tf tf'
+        -> exp tf'
+    | TAbs : forall tf,
+      (forall v, exp (tf v))
+      -> exp (All tf).
+  End vars.
+
+  Definition Typ := forall tvar, type tvar.
+  Definition Exp (T : Typ) := forall tvar (var : type tvar -> Type), exp var (T _).
+
+  Implicit Arguments Nat [tvar].
+
+  Notation "## v" := (TVar v) (at level 40).
+  Infix "-->" := Arrow (right associativity, at level 60).
+  Notation "\\\ x , t" := (All (fun x => t)) (at level 65).
+
+  Implicit Arguments Var [tvar var t].
+  Implicit Arguments Const [tvar var].
+  Implicit Arguments Plus [tvar var].
+  Implicit Arguments App [tvar var t1 t2].
+  Implicit Arguments Abs [tvar var t1 t2].
+
+  Implicit Arguments TAbs [tvar var tf].
+
+  Notation "# v" := (Var v) (at level 70).
+
+  Notation "^ n" := (Const n) (at level 70).
+  Infix "+^" := Plus (left associativity, at level 79).
+
+  Infix "@" := App (left associativity, at level 77).
+  Notation "\ x , e" := (Abs (fun x => e)) (at level 78).
+  Notation "\ ! , e" := (Abs (fun _ => e)) (at level 78).
+
+  Notation "e @@ t" := (TApp e (t := t) _) (left associativity, at level 77).
+  Notation "\\ x , e" := (TAbs (fun x => e)) (at level 78).
+  Notation "\\ ! , e" := (TAbs (fun _ => e)) (at level 78).
+
+  Definition zero : Exp (fun _ => Nat) := fun _ _ =>
+    ^0.
+  Definition ident : Exp (fun _ => \\\T, ##T --> ##T) := fun _ _ =>
+    \\T, \x, #x.
+  Definition ident_zero : Exp (fun _ => Nat).
+    do 2 intro; refine (ident _ @@ _ @ zero _);
+      repeat constructor.
+  Defined.
+  Definition ident_ident : Exp (fun _ => \\\T, ##T --> ##T).
+    do 2 intro; refine (ident _ @@ _ @ ident _);
+      repeat constructor.
+  Defined.
+  Definition ident5 : Exp (fun _ => \\\T, ##T --> ##T).
+    do 2 intro; refine (ident_ident _ @@ _ @ ident_ident _ @@ _ @ ident _);
+      repeat constructor.
+  Defined.
+
+  Fixpoint typeDenote (t : type Set) : Set :=
+    match t with
+      | Nat => nat
+      | t1 --> t2 => typeDenote t1 -> typeDenote t2
+      | ##v => v
+      | All tf => forall T, typeDenote (tf T)
+    end.
+
+  Lemma Subst_typeDenote : forall t tf tf',
+    Subst t tf tf'
+    -> typeDenote (tf (typeDenote t)) = typeDenote tf'.
+    induction 1; crush; ext_eq; crush.
+  Defined.
+
+  Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
+    match e in (exp _ t) return (typeDenote t) with
+      | Var _ v => v
+        
+      | Const n => n
+      | Plus e1 e2 => expDenote e1 + expDenote e2
+        
+      | App _ _ e1 e2 => (expDenote e1) (expDenote e2)
+      | Abs _ _ e' => fun x => expDenote (e' x)
+
+      | TApp _ e' t' _ pf => match Subst_typeDenote pf in _ = T return T with
+                               | refl_equal => (expDenote e') (typeDenote t')
+                             end
+      | TAbs _ e' => fun T => expDenote (e' T)
+    end.
+
+  Definition ExpDenote T (E : Exp T) := expDenote (E _ _).
+
+  Eval compute in ExpDenote zero.
+  Eval compute in ExpDenote ident.
+  Eval compute in ExpDenote ident_zero.
+  Eval compute in ExpDenote ident_ident.
+  Eval compute in ExpDenote ident5.
+
+  Section cfold.
+    Variable tvar : Type.
+    Variable var : type tvar -> Type.
+
+    Fixpoint cfold t (e : exp var t) {struct e} : exp var t :=
+      match e in exp _ t return exp _ t with
+        | Var _ v => #v
+
+        | Const n => ^n
+        | Plus e1 e2 =>
+          let e1' := cfold e1 in
+          let e2' := cfold e2 in
+          match e1', e2' with
+            | Const n1, Const n2 => ^(n1 + n2)
+            | _, _ => e1' +^ e2'
+          end
+
+        | App _ _ e1 e2 => cfold e1 @ cfold e2
+        | Abs _ _ e' => Abs (fun x => cfold (e' x))
+
+        | TApp _ e' _ _ pf => TApp (cfold e') pf
+        | TAbs _ e' => \\T, cfold (e' T)
+      end.
+  End cfold.
+
+  Definition Cfold T (E : Exp T) : Exp T := fun _ _ => cfold (E _ _).
+
+  Lemma cfold_correct : forall t (e : exp _ t),
+    expDenote (cfold e) = expDenote e.
+    induction e; crush; try (ext_eq; crush);
+      repeat (match goal with
+                | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
+              end; crush).
+  Qed.
+
+  Theorem Cfold_correct : forall t (E : Exp t),
+    ExpDenote (Cfold E) = ExpDenote E.
+    unfold ExpDenote, Cfold; intros; apply cfold_correct.
+  Qed.
+End SysF.

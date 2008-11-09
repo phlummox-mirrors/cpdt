@@ -161,8 +161,9 @@ Ltac dep_destruct E :=
                            | [ Heq : _ = ?E |- _ ] => bestEffort Heq E ltac:(fun E => rewrite <- E)
                          end
                   in match type of E with
-                       | _ _ ?A => doit A
                        | _ ?A => doit A
+                       | _ _ ?A => doit A
+                       | _ _ _ ?A => doit A
                      end.
 
 Ltac clear_all :=
