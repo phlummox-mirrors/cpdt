@@ -207,6 +207,8 @@ First-Order Abstract Syntax & \texttt{Firstorder.v} \\
 \hline
 Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
 \hline
+Type-Theoretic Interpreters & \texttt{Interps.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
