@@ -76,6 +76,9 @@ Module STLC.
     \f, \x, #f @ #x.
   Definition app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
 
+  (* EX: Define an interpreter for [Exp]s. *)
+
+(* begin thide *)
   Fixpoint typeDenote (t : type) : Set :=
     match t with
       | Nat => nat
@@ -94,6 +97,7 @@ Module STLC.
     end.
 
   Definition ExpDenote t (e : Exp t) := expDenote (e _).
+(* end thide *)
 
   Eval compute in ExpDenote zero.
   Eval compute in ExpDenote one.
@@ -103,6 +107,9 @@ Module STLC.
   Eval compute in ExpDenote app.
   Eval compute in ExpDenote app_ident'.
 
+  (* EX: Define a constant-folding function for [Exp]s. *)
+
+(* begin thide *)
   Section cfold.
     Variable var : type -> Type.
 
@@ -125,7 +132,11 @@ Module STLC.
   End cfold.
 
   Definition Cfold t (E : Exp t) : Exp t := fun _ => cfold (E _).
+(* end thide *)
 
+  (* EX: Prove the correctness of constant-folding. *)
+
+(* begin thide *)
   Lemma cfold_correct : forall t (e : exp _ t),
     expDenote (cfold e) = expDenote e.
     induction e; crush; try (ext_eq; crush);
@@ -138,22 +149,28 @@ Module STLC.
     ExpDenote (Cfold E) = ExpDenote E.
     unfold ExpDenote, Cfold; intros; apply cfold_correct.
   Qed.
+(* end thide *)
 End STLC.
 
 
 (** * Adding Products and Sums *)
 
 Module PSLC.
+  (* EX: Extend the development with products and sums. *)
+
+(* begin thide *)
   Inductive type : Type :=
   | Nat : type
   | Arrow : type -> type -> type
   | Prod : type -> type -> type
   | Sum : type -> type -> type.
+(* end thide *)
 
   Infix "-->" := Arrow (right associativity, at level 62).
   Infix "**" := Prod (right associativity, at level 61).
   Infix "++" := Sum (right associativity, at level 60).
 
+(* begin thide *)
   Section vars.
     Variable var : type -> Type.
 
@@ -198,6 +215,7 @@ Module PSLC.
   End vars.
 
   Definition Exp t := forall var, exp var t.
+(* end thide *)
 
   Implicit Arguments Var [var t].
   Implicit Arguments Const [var].
@@ -233,6 +251,7 @@ Module PSLC.
   Definition natOut_ns1 : Exp Nat := fun _ => natOut _ @ ns1 _.
   Definition natOut_ns2 : Exp Nat := fun _ => natOut _ @ ns2 _.
 
+(* begin thide *)
   Fixpoint typeDenote (t : type) : Set :=
     match t with
       | Nat => nat
@@ -265,6 +284,7 @@ Module PSLC.
     end.
 
   Definition ExpDenote t (e : Exp t) := expDenote (e _).
+(* end thide *)
 
   Eval compute in ExpDenote swap.
   Eval compute in ExpDenote zo.
@@ -276,6 +296,7 @@ Module PSLC.
   Eval compute in ExpDenote natOut_ns1.
   Eval compute in ExpDenote natOut_ns2.
 
+(* begin thide *)
   Section cfold.
     Variable var : type -> Type.
 
@@ -369,12 +390,16 @@ Module PSLC.
     ExpDenote (Cfold E) = ExpDenote E.
     unfold ExpDenote, Cfold; intros; apply cfold_correct.
   Qed.
+(* end thide *)
 End PSLC.
 
 
 (** * Type Variables *)
 
 Module SysF.
+  (* EX: Follow a similar progression for System F. *)
+
+(* begin thide *)
   Section vars.
     Variable tvar : Type.
 
@@ -432,6 +457,7 @@ Module SysF.
 
   Definition Typ := forall tvar, type tvar.
   Definition Exp (T : Typ) := forall tvar (var : type tvar -> Type), exp var (T _).
+(* end thide *)
 
   Implicit Arguments Nat [tvar].
 
@@ -477,6 +503,7 @@ Module SysF.
       repeat constructor.
   Defined.
 
+(* begin thide *)
   Fixpoint typeDenote (t : type Set) : Set :=
     match t with
       | Nat => nat
@@ -508,6 +535,7 @@ Module SysF.
     end.
 
   Definition ExpDenote T (E : Exp T) := expDenote (E _ _).
+(* end thide *)
 
   Eval compute in ExpDenote zero.
   Eval compute in ExpDenote ident.
@@ -515,6 +543,7 @@ Module SysF.
   Eval compute in ExpDenote ident_ident.
   Eval compute in ExpDenote ident5.
 
+(* begin thide *)
   Section cfold.
     Variable tvar : Type.
     Variable var : type tvar -> Type.
@@ -554,4 +583,5 @@ Module SysF.
     ExpDenote (Cfold E) = ExpDenote E.
     unfold ExpDenote, Cfold; intros; apply cfold_correct.
   Qed.
+(* end thide *)
 End SysF.
