@@ -103,6 +103,7 @@ Module STLC.
 
     Definition ExpDenote t (e : Exp t) := expDenote (e _).
 
+(* begin thide *)
     Section exp_equiv.
       Variables var1 var2 : type -> Type.
 
@@ -129,6 +130,7 @@ Module STLC.
 
     Axiom Exp_equiv : forall t (E : Exp t) var1 var2,
       exp_equiv nil (E var1) (E var2).
+(* end thide *)
   End Source.
 
   Module CPS.
@@ -257,6 +259,7 @@ Module STLC.
 
   Import Source CPS.
 
+(* begin thide *)
   Fixpoint cpsType (t : Source.type) : CPS.type :=
     match t with
       | Nat => Nat%cps
@@ -310,6 +313,7 @@ Module STLC.
   Implicit Arguments cpsExp [var t].
   Definition CpsExp (E : Exp Nat) : Prog :=
     fun var => cpsExp (E _) (PHalt (var := _)).
+(* end thide *)
 
   Eval compute in CpsExp zero.
   Eval compute in CpsExp one.
@@ -323,6 +327,7 @@ Module STLC.
   Eval compute in ProgDenote (CpsExp app_ident).
   Eval compute in ProgDenote (CpsExp app_ident').
 
+(* begin thide *)
   Fixpoint lr (t : Source.type) : Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop :=
     match t return (Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop) with
       | Nat => fun n1 n2 => n1 = n2
@@ -373,6 +378,7 @@ Module STLC.
       generalize (cpsExp_correct (e1 := E _) (e2 := E _)
         (Exp_equiv _ _ _) vars_easy (PHalt (var := _))); crush.
   Qed.
+(* end thide *)
 
 End STLC.
 
