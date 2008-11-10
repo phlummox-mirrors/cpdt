@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import String List.
 
-Require Import AxiomsImpred Tactics.
+Require Import AxiomsImpred Tactics DepList.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -375,3 +375,292 @@ Module STLC.
   Qed.
 
 End STLC.
+
+
+(** * A Pattern Compiler *)
+
+Module PatMatch.
+  Module Source.
+    Inductive type : Type :=
+    | Unit : type
+    | Arrow : type -> type -> type
+    | Prod : type -> type -> type
+    | Sum : type -> type -> type.
+
+    Infix "-->" := Arrow (right associativity, at level 61).
+    Infix "++" := Sum (right associativity, at level 60).
+    Infix "**" := Prod (right associativity, at level 59).
+
+    Inductive pat : type -> list type -> Type :=
+    | PVar : forall t,
+      pat t (t :: nil)
+    | PPair : forall t1 t2 ts1 ts2,
+      pat t1 ts1
+      -> pat t2 ts2
+      -> pat (t1 ** t2) (ts1 ++ ts2)
+    | PInl : forall t1 t2 ts,
+      pat t1 ts
+      -> pat (t1 ++ t2) ts
+    | PInr : forall t1 t2 ts,
+      pat t2 ts
+      -> pat (t1 ++ t2) ts.
+
+    Implicit Arguments PVar [t].
+    Implicit Arguments PInl [t1 t2 ts].
+    Implicit Arguments PInr [t1 t2 ts].
+
+    Notation "##" := PVar (at level 70) : pat_scope.
+    Notation "[ p1 , p2 ]" := (PPair p1 p2) (at level 72) : pat_scope.
+    Notation "'Inl' p" := (PInl p) (at level 71) : pat_scope.
+    Notation "'Inr' p" := (PInr p) (at level 71) : pat_scope.
+
+    Bind Scope pat_scope with pat.
+    Delimit Scope pat_scope with pat.
+
+    Section vars.
+      Variable var : type -> Type.
+
+      Inductive exp : type -> Type :=
+      | Var : forall t,
+        var t
+        -> exp t
+
+      | EUnit : exp Unit
+
+      | App : forall t1 t2,
+        exp (t1 --> t2)
+        -> exp t1
+        -> exp t2
+      | Abs : forall t1 t2,
+        (var t1 -> exp t2)
+        -> exp (t1 --> t2)
+
+      | Pair : forall t1 t2,
+        exp t1
+        -> exp t2
+        -> exp (t1 ** t2)
+
+      | EInl : forall t1 t2,
+        exp t1
+        -> exp (t1 ++ t2)
+      | EInr : forall t1 t2,
+        exp t2
+        -> exp (t1 ++ t2)
+
+      | Case : forall t1 t2 (tss : list (list type)),
+        exp t1
+        -> (forall ts, member ts tss -> pat t1 ts)
+        -> (forall ts, member ts tss -> hlist var ts -> exp t2)
+        -> exp t2
+        -> exp t2.
+    End vars.
+
+    Definition Exp t := forall var, exp var t.
+
+    Implicit Arguments Var [var t].
+    Implicit Arguments EUnit [var].
+    Implicit Arguments App [var t1 t2].
+    Implicit Arguments Abs [var t1 t2].
+    Implicit Arguments Pair [var t1 t2].
+    Implicit Arguments EInl [var t1 t2].
+    Implicit Arguments EInr [var t1 t2].
+    Implicit Arguments Case [var t1 t2].
+
+    Notation "# v" := (Var v) (at level 70) : source_scope.
+
+    Notation "()" := EUnit : source_scope.
+
+    Infix "@" := App (left associativity, at level 77) : source_scope.
+    Notation "\ x , e" := (Abs (fun x => e)) (at level 78) : source_scope.
+
+    Notation "[ x , y ]" := (Pair x y) (at level 72) : source_scope.
+
+    Notation "'Inl' e" := (EInl e) (at level 71) : source_scope.
+    Notation "'Inr' e" := (EInr e) (at level 71) : source_scope.
+
+    Bind Scope source_scope with exp.
+
+    Open Local Scope source_scope.
+
+    Fixpoint typeDenote (t : type) : Set :=
+      match t with
+        | Unit => unit
+        | t1 --> t2 => typeDenote t1 -> typeDenote t2
+        | t1 ** t2 => (typeDenote t1 * typeDenote t2)%type
+        | t1 ++ t2 => (typeDenote t1 + typeDenote t2)%type
+      end.
+
+    Fixpoint patDenote t ts (p : pat t ts) {struct p} : typeDenote t -> option (hlist typeDenote ts) :=
+      match p in (pat t ts) return (typeDenote t -> option (hlist typeDenote ts)) with
+        | PVar _ => fun v => Some (v, tt)
+        | PPair _ _ _ _ p1 p2 => fun v =>
+          match patDenote p1 (fst v), patDenote p2 (snd v) with
+            | Some tup1, Some tup2 => Some (happ tup1 tup2)
+            | _, _ => None
+          end
+        | PInl _ _ _ p' => fun v =>
+          match v with
+            | inl v' => patDenote p' v'
+            | _ => None
+          end
+        | PInr _ _ _ p' => fun v =>
+          match v with
+            | inr v' => patDenote p' v'
+            | _ => None
+          end
+      end.
+
+    Section matchesDenote.
+      Variables t2 : type.
+      Variable default : typeDenote t2.
+
+      Fixpoint matchesDenote (tss : list (list type))
+        : (forall ts, member ts tss -> option (hlist typeDenote ts))
+        -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
+        -> typeDenote t2 :=
+        match tss return (forall ts, member ts tss -> _)
+          -> (forall ts, member ts tss -> _)
+          -> _ with
+          | nil => fun _ _ =>
+            default
+          | ts :: tss' => fun (envs : forall ts', member ts' (ts :: tss') -> option (hlist typeDenote ts'))
+            (bodies : forall ts', member ts' (ts :: tss') -> hlist typeDenote ts' -> typeDenote t2) =>
+            match envs _ (hfirst (refl_equal _)) with
+              | None => matchesDenote tss'
+                (fun _ mem => envs _ (hnext mem))
+                (fun _ mem => bodies _ (hnext mem))
+              | Some env => (bodies _ (hfirst (refl_equal _))) env
+            end
+        end.
+    End matchesDenote.
+
+    Implicit Arguments matchesDenote [t2 tss].
+
+    Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
+      match e in (exp _ t) return (typeDenote t) with
+        | Var _ v => v
+
+        | EUnit => tt
+
+        | App _ _ e1 e2 => (expDenote e1) (expDenote e2)
+        | Abs _ _ e' => fun x => expDenote (e' x)
+
+        | Pair _ _ e1 e2 => (expDenote e1, expDenote e2)
+
+        | EInl _ _ e' => inl _ (expDenote e')
+        | EInr _ _ e' => inr _ (expDenote e')
+
+        | Case _ _ _ e ps es def =>
+          matchesDenote (expDenote def)
+          (fun _ mem => patDenote (ps _ mem) (expDenote e))
+          (fun _ mem env => expDenote (es _ mem env))
+      end.
+
+    Definition ExpDenote t (E : Exp t) := expDenote (E _).
+  End Source.
+
+  Import Source.
+
+  Section Elab.
+    Section vars.
+      Variable var : type -> Type.
+
+      Inductive exp : type -> Type :=
+      | Var : forall t,
+        var t
+        -> exp t
+
+      | EUnit : exp Unit
+
+      | App : forall t1 t2,
+        exp (t1 --> t2)
+        -> exp t1
+        -> exp t2
+      | Abs : forall t1 t2,
+        (var t1 -> exp t2)
+        -> exp (t1 --> t2)
+
+      | Pair : forall t1 t2,
+        exp t1
+        -> exp t2
+        -> exp (t1 ** t2)
+      | Fst : forall t1 t2,
+        exp (t1 ** t2)
+        -> exp t1
+      | Snd : forall t1 t2,
+        exp (t1 ** t2)
+        -> exp t2
+
+      | EInl : forall t1 t2,
+        exp t1
+        -> exp (t1 ++ t2)
+      | EInr : forall t1 t2,
+        exp t2
+        -> exp (t1 ++ t2)
+      | Case : forall t1 t2 t,
+        exp (t1 ++ t2)
+        -> (var t1 -> exp t)
+        -> (var t2 -> exp t)
+        -> exp t.
+    End vars.
+
+    Definition Exp t := forall var, exp var t.
+
+    Implicit Arguments Var [var t].
+    Implicit Arguments EUnit [var].
+    Implicit Arguments App [var t1 t2].
+    Implicit Arguments Abs [var t1 t2].
+    Implicit Arguments Pair [var t1 t2].
+    Implicit Arguments Fst [var t1 t2].
+    Implicit Arguments Snd [var t1 t2].
+    Implicit Arguments EInl [var t1 t2].
+    Implicit Arguments EInr [var t1 t2].
+    Implicit Arguments Case [var t1 t2 t].
+
+
+    Notation "# v" := (Var v) (at level 70) : elab_scope.
+
+    Notation "()" := EUnit : elab_scope.
+
+    Infix "@" := App (left associativity, at level 77) : elab_scope.
+    Notation "\ x , e" := (Abs (fun x => e)) (at level 78) : elab_scope.
+    Notation "\ ? , e" := (Abs (fun _ => e)) (at level 78) : elab_scope.
+
+    Notation "[ x , y ]" := (Pair x y) (at level 72) : elab_scope.
+    Notation "#1 e" := (Fst e) (at level 72) : elab_scope.
+    Notation "#2 e" := (Snd e) (at level 72) : elab_scope.
+
+    Notation "'Inl' e" := (EInl e) (at level 71) : elab_scope.
+    Notation "'Inr' e" := (EInr e) (at level 71) : elab_scope.
+
+    Bind Scope elab_scope with exp.
+    Delimit Scope elab_scope with elab.
+
+    Open Scope elab_scope.
+
+    Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
+      match e in (exp _ t) return (typeDenote t) with
+        | Var _ v => v
+
+        | EUnit => tt
+
+        | App _ _ e1 e2 => (expDenote e1) (expDenote e2)
+        | Abs _ _ e' => fun x => expDenote (e' x)
+
+        | Pair _ _ e1 e2 => (expDenote e1, expDenote e2)
+        | Fst _ _ e' => fst (expDenote e')
+        | Snd _ _ e' => snd (expDenote e')
+
+        | EInl _ _ e' => inl _ (expDenote e')
+        | EInr _ _ e' => inr _ (expDenote e')
+        | Case _ _ _ e' e1 e2 =>
+          match expDenote e' with
+            | inl v => expDenote (e1 v)
+            | inr v => expDenote (e2 v)
+          end
+      end.
+
+    Definition ExpDenote t (E : Exp t) := expDenote (E _).
+  End Elab.
+
+End PatMatch.
