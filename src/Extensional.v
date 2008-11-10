@@ -16,7 +16,7 @@ Set Implicit Arguments.
 (* end hide *)
 
 
-(** %\chapter{Certifying Extensional Transformations}% *)
+(** %\chapter{Extensional Transformations}% *)
 
 (** TODO: Prose for this chapter *)
 
@@ -108,22 +108,22 @@ Module STLC.
       Variables var1 var2 : type -> Type.
 
       Inductive exp_equiv : list { t : type & var1 t * var2 t }%type -> forall t, exp var1 t -> exp var2 t -> Prop :=
-      | EqEVar : forall G t (v1 : var1 t) v2,
+      | EqVar : forall G t (v1 : var1 t) v2,
         In (existT _ t (v1, v2)) G
         -> exp_equiv G (#v1) (#v2)
 
-      | EqEConst : forall G n,
+      | EqConst : forall G n,
         exp_equiv G (^n) (^n)
-      | EqEPlus : forall G x1 y1 x2 y2,
+      | EqPlus : forall G x1 y1 x2 y2,
         exp_equiv G x1 x2
         -> exp_equiv G y1 y2
         -> exp_equiv G (x1 +^ y1) (x2 +^ y2)
 
-      | EqEApp : forall G t1 t2 (f1 : exp _ (t1 --> t2)) (x1 : exp _ t1) f2 x2,
+      | EqApp : forall G t1 t2 (f1 : exp _ (t1 --> t2)) (x1 : exp _ t1) f2 x2,
         exp_equiv G f1 f2
         -> exp_equiv G x1 x2
         -> exp_equiv G (f1 @ x1) (f2 @ x2)
-      | EqEAbs : forall G t1 t2 (f1 : var1 t1 -> exp var1 t2) f2,
+      | EqAbs : forall G t1 t2 (f1 : var1 t1 -> exp var1 t2) f2,
         (forall v1 v2, exp_equiv (existT _ t1 (v1, v2) :: G) (f1 v1) (f2 v2))
         -> exp_equiv G (Abs f1) (Abs f2).
     End exp_equiv.
@@ -1003,3 +1003,17 @@ Module PatMatch.
   Qed.
 
 End PatMatch.
+
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># When in the last chapter we implemented constant folding for simply-typed lambda calculus, it may have seemed natural to try applying beta reductions.  This would have been a lot more trouble than is apparent at first, because we would have needed to convince Coq that our normalizing function always terminated.
+
+  It might also seem that beta reduction is a lost cause because we have no effective way of substituting in the [exp] type; we only managed to write a substitution function for the parametric [Exp] type.  This is not as big of a problem as it seems.  For instance, for the language we built by extending simply-typed lambda calculus with products and sums, it also appears that we need substitution for simplifying [case] expressions whose discriminees are known to be [inl] or [inr], but the function is still implementable.
+
+  For this exercise, extend the products and sums constant folder from the last chapter so that it simplifies [case] expressions as well, by checking if the discriminee is a known [inl] or known [inr].  Also extend the correctness theorem to apply to your new definition.  You will probably want to assert an axiom relating to an expression equivalence relation like the one defined in this chapter.
+ #</li>#
+   
+#</ol>#%\end{enumerate}% *)
