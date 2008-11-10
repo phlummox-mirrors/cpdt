@@ -1,7 +1,8 @@
 MODULES_NODOC := Axioms AxiomsImpred Tactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
-	MoreDep DataStruct Equality Match Reflection Firstorder Hoas Interps
+	MoreDep DataStruct Equality Match Reflection Firstorder Hoas Interps \
+	Extensional
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
