@@ -102,6 +102,33 @@ Module STLC.
       end.
 
     Definition ExpDenote t (e : Exp t) := expDenote (e _).
+
+    Section exp_equiv.
+      Variables var1 var2 : type -> Type.
+
+      Inductive exp_equiv : list { t : type & var1 t * var2 t }%type -> forall t, exp var1 t -> exp var2 t -> Prop :=
+      | EqEVar : forall G t (v1 : var1 t) v2,
+        In (existT _ t (v1, v2)) G
+        -> exp_equiv G (#v1) (#v2)
+
+      | EqEConst : forall G n,
+        exp_equiv G (^n) (^n)
+      | EqEPlus : forall G x1 y1 x2 y2,
+        exp_equiv G x1 x2
+        -> exp_equiv G y1 y2
+        -> exp_equiv G (x1 +^ y1) (x2 +^ y2)
+
+      | EqEApp : forall G t1 t2 (f1 : exp _ (t1 --> t2)) (x1 : exp _ t1) f2 x2,
+        exp_equiv G f1 f2
+        -> exp_equiv G x1 x2
+        -> exp_equiv G (f1 @ x1) (f2 @ x2)
+      | EqEAbs : forall G t1 t2 (f1 : var1 t1 -> exp var1 t2) f2,
+        (forall v1 v2, exp_equiv (existT _ t1 (v1, v2) :: G) (f1 v1) (f2 v2))
+        -> exp_equiv G (Abs f1) (Abs f2).
+    End exp_equiv.
+
+    Axiom Exp_equiv : forall t (E : Exp t) var1 var2,
+      exp_equiv nil (E var1) (E var2).
   End Source.
 
   Module CPS.
@@ -295,5 +322,56 @@ Module STLC.
   Eval compute in ProgDenote (CpsExp zpo).
   Eval compute in ProgDenote (CpsExp app_ident).
   Eval compute in ProgDenote (CpsExp app_ident').
+
+  Fixpoint lr (t : Source.type) : Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop :=
+    match t return (Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop) with
+      | Nat => fun n1 n2 => n1 = n2
+      | t1 --> t2 => fun f1 f2 =>
+        forall x1 x2, lr _ x1 x2
+          -> forall k, exists r,
+            f2 (x2, k) = k r
+            /\ lr _ (f1 x1) r
+    end%source.
+
+  Lemma cpsExp_correct : forall G t (e1 : exp _ t) (e2 : exp _ t),
+    exp_equiv G e1 e2
+    -> (forall t v1 v2, In (existT _ t (v1, v2)) G -> lr t v1 v2)
+    -> forall k, exists r,
+      progDenote (cpsExp e2 k) = progDenote (k r)
+      /\ lr t (expDenote e1) r.
+    induction 1; crush; fold typeDenote in *;
+      repeat (match goal with
+                | [ H : forall k, exists r, progDenote (cpsExp ?E k) = _ /\ _
+                  |- context[cpsExp ?E ?K] ] =>
+                  generalize (H K); clear H
+                | [ |- exists r, progDenote (_ ?R) = progDenote (_ r) /\ _ ] =>
+                  exists R
+                | [ t1 : Source.type |- _ ] =>
+                  match goal with
+                    | [ Hlr : lr t1 ?X1 ?X2, IH : forall v1 v2, _ |- _ ] =>
+                      generalize (IH X1 X2); clear IH; intro IH;
+                        match type of IH with
+                          | ?P -> _ => assert P
+                        end
+                  end
+              end; crush); eauto.
+  Qed.
+
+  Lemma vars_easy : forall (t : Source.type) (v1 : Source.typeDenote t)
+    (v2 : typeDenote (cpsType t)),
+    In
+    (existT
+      (fun t0 : Source.type =>
+        (Source.typeDenote t0 * typeDenote (cpsType t0))%type) t
+      (v1, v2)) nil -> lr t v1 v2.
+    crush.
+  Qed.
+
+  Theorem CpsExp_correct : forall (E : Exp Nat),
+    ProgDenote (CpsExp E) = ExpDenote E.
+    unfold ProgDenote, CpsExp, ExpDenote; intros;
+      generalize (cpsExp_correct (e1 := E _) (e2 := E _)
+        (Exp_equiv _ _ _) vars_easy (PHalt (var := _))); crush.
+  Qed.
 
 End STLC.
