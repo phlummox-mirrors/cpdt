@@ -478,6 +478,7 @@ Module PatMatch.
     Notation "'Inl' e" := (EInl e) (at level 71) : source_scope.
     Notation "'Inr' e" := (EInr e) (at level 71) : source_scope.
 
+    Delimit Scope source_scope with source.
     Bind Scope source_scope with exp.
 
     Open Local Scope source_scope.
@@ -561,7 +562,7 @@ Module PatMatch.
 
   Import Source.
 
-  Section Elab.
+  Module Elab.
     Section vars.
       Variable var : type -> Type.
 
@@ -662,5 +663,185 @@ Module PatMatch.
 
     Definition ExpDenote t (E : Exp t) := expDenote (E _).
   End Elab.
+
+  Import Elab.
+
+  Notation "x <- e1 ; e2" := ((\x, e2) @ e1)%source
+    (right associativity, at level 76, e1 at next level) : source_scope.
+  Notation "x <- e1 ; e2" := ((\x, e2) @ e1)%elab
+    (right associativity, at level 76, e1 at next level) : elab_scope.
+
+  Section choice_tree.
+    Open Scope source_scope.
+
+    Fixpoint choice_tree var (t : type) (result : Type) : Type :=
+      match t with
+        | t1 ** t2 =>
+          choice_tree var t1
+          (choice_tree var t2
+            result)
+        | t1 ++ t2 =>
+          choice_tree var t1 result
+          * choice_tree var t2 result
+        | t => exp var t -> result
+      end%type.
+
+    Fixpoint merge var t result {struct t}
+      : (result -> result -> result)
+      -> choice_tree var t result -> choice_tree var t result -> choice_tree var t result :=
+      match t return ((result -> result -> result)
+        -> choice_tree var t result -> choice_tree var t result -> choice_tree var t result) with
+        | _ ** _ => fun mr ct1 ct2 =>
+          merge _ _
+          (merge _ _ mr)
+          ct1 ct2
+
+        | _ ++ _ => fun mr ct1 ct2 =>
+          (merge var _ mr (fst ct1) (fst ct2),
+            merge var _ mr (snd ct1) (snd ct2))
+
+        | _ => fun mr ct1 ct2 e => mr (ct1 e) (ct2 e)
+      end.
+
+    Fixpoint everywhere var t result {struct t}
+      : (exp var t -> result) -> choice_tree var t result :=
+      match t return ((exp var t -> result) -> choice_tree var t result) with
+        | t1 ** t2 => fun r =>
+          everywhere (t := t1) (fun e1 =>
+            everywhere (t := t2) (fun e2 =>
+              r ([e1, e2])%elab))
+
+        | _ ++ _ => fun r =>
+          (everywhere (fun e => r (Inl e)%elab),
+            everywhere (fun e => r (Inr e)%elab))
+
+        | _ => fun r => r
+      end.
+  End choice_tree.
+
+  Implicit Arguments merge [var t result].
+
+  Section elaborate.
+    Open Local Scope elab_scope.
+
+    Fixpoint elaboratePat var t1 ts result (p : pat t1 ts) {struct p} :
+      (hlist (exp var) ts -> result) -> result -> choice_tree var t1 result :=
+      match p in (pat t1 ts) return ((hlist (exp var) ts -> result)
+        -> result -> choice_tree var t1 result) with
+        | PVar _ => fun succ fail =>
+          everywhere (fun disc => succ (disc, tt))
+
+        | PPair _ _ _ _ p1 p2 => fun succ fail =>
+          elaboratePat _ p1
+          (fun tup1 =>
+            elaboratePat _ p2
+            (fun tup2 =>
+              succ (happ tup1 tup2))
+            fail)
+          (everywhere (fun _ => fail))
+
+        | PInl _ _ _ p' => fun succ fail =>
+          (elaboratePat _ p' succ fail,
+            everywhere (fun _ => fail))
+        | PInr _ _ _ p' => fun succ fail =>
+          (everywhere (fun _ => fail),
+            elaboratePat _ p' succ fail)
+      end.
+
+    Implicit Arguments elaboratePat [var t1 ts result].
+
+    Fixpoint letify var t ts {struct ts} : (hlist var ts -> exp var t)
+      -> hlist (exp var) ts -> exp var t :=
+      match ts return ((hlist var ts -> exp var t)
+        -> hlist (exp var) ts -> exp var t) with
+        | nil => fun f _ => f tt
+        | _ :: _ => fun f tup => letify _ (fun tup' => x <- fst tup; f (x, tup')) (snd tup)
+      end.
+
+    Implicit Arguments letify [var t ts].
+
+    Fixpoint expand var result t1 t2
+      (out : result -> exp var t2) {struct t1}
+      : forall ct : choice_tree var t1 result,
+        exp var t1
+        -> exp var t2 :=
+        match t1 return (forall ct : choice_tree var t1 result, exp var t1
+          -> exp var t2) with
+          | (_ ** _)%source => fun ct disc =>
+            expand
+            (fun ct' => expand out ct' (#2 disc)%source)
+            ct
+            (#1 disc)
+            
+          | (_ ++ _)%source => fun ct disc =>
+            Case disc
+            (fun x => expand out (fst ct) (#x))
+            (fun y => expand out (snd ct) (#y))
+                  
+          | _ => fun ct disc =>
+            x <- disc; out (ct (#x))
+        end.
+
+    Definition mergeOpt A (o1 o2 : option A) :=
+      match o1 with
+        | None => o2
+        | _ => o1
+      end.
+
+    Import Source.
+
+    Fixpoint elaborateMatches var t1 t2
+      (tss : list (list type)) {struct tss}
+      : (forall ts, member ts tss -> pat t1 ts)
+      -> (forall ts, member ts tss -> hlist var ts -> Elab.exp var t2)
+      -> choice_tree var t1 (option (Elab.exp var t2)) :=
+      match tss return (forall ts, member ts tss -> pat t1 ts)
+        -> (forall ts, member ts tss -> _)
+        -> _ with
+        | nil => fun _ _ =>
+          everywhere (fun _ => None)
+        | ts :: tss' => fun (ps : forall ts', member ts' (ts :: tss') -> pat t1 ts')
+          (es : forall ts', member ts' (ts :: tss') -> hlist var ts' -> Elab.exp var t2) =>
+          merge (@mergeOpt _)
+          (elaboratePat (ps _ (hfirst (refl_equal _)))
+            (fun ts => Some (letify
+              (fun ts' => es _ (hfirst (refl_equal _)) ts')
+              ts))
+            None)
+          (elaborateMatches tss'
+            (fun _ mem => ps _ (hnext mem))
+            (fun _ mem => es _ (hnext mem)))
+      end.
+
+    Implicit Arguments elaborateMatches [var t1 t2 tss].
+
+    Open Scope cps_scope.
+
+    Fixpoint elaborate var t (e : Source.exp var t) {struct e} : Elab.exp var t :=
+      match e in (Source.exp _ t) return (Elab.exp var t) with
+        | Var _ v => #v
+
+        | EUnit => ()
+
+        | App _ _ e1 e2 => elaborate e1 @ elaborate e2
+        | Abs _ _ e' => \x, elaborate (e' x) 
+
+        | Pair _ _ e1 e2 => [elaborate e1, elaborate e2]
+        | EInl _ _ e' => Inl (elaborate e')
+        | EInr _ _ e' => Inr (elaborate e')
+
+        | Case _ _ _ e' ps es def =>
+          expand
+          (fun eo => match eo with
+                       | None => elaborate def
+                       | Some e => e
+                     end)
+          (elaborateMatches ps (fun _ mem env => elaborate (es _ mem env)))
+          (elaborate e')
+      end.
+  End elaborate.
+
+  Definition Elaborate t (E : Source.Exp t) : Elab.Exp t :=
+    fun _ => elaborate (E _).
 
 End PatMatch.
