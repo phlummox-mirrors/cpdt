@@ -66,6 +66,8 @@ Ltac simplHyp invOne :=
 
     | [ H : existT _ ?T _ = existT _ ?T _ |- _ ] => generalize (inj_pair2 _ _ _ _ _ H); clear H
     | [ H : existT _ _ _ = existT _ _ _ |- _ ] => inversion H; clear H
+
+    | [ H : Some _ = Some _ |- _ ] => injection H; clear H
   end.
 
 Ltac rewriteHyp :=

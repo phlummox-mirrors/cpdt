@@ -9,7 +9,7 @@
 
 (* Dependent list types presented in Chapter 8 *)
 
-Require Import Arith List.
+Require Import Arith List Tactics.
 
 Set Implicit Arguments.
 
@@ -154,6 +154,13 @@ Section hmap.
       | nil => fun _ => hnil
       | _ :: _ => fun hl => f (fst hl) ::: hmap _ (snd hl)
     end.
+
+  Implicit Arguments hmap [ls].
+
+  Theorem hmap_happ : forall ls2 (h2 : hlist B1 ls2) ls1 (h1 : hlist B1 ls1),
+    hmap h1 +++ hmap h2 = hmap (h1 +++ h2).
+    induction ls1; crush.
+  Qed.
 End hmap.
 
 Implicit Arguments hmap [A B1 B2 ls].

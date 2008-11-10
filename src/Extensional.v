@@ -212,7 +212,7 @@ Module STLC.
     Notation "\ x , e" := (Abs (fun x => e)) (at level 78) : cps_scope.
     Notation "\ ! , e" := (Abs (fun _ => e)) (at level 78) : cps_scope.
 
-    Notation "[ x1 , x2 ]" := (Pair x1 x2) (at level 73) : cps_scope.
+    Notation "[ x1 , x2 ]" := (Pair x1 x2) : cps_scope.
     Notation "#1 x" := (Fst x) (at level 72) : cps_scope.
     Notation "#2 x" := (Snd x) (at level 72) : cps_scope.
 
@@ -410,7 +410,7 @@ Module PatMatch.
     Implicit Arguments PInr [t1 t2 ts].
 
     Notation "##" := PVar (at level 70) : pat_scope.
-    Notation "[ p1 , p2 ]" := (PPair p1 p2) (at level 72) : pat_scope.
+    Notation "[ p1 , p2 ]" := (PPair p1 p2) : pat_scope.
     Notation "'Inl' p" := (PInl p) (at level 71) : pat_scope.
     Notation "'Inr' p" := (PInr p) (at level 71) : pat_scope.
 
@@ -473,7 +473,7 @@ Module PatMatch.
     Infix "@" := App (left associativity, at level 77) : source_scope.
     Notation "\ x , e" := (Abs (fun x => e)) (at level 78) : source_scope.
 
-    Notation "[ x , y ]" := (Pair x y) (at level 72) : source_scope.
+    Notation "[ x , y ]" := (Pair x y) : source_scope.
 
     Notation "'Inl' e" := (EInl e) (at level 71) : source_scope.
     Notation "'Inr' e" := (EInr e) (at level 71) : source_scope.
@@ -627,7 +627,7 @@ Module PatMatch.
     Notation "\ x , e" := (Abs (fun x => e)) (at level 78) : elab_scope.
     Notation "\ ? , e" := (Abs (fun _ => e)) (at level 78) : elab_scope.
 
-    Notation "[ x , y ]" := (Pair x y) (at level 72) : elab_scope.
+    Notation "[ x , y ]" := (Pair x y) : elab_scope.
     Notation "#1 e" := (Fst e) (at level 72) : elab_scope.
     Notation "#2 e" := (Snd e) (at level 72) : elab_scope.
 
@@ -843,5 +843,157 @@ Module PatMatch.
 
   Definition Elaborate t (E : Source.Exp t) : Elab.Exp t :=
     fun _ => elaborate (E _).
+
+  Fixpoint grab t result : choice_tree typeDenote t result -> typeDenote t -> result :=
+    match t return (choice_tree typeDenote t result -> typeDenote t -> result) with
+      | t1 ** t2 => fun ct v =>
+        grab t2 _ (grab t1 _ ct (fst v)) (snd v)
+      | t1 ++ t2 => fun ct v =>
+        match v with
+          | inl v' => grab t1 _ (fst ct) v'
+          | inr v' => grab t2 _ (snd ct) v'
+        end
+      | t => fun ct v => ct (#v)%elab
+    end%source%type.
+
+  Implicit Arguments grab [t result].
+
+  Ltac my_crush :=
+    crush;
+    repeat (match goal with
+              | [ |- context[match ?E with inl _ => _ | inr _ => _ end] ] =>
+                destruct E
+            end; crush).
+
+  Lemma expand_grab : forall t2 t1 result
+    (out : result -> Elab.exp typeDenote t2)
+    (ct : choice_tree typeDenote t1 result)
+    (disc : Elab.exp typeDenote t1),
+    Elab.expDenote (expand out ct disc) = Elab.expDenote (out (grab ct (Elab.expDenote disc))).
+    induction t1; my_crush.
+  Qed.
+
+  Lemma recreate_pair : forall t1 t2
+    (x : Elab.exp typeDenote t1)
+    (x0 : Elab.exp typeDenote t2)
+    (v : typeDenote (t1 ** t2)),
+    expDenote x = fst v
+    -> expDenote x0 = snd v
+    -> @eq (typeDenote t1 * typeDenote t2) (expDenote [x, x0]) v.
+    destruct v; crush.
+  Qed.
+
+  Lemma everywhere_correct : forall t1 result
+    (succ : Elab.exp typeDenote t1 -> result) disc,
+    exists disc', grab (everywhere succ) (Elab.expDenote disc) = succ disc'
+      /\ Elab.expDenote disc' = Elab.expDenote disc.
+    Hint Resolve recreate_pair.
+
+    induction t1; my_crush; eauto; fold choice_tree;
+      repeat (fold typeDenote in *; crush;
+        match goal with
+          | [ IH : forall result succ, _ |- context[grab (everywhere ?S) _] ] =>
+            generalize (IH _ S); clear IH
+          | [ e : exp typeDenote (?T ** _), IH : forall _ : exp typeDenote ?T, _ |- _ ] =>
+            generalize (IH (#1 e)); clear IH
+          | [ e : exp typeDenote (_ ** ?T), IH : forall _ : exp typeDenote ?T, _ |- _ ] =>
+            generalize (IH (#2 e)); clear IH
+          | [ e : typeDenote ?T, IH : forall _ : exp typeDenote ?T, _ |- _ ] =>
+            generalize (IH (#e)); clear IH
+        end; crush); eauto.
+  Qed.
+
+  Lemma merge_correct : forall t result
+    (ct1 ct2 : choice_tree typeDenote t result)
+    (mr : result -> result -> result) v,
+    grab (merge mr ct1 ct2) v = mr (grab ct1 v) (grab ct2 v).
+    induction t; crush.
+  Qed.
+
+  Lemma everywhere_fail : forall t result
+    (fail : result) v,
+    grab (everywhere (fun _ : Elab.exp typeDenote t => fail)) v = fail.
+    induction t; crush.
+  Qed.
+
+  Lemma elaboratePat_correct : forall t1 ts (p : pat t1 ts)
+    result (succ : hlist (Elab.exp typeDenote) ts -> result)
+    (fail : result) v env,
+    patDenote p v = Some env
+    -> exists env', grab (elaboratePat typeDenote p succ fail) v = succ env'
+      /\ env = hmap Elab.expDenote env'.
+    Hint Resolve hmap_happ.
+
+    induction p; crush; fold choice_tree;
+      repeat (match goal with
+                | [ |- context[grab (everywhere ?succ) ?v] ] =>
+                  generalize (everywhere_correct succ (#v)%elab)
+
+                | [ H : forall result sudc fail, _ |- context[grab (elaboratePat _ _ ?S ?F) ?V] ] =>
+                  generalize (H _ S F V); clear H
+                | [ H1 : context[match ?E with Some _ => _ | None => _ end],
+                  H2 : forall env, ?E = Some env -> _ |- _ ] =>
+                destruct E
+                | [ H : forall env, Some ?E = Some env -> _ |- _ ] =>
+                  generalize (H _ (refl_equal _)); clear H
+              end; crush); eauto.
+  Qed.
+
+  Lemma elaboratePat_fails : forall t1 ts (p : pat t1 ts)
+    result (succ : hlist (Elab.exp typeDenote) ts -> result)
+    (fail : result) v,
+    patDenote p v = None
+    -> grab (elaboratePat typeDenote p succ fail) v = fail.
+    Hint Resolve everywhere_fail.
+
+    induction p; try solve [ crush ];
+      simpl; fold choice_tree; intuition; simpl in *;
+        repeat match goal with
+                 | [ IH : forall result succ fail v, patDenote ?P v = _ -> _
+                   |- context[grab (elaboratePat _ ?P ?S ?F) ?V] ] =>
+                   generalize (IH _ S F V); clear IH; intro IH;
+                     generalize (elaboratePat_correct P S F V); intros;
+                       destruct (patDenote P V); try discriminate
+                 | [ H : forall env, Some _ = Some env -> _ |- _ ] =>
+                   destruct (H _ (refl_equal _)); clear H; intuition
+                 | [ H : _ |- _ ] => rewrite H; intuition
+               end.
+  Qed.
+
+  Implicit Arguments letify [var t ts].
+
+  Lemma letify_correct : forall t ts (f : hlist typeDenote ts -> Elab.exp typeDenote t)
+    (env : hlist (Elab.exp typeDenote) ts),
+    Elab.expDenote (letify f env)
+    = Elab.expDenote (f (hmap Elab.expDenote env)).
+    induction ts; crush.
+  Qed.
+
+  Theorem elaborate_correct : forall t (e : Source.exp typeDenote t),
+    Elab.expDenote (elaborate e) = Source.expDenote e.
+    Hint Rewrite expand_grab merge_correct letify_correct : cpdt.
+    Hint Rewrite everywhere_fail elaboratePat_fails using assumption : cpdt.
+
+    induction e; crush; try (ext_eq; crush);
+      match goal with
+        | [ tss : list (list type) |- _ ] =>
+          induction tss; crush;
+            match goal with
+              | [ |- context[grab (elaboratePat _ ?P ?S ?F) ?V] ] =>
+                case_eq (patDenote P V); [intros env Heq;
+                  destruct (elaboratePat_correct P S F _ Heq); crush;
+                    match goal with
+                      | [ H : _ |- _ ] => rewrite <- H; crush
+                    end
+                  | crush ]
+            end
+      end.
+  Qed.
+
+  Theorem Elaborate_correct : forall t (E : Source.Exp t),
+    Elab.ExpDenote (Elaborate E) = Source.ExpDenote E.
+    unfold Elab.ExpDenote, Elaborate, Source.ExpDenote;
+      intros; apply elaborate_correct.
+  Qed.
 
 End PatMatch.
