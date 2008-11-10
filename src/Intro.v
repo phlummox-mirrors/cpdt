@@ -209,7 +209,7 @@ Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
 \hline
 Type-Theoretic Interpreters & \texttt{Interps.v} \\
 \hline
-Certifying Extensional Transformations & \texttt{Extensional.v} \\
+Extensional Transformations & \texttt{Extensional.v} \\
 \hline
 \end{tabular} \end{center}
 
