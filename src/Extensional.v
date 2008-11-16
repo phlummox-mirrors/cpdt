@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import String List.
 
-Require Import AxiomsImpred Tactics DepList.
+Require Import Axioms Tactics DepList.
 
 Set Implicit Arguments.
 (* end hide *)
