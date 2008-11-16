@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import String List.
+Require Import Arith Bool String List.
 
 Require Import Axioms Tactics DepList.
 
@@ -130,7 +130,7 @@ Module Source.
     exp_equiv nil (E var1) (E var2).
 End Source.
 
-Section Closed.
+Module Closed.
   Inductive type : Type :=
   | TNat : type
   | Arrow : type -> type -> type
@@ -181,6 +181,11 @@ Section Closed.
       -> exp t1
     | Snd : forall t1 t2,
       exp (t1 ** t2)
+      -> exp t2
+
+    | Let : forall t1 t2,
+      exp t1
+      -> (var t1 -> exp t2)
       -> exp t2.
 
     Section funcs.
@@ -211,7 +216,7 @@ Section Closed.
   Notation "^ n" := (Const n) (at level 70) : cc_scope.
   Infix "+^" := Plus (left associativity, at level 79) : cc_scope.
 
-  Infix "@@" := App (no associativity, at level 75) : cc_scope.
+  Infix "@" := App (left associativity, at level 77) : cc_scope.
   Infix "##" := Pack (no associativity, at level 71) : cc_scope.
 
   Notation "()" := EUnit : cc_scope.
@@ -220,9 +225,12 @@ Section Closed.
   Notation "#1 x" := (Fst x) (at level 72) : cc_scope.
   Notation "#2 x" := (Snd x) (at level 72) : cc_scope.
 
-  Notation "f <= \\ x , y , e ; fs" :=
+  Notation "f <== \\ x , y , e ; fs" :=
     (Abs (fun x y => e) (fun f => fs))
     (right associativity, at level 80, e at next level) : cc_scope.
+
+  Notation "x <- e1 ; e2" := (Let e1 (fun x => e2))
+    (right associativity, at level 80, e1 at next level) : cc_scope.
 
   Bind Scope cc_scope with exp funcs prog.
 
@@ -250,6 +258,8 @@ Section Closed.
       | Pair _ _ e1 e2 => (expDenote e1, expDenote e2)
       | Fst _ _ e' => fst (expDenote e')
       | Snd _ _ e' => snd (expDenote e')
+
+      | Let _ _ e1 e2 => expDenote (e2 (expDenote e1))
     end.
 
   Fixpoint funcsDenote T (fs : funcs typeDenote T) : T :=
@@ -269,3 +279,874 @@ Section Closed.
   Definition ProgDenote t (P : Prog t) := progDenote (P _).
 End Closed.
 
+Import Source Closed.
+
+Section splice.
+  Open Local Scope cc_scope.
+
+  Fixpoint spliceFuncs var T1 (fs : funcs var T1)
+    T2 (f : T1 -> funcs var T2) {struct fs} : funcs var T2 :=
+    match fs with
+      | Main v => f v
+      | Abs _ _ _ e fs' => Abs e (fun x => spliceFuncs (fs' x) f)
+    end.
+End splice.
+
+Notation "x <-- e1 ; e2" := (spliceFuncs e1 (fun x => e2))
+  (right associativity, at level 80, e1 at next level) : cc_scope.
+
+Definition natvar (_ : Source.type) := nat.
+Definition isfree := hlist (fun (_ : Source.type) => bool).
+
+Ltac maybe_destruct E :=
+  match goal with
+    | [ x : _ |- _ ] =>
+      match E with
+        | x => idtac
+      end
+    | _ =>
+      match E with
+        | eq_nat_dec _ _ => idtac
+      end
+  end; destruct E.
+
+Ltac my_crush :=
+  crush; repeat (match goal with
+                   | [ x : (_ * _)%type |- _ ] => destruct x
+                   | [ |- context[if ?B then _ else _] ] => maybe_destruct B
+                   | [ _ : context[if ?B then _ else _] |- _ ] => maybe_destruct B
+                 end; crush).
+
+Section isfree.
+  Import Source.
+  Open Local Scope source_scope.
+
+  Hint Extern 3 False => omega.
+
+  Fixpoint lookup_type (envT : list Source.type) (n : nat) {struct envT}
+    : isfree envT -> option Source.type :=
+    match envT return (isfree envT -> _) with
+      | nil => fun _ => None
+      | first :: rest => fun fvs =>
+        if eq_nat_dec n (length rest)
+          then match fvs with
+                 | (true, _) => Some first
+                 | (false, _) => None
+               end
+          else lookup_type rest n (snd fvs)
+    end.
+  
+  Implicit Arguments lookup_type [envT].
+
+  Notation ok := (fun (envT : list Source.type) (fvs : isfree envT)
+    (n : nat) (t : Source.type)
+    => lookup_type n fvs = Some t).
+
+  Fixpoint wfExp (envT : list Source.type) (fvs : isfree envT)
+    t (e : Source.exp natvar t) {struct e} : Prop :=
+    match e with
+      | Var t v => ok envT fvs v t
+
+      | Const _ => True
+      | Plus e1 e2 => wfExp envT fvs e1 /\ wfExp envT fvs e2
+
+      | App _ _ e1 e2 => wfExp envT fvs e1 /\ wfExp envT fvs e2
+      | Abs dom _ e' => wfExp (dom :: envT) (true ::: fvs) (e' (length envT))
+    end.
+
+  Implicit Arguments wfExp [envT t].
+
+  Theorem wfExp_weaken : forall t (e : exp natvar t) envT (fvs fvs' : isfree envT),
+    wfExp fvs e
+    -> (forall n t, ok _ fvs n t -> ok _ fvs' n t)
+    -> wfExp fvs' e.
+    Hint Extern 1 (lookup_type (envT := _ :: _) _ _ = Some _) =>
+      simpl in *; my_crush.
+
+    induction e; my_crush; eauto.
+  Defined.
+
+  Fixpoint isfree_none (envT : list Source.type) : isfree envT :=
+    match envT return (isfree envT) with
+      | nil => tt
+      | _ :: _ => (false, isfree_none _)
+    end.
+
+  Implicit Arguments isfree_none [envT].
+
+  Fixpoint isfree_one (envT : list Source.type) (n : nat) {struct envT} : isfree envT :=
+    match envT return (isfree envT) with
+      | nil => tt
+      | _ :: rest =>
+        if eq_nat_dec n (length rest)
+          then (true, isfree_none)
+          else (false, isfree_one _ n)
+    end.
+
+  Implicit Arguments isfree_one [envT].
+
+  Fixpoint isfree_merge (envT : list Source.type) : isfree envT -> isfree envT -> isfree envT :=
+    match envT return (isfree envT -> isfree envT -> isfree envT) with
+      | nil => fun _ _ => tt
+      | _ :: _ => fun fv1 fv2 => (fst fv1 || fst fv2, isfree_merge _ (snd fv1) (snd fv2))
+    end.
+
+  Implicit Arguments isfree_merge [envT].
+
+  Fixpoint fvsExp t (e : exp natvar t)
+    (envT : list Source.type) {struct e} : isfree envT :=
+    match e with
+      | Var _ n => isfree_one n
+
+      | Const _ => isfree_none
+      | Plus e1 e2 => isfree_merge (fvsExp e1 envT) (fvsExp e2 envT)
+
+      | App _ _ e1 e2 => isfree_merge (fvsExp e1 envT) (fvsExp e2 envT)
+      | Abs dom _ e' => snd (fvsExp (e' (length envT)) (dom :: envT))
+    end.
+
+  Lemma isfree_one_correct : forall t (v : natvar t) envT fvs,
+    ok envT fvs v t
+    -> ok envT (isfree_one (envT:=envT) v) v t.
+    induction envT; my_crush; eauto.
+  Defined.
+
+  Lemma isfree_merge_correct1 : forall t (v : natvar t) envT fvs1 fvs2,
+    ok envT fvs1 v t
+    -> ok envT (isfree_merge (envT:=envT) fvs1 fvs2) v t.
+    induction envT; my_crush; eauto.
+  Defined.
+
+  Hint Rewrite orb_true_r : cpdt.
+
+  Lemma isfree_merge_correct2 : forall t (v : natvar t) envT fvs1 fvs2,
+    ok envT fvs2 v t
+    -> ok envT (isfree_merge (envT:=envT) fvs1 fvs2) v t.
+    induction envT; my_crush; eauto.
+  Defined.
+
+  Hint Resolve isfree_one_correct isfree_merge_correct1 isfree_merge_correct2.
+  
+  Lemma fvsExp_correct : forall t (e : exp natvar t)
+    envT (fvs : isfree envT), wfExp fvs e
+    -> forall (fvs' : isfree envT),
+      (forall v t, ok envT (fvsExp e envT) v t -> ok envT fvs' v t)
+      -> wfExp fvs' e.
+    Hint Extern 1 (_ = _) =>
+      match goal with
+        | [ H : lookup_type _ (fvsExp ?X ?Y) = _ |- _ ] =>
+          destruct (fvsExp X Y); my_crush
+      end.
+
+    induction e; my_crush; eauto.
+  Defined.
+
+  Lemma lookup_type_unique : forall v t1 t2 envT (fvs1 fvs2 : isfree envT),
+    lookup_type v fvs1 = Some t1
+    -> lookup_type v fvs2 = Some t2
+    -> t1 = t2.
+    induction envT; my_crush; eauto.
+  Defined.
+
+  Implicit Arguments lookup_type_unique [v t1 t2 envT fvs1 fvs2].
+
+  Hint Extern 2 (lookup_type _ _ = Some _) =>
+    match goal with
+      | [ H1 : lookup_type ?v _ = Some _,
+        H2 : lookup_type ?v _ = Some _ |- _ ] =>
+      (generalize (lookup_type_unique H1 H2); intro; subst)
+      || rewrite <- (lookup_type_unique H1 H2)
+    end.
+
+  Lemma lookup_none : forall v t envT,
+    lookup_type (envT:=envT) v (isfree_none (envT:=envT)) = Some t
+    -> False.
+    induction envT; my_crush.
+  Defined.
+
+  Hint Extern 2 (_ = _) => elimtype False; eapply lookup_none; eassumption.
+
+  Lemma lookup_one : forall v' v t envT,
+    lookup_type (envT:=envT) v' (isfree_one (envT:=envT) v) = Some t
+    -> v' = v.
+    induction envT; my_crush.
+  Defined.
+
+  Implicit Arguments lookup_one [v' v t envT].
+
+  Hint Extern 2 (lookup_type _ _ = Some _) =>
+    match goal with
+      | [ H : lookup_type _ _ = Some _ |- _ ] =>
+        generalize (lookup_one H); intro; subst
+    end.
+
+  Lemma lookup_merge : forall v t envT (fvs1 fvs2 : isfree envT),
+    lookup_type v (isfree_merge fvs1 fvs2) = Some t
+    -> lookup_type v fvs1 = Some t
+    \/ lookup_type v fvs2 = Some t.
+    induction envT; my_crush.
+  Defined.
+
+  Implicit Arguments lookup_merge [v t envT fvs1 fvs2].
+
+  Lemma lookup_bound : forall v t envT (fvs : isfree envT),
+    lookup_type v fvs = Some t
+    -> v < length envT.
+    Hint Resolve lt_S.
+    induction envT; my_crush; eauto.
+  Defined.
+
+  Hint Resolve lookup_bound.
+
+  Lemma lookup_bound_contra : forall t envT (fvs : isfree envT),
+    lookup_type (length envT) fvs = Some t
+    -> False.
+    intros; assert (length envT < length envT); eauto.
+  Defined.
+
+  Hint Resolve lookup_bound_contra.
+
+  Hint Extern 3 (_ = _) => elimtype False; omega.
+
+  Lemma lookup_push_drop : forall v t t' envT fvs,
+    v < length envT
+    -> lookup_type (envT := t :: envT) v (true, fvs) = Some t'
+    -> lookup_type (envT := envT) v fvs = Some t'.
+    my_crush.
+  Defined.
+
+  Lemma lookup_push_add : forall v t t' envT fvs,
+    lookup_type (envT := envT) v (snd fvs) = Some t'
+    -> lookup_type (envT := t :: envT) v fvs = Some t'.
+    my_crush; elimtype False; eauto.
+  Defined.
+
+  Hint Resolve lookup_bound lookup_push_drop lookup_push_add.
+
+  Theorem fvsExp_minimal : forall t (e : exp natvar t)
+    envT (fvs : isfree envT), wfExp fvs e
+    -> (forall v t, ok envT (fvsExp e envT) v t -> ok envT fvs v t).
+    Hint Extern 1 (_ = _) =>
+      match goal with
+        | [ H : lookup_type _ (isfree_merge _ _) = Some _ |- _ ] =>
+          destruct (lookup_merge H); clear H; eauto
+      end.
+
+    induction e; my_crush; eauto.
+  Defined.
+
+  Fixpoint ccType (t : Source.type) : Closed.type :=
+    match t with
+      | Nat%source => Nat
+      | (dom --> ran)%source => ccType dom --> ccType ran
+    end%cc.
+
+  Open Local Scope cc_scope.
+
+  Fixpoint envType (envT : list Source.type) : isfree envT -> Closed.type :=
+    match envT return (isfree envT -> _) with
+      | nil => fun _ => Unit
+      | t :: _ => fun tup =>
+        if fst tup
+          then ccType t ** envType _ (snd tup)
+          else envType _ (snd tup)
+    end.
+
+  Implicit Arguments envType [envT].
+
+  Fixpoint envOf (var : Closed.type -> Set) (envT : list Source.type) {struct envT}
+    : isfree envT -> Set :=
+    match envT return (isfree envT -> _) with
+      | nil => fun _ => unit
+      | first :: rest => fun fvs =>
+        match fvs with
+          | (true, fvs') => (var (ccType first) * envOf var rest fvs')%type
+          | (false, fvs') => envOf var rest fvs'
+        end
+    end.
+
+  Implicit Arguments envOf [envT].
+
+  Notation "var <| to" := (match to with
+                             | None => unit
+                             | Some t => var (ccType t)
+                           end) (no associativity, at level 70).
+
+  Fixpoint lookup (var : Closed.type -> Set) (envT : list Source.type) :
+    forall (n : nat) (fvs : isfree envT), envOf var fvs -> var <| lookup_type n fvs :=
+      match envT return (forall (n : nat) (fvs : isfree envT), envOf var fvs
+        -> var <| lookup_type n fvs) with
+        | nil => fun _ _ _ => tt
+        | first :: rest => fun n fvs =>
+          match (eq_nat_dec n (length rest)) as Heq return
+            (envOf var (envT := first :: rest) fvs
+              -> var <| (if Heq
+                then match fvs with
+                       | (true, _) => Some first
+                       | (false, _) => None
+                     end
+                else lookup_type n (snd fvs))) with
+            | left _ =>
+              match fvs return (envOf var (envT := first :: rest) fvs
+                -> var <| (match fvs with
+                             | (true, _) => Some first
+                             | (false, _) => None
+                           end)) with
+                | (true, _) => fun env => fst env
+                | (false, _) => fun _ => tt
+              end
+            | right _ =>
+              match fvs return (envOf var (envT := first :: rest) fvs
+                -> var <| (lookup_type n (snd fvs))) with
+                | (true, fvs') => fun env => lookup var rest n fvs' (snd env)
+                | (false, fvs') => fun env => lookup var rest n fvs' env
+              end
+          end
+      end.
+
+  Theorem lok : forall var n t envT (fvs : isfree envT),
+    lookup_type n fvs = Some t
+    -> var <| lookup_type n fvs = var (ccType t).
+    crush.
+  Defined.
+End isfree.
+
+Implicit Arguments lookup_type [envT].
+Implicit Arguments lookup [envT fvs].
+Implicit Arguments wfExp [t envT].
+Implicit Arguments envType [envT].
+Implicit Arguments envOf [envT].
+Implicit Arguments lok [var n t envT fvs].
+
+Section lookup_hints.
+  Hint Resolve lookup_bound_contra.
+
+  (*Ltac my_chooser T k :=
+    match T with
+      | ptype =>
+        match goal with
+          | [ H : lookup _ _ = Some ?t |- _ ] => k t
+        end
+      | _ => default_chooser T k
+    end.
+
+  Ltac my_matching := matching equation my_chooser.*)
+
+  Hint Resolve lookup_bound_contra.
+
+  Lemma lookup_type_push : forall t' envT (fvs1 fvs2 : isfree envT) b1 b2,
+    (forall (n : nat) (t : Source.type),
+      lookup_type (envT := t' :: envT) n (b1, fvs1) = Some t ->
+      lookup_type (envT := t' :: envT) n (b2, fvs2) = Some t)
+    -> (forall (n : nat) (t : Source.type),
+      lookup_type n fvs1 = Some t ->
+      lookup_type n fvs2 = Some t).
+    intros until b2; intro H; intros n t;
+      generalize (H n t); my_crush; elimtype False; eauto.
+  Defined.
+
+  Lemma lookup_type_push_contra : forall t' envT (fvs1 fvs2 : isfree envT),
+    (forall (n : nat) (t : Source.type),
+      lookup_type (envT := t' :: envT) n (true, fvs1) = Some t ->
+      lookup_type (envT := t' :: envT) n (false, fvs2) = Some t)
+    -> False.
+    intros until fvs2; intro H; generalize (H (length envT) t'); my_crush.
+  Defined.
+End lookup_hints.
+
+Section packing.
+  Open Local Scope cc_scope.
+
+  Hint Resolve lookup_type_push lookup_type_push_contra.
+
+  Definition packExp (var : Closed.type -> Set) (envT : list Source.type)
+    (fvs1 fvs2 : isfree envT)
+    : (forall n t, lookup_type n fvs1 = Some t -> lookup_type n fvs2 = Some t)
+    -> envOf var fvs2 -> exp var (envType fvs1).
+    refine (fix packExp (var : Closed.type -> Set) (envT : list Source.type) {struct envT}
+      : forall fvs1 fvs2 : isfree envT,
+        (forall n t, lookup_type n fvs1 = Some t -> lookup_type n fvs2 = Some t)
+        -> envOf var fvs2 -> exp var (envType fvs1) :=
+        match envT return (forall fvs1 fvs2 : isfree envT,
+          (forall n t, lookup_type n fvs1 = Some t -> lookup_type n fvs2 = Some t)
+          -> envOf var fvs2
+          -> exp var (envType fvs1)) with
+          | nil => fun _ _ _ _ => ()
+          | first :: rest => fun fvs1 =>
+            match fvs1 return (forall fvs2 : isfree (first :: rest),
+              (forall n t, lookup_type (envT := first :: rest) n fvs1 = Some t
+                -> lookup_type n fvs2 = Some t)
+              -> envOf var fvs2
+              -> exp var (envType (envT := first :: rest) fvs1)) with
+              | (false, fvs1') => fun fvs2 =>
+                match fvs2 return ((forall n t, lookup_type (envT := first :: rest) n (false, fvs1') = Some t
+                  -> lookup_type (envT := first :: rest) n fvs2 = Some t)
+                -> envOf (envT := first :: rest) var fvs2
+                -> exp var (envType (envT := first :: rest) (false, fvs1'))) with
+                  | (false, fvs2') => fun Hmin env =>
+                    packExp var _  fvs1' fvs2' _ env
+                  | (true, fvs2') => fun Hmin env =>
+                    packExp var _  fvs1' fvs2' _ (snd env)
+                end
+              | (true, fvs1') => fun fvs2 =>
+                match fvs2 return ((forall n t, lookup_type (envT := first :: rest) n (true, fvs1') = Some t
+                  -> lookup_type (envT := first :: rest) n fvs2 = Some t)
+                -> envOf (envT := first :: rest) var fvs2
+                -> exp var (envType (envT := first :: rest) (true, fvs1'))) with
+                  | (false, fvs2') => fun Hmin env =>
+                    False_rect _ _
+                  | (true, fvs2') => fun Hmin env =>
+                    [#(fst env), packExp var _ fvs1' fvs2' _ (snd env)]
+                end
+            end
+        end); eauto.
+  Defined.
+
+  Hint Resolve fvsExp_correct fvsExp_minimal.
+  Hint Resolve lookup_push_drop lookup_bound lookup_push_add.
+
+  Implicit Arguments packExp [var envT].
+
+  Fixpoint unpackExp (var : Closed.type -> Set) t (envT : list Source.type) {struct envT}
+    : forall fvs : isfree envT,
+      exp var (envType fvs)
+      -> (envOf var fvs -> exp var t) -> exp var t :=
+      match envT return (forall fvs : isfree envT,
+        exp var (envType fvs)
+        -> (envOf var fvs -> exp var t) -> exp var t) with
+        | nil => fun _ _ f => f tt
+        | first :: rest => fun fvs =>
+          match fvs return (exp var (envType (envT := first :: rest) fvs)
+            -> (envOf var (envT := first :: rest) fvs -> exp var t)
+            -> exp var t) with
+            | (false, fvs') => fun p f =>
+              unpackExp rest fvs' p f
+            | (true, fvs') => fun p f =>
+              x <- #1 p;
+              unpackExp rest fvs' (#2 p)
+              (fun env => f (x, env))
+          end
+      end.
+  
+  Implicit Arguments unpackExp [var t envT fvs].
+
+  Theorem wfExp_lax : forall t t' envT (fvs : isfree envT) (e : Source.exp natvar t),
+    wfExp (envT := t' :: envT) (true, fvs) e
+    -> wfExp (envT := t' :: envT) (true, snd (fvsExp e (t' :: envT))) e.
+    Hint Extern 1 (_ = _) =>
+      match goal with
+        | [ H : lookup_type _ (fvsExp ?X ?Y) = _ |- _ ] =>
+          destruct (fvsExp X Y); my_crush
+      end.
+    eauto.
+  Defined.
+
+  Implicit Arguments wfExp_lax [t t' envT fvs e].
+
+  Lemma inclusion : forall t t' envT fvs (e : Source.exp natvar t),
+    wfExp (envT := t' :: envT) (true, fvs) e
+    -> (forall n t, lookup_type n (snd (fvsExp e (t' :: envT))) = Some t
+      -> lookup_type n fvs = Some t).
+    eauto.
+  Defined.
+
+  Implicit Arguments inclusion [t t' envT fvs e].
+
+  Definition env_prog var t envT (fvs : isfree envT) :=
+    funcs var (envOf var fvs -> Closed.exp var t).
+
+  Implicit Arguments env_prog [envT].
+
+  Axiom cheat : forall T, T.
+
+  Import Source.
+  Open Local Scope cc_scope.
+
+  Fixpoint ccExp var t (e : Source.exp natvar t)
+    (envT : list Source.type) (fvs : isfree envT)
+    {struct e} : wfExp fvs e -> env_prog var (ccType t) fvs :=
+    match e in (Source.exp _ t) return (wfExp fvs e -> env_prog var (ccType t) fvs) with
+      | Const n => fun _ => Main (fun _ => ^n)
+      | Plus e1 e2 => fun wf =>
+        n1 <-- ccExp var e1 _ fvs (proj1 wf);
+        n2 <-- ccExp var e2 _ fvs (proj2 wf);
+        Main (fun env => n1 env +^ n2 env)
+
+      | Var _ n => fun wf =>
+        Main (fun env => #(match lok wf in _ = T return T with
+                             | refl_equal => lookup var n env
+                           end))
+
+      | App _ _ f x => fun wf =>
+        f' <-- ccExp var f _ fvs (proj1 wf);
+        x' <-- ccExp var x _ fvs (proj2 wf);
+        Main (fun env => f' env @ x' env)
+
+      | Abs dom _ b => fun wf =>
+        b' <-- ccExp var (b (length envT)) (dom :: envT) _ (wfExp_lax wf);
+        f <== \\env, arg, unpackExp (#env) (fun env => b' (arg, env));
+        Main (fun env => #f ##
+          packExp
+          (snd (fvsExp (b (length envT)) (dom :: envT)))
+          fvs (inclusion wf) env)
+    end.
+End packing.
+
+Implicit Arguments packExp [var envT].
+Implicit Arguments unpackExp [var t envT fvs].
+
+Implicit Arguments ccExp [var t envT].
+
+Fixpoint map_funcs var result T1 T2 (f : T1 -> T2) (fs : cfuncs var result T1) {struct fs}
+  : cfuncs var result T2 :=
+  match fs with
+    | CMain v => CMain (f v)
+    | CAbs _ _ e fs' => CAbs e (fun x => map_funcs f (fs' x))
+  end.
+
+Definition CcTerm' result (E : Pterm result) (Hwf : wfTerm (envT := nil) tt (E _)) : Cprog result :=
+  fun _ => map_funcs (fun f => f tt) (ccTerm (E _) (envT := nil) tt Hwf).
+
+
+(** * Correctness *)
+
+Scheme pterm_equiv_mut := Minimality for pterm_equiv Sort Prop
+with pprimop_equiv_mut := Minimality for pprimop_equiv Sort Prop.
+
+Section splicePrim_correct.
+  Variables result t t' : ptype.
+  Variable ps' : ctypeDenote ([< t >]) -> cprimops ctypeDenote t'.
+
+  Theorem splicePrim_correct : forall (ps : cprimops ctypeDenote t),
+    cprimopsDenote (splicePrim ps ps')
+    = cprimopsDenote (ps' (cprimopsDenote ps)).
+    induction ps; equation.
+  Qed.
+End splicePrim_correct.
+
+Section spliceTerm_correct.
+  Variables result t : ptype.
+  Variable e : ctypeDenote ([< t >]) -> cterm ctypeDenote result.
+  Variable k : ptypeDenote result -> bool.
+
+  Theorem spliceTerm_correct : forall (ps : cprimops ctypeDenote t),
+    ctermDenote (spliceTerm ps e) k
+    = ctermDenote (e (cprimopsDenote ps)) k.
+    induction ps; equation.
+  Qed.
+End spliceTerm_correct.
+
+Section spliceFuncs'_correct.
+  Variable result : ptype.
+  Variables T1 T2 : Type.
+  Variable f : T1 -> T2.
+  Variable k : ptypeDenote result -> bool.
+
+  Theorem spliceFuncs'_correct : forall fs,
+    cfuncsDenote (spliceFuncs' fs f) k
+    = f (cfuncsDenote fs k).
+    induction fs; equation.
+  Qed.
+End spliceFuncs'_correct.
+
+Section spliceFuncs_correct.
+  Variable result : ptype.
+  Variables T1 T2 T3 : Type.
+  Variable fs2 : cfuncs ctypeDenote result T2.
+  Variable f : T1 -> T2 -> T3.
+  Variable k : ptypeDenote result -> bool.
+
+  Hint Rewrite spliceFuncs'_correct : ltamer.
+
+  Theorem spliceFuncs_correct : forall fs1,
+    cfuncsDenote (spliceFuncs fs1 fs2 f) k
+    = f (cfuncsDenote fs1 k) (cfuncsDenote fs2 k).
+    induction fs1; equation.
+  Qed.
+End spliceFuncs_correct.
+
+Section inside_correct.
+  Variable result : ptype.
+  Variables T1 T2 : Type.
+  Variable fs2 : T1 -> cfuncs ctypeDenote result T2.
+  Variable k : ptypeDenote result -> bool.
+
+  Theorem inside_correct : forall fs1,
+    cfuncsDenote (inside fs1 fs2) k
+    = cfuncsDenote (fs2 (cfuncsDenote fs1 k)) k.
+    induction fs1; equation.
+  Qed.
+End inside_correct.
+
+
+Notation "var <| to" := (match to with
+                           | None => unit
+                           | Some t => var ([< t >])%cc
+                         end) (no associativity, at level 70).
+
+Section packing_correct.
+  Variable result : ptype.
+
+  Hint Rewrite splicePrim_correct spliceTerm_correct : ltamer.
+
+  Ltac my_matching := matching my_equation default_chooser.
+
+  Fixpoint makeEnv (envT : list ptype) : forall (fvs : isfree envT),
+    ptypeDenote (envType fvs)
+    -> envOf ctypeDenote fvs :=
+    match envT return (forall (fvs : isfree envT),
+      ptypeDenote (envType fvs)
+      -> envOf ctypeDenote fvs) with
+      | nil => fun _ _ => tt
+      | first :: rest => fun fvs =>
+        match fvs return (ptypeDenote (envType (envT := first :: rest) fvs)
+          -> envOf (envT := first :: rest) ctypeDenote fvs) with
+          | (false, fvs') => fun env => makeEnv rest fvs' env
+          | (true, fvs') => fun env => (fst env, makeEnv rest fvs' (snd env))
+        end
+    end.
+
+  Theorem unpackExp_correct : forall (envT : list ptype) (fvs : isfree envT)
+    (ps : cprimops ctypeDenote (envType fvs))
+    (e : envOf ctypeDenote fvs -> cterm ctypeDenote result) k,
+    ctermDenote (unpackExp ps e) k
+    = ctermDenote (e (makeEnv _ _ (cprimopsDenote ps))) k.
+    induction envT; my_matching.
+  Qed.
+
+  Lemma lookup_type_more : forall v2 envT (fvs : isfree envT) t b v,
+    (v2 = length envT -> False)
+    -> lookup_type v2 (envT := t :: envT) (b, fvs) = v
+    -> lookup_type v2 fvs = v.
+    equation.
+  Qed.
+
+  Lemma lookup_type_less : forall v2 t envT (fvs : isfree (t :: envT)) v,
+    (v2 = length envT -> False)
+    -> lookup_type v2 (snd fvs) = v
+    -> lookup_type v2 (envT := t :: envT) fvs = v.
+    equation.
+  Qed.
+
+  Lemma lookup_bound_contra_eq : forall t envT (fvs : isfree envT) v,
+    lookup_type v fvs = Some t
+    -> v = length envT
+    -> False.
+    simpler; eapply lookup_bound_contra; eauto.
+  Defined.
+
+  Lemma lookup_type_inner : forall result t envT v t' (fvs : isfree envT) e,
+    wfTerm (envT := t :: envT) (true, fvs) e
+    -> lookup_type v (snd (fvsTerm (result := result) e (t :: envT))) = Some t'
+    -> lookup_type v fvs = Some t'.
+    Hint Resolve lookup_bound_contra_eq fvsTerm_minimal
+      lookup_type_more lookup_type_less.
+    Hint Extern 2 (Some _ = Some _) => contradictory.
+
+    eauto 6.
+  Qed.
+
+  Lemma cast_irrel : forall T1 T2 x (H1 H2 : T1 = T2),
+    (x :? H1) = (x :? H2).
+    equation.
+  Qed.
+
+  Hint Immediate cast_irrel.
+
+  Lemma cast_irrel_unit : forall T1 T2 x y (H1 : T1 = T2) (H2 : unit = T2),
+    (x :? H1) = (y :? H2).
+    intros; generalize H1;
+      rewrite <- H2 in H1;
+        equation.
+  Qed.
+
+  Hint Immediate cast_irrel_unit.
+
+  Hint Extern 3 (_ = _) =>
+    match goal with
+      | [ |- context[False_rect _ ?H] ] =>
+        apply False_rect; exact H
+    end.
+
+  Theorem packExp_correct : forall v2 t envT (fvs1 fvs2 : isfree envT)
+    Heq1 (Heq2 : ctypeDenote <| lookup_type v2 fvs2 = ptypeDenote t)
+    Hincl env,
+    (lookup ctypeDenote v2 env :? Heq2)
+    = (lookup ctypeDenote v2
+      (makeEnv envT fvs1
+        (cprimopsDenote
+          (packExp fvs1 fvs2 Hincl env))) :? Heq1).
+    induction envT; my_equation.
+  Qed.
+End packing_correct.
+
+Lemma look : forall envT n (fvs : isfree envT) t,
+  lookup_type n fvs = Some t
+  -> ctypeDenote <| lookup_type n fvs = ptypeDenote t.
+  equation.
+Qed.
+
+Implicit Arguments look [envT n fvs t].
+
+
+Theorem ccTerm_correct : forall result G
+  (e1 : pterm ptypeDenote result)
+  (e2 : pterm natvar result),
+  pterm_equiv G e1 e2
+  -> forall (envT : list ptype) (fvs : isfree envT)
+    (env : envOf ctypeDenote fvs) (Hwf : wfTerm fvs e2) k,
+    (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+      In (vars (x := t) (v1, v2)) G
+      -> v2 < length envT)
+    -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+      In (vars (x := t) (v1, v2)) G
+      -> lookup_type v2 fvs = Some t
+      -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
+    -> ptermDenote e1 k
+    = ctermDenote (cfuncsDenote (ccTerm e2 fvs Hwf) k env) k.
+
+  Hint Rewrite splicePrim_correct spliceTerm_correct
+    spliceFuncs_correct inside_correct : ltamer.
+
+  Hint Rewrite unpackExp_correct : ltamer.
+  Hint Resolve packExp_correct lookup_type_inner.
+
+  Hint Extern 1 (_ = _) => push_vars.
+
+  Hint Extern 1 (_ = _) =>
+    match goal with
+      | [ Hvars : forall t v1 v2, _,
+        Hin : In _ _ |- _ ] =>
+      rewrite (Hvars _ _ _ Hin)
+    end.
+
+  Hint Extern 1 (wfPrimop _ _) => tauto.
+
+  Hint Extern 1 (_ < _) =>
+    match goal with
+      | [ Hvars : forall t v1 v2, _,
+        Hin : In _ _ |- _ ] =>
+      exact (Hvars _ _ _ Hin)
+    end.
+
+  Hint Extern 1 (lookup_type _ _ = _) => tauto.
+
+  Hint Extern 1 (_ = _) =>
+    match goal with
+      | [ Hvars : forall t v1 v2, _,
+        Hin : In (vars (_, length ?envT)) _ |- _ ] =>
+      contradictory; assert (length envT < length envT); [auto | omega]
+    end.
+
+  Hint Extern 5 (_ = _) => symmetry.
+
+  Hint Extern 1 (_ = _) =>
+    match goal with
+      | [ H : lookup_type ?v _ = Some ?t, fvs : isfree _ |- (lookup _ _ _ :? _) = _ ] =>
+        let Hty := fresh "Hty" in
+          (assert (Hty : lookup_type v fvs = Some t);
+            [eauto
+              | eapply (trans_cast (look Hty))])
+    end.
+
+  Hint Extern 3 (ptermDenote _ _ = ctermDenote _ _) =>
+    match goal with
+      | [ H : _ |- ptermDenote (_ ?v1) _
+        = ctermDenote (cfuncsDenote (ccTerm (_ ?v2) (envT := ?envT) ?fvs _) _ _) _ ] =>
+      apply (H v1 v2 envT fvs); my_simpler
+    end.
+
+  intro.
+  apply (pterm_equiv_mut
+    (fun G (e1 : pterm ptypeDenote result) (e2 : pterm natvar result) =>
+      forall (envT : list ptype) (fvs : isfree envT)
+        (env : envOf ctypeDenote fvs) (Hwf : wfTerm fvs e2) k,
+         (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+           In (vars (x := t) (v1, v2)) G
+           -> v2 < length envT)
+         -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+           In (vars (x := t) (v1, v2)) G
+           -> lookup_type v2 fvs = Some t
+           -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
+         -> ptermDenote e1 k
+         = ctermDenote (cfuncsDenote (ccTerm e2 fvs Hwf) k env) k)
+    (fun G t (p1 : pprimop ptypeDenote result t) (p2 : pprimop natvar result t) =>
+      forall (envT : list ptype) (fvs : isfree envT)
+        (env : envOf ctypeDenote fvs) (Hwf : wfPrimop fvs p2) Hwf k,
+        (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+          In (vars (x := t) (v1, v2)) G
+          -> v2 < length envT)
+        -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
+          In (vars (x := t) (v1, v2)) G
+          -> lookup_type v2 fvs = Some t
+          -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
+        -> pprimopDenote p1 k
+        = cprimopsDenote (cfuncsDenote (ccPrimop p2 fvs Hwf) k env)));
+  my_simpler; eauto.
+Qed.
+
+
+(** * Parametric version *)
+
+Section wf.
+  Variable result : ptype.
+
+  Lemma Pterm_wf' : forall G (e1 e2 : pterm natvar result),
+    pterm_equiv G e1 e2
+    -> forall envT (fvs : isfree envT),
+      (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
+        -> lookup_type v1 fvs = Some t)
+      -> wfTerm fvs e1.
+    Hint Extern 3 (Some _ = Some _) => contradictory; eapply lookup_bound_contra; eauto.
+
+    apply (pterm_equiv_mut
+      (fun G (e1 e2 : pterm natvar result) =>
+        forall envT (fvs : isfree envT),
+          (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
+            -> lookup_type v1 fvs = Some t)
+          -> wfTerm (envT:=envT) fvs e1)
+      (fun G t (p1 p2 : pprimop natvar result t) =>
+        forall envT (fvs : isfree envT),
+          (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
+            -> lookup_type v1 fvs = Some t)
+          -> wfPrimop (envT:=envT) fvs p1));
+    simpler;
+    match goal with
+      | [ envT : list ptype, H : _ |- _ ] =>
+        apply (H (length envT) (length envT)); simpler
+    end.
+  Qed.
+
+  Theorem Pterm_wf : forall (E : Pterm result),
+    wfTerm (envT := nil) tt (E _).
+    intros; eapply Pterm_wf';
+      [apply Pterm_equiv
+        | simpler].
+  Qed.
+End wf.
+
+Definition CcTerm result (E : Pterm result) : Cprog result :=
+  CcTerm' E (Pterm_wf E).
+
+Lemma map_funcs_correct : forall result T1 T2 (f : T1 -> T2) (fs : cfuncs ctypeDenote result T1) k,
+  cfuncsDenote (map_funcs f fs) k = f (cfuncsDenote fs k).
+  induction fs; equation.
+Qed.
+
+Theorem CcTerm_correct : forall result (E : Pterm result) k,
+  PtermDenote E k
+  = CprogDenote (CcTerm E) k.
+  Hint Rewrite map_funcs_correct : ltamer.
+
+  unfold PtermDenote, CprogDenote, CcTerm, CcTerm', cprogDenote;
+    simpler;
+    apply (ccTerm_correct (result := result)
+      (G := nil)
+      (e1 := E _)
+      (e2 := E _)
+      (Pterm_equiv _ _ _)
+      nil
+      tt
+      tt);
+    simpler.
+Qed.

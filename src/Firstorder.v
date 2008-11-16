@@ -146,10 +146,13 @@ Module Concrete.
       induction G1 as [ | [x'' t'] tl ]; crush; eauto;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
-        end; crush; elimtype False; eauto;
-        match goal with
-          | [ H : nil |-v _ : _ |- _ ] => inversion H
-        end.
+        end; crush; (elimtype False; eauto;
+          match goal with
+            | [ H : nil |-v _ : _ |- _ ] => inversion H
+          end)
+        || match goal with
+             | [ H : _ |- _ ] => apply H; crush; eauto
+           end.
     Qed.
 
     Implicit Arguments subst_lookup [x' t G1].

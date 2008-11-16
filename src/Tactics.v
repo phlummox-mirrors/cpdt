@@ -72,7 +72,7 @@ Ltac simplHyp invOne :=
 
 Ltac rewriteHyp :=
   match goal with
-    | [ H : _ |- _ ] => rewrite H
+    | [ H : _ |- _ ] => rewrite H; auto; [idtac]
   end.
 
 Ltac rewriterP := repeat (rewriteHyp; autorewrite with cpdt in *).
@@ -122,12 +122,17 @@ Ltac un_done :=
 
 Ltac crush' lemmas invOne :=
   let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence
-    in (sintuition; rewriter;
-      match lemmas with
-        | false => idtac
-        | _ => repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
-          repeat (simplHyp invOne; intuition)); un_done
-      end; sintuition; try omega; try (elimtype False; omega)).
+    in (sintuition;
+      autorewrite with cpdt in *;
+        repeat (match goal with
+                  | [ H : _ |- _ ] => (rewrite H; [])
+                    || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
+                end; autorewrite with cpdt in *);
+        match lemmas with
+          | false => idtac
+          | _ => repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
+            repeat (simplHyp invOne; intuition)); un_done
+        end; sintuition; try omega; try (elimtype False; omega)).
 
 Ltac crush := crush' false fail.
 
