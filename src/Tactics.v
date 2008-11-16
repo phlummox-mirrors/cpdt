@@ -121,18 +121,19 @@ Ltac un_done :=
          end.
 
 Ltac crush' lemmas invOne :=
-  let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence
-    in (sintuition;
-      autorewrite with cpdt in *;
-        repeat (match goal with
-                  | [ H : _ |- _ ] => (rewrite H; [])
-                    || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
-                end; autorewrite with cpdt in *);
+  let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence in
+    let rewriter := autorewrite with cpdt in *;
+      repeat (match goal with
+                | [ H : _ |- _ ] => (rewrite H; [])
+                  || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
+                    || (rewrite H; [ | solve [ crush' lemmas invOne ] | solve [ crush' lemmas invOne ] ])
+              end; autorewrite with cpdt in *)
+    in (sintuition; rewriter;
         match lemmas with
           | false => idtac
           | _ => repeat ((app ltac:(fun L => inster L L) lemmas || appHyps ltac:(fun L => inster L L));
             repeat (simplHyp invOne; intuition)); un_done
-        end; sintuition; try omega; try (elimtype False; omega)).
+        end; sintuition; rewriter; sintuition; try omega; try (elimtype False; omega)).
 
 Ltac crush := crush' false fail.
 
