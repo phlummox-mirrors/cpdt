@@ -8,12 +8,16 @@
  *)
 
 (* begin hide *)
-Require Import Arith Bool String List.
+Require Import Arith Bool String List Eqdep JMeq.
 
 Require Import Axioms Tactics DepList.
 
 Set Implicit Arguments.
+
+Infix "==" := JMeq (at level 70, no associativity).
 (* end hide *)
+
+
 
 
 (** %\chapter{Intensional Transformations}% *)
@@ -797,292 +801,221 @@ Implicit Arguments unpackExp [var t envT fvs].
 
 Implicit Arguments ccExp [var t envT].
 
-Fixpoint map_funcs var result T1 T2 (f : T1 -> T2) (fs : cfuncs var result T1) {struct fs}
-  : cfuncs var result T2 :=
+Fixpoint map_funcs var T1 T2 (f : T1 -> T2) (fs : funcs var T1) {struct fs}
+  : funcs var T2 :=
   match fs with
-    | CMain v => CMain (f v)
-    | CAbs _ _ e fs' => CAbs e (fun x => map_funcs f (fs' x))
+    | Main v => Main (f v)
+    | Abs _ _ _ e fs' => Abs e (fun x => map_funcs f (fs' x))
   end.
 
-Definition CcTerm' result (E : Pterm result) (Hwf : wfTerm (envT := nil) tt (E _)) : Cprog result :=
-  fun _ => map_funcs (fun f => f tt) (ccTerm (E _) (envT := nil) tt Hwf).
+Definition CcTerm' t (E : Source.Exp t) (Hwf : wfExp (envT := nil) tt (E _)) : Prog (ccType t) :=
+  fun _ => map_funcs (fun f => f tt) (ccExp (E _) (envT := nil) tt Hwf).
 
 
 (** * Correctness *)
 
-Scheme pterm_equiv_mut := Minimality for pterm_equiv Sort Prop
-with pprimop_equiv_mut := Minimality for pprimop_equiv Sort Prop.
-
-Section splicePrim_correct.
-  Variables result t t' : ptype.
-  Variable ps' : ctypeDenote ([< t >]) -> cprimops ctypeDenote t'.
-
-  Theorem splicePrim_correct : forall (ps : cprimops ctypeDenote t),
-    cprimopsDenote (splicePrim ps ps')
-    = cprimopsDenote (ps' (cprimopsDenote ps)).
-    induction ps; equation.
-  Qed.
-End splicePrim_correct.
-
-Section spliceTerm_correct.
-  Variables result t : ptype.
-  Variable e : ctypeDenote ([< t >]) -> cterm ctypeDenote result.
-  Variable k : ptypeDenote result -> bool.
-
-  Theorem spliceTerm_correct : forall (ps : cprimops ctypeDenote t),
-    ctermDenote (spliceTerm ps e) k
-    = ctermDenote (e (cprimopsDenote ps)) k.
-    induction ps; equation.
-  Qed.
-End spliceTerm_correct.
-
-Section spliceFuncs'_correct.
-  Variable result : ptype.
-  Variables T1 T2 : Type.
-  Variable f : T1 -> T2.
-  Variable k : ptypeDenote result -> bool.
-
-  Theorem spliceFuncs'_correct : forall fs,
-    cfuncsDenote (spliceFuncs' fs f) k
-    = f (cfuncsDenote fs k).
-    induction fs; equation.
-  Qed.
-End spliceFuncs'_correct.
-
 Section spliceFuncs_correct.
-  Variable result : ptype.
-  Variables T1 T2 T3 : Type.
-  Variable fs2 : cfuncs ctypeDenote result T2.
-  Variable f : T1 -> T2 -> T3.
-  Variable k : ptypeDenote result -> bool.
+  Variables T1 T2 : Type.
+  Variable f : T1 -> funcs typeDenote T2.
 
-  Hint Rewrite spliceFuncs'_correct : ltamer.
-
-  Theorem spliceFuncs_correct : forall fs1,
-    cfuncsDenote (spliceFuncs fs1 fs2 f) k
-    = f (cfuncsDenote fs1 k) (cfuncsDenote fs2 k).
-    induction fs1; equation.
+  Theorem spliceFuncs_correct : forall fs,
+    funcsDenote (spliceFuncs fs f)
+    = funcsDenote (f (funcsDenote fs)).
+    induction fs; crush.
   Qed.
 End spliceFuncs_correct.
-
-Section inside_correct.
-  Variable result : ptype.
-  Variables T1 T2 : Type.
-  Variable fs2 : T1 -> cfuncs ctypeDenote result T2.
-  Variable k : ptypeDenote result -> bool.
-
-  Theorem inside_correct : forall fs1,
-    cfuncsDenote (inside fs1 fs2) k
-    = cfuncsDenote (fs2 (cfuncsDenote fs1 k)) k.
-    induction fs1; equation.
-  Qed.
-End inside_correct.
 
 
 Notation "var <| to" := (match to with
                            | None => unit
-                           | Some t => var ([< t >])%cc
+                           | Some t => var (ccType t)
                          end) (no associativity, at level 70).
 
 Section packing_correct.
-  Variable result : ptype.
-
-  Hint Rewrite splicePrim_correct spliceTerm_correct : ltamer.
-
-  Ltac my_matching := matching my_equation default_chooser.
-
-  Fixpoint makeEnv (envT : list ptype) : forall (fvs : isfree envT),
-    ptypeDenote (envType fvs)
-    -> envOf ctypeDenote fvs :=
+  Fixpoint makeEnv (envT : list Source.type) : forall (fvs : isfree envT),
+    Closed.typeDenote (envType fvs)
+    -> envOf Closed.typeDenote fvs :=
     match envT return (forall (fvs : isfree envT),
-      ptypeDenote (envType fvs)
-      -> envOf ctypeDenote fvs) with
+      Closed.typeDenote (envType fvs)
+      -> envOf Closed.typeDenote fvs) with
       | nil => fun _ _ => tt
       | first :: rest => fun fvs =>
-        match fvs return (ptypeDenote (envType (envT := first :: rest) fvs)
-          -> envOf (envT := first :: rest) ctypeDenote fvs) with
+        match fvs return (Closed.typeDenote (envType (envT := first :: rest) fvs)
+          -> envOf (envT := first :: rest) Closed.typeDenote fvs) with
           | (false, fvs') => fun env => makeEnv rest fvs' env
           | (true, fvs') => fun env => (fst env, makeEnv rest fvs' (snd env))
         end
     end.
 
-  Theorem unpackExp_correct : forall (envT : list ptype) (fvs : isfree envT)
-    (ps : cprimops ctypeDenote (envType fvs))
-    (e : envOf ctypeDenote fvs -> cterm ctypeDenote result) k,
-    ctermDenote (unpackExp ps e) k
-    = ctermDenote (e (makeEnv _ _ (cprimopsDenote ps))) k.
-    induction envT; my_matching.
+  Implicit Arguments makeEnv [envT fvs].
+
+  Theorem unpackExp_correct : forall t (envT : list Source.type) (fvs : isfree envT)
+    (e1 : Closed.exp Closed.typeDenote (envType fvs))
+    (e2 : envOf Closed.typeDenote fvs -> Closed.exp Closed.typeDenote t),
+    Closed.expDenote (unpackExp e1 e2)
+    = Closed.expDenote (e2 (makeEnv (Closed.expDenote e1))).
+    induction envT; my_crush.
   Qed.
 
   Lemma lookup_type_more : forall v2 envT (fvs : isfree envT) t b v,
     (v2 = length envT -> False)
     -> lookup_type v2 (envT := t :: envT) (b, fvs) = v
     -> lookup_type v2 fvs = v.
-    equation.
+    my_crush.
   Qed.
 
   Lemma lookup_type_less : forall v2 t envT (fvs : isfree (t :: envT)) v,
     (v2 = length envT -> False)
     -> lookup_type v2 (snd fvs) = v
     -> lookup_type v2 (envT := t :: envT) fvs = v.
-    equation.
+    my_crush.
   Qed.
+
+  Hint Resolve lookup_bound_contra.
 
   Lemma lookup_bound_contra_eq : forall t envT (fvs : isfree envT) v,
     lookup_type v fvs = Some t
     -> v = length envT
     -> False.
-    simpler; eapply lookup_bound_contra; eauto.
-  Defined.
+    my_crush; elimtype False; eauto.
+  Qed.
 
-  Lemma lookup_type_inner : forall result t envT v t' (fvs : isfree envT) e,
-    wfTerm (envT := t :: envT) (true, fvs) e
-    -> lookup_type v (snd (fvsTerm (result := result) e (t :: envT))) = Some t'
-    -> lookup_type v fvs = Some t'.
-    Hint Resolve lookup_bound_contra_eq fvsTerm_minimal
+  Lemma lookup_type_inner : forall t t' envT v t'' (fvs : isfree envT) e,
+    wfExp (envT := t' :: envT) (true, fvs) e
+    -> lookup_type v (snd (fvsExp (t := t) e (t' :: envT))) = Some t''
+    -> lookup_type v fvs = Some t''.
+    Hint Resolve lookup_bound_contra_eq fvsExp_minimal
       lookup_type_more lookup_type_less.
-    Hint Extern 2 (Some _ = Some _) => contradictory.
+    Hint Extern 2 (Some _ = Some _) => elimtype False.
 
     eauto 6.
   Qed.
 
   Lemma cast_irrel : forall T1 T2 x (H1 H2 : T1 = T2),
-    (x :? H1) = (x :? H2).
-    equation.
+    match H1 in _ = T return T with
+      | refl_equal => x
+    end
+    = match H2 in _ = T return T with
+        | refl_equal => x
+      end.
+    intros; generalize H1; crush;
+      repeat match goal with
+               | [ |- context[match ?pf with refl_equal => _ end] ] =>
+                 rewrite (UIP_refl _ _ pf)
+             end;
+      reflexivity.
   Qed.
 
   Hint Immediate cast_irrel.
 
-  Lemma cast_irrel_unit : forall T1 T2 x y (H1 : T1 = T2) (H2 : unit = T2),
-    (x :? H1) = (y :? H2).
-    intros; generalize H1;
-      rewrite <- H2 in H1;
-        equation.
-  Qed.
-
-  Hint Immediate cast_irrel_unit.
-
-  Hint Extern 3 (_ = _) =>
+  Hint Extern 3 (_ == _) =>
     match goal with
       | [ |- context[False_rect _ ?H] ] =>
         apply False_rect; exact H
     end.
 
-  Theorem packExp_correct : forall v2 t envT (fvs1 fvs2 : isfree envT)
-    Heq1 (Heq2 : ctypeDenote <| lookup_type v2 fvs2 = ptypeDenote t)
+  Theorem packExp_correct : forall v envT (fvs1 fvs2 : isfree envT)
     Hincl env,
-    (lookup ctypeDenote v2 env :? Heq2)
-    = (lookup ctypeDenote v2
-      (makeEnv envT fvs1
-        (cprimopsDenote
-          (packExp fvs1 fvs2 Hincl env))) :? Heq1).
-    induction envT; my_equation.
+    lookup_type v fvs1 <> None
+    -> lookup Closed.typeDenote v env
+    == lookup Closed.typeDenote v
+    (makeEnv (Closed.expDenote
+      (packExp fvs1 fvs2 Hincl env))).
+    induction envT; my_crush.
   Qed.
 End packing_correct.
 
+(*Lemma typeDenote_same : forall t,
+  Closed.typeDenote (ccType t) = Source.typeDenote t.
+  induction t; crush.
+Qed.*)
+
+Lemma typeDenote_same : forall t,
+  Source.typeDenote t = Closed.typeDenote (ccType t).
+  induction t; crush.
+Qed.
+
+Hint Resolve typeDenote_same.
+
 Lemma look : forall envT n (fvs : isfree envT) t,
   lookup_type n fvs = Some t
-  -> ctypeDenote <| lookup_type n fvs = ptypeDenote t.
-  equation.
+  -> Closed.typeDenote <| lookup_type n fvs = Source.typeDenote t.
+  crush.
 Qed.
 
 Implicit Arguments look [envT n fvs t].
 
+Lemma cast_jmeq : forall (T1 T2 : Set) (pf : T1 = T2) (T2' : Set) (v1 : T1) (v2 : T2'),
+  v1 == v2
+  -> T2' = T2
+  -> match pf in _ = T return T with
+       | refl_equal => v1
+     end == v2.
+  intros; generalize pf; subst.
+  intro.
+  rewrite (UIP_refl _ _ pf).
+  auto.
+Qed.
 
-Theorem ccTerm_correct : forall result G
-  (e1 : pterm ptypeDenote result)
-  (e2 : pterm natvar result),
-  pterm_equiv G e1 e2
-  -> forall (envT : list ptype) (fvs : isfree envT)
-    (env : envOf ctypeDenote fvs) (Hwf : wfTerm fvs e2) k,
-    (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-      In (vars (x := t) (v1, v2)) G
+Hint Resolve cast_jmeq.
+
+Theorem ccTerm_correct : forall t G
+  (e1 : Source.exp Source.typeDenote t)
+  (e2 : Source.exp natvar t),
+  exp_equiv G e1 e2
+  -> forall (envT : list Source.type) (fvs : isfree envT)
+    (env : envOf Closed.typeDenote fvs) (wf : wfExp fvs e2),
+    (forall t (v1 : Source.typeDenote t) (v2 : natvar t),
+      In (existT _ _ (v1, v2)) G
       -> v2 < length envT)
-    -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-      In (vars (x := t) (v1, v2)) G
+    -> (forall t (v1 : Source.typeDenote t) (v2 : natvar t),
+      In (existT _ _ (v1, v2)) G
       -> lookup_type v2 fvs = Some t
-      -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
-    -> ptermDenote e1 k
-    = ctermDenote (cfuncsDenote (ccTerm e2 fvs Hwf) k env) k.
+      -> lookup Closed.typeDenote v2 env == v1)
+    -> Closed.expDenote (funcsDenote (ccExp e2 fvs wf) env)
+    == Source.expDenote e1.
 
-  Hint Rewrite splicePrim_correct spliceTerm_correct
-    spliceFuncs_correct inside_correct : ltamer.
-
-  Hint Rewrite unpackExp_correct : ltamer.
+  Hint Rewrite spliceFuncs_correct unpackExp_correct : cpdt.
   Hint Resolve packExp_correct lookup_type_inner.
 
-  Hint Extern 1 (_ = _) => push_vars.
+  induction 1.
 
-  Hint Extern 1 (_ = _) =>
-    match goal with
-      | [ Hvars : forall t v1 v2, _,
-        Hin : In _ _ |- _ ] =>
-      rewrite (Hvars _ _ _ Hin)
-    end.
+  crush.
+  crush.
+  crush.
+  crush.
 
-  Hint Extern 1 (wfPrimop _ _) => tauto.
+  Lemma app_jmeq : forall dom1 dom2 ran1 ran2
+    (f1 : dom1 -> ran1) (f2 : dom2 -> ran2)
+    (x1 : dom1) (x2 : dom2),
+    ran1 = ran2
+    -> f1 == f2
+    -> x1 == x2
+    -> f1 x1 == f2 x2.
+    crush.
+    assert (dom1 = dom2).
+    inversion H1; trivial.
+    crush.
+  Qed.
+  
+  Lemma app_jmeq : forall dom ran
+    (f1 : Closed.typeDenote (ccType dom) -> Closed.typeDenote (ccType ran))
+    (f2 : Source.typeDenote dom -> Source.typeDenote ran)
+    (x1 : dom1) (x2 : dom2),
+    ran1 = ran2
+    -> f1 == f2
+    -> x1 == x2
+    -> f1 x1 == f2 x2.
+    crush.
+    assert (dom1 = dom2).
+    inversion H1; trivial.
+    crush.
+  Qed.
 
-  Hint Extern 1 (_ < _) =>
-    match goal with
-      | [ Hvars : forall t v1 v2, _,
-        Hin : In _ _ |- _ ] =>
-      exact (Hvars _ _ _ Hin)
-    end.
-
-  Hint Extern 1 (lookup_type _ _ = _) => tauto.
-
-  Hint Extern 1 (_ = _) =>
-    match goal with
-      | [ Hvars : forall t v1 v2, _,
-        Hin : In (vars (_, length ?envT)) _ |- _ ] =>
-      contradictory; assert (length envT < length envT); [auto | omega]
-    end.
-
-  Hint Extern 5 (_ = _) => symmetry.
-
-  Hint Extern 1 (_ = _) =>
-    match goal with
-      | [ H : lookup_type ?v _ = Some ?t, fvs : isfree _ |- (lookup _ _ _ :? _) = _ ] =>
-        let Hty := fresh "Hty" in
-          (assert (Hty : lookup_type v fvs = Some t);
-            [eauto
-              | eapply (trans_cast (look Hty))])
-    end.
-
-  Hint Extern 3 (ptermDenote _ _ = ctermDenote _ _) =>
-    match goal with
-      | [ H : _ |- ptermDenote (_ ?v1) _
-        = ctermDenote (cfuncsDenote (ccTerm (_ ?v2) (envT := ?envT) ?fvs _) _ _) _ ] =>
-      apply (H v1 v2 envT fvs); my_simpler
-    end.
-
-  intro.
-  apply (pterm_equiv_mut
-    (fun G (e1 : pterm ptypeDenote result) (e2 : pterm natvar result) =>
-      forall (envT : list ptype) (fvs : isfree envT)
-        (env : envOf ctypeDenote fvs) (Hwf : wfTerm fvs e2) k,
-         (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-           In (vars (x := t) (v1, v2)) G
-           -> v2 < length envT)
-         -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-           In (vars (x := t) (v1, v2)) G
-           -> lookup_type v2 fvs = Some t
-           -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
-         -> ptermDenote e1 k
-         = ctermDenote (cfuncsDenote (ccTerm e2 fvs Hwf) k env) k)
-    (fun G t (p1 : pprimop ptypeDenote result t) (p2 : pprimop natvar result t) =>
-      forall (envT : list ptype) (fvs : isfree envT)
-        (env : envOf ctypeDenote fvs) (Hwf : wfPrimop fvs p2) Hwf k,
-        (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-          In (vars (x := t) (v1, v2)) G
-          -> v2 < length envT)
-        -> (forall t (v1 : ptypeDenote t) (v2 : natvar t),
-          In (vars (x := t) (v1, v2)) G
-          -> lookup_type v2 fvs = Some t
-          -> forall Heq, (lookup ctypeDenote v2 env :? Heq) = v1)
-        -> pprimopDenote p1 k
-        = cprimopsDenote (cfuncsDenote (ccPrimop p2 fvs Hwf) k env)));
-  my_simpler; eauto.
+  simpl.
+  refine (app_jmeq _ _ _).
+  apply app_jmeq.
+  dependent rewrite <- IHexp_equiv1.
 Qed.
 
 
