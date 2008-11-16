@@ -211,6 +211,8 @@ Type-Theoretic Interpreters & \texttt{Interps.v} \\
 \hline
 Extensional Transformations & \texttt{Extensional.v} \\
 \hline
+Intensional Transformations & \texttt{Intensional.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
