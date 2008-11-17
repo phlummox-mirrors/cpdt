@@ -826,7 +826,7 @@ Section spliceFuncs_correct.
 End spliceFuncs_correct.
 
 
-Notation "var <| to" := (match to with
+Notation "var <| to" := (match to return Set with
                            | None => unit
                            | Some t => var (ccType t)
                          end) (no associativity, at level 70).
@@ -925,10 +925,10 @@ Section packing_correct.
   Qed.
 End packing_correct.
 
-(*Lemma typeDenote_same : forall t,
-  Closed.typeDenote (ccType t) = Source.typeDenote t.
-  induction t; crush.
-Qed.*)
+About packExp_correct.
+Implicit Arguments packExp_correct [v envT fvs1].
+
+Implicit Arguments lookup_type_more [v2 envT fvs t b v].
 
 Lemma typeDenote_same : forall t,
   Source.typeDenote t = Closed.typeDenote (ccType t).
@@ -945,19 +945,13 @@ Qed.
 
 Implicit Arguments look [envT n fvs t].
 
-Lemma cast_jmeq : forall (T1 T2 : Set) (pf : T1 = T2) (T2' : Set) (v1 : T1) (v2 : T2'),
-  v1 == v2
-  -> T2' = T2
-  -> match pf in _ = T return T with
-       | refl_equal => v1
-     end == v2.
-  intros; generalize pf; subst.
-  intro.
-  rewrite (UIP_refl _ _ pf).
-  auto.
-Qed.
-
-Hint Resolve cast_jmeq.
+Fixpoint lr (t : Source.type) : Source.typeDenote t -> Closed.typeDenote (ccType t) -> Prop :=
+  match t return Source.typeDenote t -> Closed.typeDenote (ccType t) -> Prop with
+    | Nat => @eq nat
+    | dom --> ran => fun f1 f2 =>
+      forall x1 x2, lr dom x1 x2
+        -> lr ran (f1 x1) (f2 x2)
+  end.
 
 Theorem ccTerm_correct : forall t G
   (e1 : Source.exp Source.typeDenote t)
@@ -970,10 +964,15 @@ Theorem ccTerm_correct : forall t G
       -> v2 < length envT)
     -> (forall t (v1 : Source.typeDenote t) (v2 : natvar t),
       In (existT _ _ (v1, v2)) G
-      -> lookup_type v2 fvs = Some t
-      -> lookup Closed.typeDenote v2 env == v1)
-    -> Closed.expDenote (funcsDenote (ccExp e2 fvs wf) env)
-    == Source.expDenote e1.
+      -> forall pf,
+        lr t v1 (match lok pf in _ = T return T with
+                   | refl_equal => lookup Closed.typeDenote v2 env
+                 end))
+      (*-> forall pf : lookup_type v2 fvs = Some t,
+        lr t v1 (match pf in _ = T return Closed.typeDenote <| T with
+                   | refl_equal => lookup Closed.typeDenote v2 env
+                 end))*)
+    -> lr t (Source.expDenote e1) (Closed.expDenote (funcsDenote (ccExp e2 fvs wf) env)).
 
   Hint Rewrite spliceFuncs_correct unpackExp_correct : cpdt.
   Hint Resolve packExp_correct lookup_type_inner.
@@ -985,37 +984,60 @@ Theorem ccTerm_correct : forall t G
   crush.
   crush.
 
-  Lemma app_jmeq : forall dom1 dom2 ran1 ran2
-    (f1 : dom1 -> ran1) (f2 : dom2 -> ran2)
-    (x1 : dom1) (x2 : dom2),
-    ran1 = ran2
-    -> f1 == f2
-    -> x1 == x2
-    -> f1 x1 == f2 x2.
-    crush.
-    assert (dom1 = dom2).
-    inversion H1; trivial.
-    crush.
-  Qed.
-  
-  Lemma app_jmeq : forall dom ran
-    (f1 : Closed.typeDenote (ccType dom) -> Closed.typeDenote (ccType ran))
-    (f2 : Source.typeDenote dom -> Source.typeDenote ran)
-    (x1 : dom1) (x2 : dom2),
-    ran1 = ran2
-    -> f1 == f2
-    -> x1 == x2
-    -> f1 x1 == f2 x2.
-    crush.
-    assert (dom1 = dom2).
-    inversion H1; trivial.
-    crush.
-  Qed.
+  crush.
+  apply (H0 x1 (length envT) (t1 :: envT) (true, snd (fvsExp (f2 (length envT)) (t1 :: envT)))).
+  clear H0.
+  crush.
+  eauto.
+  generalize (H1 _ _ _ H4).
+  crush.
 
+  crush.
+  generalize H3; clear_all.
+  match goal with
+    | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+  end.
   simpl.
-  refine (app_jmeq _ _ _).
-  apply app_jmeq.
-  dependent rewrite <- IHexp_equiv1.
+  destruct (eq_nat_dec (length envT) (length envT)); crush.
+  rewrite (UIP_refl _ _ e0); assumption.
+
+  match goal with
+    | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+  end; simpl.
+  destruct (eq_nat_dec v2 (length envT)); crush.
+  generalize (H1 _ _ _ H5).
+  crush.
+  generalize (H2 _ _ _ H5).
+  clear H2; intro H2.
+  generalize (H2 (lookup_type_inner _ _ _ _ _ wf pf)).
+  clear H2; intro H2.
+  generalize H2; clear_all.
+  repeat match goal with
+           | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+         end; simpl.
+
+  match type of pf with
+    | ?X = _ => assert (X <> None)
+  end.
+  congruence.
+  assert (forall (n : nat) (t0 : Source.type),
+    lookup_type (envT:=envT) n (snd (fvsExp (f2 (length envT)) (t1 :: envT))) = Some t0 ->
+    lookup_type (envT:=envT) n fvs = Some t0).
+  eauto.
+  generalize (packExp_correct fvs (inclusion t1 envT fvs (f2 (length envT)) wf) env H).
+  simpl.
+  match goal with
+    | [ |- ?X == ?Y -> _ ] =>
+      generalize X Y
+  end.
+  rewrite pf.
+  rewrite (lookup_type_inner _ _ _ _ _ wf pf).
+  crush.
+  rewrite (UIP_refl _ _ e0).
+  rewrite (UIP_refl _ _ e1) in H2.
+  crush.
+  rewrite <- H1.
+  assumption.
 Qed.
 
 
