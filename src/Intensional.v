@@ -1044,20 +1044,18 @@ Section wf.
       -> wfExp fvs e1.
     Hint Extern 3 (Some _ = Some _) => elimtype False; eapply lookup_bound_contra; eauto.
 
-    induction 1; crush.
-    eapply H0.
-    eauto.
-
-    apply H0 with (length envT).
-    my_crush.
-    eauto.
+    induction 1; crush; eauto;
+      match goal with
+        | [ H : _, envT : list Source.type |- _ ] =>
+          apply H with (length envT); my_crush; eauto
+      end.
   Qed.
 
   Theorem Exp_wf : forall t (E : Source.Exp t),
     wfExp (envT := nil) tt (E _).
-    intros; eapply Exp_wf';
-      [apply Exp_equiv
-        | crush].
+    Hint Resolve Exp_equiv.
+
+    intros; eapply Exp_wf'; crush.
   Qed.
 End wf.
 
