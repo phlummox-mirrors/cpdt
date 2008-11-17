@@ -995,49 +995,41 @@ Theorem ccExp_correct : forall t G
   Hint Rewrite spliceFuncs_correct unpackExp_correct : cpdt.
   Hint Resolve packExp_correct lookup_type_inner.
 
-  induction 1; crush.
-
-  match goal with
-    | [ IH : _, Hlr : lr ?T ?X1 ?X2, ENV : list Source.type, F2 : natvar _ -> _ |- _ ] =>
-      apply (IH X1 (length ENV) (T :: ENV) (true, snd (fvsExp (F2 (length ENV)) (T :: ENV))))
-  end.
-
-  crush.
-  match goal with
-    | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In _ _ |- _ ] =>
-      generalize (Hlt _ _ _ Hin); crush
-  end.
-
-  crush;
-  match goal with
-    | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
-  end; simpl;
-  match goal with
-    | [ |- context[if ?E then _ else _] ] => destruct E
-  end; intuition; subst;
-  try match goal with
-        | [ |- context[match ?pf with refl_equal => _ end] ] => rewrite (UIP_refl _ _ pf); assumption
-        | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In (existT _ _ (_, length _)) _ |- _ ] =>
-          generalize (Hlt _ _ _ Hin); crush
-      end.
-
-  generalize (H2 _ _ _ H5 (lookup_type_inner wf pf)); clear_all.
-  repeat match goal with
-           | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
-         end; simpl.
-  generalize (packExp_correct _ fvs (inclusion wf) env pf); simpl.
-  match goal with
-    | [ |- ?X == ?Y -> _ ] =>
-      generalize X Y
-  end.
-  rewrite pf.
-  rewrite (lookup_type_inner wf pf).
-  crush.
-  repeat match goal with
-           | [ H : _ = _ |- _ ] => rewrite (UIP_refl _ _ H) in *
-         end.
-  rewrite <- H.
-  assumption.
+  induction 1; crush;
+    match goal with
+      | [ IH : _, Hlr : lr ?T ?X1 ?X2, ENV : list Source.type, F2 : natvar _ -> _ |- _ ] =>
+        apply (IH X1 (length ENV) (T :: ENV) (true, snd (fvsExp (F2 (length ENV)) (T :: ENV))))
+    end; crush;
+    match goal with
+      | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In _ _ |- _ ] =>
+        solve [ generalize (Hlt _ _ _ Hin); crush ]
+      | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+    end; simpl;
+    match goal with
+      | [ |- context[if ?E then _ else _] ] => destruct E
+    end; intuition; subst;
+    match goal with
+      | [ |- context[match ?pf with refl_equal => _ end] ] => rewrite (UIP_refl _ _ pf); assumption
+      | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In (existT _ _ (_, length _)) _ |- _ ] =>
+        generalize (Hlt _ _ _ Hin); crush
+      | [ HG : _, Hin : In _ _, wf : wfExp _ _, pf : _ = Some _,
+        fvs : isfree _, env : envOf _ _ |- _ ] =>
+      generalize (HG _ _ _ Hin (lookup_type_inner wf pf)); clear_all;
+        repeat match goal with
+                 | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+               end; simpl;
+        generalize (packExp_correct _ fvs (inclusion wf) env pf); simpl;
+          match goal with
+            | [ |- ?X == ?Y -> _ ] =>
+              generalize X Y
+          end;
+          rewrite pf; rewrite (lookup_type_inner wf pf);
+            intros lhs rhs Heq; intros;
+              repeat match goal with
+                       | [ H : _ = _ |- _ ] => rewrite (UIP_refl _ _ H) in *
+                     end;
+              rewrite <- Heq; assumption
+    end.
 Qed.
 
 
