@@ -808,7 +808,7 @@ Fixpoint map_funcs var T1 T2 (f : T1 -> T2) (fs : funcs var T1) {struct fs}
     | Abs _ _ _ e fs' => Abs e (fun x => map_funcs f (fs' x))
   end.
 
-Definition CcTerm' t (E : Source.Exp t) (Hwf : wfExp (envT := nil) tt (E _)) : Prog (ccType t) :=
+Definition CcExp' t (E : Source.Exp t) (Hwf : wfExp (envT := nil) tt (E _)) : Prog (ccType t) :=
   fun _ => map_funcs (fun f => f tt) (ccExp (E _) (envT := nil) tt Hwf).
 
 
@@ -953,7 +953,7 @@ Fixpoint lr (t : Source.type) : Source.typeDenote t -> Closed.typeDenote (ccType
         -> lr ran (f1 x1) (f2 x2)
   end.
 
-Theorem ccTerm_correct : forall t G
+Theorem ccExp_correct : forall t G
   (e1 : Source.exp Source.typeDenote t)
   (e2 : Source.exp natvar t),
   exp_equiv G e1 e2
@@ -1044,64 +1044,51 @@ Qed.
 (** * Parametric version *)
 
 Section wf.
-  Variable result : ptype.
-
-  Lemma Pterm_wf' : forall G (e1 e2 : pterm natvar result),
-    pterm_equiv G e1 e2
+  Lemma Exp_wf' : forall G t (e1 e2 : Source.exp natvar t),
+    exp_equiv G e1 e2
     -> forall envT (fvs : isfree envT),
-      (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
+      (forall t (v1 v2 : natvar t), In (existT _ _ (v1, v2)) G
         -> lookup_type v1 fvs = Some t)
-      -> wfTerm fvs e1.
-    Hint Extern 3 (Some _ = Some _) => contradictory; eapply lookup_bound_contra; eauto.
+      -> wfExp fvs e1.
+    Hint Extern 3 (Some _ = Some _) => elimtype False; eapply lookup_bound_contra; eauto.
 
-    apply (pterm_equiv_mut
-      (fun G (e1 e2 : pterm natvar result) =>
-        forall envT (fvs : isfree envT),
-          (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
-            -> lookup_type v1 fvs = Some t)
-          -> wfTerm (envT:=envT) fvs e1)
-      (fun G t (p1 p2 : pprimop natvar result t) =>
-        forall envT (fvs : isfree envT),
-          (forall t (v1 v2 : natvar t), In (vars (v1, v2)) G
-            -> lookup_type v1 fvs = Some t)
-          -> wfPrimop (envT:=envT) fvs p1));
-    simpler;
-    match goal with
-      | [ envT : list ptype, H : _ |- _ ] =>
-        apply (H (length envT) (length envT)); simpler
-    end.
+    induction 1; crush.
+    eapply H0.
+    eauto.
+
+    apply H0 with (length envT).
+    my_crush.
+    eauto.
   Qed.
 
-  Theorem Pterm_wf : forall (E : Pterm result),
-    wfTerm (envT := nil) tt (E _).
-    intros; eapply Pterm_wf';
-      [apply Pterm_equiv
-        | simpler].
+  Theorem Exp_wf : forall t (E : Source.Exp t),
+    wfExp (envT := nil) tt (E _).
+    intros; eapply Exp_wf';
+      [apply Exp_equiv
+        | crush].
   Qed.
 End wf.
 
-Definition CcTerm result (E : Pterm result) : Cprog result :=
-  CcTerm' E (Pterm_wf E).
+Definition CcExp t (E : Source.Exp t) : Prog (ccType t) :=
+  CcExp' E (Exp_wf E).
 
-Lemma map_funcs_correct : forall result T1 T2 (f : T1 -> T2) (fs : cfuncs ctypeDenote result T1) k,
-  cfuncsDenote (map_funcs f fs) k = f (cfuncsDenote fs k).
-  induction fs; equation.
+Lemma map_funcs_correct : forall T1 T2 (f : T1 -> T2) (fs : funcs Closed.typeDenote T1),
+  funcsDenote (map_funcs f fs) = f (funcsDenote fs).
+  induction fs; crush.
 Qed.
 
-Theorem CcTerm_correct : forall result (E : Pterm result) k,
-  PtermDenote E k
-  = CprogDenote (CcTerm E) k.
-  Hint Rewrite map_funcs_correct : ltamer.
+Theorem CcExp_correct : forall (E : Source.Exp Nat),
+  Source.ExpDenote E
+  = ProgDenote (CcExp E).
+  Hint Rewrite map_funcs_correct : cpdt.
 
-  unfold PtermDenote, CprogDenote, CcTerm, CcTerm', cprogDenote;
-    simpler;
-    apply (ccTerm_correct (result := result)
+  unfold Source.ExpDenote, ProgDenote, CcExp, CcExp', progDenote; crush;
+    apply (ccExp_correct
       (G := nil)
       (e1 := E _)
       (e2 := E _)
-      (Pterm_equiv _ _ _)
+      (Exp_equiv _ _ _)
       nil
       tt
-      tt);
-    simpler.
+      tt); crush.
 Qed.
