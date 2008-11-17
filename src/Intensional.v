@@ -232,6 +232,15 @@ Module Closed.
   Notation "f <== \\ x , y , e ; fs" :=
     (Abs (fun x y => e) (fun f => fs))
     (right associativity, at level 80, e at next level) : cc_scope.
+  Notation "f <== \\ ! , y , e ; fs" :=
+    (Abs (fun _ y => e) (fun f => fs))
+    (right associativity, at level 80, e at next level) : cc_scope.
+  Notation "f <== \\ x , ! , e ; fs" :=
+    (Abs (fun x _ => e) (fun f => fs))
+    (right associativity, at level 80, e at next level) : cc_scope.
+  Notation "f <== \\ ! , ! , e ; fs" :=
+    (Abs (fun _ _ => e) (fun f => fs))
+    (right associativity, at level 80, e at next level) : cc_scope.
 
   Notation "x <- e1 ; e2" := (Let e1 (fun x => e2))
     (right associativity, at level 80, e1 at next level) : cc_scope.
@@ -324,8 +333,6 @@ Ltac my_crush :=
 Section isfree.
   Import Source.
   Open Local Scope source_scope.
-
-  Hint Extern 3 False => omega.
 
   Fixpoint lookup_type (envT : list Source.type) (n : nat) {struct envT}
     : isfree envT -> option Source.type :=
@@ -505,12 +512,10 @@ Section isfree.
   Lemma lookup_bound_contra : forall t envT (fvs : isfree envT),
     lookup_type (length envT) fvs = Some t
     -> False.
-    intros; assert (length envT < length envT); eauto.
+    intros; assert (length envT < length envT); eauto; crush.
   Defined.
 
   Hint Resolve lookup_bound_contra.
-
-  Hint Extern 3 (_ = _) => elimtype False; omega.
 
   Lemma lookup_push_drop : forall v t t' envT fvs,
     v < length envT
@@ -624,17 +629,6 @@ Implicit Arguments lok [var n t envT fvs].
 
 Section lookup_hints.
   Hint Resolve lookup_bound_contra.
-
-  (*Ltac my_chooser T k :=
-    match T with
-      | ptype =>
-        match goal with
-          | [ H : lookup _ _ = Some ?t |- _ ] => k t
-        end
-      | _ => default_chooser T k
-    end.
-
-  Ltac my_matching := matching equation my_chooser.*)
 
   Hint Resolve lookup_bound_contra.
 
@@ -761,10 +755,13 @@ Section packing.
 
   Implicit Arguments env_prog [envT].
 
-  Axiom cheat : forall T, T.
-
   Import Source.
   Open Local Scope cc_scope.
+
+  Definition proj1 A B (pf : A /\ B) : A :=
+    let (x, _) := pf in x.
+  Definition proj2 A B (pf : A /\ B) : B :=
+    let (_, y) := pf in y.
 
   Fixpoint ccExp var t (e : Source.exp natvar t)
     (envT : list Source.type) (fvs : isfree envT)
@@ -812,7 +809,41 @@ Definition CcExp' t (E : Source.Exp t) (Hwf : wfExp (envT := nil) tt (E _)) : Pr
   fun _ => map_funcs (fun f => f tt) (ccExp (E _) (envT := nil) tt Hwf).
 
 
-(** * Correctness *)
+(** ** Examples *)
+
+Open Local Scope source_scope.
+
+Definition ident : Source.Exp (Nat --> Nat) := fun _ => \x, #x.
+Theorem ident_ok : wfExp (envT := nil) tt (ident _).
+  crush.
+Defined.
+Eval compute in CcExp' ident ident_ok.
+Eval compute in ProgDenote (CcExp' ident ident_ok).
+
+Definition app_ident : Source.Exp Nat := fun _ => ident _ @ ^0.
+Theorem app_ident_ok : wfExp (envT := nil) tt (app_ident _).
+  crush.
+Defined.
+Eval compute in CcExp' app_ident app_ident_ok.
+Eval compute in ProgDenote (CcExp' app_ident app_ident_ok).
+
+Definition first : Source.Exp (Nat --> Nat --> Nat) := fun _ =>
+  \x, \y, #x.
+Theorem first_ok : wfExp (envT := nil) tt (first _).
+  crush.
+Defined.
+Eval compute in CcExp' first first_ok.
+Eval compute in ProgDenote (CcExp' first first_ok).
+
+Definition app_first : Source.Exp Nat := fun _ => first _ @ ^1 @ ^0.
+Theorem app_first_ok : wfExp (envT := nil) tt (app_first _).
+  crush.
+Defined.
+Eval compute in CcExp' app_first app_first_ok.
+Eval compute in ProgDenote (CcExp' app_first app_first_ok).
+
+
+(** ** Correctness *)
 
 Section spliceFuncs_correct.
   Variables T1 T2 : Type.
@@ -914,9 +945,9 @@ Section packing_correct.
         apply False_rect; exact H
     end.
 
-  Theorem packExp_correct : forall v envT (fvs1 fvs2 : isfree envT)
+  Theorem packExp_correct : forall v t envT (fvs1 fvs2 : isfree envT)
     Hincl env,
-    lookup_type v fvs1 <> None
+    lookup_type v fvs1 = Some t
     -> lookup Closed.typeDenote v env
     == lookup Closed.typeDenote v
     (makeEnv (Closed.expDenote
@@ -925,10 +956,9 @@ Section packing_correct.
   Qed.
 End packing_correct.
 
-About packExp_correct.
 Implicit Arguments packExp_correct [v envT fvs1].
-
-Implicit Arguments lookup_type_more [v2 envT fvs t b v].
+Implicit Arguments lookup_type_inner [t t' envT v t'' fvs e].
+Implicit Arguments inclusion [t t' envT fvs e].
 
 Lemma typeDenote_same : forall t,
   Source.typeDenote t = Closed.typeDenote (ccType t).
@@ -936,14 +966,6 @@ Lemma typeDenote_same : forall t,
 Qed.
 
 Hint Resolve typeDenote_same.
-
-Lemma look : forall envT n (fvs : isfree envT) t,
-  lookup_type n fvs = Some t
-  -> Closed.typeDenote <| lookup_type n fvs = Source.typeDenote t.
-  crush.
-Qed.
-
-Implicit Arguments look [envT n fvs t].
 
 Fixpoint lr (t : Source.type) : Source.typeDenote t -> Closed.typeDenote (ccType t) -> Prop :=
   match t return Source.typeDenote t -> Closed.typeDenote (ccType t) -> Prop with
@@ -968,75 +990,53 @@ Theorem ccExp_correct : forall t G
         lr t v1 (match lok pf in _ = T return T with
                    | refl_equal => lookup Closed.typeDenote v2 env
                  end))
-      (*-> forall pf : lookup_type v2 fvs = Some t,
-        lr t v1 (match pf in _ = T return Closed.typeDenote <| T with
-                   | refl_equal => lookup Closed.typeDenote v2 env
-                 end))*)
     -> lr t (Source.expDenote e1) (Closed.expDenote (funcsDenote (ccExp e2 fvs wf) env)).
 
   Hint Rewrite spliceFuncs_correct unpackExp_correct : cpdt.
   Hint Resolve packExp_correct lookup_type_inner.
 
-  induction 1.
+  induction 1; crush.
 
-  crush.
-  crush.
-  crush.
-  crush.
-
-  crush.
-  apply (H0 x1 (length envT) (t1 :: envT) (true, snd (fvsExp (f2 (length envT)) (t1 :: envT)))).
-  clear H0.
-  crush.
-  eauto.
-  generalize (H1 _ _ _ H4).
-  crush.
-
-  crush.
-  generalize H3; clear_all.
   match goal with
-    | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
+    | [ IH : _, Hlr : lr ?T ?X1 ?X2, ENV : list Source.type, F2 : natvar _ -> _ |- _ ] =>
+      apply (IH X1 (length ENV) (T :: ENV) (true, snd (fvsExp (F2 (length ENV)) (T :: ENV))))
   end.
-  simpl.
-  destruct (eq_nat_dec (length envT) (length envT)); crush.
-  rewrite (UIP_refl _ _ e0); assumption.
 
+  crush.
+  match goal with
+    | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In _ _ |- _ ] =>
+      generalize (Hlt _ _ _ Hin); crush
+  end.
+
+  crush;
   match goal with
     | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
-  end; simpl.
-  destruct (eq_nat_dec v2 (length envT)); crush.
-  generalize (H1 _ _ _ H5).
-  crush.
-  generalize (H2 _ _ _ H5).
-  clear H2; intro H2.
-  generalize (H2 (lookup_type_inner _ _ _ _ _ wf pf)).
-  clear H2; intro H2.
-  generalize H2; clear_all.
+  end; simpl;
+  match goal with
+    | [ |- context[if ?E then _ else _] ] => destruct E
+  end; intuition; subst;
+  try match goal with
+        | [ |- context[match ?pf with refl_equal => _ end] ] => rewrite (UIP_refl _ _ pf); assumption
+        | [ Hlt : forall t v1 v2, _ -> _ < _, Hin : In (existT _ _ (_, length _)) _ |- _ ] =>
+          generalize (Hlt _ _ _ Hin); crush
+      end.
+
+  generalize (H2 _ _ _ H5 (lookup_type_inner wf pf)); clear_all.
   repeat match goal with
            | [ |- context[match ?pf with refl_equal => _ end] ] => generalize pf
          end; simpl.
-
-  match type of pf with
-    | ?X = _ => assert (X <> None)
-  end.
-  congruence.
-  assert (forall (n : nat) (t0 : Source.type),
-    lookup_type (envT:=envT) n (snd (fvsExp (f2 (length envT)) (t1 :: envT))) = Some t0 ->
-    lookup_type (envT:=envT) n fvs = Some t0).
-  eauto.
-  generalize (packExp_correct fvs (inclusion t1 envT fvs (f2 (length envT)) wf) env H).
-  simpl.
+  generalize (packExp_correct _ fvs (inclusion wf) env pf); simpl.
   match goal with
     | [ |- ?X == ?Y -> _ ] =>
       generalize X Y
   end.
   rewrite pf.
-  rewrite (lookup_type_inner _ _ _ _ _ wf pf).
+  rewrite (lookup_type_inner wf pf).
   crush.
-  rewrite (UIP_refl _ _ e0).
-  rewrite (UIP_refl _ _ e1) in H2.
-  crush.
-  rewrite <- H1.
+  repeat match goal with
+           | [ H : _ = _ |- _ ] => rewrite (UIP_refl _ _ H) in *
+         end.
+  rewrite <- H.
   assumption.
 Qed.
 
