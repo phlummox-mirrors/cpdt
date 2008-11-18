@@ -39,6 +39,76 @@ Infix "@" := App (left associativity, at level 72).
 Notation "\ x , e" := (Abs (fun x => e)) (at level 73).
 Notation "\ ? , e" := (Abs (fun _ => e)) (at level 73).
 
+Definition Term := forall var, term var.
+
+Definition ident : Term := fun _ => \x, #x.
+Definition unite : Term := fun _ => ().
+Definition ident_self : Term := fun _ => ident _ @ ident _.
+Definition ident_unit : Term := fun _ => ident _ @ unite _.
+
+
+Module impredicative.
+  Inductive dynamic : Set :=
+  | Dyn : forall (dynTy : Type), dynTy -> dynamic.
+
+  Inductive computation (T : Type) : Set :=
+  | Return : T -> computation T
+  | Bind : forall (T' : Type),
+    computation T' -> (T' -> computation T) -> computation T
+  | Unpack : dynamic -> computation T.
+
+  Inductive eval : forall T, computation T -> T -> Prop :=
+  | EvalReturn : forall T (v : T),
+    eval (Return v) v
+  | EvalUnpack : forall T (v : T),
+    eval (Unpack T (Dyn v)) v
+  | EvalBind : forall T1 T2 (c1 : computation T1) (c2 : T1 -> computation T2) v1 v2,
+    eval c1 v1
+    -> eval (c2 v1) v2
+    -> eval (Bind c1 c2) v2.
+
+  Fixpoint termDenote (e : term dynamic) : computation dynamic :=
+    match e with
+      | Var v => Return v
+      | App e1 e2 => Bind (termDenote e1) (fun f =>
+        Bind (termDenote e2) (fun x =>
+          Bind (Unpack (dynamic -> computation dynamic) f) (fun f' =>
+            f' x)))
+      | Abs e' => Return (Dyn (fun x => termDenote (e' x)))
+
+      | Unit => Return (Dyn tt)
+    end.
+
+  Definition TermDenote (E : Term) := termDenote (E _).
+
+  Eval compute in TermDenote ident.
+  Eval compute in TermDenote unite.
+  Eval compute in TermDenote ident_self.
+  Eval compute in TermDenote ident_unit.
+
+  Theorem eval_ident_unit : eval (TermDenote ident_unit) (Dyn tt).
+    compute.
+    repeat econstructor.
+    simpl.
+    constructor.
+  Qed.
+
+  Theorem invert_ident : forall (E : Term) d,
+    eval (TermDenote (fun _ => ident _ @ E _)) d
+    -> eval (TermDenote E) d.
+    inversion 1.
+
+    crush.
+
+    Focus 3.
+    crush.
+    unfold TermDenote in H0.
+    simpl in H0.
+    (** [injection H0.] *)
+  Abort.
+
+End impredicative.
+
 
 Module predicative.
 
@@ -88,19 +158,11 @@ Module predicative.
       | Unit => Return VUnit
     end.
 
-  Definition Term := forall var, term var.
   Definition TermDenote (E : Term) := termDenote (E _).
 
-  Definition ident : Term := fun _ => \x, #x.
   Eval compute in TermDenote ident.
-
-  Definition unite : Term := fun _ => ().
   Eval compute in TermDenote unite.
-
-  Definition ident_self : Term := fun _ => ident _ @ ident _.
   Eval compute in TermDenote ident_self.
-
-  Definition ident_unit : Term := fun _ => ident _ @ unite _.
   Eval compute in TermDenote ident_unit.
 
   Theorem eval_ident_unit : exists ds, eval nil (TermDenote ident_unit) ds VUnit.
