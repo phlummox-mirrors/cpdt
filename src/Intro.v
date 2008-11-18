@@ -213,6 +213,8 @@ Extensional Transformations & \texttt{Extensional.v} \\
 \hline
 Intensional Transformations & \texttt{Intensional.v} \\
 \hline
+Modeling Impure Languages & \texttt{Impure.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)

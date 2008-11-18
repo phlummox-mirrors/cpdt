@@ -34,3 +34,9 @@ Qed.
 
 Ltac ext_eq := (apply ext_eq || apply ext_eq_Set
   || apply ext_eq_forall); intro.
+
+
+Theorem eta : forall (A B : Type) (f : A -> B),
+  (fun x => f x) = f.
+  intros; ext_eq; trivial.
+Qed.
