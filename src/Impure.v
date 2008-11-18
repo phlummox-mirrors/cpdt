@@ -67,6 +67,7 @@ Module impredicative.
     -> eval (c2 v1) v2
     -> eval (Bind c1 c2) v2.
 
+(* begin thide *)
   Fixpoint termDenote (e : term dynamic) : computation dynamic :=
     match e with
       | Var v => Return v
@@ -78,6 +79,7 @@ Module impredicative.
 
       | Unit => Return (Dyn tt)
     end.
+(* end thide *)
 
   Definition TermDenote (E : Term) := termDenote (E _).
 
@@ -87,15 +89,18 @@ Module impredicative.
   Eval compute in TermDenote ident_unit.
 
   Theorem eval_ident_unit : eval (TermDenote ident_unit) (Dyn tt).
+(* begin thide *)
     compute.
     repeat econstructor.
     simpl.
     constructor.
   Qed.
+(* end thide *)
 
   Theorem invert_ident : forall (E : Term) d,
     eval (TermDenote (fun _ => ident _ @ E _)) d
     -> eval (TermDenote E) d.
+(* begin thide *)
     inversion 1.
 
     crush.
@@ -106,6 +111,7 @@ Module impredicative.
     simpl in H0.
     (** [injection H0.] *)
   Abort.
+(* end thide *)
 
 End impredicative.
 
@@ -147,6 +153,7 @@ Module predicative.
     -> eval ds (f d2) ds' d3
     -> eval ds (CApp (Func i) d2) ds' d3.
 
+(* begin thide *)
   Fixpoint termDenote (e : term val) : computation :=
     match e with
       | Var v => Return v
@@ -157,6 +164,7 @@ Module predicative.
 
       | Unit => Return VUnit
     end.
+(* end thide *)
 
   Definition TermDenote (E : Term) := termDenote (E _).
 
@@ -166,6 +174,7 @@ Module predicative.
   Eval compute in TermDenote ident_unit.
 
   Theorem eval_ident_unit : exists ds, eval nil (TermDenote ident_unit) ds VUnit.
+(* begin thide *)
     compute.
     repeat econstructor.
     simpl.
@@ -207,10 +216,12 @@ Module predicative.
         | [ |- context[if ?E then _ else _] ] => destruct E
       end; crush.
   Qed.
+(* end thide *)
 
   Theorem invert_ident : forall (E : Term) ds ds' d,
     eval ds (TermDenote (fun _ => ident _ @ E _)) ds' d
     -> eval ((fun x => Return x) :: ds) (TermDenote E) ds' d.
+(* begin thide *)
     inversion 1; subst.
     clear H.
     inversion H3; clear H3; subst.
@@ -222,5 +233,6 @@ Module predicative.
     inversion H7; clear H7; subst.
     assumption.
   Qed.
+(* end thide *)
 
 End predicative.
