@@ -74,3 +74,47 @@ Definition list_den (A : Type) : datatypeDenote (list A) (list_dt A) :=
   [!, ! ~> nil] ::: [x, r # 1 ~> x :: hd r] ::: hnil.
 Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
   [v, ! ~> Leaf v] ::: [!, r # 2 ~> Node (hd r) (hd (tl r))] ::: hnil.
+
+Definition fixDenote (T : Type) (dt : datatype) :=
+  forall (R : Type), datatypeDenote R dt -> (T -> R).
+
+Definition size T dt (fx : fixDenote T dt) : T -> nat :=
+  fx nat (hmake (B := constructorDenote nat) (fun _ _ r => foldr plus 1 r) dt).
+
+Definition Empty_set_fix : fixDenote Empty_set Empty_set_dt :=
+  fun R _ emp => match emp with end.
+Eval compute in size Empty_set_fix.
+
+Definition unit_fix : fixDenote unit unit_dt :=
+  fun R cases _ => (fst cases) tt inil.
+Eval compute in size unit_fix.
+
+Definition bool_fix : fixDenote bool bool_dt :=
+  fun R cases b => if b
+    then (fst cases) tt inil
+    else (fst (snd cases)) tt inil.
+Eval compute in size bool_fix.
+
+Definition nat_fix : fixDenote nat nat_dt :=
+  fun R cases => fix F (n : nat) : R :=
+    match n with
+      | O => (fst cases) tt inil
+      | S n' => (fst (snd cases)) tt (icons (F n') inil)
+    end.
+Eval cbv beta iota delta -[plus] in size nat_fix.
+
+Definition list_fix (A : Type) : fixDenote (list A) (list_dt A) :=
+  fun R cases => fix F (ls : list A) : R :=
+    match ls with
+      | nil => (fst cases) tt inil
+      | x :: ls' => (fst (snd cases)) x (icons (F ls') inil)
+    end.
+Eval cbv beta iota delta -[plus] in fun A => size (@list_fix A).
+
+Definition tree_fix (A : Type) : fixDenote (tree A) (tree_dt A) :=
+  fun R cases => fix F (t : tree A) : R :=
+    match t with
+      | Leaf x => (fst cases) x inil
+      | Node t1 t2 => (fst (snd cases)) tt (icons (F t1) (icons (F t2) inil))
+    end.
+Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
