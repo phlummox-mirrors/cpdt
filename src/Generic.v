@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import List.
+Require Import String List.
 
 Require Import Tactics DepList.
 
@@ -23,7 +23,7 @@ Set Implicit Arguments.
 (** TODO: Prose for this chapter *)
 
 
-(** * Simple Algebraic Datatypes *)
+(** * Reflecting Datatype Definitions *)
 
 Record constructor : Type := Con {
   nonrecursive : Type;
@@ -75,6 +75,9 @@ Definition list_den (A : Type) : datatypeDenote (list A) (list_dt A) :=
 Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
   [v, ! ~> Leaf v] ::: [!, r # 2 ~> Node (hd r) (hd (tl r))] ::: hnil.
 
+
+(** * Recursive Definitions *)
+
 Definition fixDenote (T : Type) (dt : datatype) :=
   forall (R : Type), datatypeDenote R dt -> (T -> R).
 
@@ -118,3 +121,45 @@ Definition tree_fix (A : Type) : fixDenote (tree A) (tree_dt A) :=
       | Node t1 t2 => (fst (snd cases)) tt (icons (F t1) (icons (F t2) inil))
     end.
 Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
+
+
+(** ** Pretty-Printing *)
+
+Record print_constructor (c : constructor) : Type := PI {
+  printName : string;
+  printNonrec : nonrecursive c -> string
+}.
+
+Notation "^" := (PI (Con _ _)).
+
+Definition print_datatype := hlist print_constructor.
+
+Open Local Scope string_scope.
+
+Definition print T dt (pr : print_datatype dt) (fx : fixDenote T dt) : T -> string :=
+  fx string (hmap (B1 := print_constructor) (B2 := constructorDenote string)
+    (fun _ pc x r => printName pc ++ "(" ++ printNonrec pc x
+      ++ foldr (fun s acc => ", " ++ s ++ acc) ")" r) pr).
+
+Eval compute in print hnil Empty_set_fix.
+Eval compute in print (^ "tt" (fun _ => "") ::: hnil) unit_fix.
+Eval compute in print (^ "true" (fun _ => "")
+  ::: ^ "false" (fun _ => "")
+  ::: hnil) bool_fix.
+
+Definition print_nat := print (^ "O" (fun _ => "")
+  ::: ^ "S" (fun _ => "")
+  ::: hnil) nat_fix.
+Eval cbv beta iota delta -[append] in print_nat.
+Eval simpl in print_nat 0.
+Eval simpl in print_nat 1.
+Eval simpl in print_nat 2.
+
+Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
+  print (^ "nil" (fun _ => "")
+  ::: ^ "cons" pr
+  ::: hnil) (@list_fix A).
+Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
+  print (^ "Leaf" pr
+  ::: ^ "Node" (fun _ => "")
+  ::: hnil) (@tree_fix A).
