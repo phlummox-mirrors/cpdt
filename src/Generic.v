@@ -163,3 +163,89 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
   print (^ "Leaf" pr
   ::: ^ "Node" (fun _ => "")
   ::: hnil) (@tree_fix A).
+
+
+(** ** Mapping *)
+
+Definition map T dt (dd : datatypeDenote T dt) (fx : fixDenote T dt) (f : T -> T) : T -> T :=
+  fx T (hmap (B1 := constructorDenote T) (B2 := constructorDenote T)
+    (fun _ c x r => f (c x r)) dd).
+
+Eval compute in map Empty_set_den Empty_set_fix.
+Eval compute in map unit_den unit_fix.
+Eval compute in map bool_den bool_fix.
+Eval compute in map nat_den nat_fix.
+Eval compute in fun A => map (list_den A) (@list_fix A).
+Eval compute in fun A => map (tree_den A) (@tree_fix A).
+
+Definition map_nat := map nat_den nat_fix.
+Eval simpl in map_nat S 0.
+Eval simpl in map_nat S 1.
+Eval simpl in map_nat S 2.
+
+
+(** * Proving Theorems about Recursive Definitions *)
+
+Section ok.
+  Variable T : Type.
+  Variable dt : datatype.
+
+  Variable dd : datatypeDenote T dt.
+  Variable fx : fixDenote T dt.
+
+  Definition datatypeDenoteOk :=
+    forall P : T -> Prop,
+      (forall c (m : member c dt) (x : nonrecursive c) (r : ilist T (recursive c)),
+        (forall i : index (recursive c), P (get r i))
+        -> P ((hget dd m) x r))
+      -> forall v, P v.
+
+  Definition fixDenoteOk :=
+    forall (R : Type) (cases : datatypeDenote R dt)
+      c (m : member c dt)
+      (x : nonrecursive c) (r : ilist T (recursive c)),
+      fx R cases ((hget dd m) x r)
+      = (hget cases m) x (imap (fx R cases) r).
+
+  Section ind.
+    Hypothesis dok : datatypeDenoteOk.
+    Hypothesis fok : fixDenoteOk.
+
+    Variable R : Type.
+    Variable cases : datatypeDenote R dt.
+
+    Variable P : R -> Prop.
+
+    Variable ind_case : forall c (m : member c dt)
+      (x : nonrecursive c) (r : ilist T (recursive c)),
+      (forall i : index (recursive c),
+        P (fx R cases (get r i)))
+      -> P ((hget cases m) x (imap (fx R cases) r)).
+
+    Theorem ind : forall v, P (fx R cases v).
+      intro; apply (dok (fun v => P (fx R cases v))); intros.
+      rewrite fok.
+      auto.
+    Qed.
+  End ind.
+
+End ok.
+
+Implicit Arguments datatypeDenoteOk [T dt].
+
+Lemma foldr_plus : forall n (ils : ilist nat n),
+  foldr plus 1 ils > 0.
+  induction n; crush.
+  generalize (IHn b); crush.
+Qed.
+
+Theorem size_positive : forall T dt (fx : fixDenote T dt)
+  (dd : datatypeDenote T dt) (dok : datatypeDenoteOk dd)
+  (fok : fixDenoteOk dd fx)
+  (v : T),
+  size fx v > 0.
+  Hint Rewrite hget_hmake : cpdt.
+  Hint Resolve foldr_plus.
+ 
+  unfold size; intros; apply (ind dok fok); crush.
+Qed.

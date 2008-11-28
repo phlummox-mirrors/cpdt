@@ -102,6 +102,19 @@ Implicit Arguments get [A n].
 Implicit Arguments map2 [A n].
 Implicit Arguments foldr [A B n].
 
+Section imap.
+  Variables A B : Type.
+  Variable f : A -> B.
+
+  Fixpoint imap (n : nat) : ilist A n -> ilist B n :=
+    match n return ilist A n -> ilist B n with
+      | O => fun _ => inil
+      | S n' => fun ls => icons (f (hd ls)) (imap _ (tl ls))
+    end.
+End imap.
+
+Implicit Arguments imap [A B n].
+
 Section hlist.
   Variable A : Type.
   Variable B : A -> Type.
@@ -154,6 +167,14 @@ Section hlist.
       | nil => hnil
       | x :: ls' => hcons _ (f x) (hmake ls')
     end.
+
+  Implicit Arguments hget [ls].
+
+  Theorem hget_hmake : forall ls (m : member ls),
+    hget (hmake ls) m = f elm.
+    induction ls; crush.
+    case a0; reflexivity.
+  Qed.
 End hlist.
 
 Implicit Arguments hnil [A B].
