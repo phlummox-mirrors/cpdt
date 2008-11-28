@@ -25,6 +25,9 @@ Set Implicit Arguments.
 
 (** * Reflecting Datatype Definitions *)
 
+(* EX: Define a reflected representation of simple algebraic datatypes. *)
+
+(* begin thide *)
 Record constructor : Type := Con {
   nonrecursive : Type;
   recursive : nat
@@ -37,6 +40,7 @@ Definition unit_dt : datatype := Con unit 0 :: nil.
 Definition bool_dt : datatype := Con unit 0 :: Con unit 0 :: nil.
 Definition nat_dt : datatype := Con unit 0 :: Con unit 1 :: nil.
 Definition list_dt (A : Type) : datatype := Con unit 0 :: Con A 1 :: nil.
+(* end thide *)
 
 Section tree.
   Variable A : Type.
@@ -46,6 +50,7 @@ Section tree.
   | Node : tree -> tree -> tree.
 End tree.
 
+(* begin thide *)
 Definition tree_dt (A : Type) : datatype := Con A 0 :: Con unit 2 :: nil.
 
 Section denote.
@@ -56,12 +61,14 @@ Section denote.
 
   Definition datatypeDenote := hlist constructorDenote.
 End denote.
+(* end thide *)
 
 Notation "[ ! , ! ~> x ]" := ((fun _ _ => x) : constructorDenote _ (Con _ _)).
 Notation "[ v , ! ~> x ]" := ((fun v _ => x) : constructorDenote _ (Con _ _)).
 Notation "[ ! , r # n ~> x ]" := ((fun _ r => x) : constructorDenote _ (Con _ n)).
 Notation "[ v , r # n ~> x ]" := ((fun v r => x) : constructorDenote _ (Con _ n)).
 
+(* begin thide *)
 Definition Empty_set_den : datatypeDenote Empty_set Empty_set_dt :=
   hnil.
 Definition unit_den : datatypeDenote unit unit_dt :=
@@ -74,10 +81,14 @@ Definition list_den (A : Type) : datatypeDenote (list A) (list_dt A) :=
   [!, ! ~> nil] ::: [x, r # 1 ~> x :: hd r] ::: hnil.
 Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
   [v, ! ~> Leaf v] ::: [!, r # 2 ~> Node (hd r) (hd (tl r))] ::: hnil.
+(* end thide *)
 
 
 (** * Recursive Definitions *)
 
+(* EX: Define a generic [size] function. *)
+
+(* begin thide *)
 Definition fixDenote (T : Type) (dt : datatype) :=
   forall (R : Type), datatypeDenote R dt -> (T -> R).
 
@@ -121,10 +132,14 @@ Definition tree_fix (A : Type) : fixDenote (tree A) (tree_dt A) :=
       | Node t1 t2 => (fst (snd cases)) tt (icons (F t1) (icons (F t2) inil))
     end.
 Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
+(* end thide *)
 
 
 (** ** Pretty-Printing *)
 
+(* EX: Define a generic pretty-printing function. *)
+
+(* begin thide *)
 Record print_constructor (c : constructor) : Type := PI {
   printName : string;
   printNonrec : nonrecursive c -> string
@@ -140,6 +155,7 @@ Definition print T dt (pr : print_datatype dt) (fx : fixDenote T dt) : T -> stri
   fx string (hmap (B1 := print_constructor) (B2 := constructorDenote string)
     (fun _ pc x r => printName pc ++ "(" ++ printNonrec pc x
       ++ foldr (fun s acc => ", " ++ s ++ acc) ")" r) pr).
+(* end thide *)
 
 Eval compute in print hnil Empty_set_fix.
 Eval compute in print (^ "tt" (fun _ => "") ::: hnil) unit_fix.
@@ -167,9 +183,13 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
 
 (** ** Mapping *)
 
+(* EX: Define a generic [map] function. *)
+
+(* begin thide *)
 Definition map T dt (dd : datatypeDenote T dt) (fx : fixDenote T dt) (f : T -> T) : T -> T :=
   fx T (hmap (B1 := constructorDenote T) (B2 := constructorDenote T)
     (fun _ c x r => f (c x r)) dd).
+(* end thide *)
 
 Eval compute in map Empty_set_den Empty_set_fix.
 Eval compute in map unit_den unit_fix.
@@ -186,6 +206,7 @@ Eval simpl in map_nat S 2.
 
 (** * Proving Theorems about Recursive Definitions *)
 
+(* begin thide *)
 Section ok.
   Variable T : Type.
   Variable dt : datatype.
@@ -215,23 +236,27 @@ Lemma foldr_plus : forall n (ils : ilist nat n),
   induction n; crush.
   generalize (IHn b); crush.
 Qed.
+(* end thide *)
 
 Theorem size_positive : forall T dt
   (dd : datatypeDenote T dt) (fx : fixDenote T dt)
   (dok : datatypeDenoteOk dd) (fok : fixDenoteOk dd fx)
   (v : T),
   size fx v > 0.
+(* begin thide *)
   Hint Rewrite hget_hmake : cpdt.
   Hint Resolve foldr_plus.
  
   unfold size; intros; pattern v; apply dok; crush.
 Qed.
+(* end thide *)
 
 Theorem map_id : forall T dt
   (dd : datatypeDenote T dt) (fx : fixDenote T dt)
   (dok : datatypeDenoteOk dd) (fok : fixDenoteOk dd fx)
   (v : T),
   map dd fx (fun x => x) v = v.
+(* begin thide *)
   Hint Rewrite hget_hmap : cpdt.
 
   unfold map; intros; pattern v; apply dok; crush.
@@ -248,3 +273,4 @@ Theorem map_id : forall T dt
   apply IHn; crush.
   apply (H (Some i0)).
 Qed.
+(* end thide *)
