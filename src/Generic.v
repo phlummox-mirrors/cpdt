@@ -206,29 +206,6 @@ Section ok.
       (x : nonrecursive c) (r : ilist T (recursive c)),
       fx R cases ((hget dd m) x r)
       = (hget cases m) x (imap (fx R cases) r).
-
-  Section ind.
-    Hypothesis dok : datatypeDenoteOk.
-    Hypothesis fok : fixDenoteOk.
-
-    Variable R : Type.
-    Variable cases : datatypeDenote R dt.
-
-    Variable P : R -> Prop.
-
-    Variable ind_case : forall c (m : member c dt)
-      (x : nonrecursive c) (r : ilist T (recursive c)),
-      (forall i : index (recursive c),
-        P (fx R cases (get r i)))
-      -> P ((hget cases m) x (imap (fx R cases) r)).
-
-    Theorem ind : forall v, P (fx R cases v).
-      intro; apply (dok (fun v => P (fx R cases v))); intros.
-      rewrite fok.
-      auto.
-    Qed.
-  End ind.
-
 End ok.
 
 Implicit Arguments datatypeDenoteOk [T dt].
@@ -239,13 +216,35 @@ Lemma foldr_plus : forall n (ils : ilist nat n),
   generalize (IHn b); crush.
 Qed.
 
-Theorem size_positive : forall T dt (fx : fixDenote T dt)
-  (dd : datatypeDenote T dt) (dok : datatypeDenoteOk dd)
-  (fok : fixDenoteOk dd fx)
+Theorem size_positive : forall T dt
+  (dd : datatypeDenote T dt) (fx : fixDenote T dt)
+  (dok : datatypeDenoteOk dd) (fok : fixDenoteOk dd fx)
   (v : T),
   size fx v > 0.
   Hint Rewrite hget_hmake : cpdt.
   Hint Resolve foldr_plus.
  
-  unfold size; intros; apply (ind dok fok); crush.
+  unfold size; intros; pattern v; apply dok; crush.
+Qed.
+
+Theorem map_id : forall T dt
+  (dd : datatypeDenote T dt) (fx : fixDenote T dt)
+  (dok : datatypeDenoteOk dd) (fok : fixDenoteOk dd fx)
+  (v : T),
+  map dd fx (fun x => x) v = v.
+  Hint Rewrite hget_hmap : cpdt.
+
+  unfold map; intros; pattern v; apply dok; crush.
+  match goal with
+    | [ |- hget _ _ _ ?R1 = hget _ _ _ ?R2 ] => replace R1 with R2
+  end; crush.
+
+  induction (recursive c); crush.
+  destruct r; reflexivity.
+  destruct r; crush.
+  rewrite (H None).
+  unfold icons.
+  f_equal.
+  apply IHn; crush.
+  apply (H (Some i0)).
 Qed.

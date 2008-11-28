@@ -207,6 +207,12 @@ Section hmap.
     hmap h1 +++ hmap h2 = hmap (h1 +++ h2).
     induction ls1; crush.
   Qed.
+
+  Theorem hget_hmap : forall elm ls (hls : hlist B1 ls) (m : member elm ls),
+    hget (hmap hls) m = f (hget hls m).
+    induction ls; crush.
+    case a1; crush.
+  Qed.
 End hmap.
 
 Implicit Arguments hmap [A B1 B2 ls].
