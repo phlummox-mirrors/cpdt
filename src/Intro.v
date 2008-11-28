@@ -215,6 +215,8 @@ Intensional Transformations & \texttt{Intensional.v} \\
 \hline
 Modeling Impure Languages & \texttt{Impure.v} \\
 \hline
+Generic Programming & \texttt{Generic.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)
