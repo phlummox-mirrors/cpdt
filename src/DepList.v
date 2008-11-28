@@ -80,11 +80,27 @@ Section ilist.
         | S n' => fun ls1 ls2 => icons (f (hd ls1) (hd ls2)) (map2 _ (tl ls1) (tl ls2))
       end.
   End map2.
+
+  Section fold.
+    Variable B : Type.
+    Variable f : A -> B -> B.
+    Variable i : B.
+
+    Fixpoint foldr (n : nat) : ilist n -> B :=
+      match n return ilist n -> B with
+        | O => fun _ => i
+        | S n' => fun ils => f (hd ils) (foldr n' (tl ils))
+      end.
+  End fold.
 End ilist.
+
+Implicit Arguments inil [A].
+Implicit Arguments icons [A n].
 
 Implicit Arguments icons [A n].
 Implicit Arguments get [A n].
 Implicit Arguments map2 [A n].
+Implicit Arguments foldr [A B n].
 
 Section hlist.
   Variable A : Type.
@@ -130,12 +146,21 @@ Section hlist.
       | nil => fun _ hls2 => hls2
       | _ :: _ => fun hls1 hls2 => (fst hls1, happ _ _ (snd hls1) hls2)
     end.
+
+  Variable f : forall x, B x.
+
+  Fixpoint hmake (ls : list A) : hlist ls :=
+    match ls return hlist ls with
+      | nil => hnil
+      | x :: ls' => hcons _ (f x) (hmake ls')
+    end.
 End hlist.
 
 Implicit Arguments hnil [A B].
 Implicit Arguments hcons [A B x ls].
 Implicit Arguments hget [A B elm ls].
 Implicit Arguments happ [A B ls1 ls2].
+Implicit Arguments hmake [A B].
 
 Implicit Arguments hfirst [A elm x ls].
 Implicit Arguments hnext [A elm x ls].
