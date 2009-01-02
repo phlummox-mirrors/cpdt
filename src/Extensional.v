@@ -1013,7 +1013,7 @@ End PatMatch.
 
   It might also seem that beta reduction is a lost cause because we have no effective way of substituting in the [exp] type; we only managed to write a substitution function for the parametric [Exp] type.  This is not as big of a problem as it seems.  For instance, for the language we built by extending simply-typed lambda calculus with products and sums, it also appears that we need substitution for simplifying [case] expressions whose discriminees are known to be [inl] or [inr], but the function is still implementable.
 
-  For this exercise, extend the products and sums constant folder from the last chapter so that it simplifies [case] expressions as well, by checking if the discriminee is a known [inl] or known [inr].  Also extend the correctness theorem to apply to your new definition.  You will probably want to assert an axiom relating to an expression equivalence relation like the one defined in this chapter.
+  For this exercise, extend the products and sums constant folder from the last chapter so that it simplifies [case] expressions as well, by checking if the discriminee is a known [inl] or known [inr].  Also extend the correctness theorem to apply to your new definition.  You will probably want to assert an axiom relating to an expression equivalence relation like the one defined in this chapter.  Any such axiom should only mention syntax; it should not mention any compilation or denotation functions.  Following the format of the axiom from the last chapter is the safest bet to avoid proving a worthless theorem.
  #</li>#
    
 #</ol>#%\end{enumerate}% *)
