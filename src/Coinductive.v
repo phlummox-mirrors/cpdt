@@ -467,7 +467,7 @@ Print constFold_ok.
   %\item%#<li># Define a function [map] for building an output tree out of two input trees by traversing them in parallel and applying a two-argument function to their corresponding data values.#</li>#
   %\item%#<li># Define a tree [falses] where every node has the value [false].#</li>#
   %\item%#<li># Define a tree [true_false] where the root node has value [true], its children have value [false], all nodes at the next have the value [true], and so on, alternating boolean values from level to level.#</li>#
-  %\item%#<li># Prove that [true_falses] is equal to the result of mapping the boolean "or" function [orb] over [true_false] and [falses].  You can make [orb] available with [Require Import Bool.].  You may find the lemma [orb_false_r] from the same module helpful.  Your proof here should not be about the standard equality [=], but rather about some new equality relation that you define.#</li>#
+  %\item%#<li># Prove that [true_false] is equal to the result of mapping the boolean "or" function [orb] over [true_false] and [falses].  You can make [orb] available with [Require Import Bool.].  You may find the lemma [orb_false_r] from the same module helpful.  Your proof here should not be about the standard equality [=], but rather about some new equality relation that you define.#</li>#
 #</ol>#%\end{enumerate}% #</li>#
 
 #</ol>#%\end{enumerate}% *)

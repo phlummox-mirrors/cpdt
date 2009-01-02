@@ -137,13 +137,13 @@ Ltac crush' lemmas invOne :=
 
 Ltac crush := crush' false fail.
 
-Theorem dep_destruct : forall (T : Type) (T' : T -> Type) x (v : T' x) (P : T' x -> Prop),
+Theorem dep_destruct : forall (T : Type) (T' : T -> Type) x (v : T' x) (P : T' x -> Type),
   (forall x' (v' : T' x') (Heq : x' = x), P (match Heq in (_ = x) return (T' x) with
                                                | refl_equal => v'
                                              end))
   -> P v.
   intros.
-  generalize (H _ v (refl_equal _)); trivial.
+  generalize (X _ v (refl_equal _)); trivial.
 Qed.
 
 Ltac dep_destruct E :=
