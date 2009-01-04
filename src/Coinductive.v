@@ -22,7 +22,13 @@ Set Implicit Arguments.
 
 Laziness is easy to implement in Haskell, where all the definitions in a program may be thought of as mutually recursive.  In such an unconstrained setting, it is easy to implement an infinite loop when you really meant to build an infinite list, where any finite prefix of the list should be forceable in finite time.  Haskell programmers learn how to avoid such slip-ups.  In Coq, such a laissez-faire policy is not good enough.
 
-We spent some time in the last chapter discussing the Curry-Howard isomorphism, where proofs are identified with functional programs.  In such a setting, infinite loops, intended or otherwise, are disastrous.  If Coq allowed the full breadth of definitions that Haskell did, we could code up an infinite loop and use it to prove any proposition vacuously.  That is, the addition of general recursion would make CIC %\textit{%#<i>#inconsistent#</i>#%}%.
+We spent some time in the last chapter discussing the Curry-Howard isomorphism, where proofs are identified with functional programs.  In such a setting, infinite loops, intended or otherwise, are disastrous.  If Coq allowed the full breadth of definitions that Haskell did, we could code up an infinite loop and use it to prove any proposition vacuously.  That is, the addition of general recursion would make CIC %\textit{%#<i>#inconsistent#</i>#%}%.  For an arbitrary proposition [P], we could write:
+
+[[
+
+Fixpoint bad (u : unit) : P := bad u.
+
+This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 
@@ -83,15 +89,12 @@ Eval simpl in approx trues 10.
      : list bool
      ]] *)
 
-(* begin thide *)
 (** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints %\textit{%#<i>#consume#</i>#%}% values of inductive types, with restrictions on which %\textit{%#<i>#arguments#</i>#%}% may be passed in recursive calls.  Dually, co-fixpoints %\textit{%#<i>#produce#</i>#%}% values of co-inductive types, with restrictions on what may be done with the %\textit{%#<i>#results#</i>#%}% of co-recursive calls.
 
 The restriction for co-inductive types shows up as the %\textit{%#<i>#guardedness condition#</i>#%}%, and it can be broken into two parts.  First, consider this stream definition, which would be legal in Haskell.
 
 [[
-(* end thide *)
 CoFixpoint looper : stream nat := looper.
-(* begin thide *)
 [[
 Error:
 Recursive definition of looper is ill-formed.
@@ -100,7 +103,7 @@ looper : stream nat
 
 unguarded recursive call in "looper"
 *)
-(* end thide *)
+
 
 (** The rule we have run afoul of here is that %\textit{%#<i>#every co-recursive call must be guarded by a constructor#</i>#%}%; that is, every co-recursive call must be a direct argument to a constructor of the co-inductive type we are generating.  It is a good thing that this rule is enforced.  If the definition of [looper] were accepted, our [approx] function would run forever when passed [looper], and we would have fallen into inconsistency.
 
@@ -137,13 +140,11 @@ Section map'.
 
 (* begin thide *)
   (** [[
-(* end thide *)
 
   CoFixpoint map' (s : stream A) : stream B :=
     match s with
       | Cons h t => interleave (Cons (f h) (map' s)) (Cons (f h) (map' s))
     end.
-(* begin thide *)
    *)
 
   (** We get another error message about an unguarded recursive call.  This is because we are violating the second guardedness condition, which says that, not only must co-recursive calls be arguments to constructors, there must also %\textit{%#<i>#not be anything but [match]es and calls to constructors of the same co-inductive type#</i>#%}% wrapped around these immediate uses of co-recursive calls.  The actual implemented rule for guardedness is a little more lenient than what we have just stated, but you can count on the illegality of any exception that would enhance the expressive power of co-recursion.
@@ -359,7 +360,7 @@ Section regmap.
     end.
 End regmap.
 
-(** Now comes the interesting part. We define a co-inductive semantics for programs.  The definition itself is not surprising.  We could change [CoInductive] to [Inductive] and arrive at a valid semantics that only covers terminating program executions.  Using [CoInductive] admits infinite derivations for infinite executions. *)
+(** Now comes the interesting part. We define a co-inductive semantics for programs.  The definition itself is not surprising.  We could change [CoInductive] to [Inductive] and arrive at a valid semantics that only covers terminating program executions.  Using [CoInductive] admits infinite derivations for infinite executions.  An application [run rm is v] means that, when we run the instructions [is] starting with register map [rm], either execution terminates with result [v] or execution runs safely forever.  (That is, the choice of [v] is immaterial for non-terminating executions.) *)
 
 Section run.
   Variable prog : program.

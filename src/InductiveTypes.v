@@ -449,19 +449,15 @@ Implicit Arguments Nil [T].
 
 (** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed. *)
 
-Check list.
+Print list.
 (** [[
 
-list
-     : Set -> Set
-]] *)
 
-Check Cons.
-(** [[
+Inductive list (T : Set) : Set :=
+    Nil : list T | Cons : T -> list T -> list Tlist
+]]
 
-Cons
-     : forall T : Set, T -> list T -> list T
-]] *)
+The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
 
 Check length.
 (** [[
@@ -470,7 +466,7 @@ length
      : forall T : Set, list T -> nat
 ]]
 
-The extra parameter [T] is treated as a new argument to the induction principle, too. *)
+The parameter [T] is treated as a new argument to the induction principle, too. *)
 
 Check list_ind.
 (** [[
@@ -1093,7 +1089,7 @@ This is the point in the proof where we apply some creativity.  We define a func
    f false
 ]]
 
-Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite. *)
+Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side. *)
 
   rewrite <- H.
 (** [[
