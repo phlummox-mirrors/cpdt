@@ -443,7 +443,7 @@ Print eq.
 Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
 ]] *)
 
-(** [eq] is the type we get behind the scenes when uses of infix [=] are expanded.  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  It is crucial that the second argument is untied to the parameter in the type of [eq]; otherwise, we would have to prove that two values are equal even to be able to state the possibility of equality, which would more or less defeat the purpose of having an equality proposition.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only %\textit{%#<i>#prove#</i>#%}% equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.
+(** [eq] is the type we get behind the scenes when uses of infix [=] are expanded.  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only %\textit{%#<i>#prove#</i>#%}% equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.
 
 Returning to the example of [isZero], we can see how to make use of hypotheses that use this predicate. *)
 
@@ -743,7 +743,7 @@ plus_n_Sm
   (** The induction hypothesis lets us complete the proof. *)
   apply IHeven with n0; assumption.
 
-  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more readable and more robust to changes in the theorem statement. *)
+  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
 Restart.
   Hint Rewrite <- plus_n_Sm : cpdt.
 
