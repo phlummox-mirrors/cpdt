@@ -1,4 +1,4 @@
-MODULES_NODOC := Axioms AxiomsImpred Tactics MoreSpecif DepList
+MODULES_NODOC := Axioms Tactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
 	MoreDep DataStruct Equality Match Reflection Firstorder Hoas Interps \
@@ -17,7 +17,7 @@ coq: Makefile.coq
 
 Makefile.coq: Makefile $(VS)
 	coq_makefile $(VS) \
-		COQC = "coqc -impredicative-set -I src -dump-glob $(GLOBALS)" \
+		COQC = "coqc -I src -dump-glob $(GLOBALS)" \
 		COQDEP = "coqdep -I src" \
 		-o Makefile.coq
 

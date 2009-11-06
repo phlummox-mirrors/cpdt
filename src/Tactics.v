@@ -48,15 +48,21 @@ Ltac simplHyp invOne :=
   match goal with
     | [ H : ex _ |- _ ] => destruct H
 
-    | [ H : ?F ?X = ?F ?Y |- _ ] => injection H;
-      match goal with
-        | [ |- F X = F Y -> _ ] => fail 1
-        | [ |- _ = _ -> _ ] => try clear H; intros; try subst
-      end
-    | [ H : ?F _ _ = ?F _ _ |- _ ] => injection H;
-      match goal with
-        | [ |- _ = _ -> _ = _ -> _ ] => try clear H; intros; try subst
-      end
+    | [ H : ?F ?X = ?F ?Y |- ?G ] =>
+      (assert (X = Y); [ assumption | fail 1 ])
+      || (injection H;
+        match goal with
+          | [ |- X = Y -> G ] =>
+            try clear H; intros; try subst
+        end)
+    | [ H : ?F ?X ?U = ?F ?Y ?V |- ?G ] =>
+      (assert (X = Y); [ assumption
+        | assert (U = V); [ assumption | fail 1 ] ])
+      || (injection H;
+        match goal with
+          | [ |- U = V -> X = Y -> G ] =>
+            try clear H; intros; try subst
+        end)
 
     | [ H : ?F _ |- _ ] => invert H F
     | [ H : ?F _ _ |- _ ] => invert H F
