@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -19,7 +19,7 @@
 
 (**
 
-Copyright Adam Chlipala 2008.
+Copyright Adam Chlipala 2008-2009.
 
 This work is licensed under a
 Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -137,7 +137,7 @@ The logic and programming language behind Coq belongs to a type-theory ecosystem
 
 I think the answer is simple.  None of the competition has well-developed systems for tactic-based theorem proving.  Agda and Epigram are designed and marketed more as programming languages than proof assistants.  Dependent types are great, because they often help you prove deep theorems without doing anything that feels like proving.  Nonetheless, almost any interesting certified programming project will benefit from some activity that deserves to be called proving, and many interesting projects absolutely require semi-automated proving, if the sanity of the programmer is to be safeguarded.  Informally, proving is unavoidable when any correctness proof for a program has a structure that does not mirror the structure of the program itself.  An example is a compiler correctness proof, which probably proceeds by induction on program execution traces, which have no simple relationship with the structure of the compiler or the structure of the programs it compiles.  In building such proofs, a mature system for scripted proof automation is invaluable.
 
-On the other hand, Agda, Epigram, and similar tools have less implementation baggage associated with them, and so they tend to be the default first homes of innovations in practical type theory.  Some significant kinds of dependently-typed programs are much easier to write in Agda and Epigram than in Coq.  The former tools may very well be superior choices for projects that do not involve any "proving."  Anecdotally, I have gotten the impression that manual proving is orders of magnitudes more costly then manual coping with Coq's lack of programming bells and whistles.  In this book, I will devote significant time to patterns for programming with dependent types in Coq as it is today, and I will also try to mention related innovations in Agda and Epigram.  We can hope that the type theory community is tending towards convergence on the right set of features for practical programming with dependent types, and that we will eventually have a single tool embodying those features.
+On the other hand, Agda, Epigram, and similar tools have less implementation baggage associated with them, and so they tend to be the default first homes of innovations in practical type theory.  Some significant kinds of dependently-typed programs are much easier to write in Agda and Epigram than in Coq.  The former tools may very well be superior choices for projects that do not involve any "proving."  Anecdotally, I have gotten the impression that manual proving is orders of magnitudes more costly then manual coping with Coq's lack of programming bells and whistles.  In this book, I will devote significant time to patterns for programming with dependent types in Coq as it is today.  We can hope that the type theory community is tending towards convergence on the right set of features for practical programming with dependent types, and that we will eventually have a single tool embodying those features.
 *)
 
 
@@ -157,7 +157,7 @@ If I do that job well, then this book should be of interest even to people who h
 (**
 I try to keep the required background knowledge to a minimum in this book.  I will assume familiarity with the material from usual discrete math and logic courses taken by all undergraduate computer science majors, and I will assume that readers have significant experience programming in one of the ML dialects, in Haskell, or in some other, closely-related language.  Experience with only dynamically-typed functional languages might lead to befuddlement in some places, but a reader who has come to grok Scheme deeply will probably be fine.
 
-A good portion of the book is about how to formalize programming languages, compilers, and proofs about them.  I depart significantly from today's most popular methodology for pencil-and-paper formalism among programming languages researchers.  There is no need to be familiar with operational semantics, preservation and progress theorems, or any of the material found in courses on programming language semantics but not in basic discrete math and logic courses.  I will use operational semantics very sparingly, and there will be no preservation or progress proofs.  Instead, I will use a style that seems to work much better in Coq, which can be given the fancy-sounding name %\textit{%#<i>#foundational type-theoretic semantics#</i>#%}% or the more populist name %\textit{%#<i>#semantics by definitional compilers#</i>#%}%.
+A good portion of the book is about how to formalize programming languages, compilers, and proofs about them.  To understand those parts, it will be helpful to have a basic knowledge of formal type systems, operational semantics, and the theorems usually proved about such systems.  As a reference on these topics, I recommend %\emph{%#<i>#Types and Programming Languages#</i>#%}%, by Benjamin C. Pierce.
 *)
 
 
