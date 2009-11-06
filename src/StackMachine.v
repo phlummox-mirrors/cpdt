@@ -587,14 +587,14 @@ Definition eq_bool (b1 b2 : bool) : bool :=
     | _, _ => false
   end.
 
-Fixpoint eq_nat (n1 n2 : nat) {struct n1} : bool :=
+Fixpoint eq_nat (n1 n2 : nat) : bool :=
   match n1, n2 with
     | O, O => true
     | S n1', S n2' => eq_nat n1' n2'
     | _, _ => false
   end.
 
-Fixpoint lt (n1 n2 : nat) {struct n1} : bool :=
+Fixpoint lt (n1 n2 : nat) : bool :=
   match n1, n2 with
     | O, S _ => true
     | S n1', S n2' => lt n1' n2'
@@ -605,7 +605,8 @@ Fixpoint lt (n1 n2 : nat) {struct n1} : bool :=
 
 Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
   : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
-  match b in (tbinop arg1 arg2 res) return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
+  match b in (tbinop arg1 arg2 res)
+    return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
     | TPlus => plus
     | TTimes => mult
     | TEq Nat => eq_nat
@@ -613,15 +614,31 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TLt => lt
   end.
 
-(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, and Coq avoids pursuing special heuristics for the problem, instead asking users to write annotations, like we see above on the line with [match].
+(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, so it is often necessary to write annotations, like we see above on the line with [match].
 
 The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\textit{%#<i>#binding occurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [arg3] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
 
+In fact, recent Coq versions use some heuristics that can save us the trouble of writing [match] annotations, and those heuristics get the job done in this case.  We can get away with writing just: *)
+
+(* begin hide *)
+Reset tbinopDenote.
+(* end hide *)
+Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
+  : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
+  match b with
+    | TPlus => plus
+    | TTimes => mult
+    | TEq Nat => eq_nat
+    | TEq Bool => eq_bool
+    | TLt => lt
+  end.
+
+(**
 The same tricks suffice to define an expression denotation function in an unsurprising way:
 *)
 
-Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
-  match e in (texp t) return (typeDenote t) with
+Fixpoint texpDenote t (e : texp t) : typeDenote t :=
+  match e with
     | TNConst n => n
     | TBConst b => b
     | TBinop _ _ _ b e1 e2 => (tbinopDenote b) (texpDenote e1) (texpDenote e2)
@@ -630,25 +647,19 @@ Fixpoint texpDenote t (e : texp t) {struct e} : typeDenote t :=
 (** We can evaluate a few example programs to convince ourselves that this semantics is correct. *)
 
 Eval simpl in texpDenote (TNConst 42).
-(** [[
-= 42 : typeDenote Nat
-]] *)
+(** [= 42 : typeDenote Nat] *)
+
 Eval simpl in texpDenote (TBConst true).
-(** [[
-= true : typeDenote Bool
-]] *)
+(** [= true : typeDenote Bool] *)
+
 Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
-(** [[
-= 28 : typeDenote Nat
-]] *)
+(** [= 28 : typeDenote Nat] *)
+
 Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
-(** [[
-= false : typeDenote Bool
-]] *)
+(** [= false : typeDenote Bool] *)
+
 Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
-(** [[
-= true : typeDenote Bool
-]] *)
+(** [= true : typeDenote Bool] *)
 
 
 (** ** Target Language *)
@@ -691,10 +702,10 @@ Fixpoint vstack (ts : tstack) : Set :=
 
 (** This is another [Set]-valued function.  This time it is recursive, which is perfectly valid, since [Set] is not treated specially in determining which functions may be written.  We say that the value stack of an empty stack type is any value of type [unit], which has just a single value, [tt].  A nonempty stack type leads to a value stack that is a pair, whose first element has the proper type and whose second element follows the representation for the remainder of the stack type.
 
-This idea of programming with types can take a while to internalize, but it enables a very simple definition of instruction denotation.  We have the same kind of type annotations for the dependent [match], but everything else is like what you might expect from a Lisp-like version of ML that ignored type information.  Nonetheless, the fact that [tinstrDenote] passes the type-checker guarantees that our stack machine programs can never go wrong. *)
+This idea of programming with types can take a while to internalize, but it enables a very simple definition of instruction denotation.  Our definition is like what you might expect from a Lisp-like version of ML that ignored type information.  Nonetheless, the fact that [tinstrDenote] passes the type-checker guarantees that our stack machine programs can never go wrong. *)
 
 Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
-  match i in (tinstr ts ts') return (vstack ts -> vstack ts') with
+  match i with
     | TINConst _ n => fun s => (n, s)
     | TIBConst _ b => fun s => (b, s)
     | TIBinop _ _ _ _ b => fun s =>
@@ -707,7 +718,7 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
 
 [[
 Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' :=
-  match i in (tinstr ts ts') return (vstack ts') with
+  match i with
     | TINConst _ n => (n, s)
     | TIBConst _ b => (b, s)
     | TIBinop _ _ _ _ b =>
@@ -722,7 +733,31 @@ The Coq type-checker complains that:
 
 [[
 The term "(n, s)" has type "(nat * vstack ts)%type"
- while it is expected to have type "vstack (Nat :: t)"
+ while it is expected to have type "vstack ?119".
+
+]]
+
+The text [?119] stands for a unification variable.  We can try to help Coq figure out the value of this variable with an explicit annotation on our [match] expression.
+
+[[
+Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' :=
+  match i in tinstr ts ts' return vstack ts' with
+    | TINConst _ n => (n, s)
+    | TIBConst _ b => (b, s)
+    | TIBinop _ _ _ _ b =>
+      match s with
+        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
+      end
+  end.
+
+]]
+
+Now the error message changes.
+
+[[
+The term "(n, s)" has type "(nat * vstack ts)%type"
+ while it is expected to have type "vstack (Nat :: t)".
+
 ]]
 
 Recall from our earlier discussion of [match] annotations that we write the annotations to express to the type-checker the relationship between the type indices of the case object and the result type of the [match].  Coq chooses to assign to the wildcard [_] after [TINConst] the name [t], and the type error is telling us that the type checker cannot prove that [t] is the same as [ts].  By moving [s] out of the [match], we lose the ability to express, with [in] and [return] clauses, the relationship between the shared index [ts] of [s] and [i].
@@ -733,8 +768,8 @@ There %\textit{%#<i>#are#</i>#%}% reasonably general ways of getting around this
 
 (** We finish the semantics with a straightforward definition of program denotation. *)
 
-Fixpoint tprogDenote ts ts' (p : tprog ts ts') {struct p} : vstack ts -> vstack ts' :=
-  match p in (tprog ts ts') return (vstack ts -> vstack ts') with
+Fixpoint tprogDenote ts ts' (p : tprog ts ts') : vstack ts -> vstack ts' :=
+  match p with
     | TNil _ => fun s => s
     | TCons _ _ _ i p' => fun s => tprogDenote p' (tinstrDenote i s)
   end.
@@ -744,16 +779,16 @@ Fixpoint tprogDenote ts ts' (p : tprog ts ts') {struct p} : vstack ts -> vstack 
 
 (** To define our compilation, it is useful to have an auxiliary function for concatenating two stack machine programs. *)
 
-Fixpoint tconcat ts ts' ts'' (p : tprog ts ts') {struct p} : tprog ts' ts'' -> tprog ts ts'' :=
-  match p in (tprog ts ts') return (tprog ts' ts'' -> tprog ts ts'') with
+Fixpoint tconcat ts ts' ts'' (p : tprog ts ts') : tprog ts' ts'' -> tprog ts ts'' :=
+  match p with
     | TNil _ => fun p' => p'
     | TCons _ _ _ i p1 => fun p' => TCons i (tconcat p1 p')
   end.
 
 (** With that function in place, the compilation is defined very similarly to how it was before, modulo the use of dependent typing. *)
 
-Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :=
-  match e in (texp t) return (tprog ts (t :: ts)) with
+Fixpoint tcompile t (e : texp t) (ts : tstack) : tprog ts (t :: ts) :=
+  match e with
     | TNConst n => TCons (TINConst _ n) (TNil _)
     | TBConst b => TCons (TIBConst _ b) (TNil _)
     | TBinop _ _ _ b e1 e2 => tconcat (tcompile e2 _)
@@ -765,9 +800,7 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) {struct e} : tprog ts (t :: ts) :
 The underscores here are being filled in with stack types.  That is, the Coq type inferencer is, in a sense, inferring something about the flow of control in the translated programs.  We can take a look at exactly which values are filled in: *)
 
 Print tcompile.
-
 (** [[
-
 tcompile = 
 fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
   tprog ts (t :: ts) :=
@@ -786,32 +819,27 @@ fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
 (** We can check that the compiler generates programs that behave appropriately on our sample programs from above: *)
 
 Eval simpl in tprogDenote (tcompile (TNConst 42) nil) tt.
-(** [[
-= (42, tt) : vstack (Nat :: nil)
-]] *)
+(** [= (42, tt) : vstack (Nat :: nil)] *)
+
 Eval simpl in tprogDenote (tcompile (TBConst true) nil) tt.
-(** [[
-= (true, tt) : vstack (Bool :: nil)
-]] *)
+(** [= (true, tt) : vstack (Bool :: nil)] *)
+
 Eval simpl in tprogDenote (tcompile (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [[
-= (28, tt) : vstack (Nat :: nil)
-]] *)
+(** [= (28, tt) : vstack (Nat :: nil)] *)
+
 Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [[
-= (false, tt) : vstack (Bool :: nil)
-]] *)
+(** [= (false, tt) : vstack (Bool :: nil)] *)
+
 Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [[
-= (true, tt) : vstack (Bool :: nil)
-]] *)
+(** [= (true, tt) : vstack (Bool :: nil)] *)
 
 
 (** ** Translation Correctness *)
 
 (** We can state a correctness theorem similar to the last one. *)
 
-Theorem tcompile_correct : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+Theorem tcompile_correct : forall t (e : texp t),
+  tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
 (* begin hide *)
 Abort.
 (* end hide *)
@@ -819,10 +847,8 @@ Abort.
 
 (** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
 
-Lemma tcompile_correct' : forall t (e : texp t)
-  ts (s : vstack ts),
-  tprogDenote (tcompile e ts) s
-  = (texpDenote e, s).
+Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
+  tprogDenote (tcompile e ts) s = (texpDenote e, s).
 
 (** While lemma [compile_correct'] quantified over a program that is the "continuation" for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
 
@@ -833,16 +859,17 @@ Lemma tcompile_correct' : forall t (e : texp t)
 (** We are left with this unproved conclusion:
 
 [[
-
 tprogDenote
      (tconcat (tcompile e2 ts)
         (tconcat (tcompile e1 (arg2 :: ts))
            (TCons (TIBinop ts t) (TNil (res :: ts))))) s =
    (tbinopDenote t (texpDenote e1) (texpDenote e2), s)
+ 
 ]]
 
 We need an analogue to the [app_ass] theorem that we used to rewrite the goal in the last section.  We can abort this proof and prove such a lemma about [tconcat].
 *)
+
 Abort.
 
 Lemma tconcat_correct : forall ts ts' ts'' (p : tprog ts ts') (p' : tprog ts' ts'')
@@ -860,10 +887,8 @@ Hint Rewrite tconcat_correct : cpdt.
 
 (** We ask that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  Now we are ready to return to [tcompile_correct'], proving it automatically this time. *)
 
-Lemma tcompile_correct' : forall t (e : texp t)
-  ts (s : vstack ts),
-  tprogDenote (tcompile e ts) s
-  = (texpDenote e, s).
+Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
+  tprogDenote (tcompile e ts) s = (texpDenote e, s).
   induction e; crush.
 Qed.
 
@@ -871,7 +896,8 @@ Qed.
 
 Hint Rewrite tcompile_correct' : cpdt.
 
-Theorem tcompile_correct : forall t (e : texp t), tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
+Theorem tcompile_correct : forall t (e : texp t),
+  tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
   crush.
 Qed.
 (* end thide *)
