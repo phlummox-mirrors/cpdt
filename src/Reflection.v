@@ -118,6 +118,8 @@ Theorem even_255 : isEven 255.
 
   prove_even_reflective.
 
+  ]]
+
   [[
 
 User error: No matching clauses for match goal
@@ -128,6 +130,8 @@ User error: No matching clauses for match goal
   [[
 
   exact (partialOut (check_even 255)).
+
+  ]]
 
   [[
 
@@ -633,11 +637,18 @@ To work with rational numbers, import module [QArith] and use [Open Local Scope 
   Theorem t2 : forall x y z, (2 # 1) * (x - (3 # 2) * y) == 15 # 1
     -> z + (8 # 1) * x == 20 # 1
     -> (-6 # 2) * y + (10 # 1) * x + z == 35 # 1.
+
+    ]]
+
 [[
 
     intros; reflectContext; assumption.
+
+    ]]
 [[
   Qed.
+
+]]
 
   Your solution can work in any way that involves reflecting syntax and doing most calculation with a Gallina function.  These hints outline a particular possible solution.  Throughout, the [ring] tactic will be helpful for proving many simple facts about rationals, and tactics like [rewrite] are correctly overloaded to work with rational equality [==].
 
@@ -679,6 +690,8 @@ To work with rational numbers, import module [QArith] and use [Open Local Scope 
                       ring_simplify X Y; intro
                   end ]
       end.
+
+]]
 
 #</ol>#%\end{enumerate}%
 #</li>#

@@ -56,6 +56,8 @@ Section ilist.
         end
     end.
 
+    ]]
+
     We apply the usual wisdom of delaying arguments in [Fixpoint]s so that they may be included in [return] clauses.  This still leaves us with a quandary in each of the [match] cases.  First, we need to figure out how to take advantage of the contradiction in the [Nil] case.  Every [index] has a type of the form [S n], which cannot unify with the [O] value that we learn for [n] in the [Nil] case.  The solution we adopt is another case of [match]-within-[return].
 
     [[
@@ -76,6 +78,8 @@ Section ilist.
         end
     end.
 
+    ]]
+
     Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply a trick that we will call "the convoy pattern," introducing a new function and applying it immediately, to satisfy the type checker.
 
     [[
@@ -95,6 +99,8 @@ Section ilist.
           | Next _ idx' => fun ls' => get ls' idx'
         end ls'
     end.
+
+    ]]
 
     There is just one problem left with this implementation.  Though we know that the local [ls'] in the [Next] case is equal to the original [ls'], the type-checker is not satisfied that the recursive call to [get] does not introduce non-termination.  We solve the problem by convoy-binding the partial application of [get] to [ls'], rather than [ls'] by itself. *)
 
@@ -433,6 +439,8 @@ Section fhlist.
         end
     end.
 
+    ]]
+
     Only one problem remains.  The expression [fst mls] is not known to have the proper type.  To demonstrate that it does, we need to use the proof available in the [inl] case of the inner [match]. *)
 
   Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
@@ -541,6 +549,8 @@ Section tree.
   Inductive tree : Set :=
   | Leaf : A -> tree
   | Node : forall n, filist tree n -> tree.
+
+  ]]
 
 [[
 

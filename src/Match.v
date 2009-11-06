@@ -89,6 +89,8 @@ End forall_and.
       | [ H : forall x, ?P x /\ _ |- _ ] => apply (proj1 (H X))
     end.
 
+    ]]
+
    [[
 User error: Bound head variable
    ]]
@@ -450,6 +452,8 @@ Section firstorder'.
 
     completer'.
 
+    ]]
+
     Coq loops forever at this point.  What went wrong? *)
   Abort.
 (* end thide *)
@@ -474,6 +478,8 @@ Theorem t1' : forall x : nat, x = x.
   match goal with
     | [ |- forall x, ?P ] => trivial
   end.
+
+  ]]
 
     [[
 User error: No matching clauses for match goal
@@ -503,6 +509,8 @@ Ltac length ls :=
     | _ :: ls' => S (length ls')
   end.
 
+  ]]
+
    [[
 Error: The reference ls' was not found in the current environment
    ]]
@@ -515,6 +523,8 @@ Ltac length ls :=
     | nil => O
     | _ :: ?ls' => S (length ls')
   end.
+
+  ]]
 
 [[
 Error: The reference S was not found in the current environment

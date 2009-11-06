@@ -177,6 +177,8 @@ Section fhlist_map.
 
     destruct a0.
 
+    ]]
+
     [[
 User error: Cannot solve a second-order unification problem
 ]]
@@ -186,6 +188,8 @@ User error: Cannot solve a second-order unification problem
     [[
 
     assert (a0 = refl_equal _).
+
+    ]]
 
     [[
 The term "refl_equal ?98" has type "?98 = ?98"
@@ -256,6 +260,8 @@ end
     (** [[
 
     simple destruct pf.
+
+    ]]
     
       [[
 
@@ -282,6 +288,8 @@ User error: Cannot solve a second-order unification problem
     (** [[
 
     simple destruct pf.
+
+    ]]
     
       [[
 
@@ -298,6 +306,8 @@ User error: Cannot solve a second-order unification problem
       match pf as pf' in (_ = x') return (pf' = refl_equal x') with
         | refl_equal => refl_equal _
       end.
+
+      ]]
 
      [[
 
@@ -380,6 +390,8 @@ Section fhapp.
     (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) = fhapp (fhapp hls1 hls2) hls3.
 
+    ]]
+
      [[
 
 The term
@@ -414,6 +426,8 @@ The term
 
        [[
     case pf.
+
+    ]]
 
        [[
 
@@ -453,6 +467,8 @@ User error: Cannot solve a second-order unification problem
        [[
 
     rewrite (UIP_refl _ _ pf).
+
+    ]]
 
        [[
 The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
@@ -645,6 +661,8 @@ Section fhapp'.
 
     rewrite IHls1.
 
+    ]]
+
        [[
 
 Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
@@ -763,6 +781,8 @@ Qed.
 (** The following seems like a reasonable theorem to want to hold, and it does hold in set theory. [[
 
    Theorem S_eta : S = (fun n => S n).
+
+   ]]
 
    Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be %\textit{%#<i>#extensional#</i>#%}%.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We %\textit{%#<i>#can#</i>#%}% assert function extensionality as an axiom. *)
 

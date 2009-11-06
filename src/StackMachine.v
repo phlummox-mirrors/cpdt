@@ -73,6 +73,8 @@ Definition binopDenote : binop -> nat -> nat -> nat := fun (b : binop) =>
     | Times => mult
   end.
 
+]]
+
 In this example, we could also omit all of the type annotations, arriving at:
 
 [[
@@ -81,6 +83,8 @@ Definition binopDenote := fun b =>
     | Plus => plus
     | Times => mult
   end.
+
+]]
 
 Languages like Haskell and ML have a convenient %\textit{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of "complete" type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
@@ -107,17 +111,13 @@ Fixpoint expDenote (e : exp) : nat :=
 (** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses. *)
 
 Eval simpl in expDenote (Const 42).
-(** [[
-= 42 : nat
-]] *)
+(** [= 42 : nat] *)
+
 Eval simpl in expDenote (Binop Plus (Const 2) (Const 2)).
-(** [[
-= 4 : nat
-]] *)
+(** [= 4 : nat] *)
+
 Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
-(** [[
-= 28 : nat
-]] *)
+(** [= 28 : nat] *)
 
 (** ** Target Language *)
 
@@ -277,9 +277,7 @@ To progress further, we need to use the definitions of some of the functions app
 *)
 
   unfold compile.
-
 (** [[
-
  n : nat
  s : stack
  p : list instr
@@ -289,9 +287,7 @@ To progress further, we need to use the definitions of some of the functions app
 ]] *)
 
   unfold expDenote.
-
 (** [[
-
  n : nat
  s : stack
  p : list instr
@@ -462,6 +458,8 @@ Now we can apply a similar sequence of tactics to that that ended the proof of t
 
 [[
 Proof completed.
+
+]]
 
 And there lies our first proof.  Already, even for simple theorems like this, the final proof script is unstructured and not very enlightening to readers.  If we extend this approach to more serious theorems, we arrive at the unreadable proof scripts that are the favorite complaints of opponents of tactic-based proving.  Fortunately, Coq has rich support for scripted automation, and we can take advantage of such a scripted tactic (defined elsewhere) to make short work of this lemma.  We abort the old proof attempt and start again.
 *)
@@ -708,6 +706,8 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' 
         (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
       end
   end.
+
+]]
 
 The Coq type-checker complains that:
 
