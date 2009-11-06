@@ -43,6 +43,7 @@ latex/cpdt.pdf: latex/cpdt.dvi
 	cd latex ; pdflatex cpdt
 
 html: Makefile $(VS) src/toc.html
+	mkdir -p html
 	cd src ; coqdoc $(VS_DOC) \
 		--glob-from ../$(GLOBALS) \
 		-d ../html

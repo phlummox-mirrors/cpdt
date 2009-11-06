@@ -73,6 +73,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
   (** [[
 
 Inductive False : Prop :=
+
 ]] *)
 
   (** We can conclude anything from [False], doing case analysis on a proof of [False] in the same way we might do case analysis on, say, a natural number.  Since there are no cases to consider, any such case analysis succeeds immediately in proving the goal. *)

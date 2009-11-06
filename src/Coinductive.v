@@ -28,6 +28,8 @@ We spent some time in the last chapter discussing the Curry-Howard isomorphism, 
 
 Fixpoint bad (u : unit) : P := bad u.
 
+]]
+
 This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
@@ -95,6 +97,9 @@ The restriction for co-inductive types shows up as the %\textit{%#<i>#guardednes
 
 [[
 CoFixpoint looper : stream nat := looper.
+
+]]
+
 [[
 Error:
 Recursive definition of looper is ill-formed.
@@ -102,6 +107,8 @@ In environment
 looper : stream nat
 
 unguarded recursive call in "looper"
+]]
+
 *)
 
 
@@ -145,6 +152,8 @@ Section map'.
     match s with
       | Cons h t => interleave (Cons (f h) (map' s)) (Cons (f h) (map' s))
     end.
+
+    ]]
    *)
 
   (** We get another error message about an unguarded recursive call.  This is because we are violating the second guardedness condition, which says that, not only must co-recursive calls be arguments to constructors, there must also %\textit{%#<i>#not be anything but [match]es and calls to constructors of the same co-inductive type#</i>#%}% wrapped around these immediate uses of co-recursive calls.  The actual implemented rule for guardedness is a little more lenient than what we have just stated, but you can count on the illegality of any exception that would enhance the expressive power of co-recursion.
@@ -201,7 +210,9 @@ Theorem ones_eq : stream_eq ones ones'.
   assumption.
   (** [[
 
-Proof completed. *)
+Proof completed.
+
+]] *)
 
   (** Unfortunately, we are due for some disappointment in our victory lap. *)
 
@@ -214,7 +225,9 @@ Recursive definition of ones_eq is ill-formed.
 In environment
 ones_eq : stream_eq ones ones'
 
-unguarded recursive call in "ones_eq" *)
+unguarded recursive call in "ones_eq"
+
+]] *)
 
   (** Via the Curry-Howard correspondence, the same guardedness condition applies to our co-inductive proofs as to our co-inductive data structures.  We should be grateful that this proof is rejected, because, if it were not, the same proof structure could be used to prove any co-inductive theorem vacuously, by direct appeal to itself!
 
@@ -222,6 +235,8 @@ unguarded recursive call in "ones_eq" *)
 
      [[
 Guarded.
+
+]]
 
      Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems %\textit{%#<i>#before#</i>#%}% we think we are ready to run [Qed].
      
@@ -312,7 +327,9 @@ Theorem ones_eq' : stream_eq ones ones'.
   cofix; crush.
   (** [[
 
-  Guarded. *)
+  Guarded.
+
+  ]] *)
 Abort.
 (* end thide *)
 

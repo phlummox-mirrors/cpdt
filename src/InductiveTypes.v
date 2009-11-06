@@ -63,6 +63,9 @@ Qed.
 (** It seems kind of odd to write a proof by induction with no inductive hypotheses.  We could have arrived at the same result by beginning the proof with: [[
 
   destruct x.
+
+]]
+
 ...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
 What exactly %\textit{%#<i>#is#</i>#%}% the induction principle for [unit]?  We can ask Coq: *)
@@ -666,6 +669,8 @@ Definition uhoh (t : term) : term :=
     | _ => t
   end.
 
+]]
+
 Using an informal idea of Coq's semantics, it is easy to verify that the application [uhoh (Abs uhoh)] will run forever.  This would be a mere curiosity in OCaml and Haskell, where non-termination is commonplace, though the fact that we have a non-terminating program without explicit recursive function definitions is unusual.
 
 For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
@@ -942,6 +947,8 @@ Section nat_tree_ind'.
       | Nil => I
       | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
     end.
+
+  ]]
 
   Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  The term "nested inductive type" hints at the solution to the problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
 
