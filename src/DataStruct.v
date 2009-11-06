@@ -699,7 +699,7 @@ Section cfoldCond.
     match n return (findex n -> exp' Bool) -> (findex n -> exp' t) -> exp' t with
       | O => fun _ _ => default
       | S n' => fun tests bodies =>
-        match tests None with
+        match tests None return _ with
           | BConst true => bodies None
           | BConst false => cfoldCond n'
             (fun idx => tests (Some idx))
@@ -743,14 +743,14 @@ Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
     | Plus e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' with
+      match e1', e2' return _ with
         | NConst n1, NConst n2 => NConst (n1 + n2)
         | _, _ => Plus e1' e2'
       end
     | Eq e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' with
+      match e1', e2' return _ with
         | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
         | _, _ => Eq e1' e2'
       end

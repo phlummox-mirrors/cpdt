@@ -247,20 +247,20 @@ Definition pairOut t (e : exp t) :=
 
 With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden. *)
 
-Fixpoint cfold t (e : exp t) {struct e} : exp t :=
-  match e in (exp t) return (exp t) with
+Fixpoint cfold t (e : exp t) : exp t :=
+  match e with
     | NConst n => NConst n
     | Plus e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' with
+      match e1', e2' return _ with
         | NConst n1, NConst n2 => NConst (n1 + n2)
         | _, _ => Plus e1' e2'
       end
     | Eq e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' with
+      match e1', e2' return _ with
         | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
         | _, _ => Eq e1' e2'
       end
@@ -269,7 +269,7 @@ Fixpoint cfold t (e : exp t) {struct e} : exp t :=
     | And e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' with
+      match e1', e2' return _ with
         | BConst b1, BConst b2 => BConst (b1 && b2)
         | _, _ => And e1' e2'
       end
@@ -1028,7 +1028,7 @@ Section dec_star.
   (** Finally, we have [dec_star].  It has a straightforward implementation.  We introduce a spurious match on [s] so that [simpl] will know to reduce calls to [dec_star].  The heuristic that [simpl] uses is only to unfold identifier definitions when doing so would simplify some [match] expression. *)
 
   Definition dec_star : {star P s} + { ~star P s}.
-    refine (match s with
+    refine (match s return _ with
               | "" => Reduce (dec_star' (n := length s) 0 _)
               | _ => Reduce (dec_star' (n := length s) 0 _)
             end); crush.

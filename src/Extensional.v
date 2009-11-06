@@ -963,6 +963,7 @@ Module PatMatch.
                  | [ H : forall env, Some _ = Some env -> _ |- _ ] =>
                    destruct (H _ (refl_equal _)); clear H; intuition
                  | [ H : _ |- _ ] => rewrite H; intuition
+                 | [ |- context[match ?v with inl _ => _ | inr _ => _ end] ] => destruct v; auto
                end.
   Qed.
 

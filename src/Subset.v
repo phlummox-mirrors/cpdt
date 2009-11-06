@@ -376,7 +376,7 @@ let rec eq_nat_dec' n m0 =
 We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
 
 (* begin thide *)
-Notation "x || y" := (if x then Yes else Reduce y) (at level 50).
+Notation "x || y" := (if x then Yes else Reduce y).
 
 (** Let us use it for building a function that decides list membership.  We need to assume the existence of an equality decision procedure for the type of list elements. *)
 

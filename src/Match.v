@@ -784,10 +784,10 @@ Qed.
 
 Ltac matcher :=
   intros;
-    repeat search_prem ltac:(apply False_prem || (apply ex_prem; intro));
-      repeat search_conc ltac:(apply True_conc || eapply ex_conc
-        || search_prem ltac:(apply Match));
-      try apply imp_True.
+    repeat search_prem ltac:(simple apply False_prem || (simple apply ex_prem; intro));
+      repeat search_conc ltac:(simple apply True_conc || simple eapply ex_conc
+        || search_prem ltac:(simple apply Match));
+      try simple apply imp_True.
 (* end thide *)
 
 (** Our tactic succeeds at proving a simple example. *)
