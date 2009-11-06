@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -19,14 +19,14 @@ Set Implicit Arguments.
 (** %\chapter{Some Quick Examples}% *)
 
 
-(** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.1pl3, though parts may work with other versions.
+(** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.2pl1, though parts may work with other versions.
 
 As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include a line [Require Import List Tactics.] at the start of the file, to match some code hidden in this rendering of the chapter source, and be sure to run the Coq binary %\texttt{%#<tt>#coqtop#</tt>#%}% with the command-line argument %\texttt{%#<tt>#-I SRC#</tt>#%}%, where %\texttt{%#<tt>#SRC#</tt>#%}% is the path to a directory containing the source for this book.  In either case, you will need to run %\texttt{%#<tt>#make#</tt>#%}% in the root directory of the source distribution for the book before getting started.  If you have installed Proof General properly, it should start automatically when you visit a %\texttt{%#<tt>#.v#</tt>#%}% buffer in Emacs.
 
 There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program.  The best way to add settings that will be shared by many source files is to add a custom variable setting to your %\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
 %\begin{verbatim}%#<pre>#(custom-set-variables
   ...
-  '(coq-prog-args '("-impredicative-set" "-I" "/path/to/cpdt/src"))
+  '(coq-prog-args '("-I" "/path/to/cpdt/src"))
   ...
 )#</pre>#%\end{verbatim}%
 The extra arguments demonstrated here are the proper choices for working with the code for this book.  The ellipses stand for other Emacs customization settings you may already have.  It can be helpful to save several alternate sets of flags in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, with all but one commented out within the %\texttt{%#<tt>#custom-set-variables#</tt>#%}% block at any given time.
@@ -144,8 +144,9 @@ Definition instrDenote (i : instr) (s : stack) : option stack :=
       end
   end.
 
-(** With [instrDenote] defined, it is easy to define a function [progDenote], which iterates application of [instrDenote] through a whole program. *)
+(** With [instrDenote] defined, it is easy to define a function [progDenote], which iterates application of [instrDenote] through a whole program.
 
+   [[
 Fixpoint progDenote (p : prog) (s : stack) {struct p} : option stack :=
   match p with
     | nil => Some s
@@ -156,7 +157,21 @@ Fixpoint progDenote (p : prog) (s : stack) {struct p} : option stack :=
       end
   end.
 
-(** There is one interesting difference compared to our previous example of a [Fixpoint].  This recursive function takes two arguments, [p] and [s].  It is critical for the soundness of Coq that every program terminate, so a shallow syntactic termination check is imposed on every recursive function definition.  One of the function parameters must be designated to decrease monotonically across recursive calls.  That is, every recursive call must use a version of that argument that has been pulled out of the current argument by some number of [match] expressions.  [expDenote] has only one argument, so we did not need to specify which of its arguments decreases.  For [progDenote], we resolve the ambiguity by writing [{struct p}] to indicate that argument [p] decreases structurally. *)
+  ]]
+
+  There is one interesting difference compared to our previous example of a [Fixpoint].  This recursive function takes two arguments, [p] and [s].  It is critical for the soundness of Coq that every program terminate, so a shallow syntactic termination check is imposed on every recursive function definition.  One of the function parameters must be designated to decrease monotonically across recursive calls.  That is, every recursive call must use a version of that argument that has been pulled out of the current argument by some number of [match] expressions.  [expDenote] has only one argument, so we did not need to specify which of its arguments decreases.  For [progDenote], we resolve the ambiguity by writing [{struct p}] to indicate that argument [p] decreases structurally.
+
+   Recent versions of Coq will also infer a termination argument, so that we may write simply: *)
+
+Fixpoint progDenote (p : prog) (s : stack) : option stack :=
+  match p with
+    | nil => Some s
+    | i :: p' =>
+      match instrDenote i s with
+        | None => None
+        | Some s' => progDenote p' s'
+      end
+  end.
 
 
 (** ** Translation *)
@@ -173,32 +188,24 @@ Fixpoint compile (e : exp) : prog :=
 (** Before we set about proving that this compiler is correct, we can try a few test runs, using our sample programs from earlier. *)
 
 Eval simpl in compile (Const 42).
-(** [[
-= IConst 42 :: nil : prog
-]] *)
+(** [= IConst 42 :: nil : prog] *)
+
 Eval simpl in compile (Binop Plus (Const 2) (Const 2)).
-(** [[
-= IConst 2 :: IConst 2 :: IBinop Plus :: nil : prog
-]] *)
+(** [= IConst 2 :: IConst 2 :: IBinop Plus :: nil : prog] *)
+
 Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
-(** [[
-= IConst 7 :: IConst 2 :: IConst 2 :: IBinop Plus :: IBinop Times :: nil : prog
-]] *)
+(** [= IConst 7 :: IConst 2 :: IConst 2 :: IBinop Plus :: IBinop Times :: nil : prog] *)
 
 (** We can also run our compiled programs and check that they give the right results. *)
 
 Eval simpl in progDenote (compile (Const 42)) nil.
-(** [[
-= Some (42 :: nil) : option stack
-]] *)
+(** [= Some (42 :: nil) : option stack] *)
+
 Eval simpl in progDenote (compile (Binop Plus (Const 2) (Const 2))) nil.
-(** [[
-= Some (4 :: nil) : option stack
-]] *)
+(** [= Some (4 :: nil) : option stack] *)
+
 Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))) nil.
-(** [[
-= Some (28 :: nil) : option stack
-]] *)
+(** [= Some (28 :: nil) : option stack] *)
 
 
 (** ** Translation Correctness *)
@@ -214,7 +221,8 @@ Abort.
 (** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
 
-Lemma compile_correct' : forall e p s, progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
+Lemma compile_correct' : forall e p s,
+  progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
 (** After the period in the [Lemma] command, we are in %\textit{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
 
@@ -224,6 +232,7 @@ Lemma compile_correct' : forall e p s, progDenote (compile e ++ p) s = progDenot
  ============================
   forall (e : exp) (p : list instr) (s : stack),
    progDenote (compile e ++ p) s = progDenote p (expDenote e :: s)  
+ 
 ]]
 
 Coq seems to be restating the lemma for us.  What we are seeing is a limited case of a more general protocol for describing where we are in a proof.  We are told that we have a single subgoal.  In general, during a proof, we can have many pending subgoals, each of which is a logical proposition to prove.  Subgoals can be proved in any order, but it usually works best to prove them in the order that Coq chooses.
@@ -251,6 +260,7 @@ We manipulate the proof state by running commands called %\textit{%#<i>#tactics#
   forall (s : stack) (p : list instr),
     progDenote (compile (Binop b e1 e2) ++ p) s =
     progDenote p (expDenote (Binop b e1 e2) :: s)
+ 
 ]]
 
 The first and current subgoal is displayed with the double-dashed line below free variables and hypotheses, while later subgoals are only summarized with their conclusions.  We see an example of a free variable in the first subgoal; [n] is a free variable of type [nat].  The conclusion is the original theorem statement where [e] has been replaced by [Const n].  In a similar manner, the second case has [e] replaced by a generalized invocation of the [Binop] expression constructor.  We can see that proving both cases corresponds to a standard proof by structural induction.
@@ -269,6 +279,7 @@ We begin the first case with another very common tactic.
  ============================
  progDenote (compile (Const n) ++ p) s =
  progDenote p (expDenote (Const n) :: s)
+ 
 ]]
 
 We see that [intros] changes [forall]-bound variables at the beginning of a goal into free variables.
@@ -284,6 +295,7 @@ To progress further, we need to use the definitions of some of the functions app
  ============================
  progDenote ((IConst n :: nil) ++ p) s =
  progDenote p (expDenote (Const n) :: s)
+ 
 ]] *)
 
   unfold expDenote.
@@ -293,6 +305,7 @@ To progress further, we need to use the definitions of some of the functions app
  p : list instr
  ============================
  progDenote ((IConst n :: nil) ++ p) s = progDenote p (n :: s)
+ 
 ]]
 
 We only need to unfold the first occurrence of [progDenote] to prove the goal: *)
@@ -316,15 +329,14 @@ We only need to unfold the first occurrence of [progDenote] to prove the goal: *
           end
       end) ((IConst n :: nil) ++ p) s =
    progDenote p (n :: s)
+ 
 ]]
 
 This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Fortunately, in this case, we can eliminate such complications right away, since the structure of the argument [(IConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic:
 *)
 
   simpl.
-
 (** [[
-
  n : nat
  s : stack
  p : list instr
@@ -339,6 +351,7 @@ This last [unfold] has left us with an anonymous fixpoint version of [progDenote
         | None => None (A:=stack)
         end
     end) p (n :: s) = progDenote p (n :: s)
+ 
 ]]
 
 Now we can unexpand the definition of [progDenote]:
@@ -353,6 +366,7 @@ Now we can unexpand the definition of [progDenote]:
  p : list instr
  ============================
  progDenote p (n :: s) = progDenote p (n :: s)
+ 
 ]]
 
 It looks like we are at the end of this case, since we have a trivial equality.  Indeed, a single tactic finishes us off:
@@ -363,7 +377,6 @@ It looks like we are at the end of this case, since we have a trivial equality. 
 (** On to the second inductive case:
 
 [[
-
   b : binop
   e1 : exp
   IHe1 : forall (s : stack) (p : list instr),
@@ -375,6 +388,7 @@ It looks like we are at the end of this case, since we have a trivial equality. 
    forall (s : stack) (p : list instr),
    progDenote (compile (Binop b e1 e2) ++ p) s =
    progDenote p (expDenote (Binop b e1 e2) :: s)
+ 
 ]]
 
 We see our first example of hypotheses above the double-dashed line.  They are the inductive hypotheses [IHe1] and [IHe2] corresponding to the subterms [e1] and [e2], respectively.
@@ -390,7 +404,6 @@ We start out the same way as before, introducing new free variables and unfoldin
 (** Now we arrive at a point where the tactics we have seen so far are insufficient.  No further definition unfoldings get us anywhere, so we will need to try something different.
 
 [[
-
   b : binop
   e1 : exp
   IHe1 : forall (s : stack) (p : list instr),
@@ -403,47 +416,47 @@ We start out the same way as before, introducing new free variables and unfoldin
   ============================
    progDenote ((compile e2 ++ compile e1 ++ IBinop b :: nil) ++ p) s =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
+ 
 ]]
 
 What we need is the associative law of list concatenation, available as a theorem [app_ass] in the standard library. *)
 
 Check app_ass.
-
 (** [[
-
 app_ass
      : forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
+ 
 ]]
 
 We use it to perform a rewrite: *)
 
   rewrite app_ass.
 
-(** changing the conclusion to: [[
+(** changing the conclusion to:
 
+[[
    progDenote (compile e2 ++ (compile e1 ++ IBinop b :: nil) ++ p) s =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
+ 
 ]]
 
 Now we can notice that the lefthand side of the equality matches the lefthand side of the second inductive hypothesis, so we can rewrite with that hypothesis, too: *)
 
   rewrite IHe2.
-
 (** [[
-
    progDenote ((compile e1 ++ IBinop b :: nil) ++ p) (expDenote e2 :: s) =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
+ 
 ]]
 
 The same process lets us apply the remaining hypothesis. *)
 
   rewrite app_ass.
   rewrite IHe1.
-
 (** [[
-
    progDenote ((IBinop b :: nil) ++ p) (expDenote e1 :: expDenote e2 :: s) =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
+ 
 ]]
 
 Now we can apply a similar sequence of tactics to that that ended the proof of the first case.
@@ -477,20 +490,17 @@ The proof of our main theorem is now easy.  We prove it with four period-termina
 
 Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
   intros.
-
 (** [[
-
   e : exp
   ============================
    progDenote (compile e) nil = Some (expDenote e :: nil)
+ 
 ]]
 
 At this point, we want to massage the lefthand side to match the statement of [compile_correct'].  A theorem from the standard library is useful: *)
 
 Check app_nil_end.
-
 (** [[
-
 app_nil_end
      : forall (A : Type) (l : list A), l = l ++ nil
 ]] *)
@@ -500,21 +510,20 @@ app_nil_end
 (** This time, we explicitly specify the value of the variable [l] from the theorem statement, since multiple expressions of list type appear in the conclusion.  [rewrite] might choose the wrong place to rewrite if we did not specify which we want.
 
 [[
-
   e : exp
   ============================
    progDenote (compile e ++ nil) nil = Some (expDenote e :: nil)
+ 
 ]]
 
 Now we can apply the lemma. *)
 
   rewrite compile_correct'.
-
 (** [[
-
   e : exp
   ============================
    progDenote nil (expDenote e :: nil) = Some (expDenote e :: nil)
+ 
 ]]
 
 We are almost done.  The lefthand and righthand sides can be seen to match by simple symbolic evaluation.  That means we are in luck, because Coq identifies any pair of terms as equal whenever they normalize to the same result by symbolic evaluation.  By the definition of [progDenote], that is the case here, but we do not need to worry about such details.  A simple invocation of [reflexivity] does the normalization and checks that the two results are syntactically equal. *)
