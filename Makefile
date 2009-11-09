@@ -25,6 +25,7 @@ clean:: Makefile.coq
 	make -f Makefile.coq clean
 	rm -f Makefile.coq .depend $(GLOBALS) cpdt.tgz \
 		latex/*.sty latex/cpdt.* templates/*.v
+	rm -f *.aux *.dvi *.log
 
 doc: latex/cpdt.dvi latex/cpdt.pdf html
 
@@ -36,11 +37,14 @@ latex/cpdt.tex: Makefile $(VS)
 		-p "\iffalse" \
 		-o ../latex/cpdt.tex
 
-latex/cpdt.dvi: latex/cpdt.tex
-	cd latex ; latex cpdt ; latex cpdt
+latex/%.tex: src/%.v
+	coqdoc --interpolate --latex -s $< -o $@
 
-latex/cpdt.pdf: latex/cpdt.dvi
-	cd latex ; pdflatex cpdt
+latex/%.dvi: latex/%.tex
+	latex $< ; latex $<
+
+latex/%.pdf: latex/%.dvi
+	pdflatex $<
 
 html: Makefile $(VS) src/toc.html
 	mkdir -p html
