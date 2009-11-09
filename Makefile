@@ -38,7 +38,9 @@ latex/cpdt.tex: Makefile $(VS)
 		-o ../latex/cpdt.tex
 
 latex/%.tex: src/%.v
-	coqdoc --interpolate --latex -s $< -o $@
+	coqdoc --interpolate --latex -s \
+		-p "\usepackage{url}" \
+		$< -o $@
 
 latex/%.dvi: latex/%.tex
 	cd latex ; latex $* ; latex $*
