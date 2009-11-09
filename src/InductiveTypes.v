@@ -35,27 +35,27 @@ Inductive unit : Set :=
 (** This vernacular command defines a new inductive type [unit] whose only value is [tt], as we can see by checking the types of the two identifiers: *)
 
 Check unit.
-(** [[
+(** [unit : Set] *)
 
-  unit : Set
-]] *)
 Check tt.
-(** [[
-
-  tt : unit
-]] *)
+(** [tt : unit] *)
 
 (** We can prove that [unit] is a genuine singleton type. *)
 
 Theorem unit_singleton : forall x : unit, x = tt.
+
 (** The important thing about an inductive type is, unsurprisingly, that you can do induction over its values, and induction is the key to proving this theorem.  We ask to proceed by induction on the variable [x]. *)
+
 (* begin thide *)
   induction x.
-(** The goal changes to: [[
 
+(** The goal changes to:
+[[
  tt = tt
 ]] *)
+
   (** ...which we can discharge trivially. *)
+
   reflexivity.
 Qed.
 (* end thide *)
@@ -66,17 +66,14 @@ Qed.
 
 ]]
 
-...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
+%\noindent%...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
 What exactly %\textit{%#<i>#is#</i>#%}% the induction principle for [unit]?  We can ask Coq: *)
 
 Check unit_ind.
-(** [[
+(** [unit_ind : forall P : unit -> Prop, P tt -> forall u : unit, P u] *)
 
-unit_ind : forall P : unit -> Prop, P tt -> forall u : unit, P u
-]]
-
-Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Coq follows the Curry-Howard correspondence and includes the ingredients of programming and proving in the same single syntactic class.  Thus, our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type [Prop], which appears in our induction principle; and the type [Set], which we have seen a few times already.
+(** Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Coq follows the Curry-Howard correspondence and includes the ingredients of programming and proving in the same single syntactic class.  Thus, our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type [Prop], which appears in our induction principle; and the type [Set], which we have seen a few times already.
 
 The convention goes like this: [Set] is the type of normal types, and the values of such types are programs.  [Prop] is the type of logical propositions, and the values of such types are proofs.  Thus, an induction principle has a type that shows us that it is a function for building proofs.
 
@@ -101,12 +98,9 @@ Qed.
 We can see the induction principle that made this proof so easy: *)
 
 Check Empty_set_ind.
-(** [[
+(** [Empty_set_ind : forall (P : Empty_set -> Prop) (e : Empty_set), P e] *)
 
-Empty_set_ind : forall (P : Empty_set -> Prop) (e : Empty_set), P e
-]]
-
-In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
+(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
 
 We can also apply this get-out-of-jail-free card programmatically.  Here is a lazy way of converting values of [Empty_set] to values of [unit]: *)
 
@@ -141,10 +135,9 @@ Theorem not_inverse : forall b : bool, not (not b) = b.
 (* begin thide *)
   destruct b.
 
-  (** After we case analyze on [b], we are left with one subgoal for each constructor of [bool].
+  (** After we case-analyze on [b], we are left with one subgoal for each constructor of [bool].
 
 [[
-
 2 subgoals
   
   ============================
@@ -154,6 +147,7 @@ Theorem not_inverse : forall b : bool, not (not b) = b.
 [[
 subgoal 2 is:
  not (not false) = false
+ 
 ]]
 
 The first subgoal follows by Coq's rules of computation, so we can dispatch it easily: *)
@@ -180,10 +174,7 @@ Qed.
 At this point, it is probably not hard to guess what the underlying induction principle for [bool] is. *)
 
 Check bool_ind.
-(** [[
-
-bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b
-]] *)
+(** [bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b] *)
 
 
 (** * Simple Recursive Types *)
@@ -220,15 +211,13 @@ Qed.
 
 (** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting. *)
 
-Fixpoint plus (n m : nat) {struct n} : nat :=
+Fixpoint plus (n m : nat) : nat :=
   match n with
     | O => m
     | S n' => S (plus n' m)
   end.
 
-(** Recall that [Fixpoint] is Coq's mechanism for recursive function definitions, and that the [{struct n}] annotation is noting which function argument decreases structurally at recursive calls.
-
-Some theorems about [plus] can be proved without induction. *)
+(** Recall that [Fixpoint] is Coq's mechanism for recursive function definitions.  Some theorems about [plus] can be proved without induction. *)
 
 Theorem O_plus_n : forall n : nat, plus O n = n.
 (* begin thide *)
@@ -236,7 +225,7 @@ Theorem O_plus_n : forall n : nat, plus O n = n.
 Qed.
 (* end thide *)
 
-(** Coq's computation rules automatically simplify the application of [plus].  If we just reverse the order of the arguments, though, this no longer works, and we need induction. *)
+(** Coq's computation rules automatically simplify the application of [plus], because unfolding the definition of [plus] gives us a [match] expression where the branch to be taken is obvious from syntax alone.  If we just reverse the order of the arguments, though, this no longer works, and we need induction. *)
 
 Theorem n_plus_O : forall n : nat, plus n O = n.
 (* begin thide *)
@@ -249,11 +238,11 @@ Theorem n_plus_O : forall n : nat, plus n O = n.
 (** Our second subgoal is more work and also demonstrates our first inductive hypothesis.
 
 [[
-
   n : nat
   IHn : plus n O = n
   ============================
    plus (S n) O = S n
+ 
 ]]
 
 We can start out by using computation to simplify the goal as far as we can. *)
@@ -278,13 +267,13 @@ Qed.
 (** We can check out the induction principle at work here: *)
 
 Check nat_ind.
-(** [[
+(** %\vspace{-.15in}% [[
+  nat_ind : forall P : nat -> Prop,
+            P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
+ 
+  ]]
 
-nat_ind : forall P : nat -> Prop,
-          P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
-]]
-
-Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O], and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
 
 Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective. *)
 
@@ -314,7 +303,7 @@ Fixpoint nlength (ls : nat_list) : nat :=
     | NCons _ ls' => S (nlength ls')
   end.
 
-Fixpoint napp (ls1 ls2 : nat_list) {struct ls1} : nat_list :=
+Fixpoint napp (ls1 ls2 : nat_list) : nat_list :=
   match ls1 with
     | NNil => ls2
     | NCons n ls1' => NCons n (napp ls1' ls2)
@@ -330,9 +319,8 @@ Qed.
 (* end thide *)
 
 Check nat_list_ind.
-(** [[
-
-nat_list_ind
+(** %\vspace{-.15in}% [[
+  nat_list_ind
      : forall P : nat_list -> Prop,
        P NNil ->
        (forall (n : nat) (n0 : nat_list), P n0 -> P (NCons n n0)) ->
@@ -353,7 +341,7 @@ Fixpoint nsize (tr : nat_btree) : nat :=
     | NNode tr1 _ tr2 => plus (nsize tr1) (nsize tr2)
   end.
 
-Fixpoint nsplice (tr1 tr2 : nat_btree) {struct tr1} : nat_btree :=
+Fixpoint nsplice (tr1 tr2 : nat_btree) : nat_btree :=
   match tr1 with
     | NLeaf => NNode tr2 O NLeaf
     | NNode tr1' n tr2' => NNode (nsplice tr1' tr2) n tr2'
@@ -375,9 +363,8 @@ Qed.
 (* end thide *)
 
 Check nat_btree_ind.
-(** [[
-
-nat_btree_ind
+(** %\vspace{-.15in}% [[
+  nat_btree_ind
      : forall P : nat_btree -> Prop,
        P NLeaf ->
        (forall n : nat_btree,
@@ -400,7 +387,7 @@ Fixpoint length T (ls : list T) : nat :=
     | Cons _ ls' => S (length ls')
   end.
 
-Fixpoint app T (ls1 ls2 : list T) {struct ls1} : list T :=
+Fixpoint app T (ls1 ls2 : list T) : list T :=
   match ls1 with
     | Nil => ls2
     | Cons x ls1' => Cons x (app ls1' ls2)
@@ -432,7 +419,7 @@ Section list.
       | Cons _ ls' => S (length ls')
     end.
 
-  Fixpoint app (ls1 ls2 : list) {struct ls1} : list :=
+  Fixpoint app (ls1 ls2 : list) : list :=
     match ls1 with
       | Nil => ls2
       | Cons x ls1' => Cons x (app ls1' ls2)
@@ -453,28 +440,25 @@ Implicit Arguments Nil [T].
 (** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed. *)
 
 Print list.
-(** [[
-
-
-Inductive list (T : Set) : Set :=
+(** %\vspace{-.15in}% [[
+  Inductive list (T : Set) : Set :=
     Nil : list T | Cons : T -> list T -> list Tlist
+ 
 ]]
 
 The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
 
 Check length.
-(** [[
-
-length
+(** %\vspace{-.15in}% [[
+  length
      : forall T : Set, list T -> nat
 ]]
 
 The parameter [T] is treated as a new argument to the induction principle, too. *)
 
 Check list_ind.
-(** [[
-
-list_ind
+(** %\vspace{-.15in}% [[
+  list_ind
      : forall (T : Set) (P : list T -> Prop),
        P (Nil T) ->
        (forall (t : T) (l : list T), P l -> P (Cons t l)) ->
@@ -506,13 +490,13 @@ with olength (ol : odd_list) : nat :=
     | OCons _ el => S (elength el)
   end.
 
-Fixpoint eapp (el1 el2 : even_list) {struct el1} : even_list :=
+Fixpoint eapp (el1 el2 : even_list) : even_list :=
   match el1 with
     | ENil => el2
     | ECons n ol => ECons n (oapp ol el2)
   end
 
-with oapp (ol : odd_list) (el : even_list) {struct ol} : odd_list :=
+with oapp (ol : odd_list) (el : even_list) : odd_list :=
   match ol with
     | OCons n el' => OCons n (eapp el' el)
   end.
@@ -537,13 +521,13 @@ Theorem elength_eapp : forall el1 el2 : even_list,
 
 Abort.
 Check even_list_ind.
-(** [[
-
-even_list_ind
+(** %\vspace{-.15in}% [[
+  even_list_ind
      : forall P : even_list -> Prop,
        P ENil ->
        (forall (n : nat) (o : odd_list), P (ECons n o)) ->
        forall e : even_list, P e
+ 
 ]]
 
 We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the [Scheme] command. *)
@@ -552,14 +536,14 @@ Scheme even_list_mut := Induction for even_list Sort Prop
 with odd_list_mut := Induction for odd_list Sort Prop.
 
 Check even_list_mut.
-(** [[
-
-even_list_mut
+(** %\vspace{-.15in}% [[
+  even_list_mut
      : forall (P : even_list -> Prop) (P0 : odd_list -> Prop),
        P ENil ->
        (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
        (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
        forall e : even_list, P e
+ 
 ]]
 
 This is the principle we wanted in the first place.  There is one more wrinkle left in using it: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types. *)
@@ -628,9 +612,8 @@ Qed.
 (** We can take a look at the induction principle behind this proof. *)
 
 Check formula_ind.
-(** [[
-
-formula_ind
+(** %\vspace{-.15in}% [[
+  formula_ind
      : forall P : formula -> Prop,
        (forall n n0 : nat, P (Eq n n0)) ->
        (forall f0 : formula,
@@ -638,9 +621,10 @@ formula_ind
        (forall f1 : nat -> formula,
         (forall n : nat, P (f1 n)) -> P (Forall f1)) ->
        forall f2 : formula, P f2
-]] *)
+ 
+]]
 
-(** Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds %\textit{%#<i>#for any application of the argument function [f1]#</i>#%}%.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
+Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds %\textit{%#<i>#for any application of the argument function [f1]#</i>#%}%.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
 
 %\medskip%
 
@@ -649,13 +633,12 @@ Up to this point, we have seen how to encode in Coq more and more of what is pos
 Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of lambda calculus.  Indeed, the function-based representation technique that we just used, called %\textit{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}%, is the representation of choice for lambda calculi in Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
 
 (** [[
-
 Inductive term : Set :=
 | App : term -> term -> term
 | Abs : (term -> term) -> term.
 
-[[
 Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
+ 
 ]]
 
 We have run afoul of the %\textit{%#<i>#strict positivity requirement#</i>#%}% for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.
@@ -683,30 +666,30 @@ Nonetheless, the basic insight of HOAS is a very useful one, and there are ways 
 (** As we have emphasized a few times already, Coq proofs are actually programs, written in the same language we have been using in our examples all along.  We can get a first sense of what this means by taking a look at the definitions of some of the induction principles we have used. *)
 
 Print unit_ind.
-(** [[
-
-unit_ind = 
-fun P : unit -> Prop => unit_rect P
+(** %\vspace{-.15in}% [[
+  unit_ind = 
+  fun P : unit -> Prop => unit_rect P
      : forall P : unit -> Prop, P tt -> forall u : unit, P u
+ 
 ]]
 
 We see that this induction principle is defined in terms of a more general principle, [unit_rect]. *)
 
 Check unit_rect.
-(** [[
-
-unit_rect
+(** %\vspace{-.15in}% [[
+  unit_rect
      : forall P : unit -> Type, P tt -> forall u : unit, P u
+ 
 ]]
 
 [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
 
 Print unit_rec.
-(** [[
-
-unit_rec = 
-fun P : unit -> Set => unit_rect P
+(** %\vspace{-.15in}% [[
+  unit_rec = 
+  fun P : unit -> Set => unit_rect P
      : forall P : unit -> Set, P tt -> forall u : unit, P u
+ 
 ]]
 
 This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
@@ -722,15 +705,14 @@ Definition always_O' (u : unit) : nat :=
 (** Going even further down the rabbit hole, [unit_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
 
 Print unit_rect.
-
-(** [[
-
-unit_rect = 
-fun (P : unit -> Type) (f : P tt) (u : unit) =>
-match u as u0 return (P u0) with
-| tt => f
-end
+(** %\vspace{-.15in}% [[
+  unit_rect = 
+  fun (P : unit -> Type) (f : P tt) (u : unit) =>
+  match u as u0 return (P u0) with
+  | tt => f
+  end
      : forall P : unit -> Type, P tt -> forall u : unit, P u
+ 
 ]]
 
 The only new feature we see is an [as] clause for a [match], which is used in concert with the [return] clause that we saw in the introduction.  Since the type of the [match] is dependent on the value of the object being analyzed, we must give that object a name so that we can refer to it in the [return] clause.
@@ -738,100 +720,106 @@ The only new feature we see is an [as] clause for a [match], which is used in co
 To prove that [unit_rect] is nothing special, we can reimplement it manually. *)
 
 Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
-  match u return (P u) with
+  match u with
     | tt => f
   end.
 
-(** We use the handy shorthand that lets us omit an [as] annotation when matching on a variable, simply using that variable directly in the [return] clause.
+(** We rely on Coq's heuristics for inferring [match] annotations.
 
-We can check the implement of [nat_rect] as well: *)
+We can check the implementation of [nat_rect] as well: *)
 
 Print nat_rect.
-(** [[
+(** %\vspace{-.15in}% [[
+  nat_rect = 
+  fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
+  fix F (n : nat) : P n :=
+    match n as n0 return (P n0) with
+     | O => f
+     | S n0 => f0 n0 (F n0)
+     end
+      : forall P : nat -> Type,
+        P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
+ ]]
 
-nat_rect = 
-fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
-fix F (n : nat) : P n :=
-  match n as n0 return (P n0) with
-  | O => f
-  | S n0 => f0 n0 (F n0)
-  end
-     : forall P : nat -> Type,
-       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
-]]
+ Now we have an actual recursive definition.  [fix] expressions are an anonymous form of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
 
-Now we have an actual recursive definition.  [fix] expressions are an anonymous form of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
+ Section nat_ind'.
+   (** First, we have the property of natural numbers that we aim to prove. *)
 
-Section nat_ind'.
-  (** First, we have the property of natural numbers that we aim to prove. *)
-  Variable P : nat -> Prop.
+   Variable P : nat -> Prop.
 
-  (** Then we require a proof of the [O] case. *)
-  Hypothesis O_case : P O.
+   (** Then we require a proof of the [O] case. *)
 
-  (** Next is a proof of the [S] case, which may assume an inductive hypothesis. *)
-  Hypothesis S_case : forall n : nat, P n -> P (S n).
+   Hypothesis O_case : P O.
 
-  (** Finally, we define a recursive function to tie the pieces together. *)
-  Fixpoint nat_ind' (n : nat) : P n :=
-    match n return (P n) with
-      | O => O_case
-      | S n' => S_case (nat_ind' n')
-    end.
-End nat_ind'.
+   (** Next is a proof of the [S] case, which may assume an inductive hypothesis. *)
 
-(** Closing the section adds the [Variable]s and [Hypothesis]es as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
+   Hypothesis S_case : forall n : nat, P n -> P (S n).
 
-%\medskip%
+   (** Finally, we define a recursive function to tie the pieces together. *)
 
-We can also examine the definition of [even_list_mut], which we generated with [Scheme] for a mutually-recursive type. *)
+   Fixpoint nat_ind' (n : nat) : P n :=
+     match n with
+       | O => O_case
+       | S n' => S_case (nat_ind' n')
+     end.
+ End nat_ind'.
 
-Print even_list_mut.
-(** [[
+ (** Closing the section adds the [Variable]s and [Hypothesis]es as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
 
-even_list_mut = 
-fun (P : even_list -> Prop) (P0 : odd_list -> Prop) 
-  (f : P ENil) (f0 : forall (n : nat) (o : odd_list), P0 o -> P (ECons n o))
-  (f1 : forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) =>
-fix F (e : even_list) : P e :=
-  match e as e0 return (P e0) with
-  | ENil => f
-  | ECons n o => f0 n o (F0 o)
-  end
-with F0 (o : odd_list) : P0 o :=
-  match o as o0 return (P0 o0) with
-  | OCons n e => f1 n e (F e)
-  end
-for F
-     : forall (P : even_list -> Prop) (P0 : odd_list -> Prop),
-       P ENil ->
-       (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
-       (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
-       forall e : even_list, P e
-]]
+ %\medskip%
 
-We see a mutually-recursive [fix], with the different functions separated by [with] in the same way that they would be separated by [and] in ML.  A final [for] clause identifies which of the mutually-recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+ We can also examine the definition of [even_list_mut], which we generated with [Scheme] for a mutually-recursive type. *)
 
-Section even_list_mut'.
-  (** First, we need the properties that we are proving. *)
-  Variable Peven : even_list -> Prop.
-  Variable Podd : odd_list -> Prop.
+ Print even_list_mut.
+ (** %\vspace{-.15in}% [[
+   even_list_mut = 
+   fun (P : even_list -> Prop) (P0 : odd_list -> Prop) 
+     (f : P ENil) (f0 : forall (n : nat) (o : odd_list), P0 o -> P (ECons n o))
+     (f1 : forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) =>
+   fix F (e : even_list) : P e :=
+     match e as e0 return (P e0) with
+     | ENil => f
+     | ECons n o => f0 n o (F0 o)
+     end
+   with F0 (o : odd_list) : P0 o :=
+     match o as o0 return (P0 o0) with
+     | OCons n e => f1 n e (F e)
+     end
+   for F
+      : forall (P : even_list -> Prop) (P0 : odd_list -> Prop),
+        P ENil ->
+        (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
+        (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
+        forall e : even_list, P e
 
-  (** Next, we need proofs of the three cases. *)
-  Hypothesis ENil_case : Peven ENil.
-  Hypothesis ECons_case : forall (n : nat) (o : odd_list), Podd o -> Peven (ECons n o).
-  Hypothesis OCons_case : forall (n : nat) (e : even_list), Peven e -> Podd (OCons n e).
+ ]]
 
-  (** Finally, we define the recursive functions. *)
-  Fixpoint even_list_mut' (e : even_list) : Peven e :=
-    match e return (Peven e) with
-      | ENil => ENil_case
-      | ECons n o => ECons_case n (odd_list_mut' o)
-    end
-  with odd_list_mut' (o : odd_list) : Podd o :=
-    match o return (Podd o) with
-      | OCons n e => OCons_case n (even_list_mut' e)
-    end.
+ We see a mutually-recursive [fix], with the different functions separated by [with] in the same way that they would be separated by [and] in ML.  A final [for] clause identifies which of the mutually-recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+
+ Section even_list_mut'.
+   (** First, we need the properties that we are proving. *)
+
+   Variable Peven : even_list -> Prop.
+   Variable Podd : odd_list -> Prop.
+
+   (** Next, we need proofs of the three cases. *)
+
+   Hypothesis ENil_case : Peven ENil.
+   Hypothesis ECons_case : forall (n : nat) (o : odd_list), Podd o -> Peven (ECons n o).
+   Hypothesis OCons_case : forall (n : nat) (e : even_list), Peven e -> Podd (OCons n e).
+
+   (** Finally, we define the recursive functions. *)
+
+   Fixpoint even_list_mut' (e : even_list) : Peven e :=
+     match e with
+       | ENil => ENil_case
+       | ECons n o => ECons_case n (odd_list_mut' o)
+     end
+   with odd_list_mut' (o : odd_list) : Podd o :=
+     match o with
+       | OCons n e => OCons_case n (even_list_mut' e)
+     end.
 End even_list_mut'.
 
 (** Even induction principles for reflexive types are easy to implement directly.  For our [formula] type, we can use a recursive definition much like those we wrote above. *)
@@ -845,7 +833,7 @@ Section formula_ind'.
     (forall n : nat, P (f n)) -> P (Forall f).
 
   Fixpoint formula_ind' (f : formula) : P f :=
-    match f return (P f) with
+    match f with
       | Eq n1 n2 => Eq_case n1 n2
       | And f1 f2 => And_case (formula_ind' f1) (formula_ind' f2)
       | Forall f' => Forall_case f' (fun n => formula_ind' (f' n))
@@ -866,13 +854,13 @@ Inductive nat_tree : Set :=
 Like we encountered for mutual inductive types, we find that the automatically-generated induction principle for [nat_tree] is too weak. *)
 
 Check nat_tree_ind.
-(** [[
-
-nat_tree_ind
+(** %\vspace{-.15in}% [[
+  nat_tree_ind
      : forall P : nat_tree -> Prop,
        P NLeaf' ->
        (forall (n : nat) (l : list nat_tree), P (NNode' n l)) ->
        forall n : nat_tree, P n
+ 
 ]]
 
 There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses to different type families.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
@@ -893,30 +881,29 @@ End All.
 (** It will be useful to look at the definitions of [True] and [/\], since we will want to write manual proofs of them below. *)
 
 Print True.
-(** [[
-
-Inductive True : Prop :=  I : True
-]]
+(** %\vspace{-.15in}% [[
+  Inductive True : Prop :=  I : True
+ 
+  ]]
 
 That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
 
 Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the [Locate] command. *)
 
 Locate "/\".
-(** [[
-
-Notation            Scope     
-"A /\ B" := and A B  : type_scope
-                      (default interpretation)
+(** %\vspace{-.15in}% [[
+  Notation            Scope     
+  "A /\ B" := and A B  : type_scope
+                        (default interpretation)
 ]] *)
 
 Print and.
-(** [[
-
-Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
-For conj: Arguments A, B are implicit
-For and: Argument scopes are [type_scope type_scope]
-For conj: Argument scopes are [type_scope type_scope _ _]
+(** %\vspace{-.15in}% [[
+  Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
+  For conj: Arguments A, B are implicit
+  For and: Argument scopes are [type_scope type_scope]
+  For conj: Argument scopes are [type_scope type_scope _ _]
+ 
 ]]
 
 In addition to the definition of [and] itself, we get information on implicit arguments and parsing rules for [and] and its constructor [conj].  We will ignore the parsing information for now.  The implicit argument information tells us that we build a proof of a conjunction by calling the constructor [conj] on proofs of the conjuncts, with no need to include the types of those proofs as explicit arguments.
@@ -935,15 +922,14 @@ Section nat_tree_ind'.
   (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.
 
   [[
-
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
-    match tr return (P tr) with
+    match tr with
       | NLeaf' => NLeaf'_case
       | NNode' n ls => NNode'_case n ls (list_nat_tree_ind ls)
     end
 
   with list_nat_tree_ind (ls : list nat_tree) : All P ls :=
-    match ls return (All P ls) with
+    match ls with
       | Nil => I
       | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
     end.
@@ -953,11 +939,11 @@ Section nat_tree_ind'.
   Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  The term "nested inductive type" hints at the solution to the problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
-    match tr return (P tr) with
+    match tr with
       | NLeaf' => NLeaf'_case
       | NNode' n ls => NNode'_case n ls
         ((fix list_nat_tree_ind (ls : list nat_tree) : All P ls :=
-          match ls return (All P ls) with
+          match ls with
             | Nil => I
             | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
           end) ls)
@@ -996,7 +982,7 @@ Fixpoint ntsize (tr : nat_tree) : nat :=
 
 (** Notice that Coq was smart enough to expand the definition of [map] to verify that we are using proper nested recursion, even through a use of a higher-order function. *)
 
-Fixpoint ntsplice (tr1 tr2 : nat_tree) {struct tr1} : nat_tree :=
+Fixpoint ntsplice (tr1 tr2 : nat_tree) : nat_tree :=
   match tr1 with
     | NLeaf' => NNode' O (Cons tr2 Nil)
     | NNode' n Nil => NNode' n (Cons tr2 Nil)
@@ -1020,10 +1006,10 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   Hint Rewrite plus_S : cpdt.
 
   (** We know that the standard induction principle is insufficient for the task, so we need to provide a [using] clause for the [induction] tactic to specify our alternate principle. *)
+
   induction tr1 using nat_tree_ind'; crush.
 
   (** One subgoal remains: [[
-
   n : nat
   ls : list nat_tree
   H : All
@@ -1037,6 +1023,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
      | Nil => NNode' n (Cons tr2 Nil)
      | Cons tr trs => NNode' n (Cons (ntsplice tr tr2) trs)
      end = S (plus (ntsize tr2) (sum (map ntsize ls)))
+ 
      ]]
 
      After a few moments of squinting at this goal, it becomes apparent that we need to do a case analysis on the structure of [ls].  The rest is routine. *)
@@ -1062,24 +1049,25 @@ The advantage of using the hint is not very clear here, because the original pro
 (** It can be useful to understand how tactics like [discriminate] and [injection] work, so it is worth stepping through a manual proof of each kind.  We will start with a proof fit for [discriminate]. *)
 
 Theorem true_neq_false : true <> false.
+
 (* begin thide *)
 (** We begin with the tactic [red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
 
   red.
 (** [[
-
   ============================
    true = false -> False
+ 
 ]]
 
 The negation is replaced with an implication of falsehood.  We use the tactic [intro H] to change the assumption of the implication into a hypothesis named [H]. *)
 
   intro H.
 (** [[
-
   H : true = false
   ============================
    False
+ 
 ]]
 
 This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
@@ -1090,30 +1078,30 @@ This is the point in the proof where we apply some creativity.  We define a func
 
   change (f false).
 (** [[
-
   H : true = false
   ============================
    f false
+ 
 ]]
 
 Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side. *)
 
   rewrite <- H.
 (** [[
-
   H : true = false
   ============================
    f true
+ 
 ]]
 
 We are almost done.  Just how close we are to done is revealed by computational simplification. *)
 
   simpl.
 (** [[
-
   H : true = false
   ============================
    True
+ 
 ]] *)
 
   trivial.

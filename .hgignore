@@ -21,3 +21,7 @@ cpdt.tgz
 
 *.glob
 *.v.d
+
+*.aux
+*.dvi
+*.log
