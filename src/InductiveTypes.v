@@ -437,7 +437,7 @@ End list.
 Implicit Arguments Nil [T].
 (* end hide *)
 
-(** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed. *)
+(** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed.  We verify that this has happened using the [Print] command, a cousin of [Check] which shows the definition of a symbol, rather than just its type. *)
 
 Print list.
 (** %\vspace{-.15in}% [[

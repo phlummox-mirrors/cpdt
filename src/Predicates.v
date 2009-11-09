@@ -134,7 +134,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
  
   ]]
   
-  The interested reader can check that [and] has a Curry-Howard doppleganger called [prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  [/\] is an infix shorthand for [and]. *)
+  The interested reader can check that [and] has a Curry-Howard doppelganger called [prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  [/\] is an infix shorthand for [and]. *)
 
   Theorem and_comm : P /\ Q -> Q /\ P.
 

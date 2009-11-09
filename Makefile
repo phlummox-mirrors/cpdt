@@ -41,9 +41,9 @@ latex/%.tex: src/%.v
 	coqdoc --interpolate --latex -s $< -o $@
 
 latex/%.dvi: latex/%.tex
-	latex $< ; latex $<
+	cd latex ; latex $* ; latex $*
 
-latex/%.pdf: latex/%.dvi
+%.pdf: %.dvi
 	pdflatex $<
 
 html: Makefile $(VS) src/toc.html
