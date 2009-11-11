@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -70,17 +70,17 @@ Notation "[ v , r # n ~> x ]" := ((fun v r => x) : constructorDenote _ (Con _ n)
 
 (* begin thide *)
 Definition Empty_set_den : datatypeDenote Empty_set Empty_set_dt :=
-  hnil.
+  HNil.
 Definition unit_den : datatypeDenote unit unit_dt :=
-  [!, ! ~> tt] ::: hnil.
+  [!, ! ~> tt] ::: HNil.
 Definition bool_den : datatypeDenote bool bool_dt :=
-  [!, ! ~> true] ::: [!, ! ~> false] ::: hnil.
+  [!, ! ~> true] ::: [!, ! ~> false] ::: HNil.
 Definition nat_den : datatypeDenote nat nat_dt :=
-  [!, ! ~> O] ::: [!, r # 1 ~> S (hd r)] ::: hnil.
+  [!, ! ~> O] ::: [!, r # 1 ~> S (hd r)] ::: HNil.
 Definition list_den (A : Type) : datatypeDenote (list A) (list_dt A) :=
-  [!, ! ~> nil] ::: [x, r # 1 ~> x :: hd r] ::: hnil.
+  [!, ! ~> nil] ::: [x, r # 1 ~> x :: hd r] ::: HNil.
 Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
-  [v, ! ~> Leaf v] ::: [!, r # 2 ~> Node (hd r) (hd (tl r))] ::: hnil.
+  [v, ! ~> Leaf v] ::: [!, r # 2 ~> Node (hd r) (hd (tl r))] ::: HNil.
 (* end thide *)
 
 
@@ -100,36 +100,36 @@ Definition Empty_set_fix : fixDenote Empty_set Empty_set_dt :=
 Eval compute in size Empty_set_fix.
 
 Definition unit_fix : fixDenote unit unit_dt :=
-  fun R cases _ => (fst cases) tt inil.
+  fun R cases _ => (hhd cases) tt INil.
 Eval compute in size unit_fix.
 
 Definition bool_fix : fixDenote bool bool_dt :=
   fun R cases b => if b
-    then (fst cases) tt inil
-    else (fst (snd cases)) tt inil.
+    then (hhd cases) tt INil
+    else (hhd (htl cases)) tt INil.
 Eval compute in size bool_fix.
 
 Definition nat_fix : fixDenote nat nat_dt :=
   fun R cases => fix F (n : nat) : R :=
     match n with
-      | O => (fst cases) tt inil
-      | S n' => (fst (snd cases)) tt (icons (F n') inil)
+      | O => (hhd cases) tt INil
+      | S n' => (hhd (htl cases)) tt (ICons (F n') INil)
     end.
 Eval cbv beta iota delta -[plus] in size nat_fix.
 
 Definition list_fix (A : Type) : fixDenote (list A) (list_dt A) :=
   fun R cases => fix F (ls : list A) : R :=
     match ls with
-      | nil => (fst cases) tt inil
-      | x :: ls' => (fst (snd cases)) x (icons (F ls') inil)
+      | nil => (hhd cases) tt INil
+      | x :: ls' => (hhd (htl cases)) x (ICons (F ls') INil)
     end.
 Eval cbv beta iota delta -[plus] in fun A => size (@list_fix A).
 
 Definition tree_fix (A : Type) : fixDenote (tree A) (tree_dt A) :=
   fun R cases => fix F (t : tree A) : R :=
     match t with
-      | Leaf x => (fst cases) x inil
-      | Node t1 t2 => (fst (snd cases)) tt (icons (F t1) (icons (F t2) inil))
+      | Leaf x => (hhd cases) x INil
+      | Node t1 t2 => (hhd (htl cases)) tt (ICons (F t1) (ICons (F t2) INil))
     end.
 Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
 (* end thide *)
@@ -157,15 +157,15 @@ Definition print T dt (pr : print_datatype dt) (fx : fixDenote T dt) : T -> stri
       ++ foldr (fun s acc => ", " ++ s ++ acc) ")" r) pr).
 (* end thide *)
 
-Eval compute in print hnil Empty_set_fix.
-Eval compute in print (^ "tt" (fun _ => "") ::: hnil) unit_fix.
+Eval compute in print HNil Empty_set_fix.
+Eval compute in print (^ "tt" (fun _ => "") ::: HNil) unit_fix.
 Eval compute in print (^ "true" (fun _ => "")
   ::: ^ "false" (fun _ => "")
-  ::: hnil) bool_fix.
+  ::: HNil) bool_fix.
 
 Definition print_nat := print (^ "O" (fun _ => "")
   ::: ^ "S" (fun _ => "")
-  ::: hnil) nat_fix.
+  ::: HNil) nat_fix.
 Eval cbv beta iota delta -[append] in print_nat.
 Eval simpl in print_nat 0.
 Eval simpl in print_nat 1.
@@ -174,11 +174,11 @@ Eval simpl in print_nat 2.
 Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
   print (^ "nil" (fun _ => "")
   ::: ^ "cons" pr
-  ::: hnil) (@list_fix A).
+  ::: HNil) (@list_fix A).
 Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
   print (^ "Leaf" pr
   ::: ^ "Node" (fun _ => "")
-  ::: hnil) (@tree_fix A).
+  ::: HNil) (@tree_fix A).
 
 
 (** ** Mapping *)
@@ -225,16 +225,15 @@ Section ok.
     forall (R : Type) (cases : datatypeDenote R dt)
       c (m : member c dt)
       (x : nonrecursive c) (r : ilist T (recursive c)),
-      fx R cases ((hget dd m) x r)
-      = (hget cases m) x (imap (fx R cases) r).
+      fx cases ((hget dd m) x r)
+      = (hget cases m) x (imap (fx cases) r).
 End ok.
 
 Implicit Arguments datatypeDenoteOk [T dt].
 
 Lemma foldr_plus : forall n (ils : ilist nat n),
   foldr plus 1 ils > 0.
-  induction n; crush.
-  generalize (IHn b); crush.
+  induction ils; crush.
 Qed.
 (* end thide *)
 
@@ -265,12 +264,11 @@ Theorem map_id : forall T dt
   end; crush.
 
   induction (recursive c); crush.
-  destruct r; reflexivity.
-  destruct r; crush.
-  rewrite (H None).
-  unfold icons.
+  dep_destruct r; reflexivity.
+  dep_destruct r; crush.
+  rewrite (H First).
   f_equal.
   apply IHn; crush.
-  apply (H (Some i0)).
+  apply (H (Next i)).
 Qed.
 (* end thide *)

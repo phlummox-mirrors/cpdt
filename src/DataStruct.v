@@ -841,7 +841,7 @@ Qed.
 
 (** remove printing * *)
 
-(** Some of the type family definitions from this chapter are duplicated in the [DepList] module of the book source.  Only the recursive versions of length-indexed and heterogeneous lists are included, and they are renamed without the [f] prefixes, e.g., [ilist] in place of [filist].
+(** Some of the type family definitions and associated functions from this chapter are duplicated in the [DepList] module of the book source.  Some of their names have been changed to be more sensible in a general context.
 
 %\begin{enumerate}%#<ol>#
 
