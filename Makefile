@@ -45,7 +45,7 @@ latex/%.dvi: latex/%.tex
 	cd latex ; latex $* ; latex $*
 
 latex/%.pdf: latex/%.dvi
-	cd latex ; pdflatex $* ; pdflatex $*
+	cd latex ; pdflatex $*
 
 html: Makefile $(VS) src/toc.html
 	mkdir -p html
