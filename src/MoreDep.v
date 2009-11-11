@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -38,35 +38,37 @@ Section ilist.
 
    The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its sublist.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\textit{%#<i>#phase distinction#</i>#%}% that characterizes [ilist] as %\textit{%#<i>#dependently typed#</i>#%}%.
 
-   In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation.
+   In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
 
-   [[
-Fixpoint app n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) {struct ls1} : ilist (n1 + n2) :=
-  match ls1 with
-    | Nil => ls2
-    | Cons _ x ls1' => Cons x (app ls1' ls2)
-  end.
+  Fixpoint app n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
+    match ls1 with
+      | Nil => ls2
+      | Cons _ x ls1' => Cons x (app ls1' ls2)
+    end.
 
-  Coq is not happy with this definition:
+  (** In Coq version 8.1 and earlier, this definition leads to an error message:
 
 [[
 The term "ls2" has type "ilist n2" while it is expected to have type
  "ilist (?14 + n2)"
+ 
 ]]
 
-  We see the return of a problem we have considered before.  Without explicit annotations, Coq does not enrich our typing assumptions in the branches of a [match] expression.  It is clear that the unification variable [?14] should be resolved to 0 in this context, so that we have [0 + n2] reducing to [n2], but Coq does not realize that.  We cannot fix the problem using just the simple [return] clauses we applied in the last chapter.  We need to combine a [return] clause with a new kind of annotation, an [in] clause. *)
+  In Coq's core language, without explicit annotations, Coq does not enrich our typing assumptions in the branches of a [match] expression.  It is clear that the unification variable [?14] should be resolved to 0 in this context, so that we have [0 + n2] reducing to [n2], but Coq does not realize that.  We cannot fix the problem using just the simple [return] clauses we applied in the last chapter.  We need to combine a [return] clause with a new kind of annotation, an [in] clause.  This is exactly what the inference heuristics do in Coq 8.2 and later.
+
+  Specifically, Coq infers the following definition from the simpler one. *)
 
 (* EX: Implement concatenation *)
 
 (* begin thide *)
-Fixpoint app n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) {struct ls1} : ilist (n1 + n2) :=
+Fixpoint app' n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
   match ls1 in (ilist n1) return (ilist (n1 + n2)) with
     | Nil => ls2
-    | Cons _ x ls1' => Cons x (app ls1' ls2)
+    | Cons _ x ls1' => Cons x (app' ls1' ls2)
   end.
 (* end thide *)
 
-(** This version of [app] passes the type checker.  Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What [in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
+(** Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What [in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for %\textit{%#<i>#parameters#</i>#%}% to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
@@ -76,14 +78,14 @@ Our [app] function could be typed in so-called %\textit{%#<i>#stratified#</i>#%}
 
 (* begin thide *)
 Fixpoint inject (ls : list A) : ilist (length ls) :=
-  match ls return (ilist (length ls)) with
+  match ls with
     | nil => Nil
     | h :: t => Cons h (inject t)
   end.
 
 (** We can define an inverse conversion and prove that it really is an inverse. *)
 
-Fixpoint unject n (ls : ilist n) {struct ls} : list A :=
+Fixpoint unject n (ls : ilist n) : list A :=
   match ls with
     | Nil => nil
     | Cons _ h t => h :: unject t
@@ -104,6 +106,8 @@ Definition hd n (ls : ilist (S n)) : A :=
     | Nil => ???
     | Cons _ h _ => h
   end.
+ 
+]]
 
 It is not clear what to write for the [Nil] case, so we are stuck before we even turn our function over to the type checker.  We could try omitting the [Nil] case:
 
@@ -113,8 +117,8 @@ Definition hd n (ls : ilist (S n)) : A :=
     | Cons _ h _ => h
   end.
 
-[[
 Error: Non exhaustive pattern-matching: no clause found for pattern Nil
+ 
 ]]
 
 Unlike in ML, we cannot use inexhaustive pattern matching, becuase there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  We might try using an [in] clause somehow.
@@ -125,8 +129,8 @@ Definition hd n (ls : ilist (S n)) : A :=
     | Cons _ h _ => h
   end.
 
-[[
 Error: The reference n was not found in the current environment
+ 
 ]]
 
 In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification, which is undecidable.  There %\textit{%#<i>#are#</i>#%}% useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
@@ -185,8 +189,8 @@ Fixpoint typeDenote (t : type) : Set :=
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
-Fixpoint expDenote t (e : exp t) {struct e} : typeDenote t :=
-  match e in (exp t) return (typeDenote t) with
+Fixpoint expDenote t (e : exp t) : typeDenote t :=
+  match e with
     | NConst n => n
     | Plus e1 e2 => expDenote e1 + expDenote e2
     | Eq e1 e2 => if eq_nat_dec (expDenote e1) (expDenote e2) then true else false
@@ -200,7 +204,7 @@ Fixpoint expDenote t (e : exp t) {struct e} : typeDenote t :=
     | Snd _ _ e' => snd (expDenote e')
   end.
 
-(** Again we find that an [in] annotation is essential for type-checking a function.  Besides that, the definition is routine.  In fact, it is less complicated than what we would write in ML or Haskell 98, since we do not need to worry about pushing final values in and out of an algebraic datatype.  The only unusual thing is the use of an expression of the form [if E then true else false] in the [Eq] case.  Remember that [eq_nat_dec] has a rich dependent type, rather than a simple boolean type.  Coq's native [if] is overloaded to work on a test of any two-constructor type, so we can use [if] to build a simple boolean from the [sumbool] that [eq_nat_dec] returns.
+(** Despite the fancy type, the function definition is routine.  In fact, it is less complicated than what we would write in ML or Haskell 98, since we do not need to worry about pushing final values in and out of an algebraic datatype.  The only unusual thing is the use of an expression of the form [if E then true else false] in the [Eq] case.  Remember that [eq_nat_dec] has a rich dependent type, rather than a simple boolean type.  Coq's native [if] is overloaded to work on a test of any two-constructor type, so we can use [if] to build a simple boolean from the [sumbool] that [eq_nat_dec] returns.
 
    We can implement our old favorite, a constant folding function, and prove it correct.  It will be useful to write a function [pairOut] that checks if an [exp] of [Prod] type is a pair, returning its two components if so.  Unsurprisingly, a first attempt leads to a type error.
 
@@ -211,9 +215,8 @@ Definition pairOut t1 t2 (e : exp (Prod t1 t2)) : option (exp t1 * exp t2) :=
     | _ => None
   end.
 
-[[
 Error: The reference t2 was not found in the current environment
-]]
+ ]]
 
 We run again into the problem of not being able to specify non-variable arguments in [in] clauses.  The problem would just be hopeless without a use of an [in] clause, though, since the result type of the [match] depends on an argument to [exp].  Our solution will be to use a more general type, as we did for [hd].  First, we define a type-valued function to use in assigning a type to [pairOut]. *)
 
@@ -245,7 +248,7 @@ Definition pairOut t (e : exp t) :=
 
 (** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages, but is similar to what goes on with Haskell type classes.
 
-With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden. *)
+With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off by writing [return _]. *)
 
 Fixpoint cfold t (e : exp t) : exp t :=
   match e with
@@ -305,7 +308,6 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
 (** The first remaining subgoal is:
 
    [[
-
   expDenote (cfold e1) + expDenote (cfold e2) =
    expDenote
      match cfold e1 with
@@ -330,6 +332,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
      | Fst _ _ _ => Plus (cfold e1) (cfold e2)
      | Snd _ _ _ => Plus (cfold e1) (cfold e2)
      end
+ 
      ]]
 
      We would like to do a case analysis on [cfold e1], and we attempt that in the way that has worked so far.
@@ -337,25 +340,32 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
      [[
   destruct (cfold e1).
 
-  [[
 User error: e1 is used in hypothesis e
+ 
 ]]
 
     Coq gives us another cryptic error message.  Like so many others, this one basically means that Coq is not able to build some proof about dependent types.  It is hard to generate helpful and specific error messages for problems like this, since that would require some kind of understanding of the dependency structure of a piece of code.  We will encounter many examples of case-specific tricks for recovering from errors like this one.
 
-    For our current proof, we can use a tactic [dep_destruct] defined in the book [Tactics] module.  General elimination/inversion of dependently-typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  [dep_destruct] makes a best effort to handle some common cases.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box. *)
+    For our current proof, we can use a tactic [dep_destruct] defined in the book [Tactics] module.  General elimination/inversion of dependently-typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive [dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box. *)
   
   dep_destruct (cfold e1).
 
   (** This successfully breaks the subgoal into 5 new subgoals, one for each constructor of [exp] that could produce an [exp Nat].  Note that [dep_destruct] is successful in ruling out the other cases automatically, in effect automating some of the work that we have done manually in implementing functions like [hd] and [pairOut].
 
-     This is the only new trick we need to learn to complete the proof.  We can back up and give a short, automated proof. *)
+     This is the only new trick we need to learn to complete the proof.  We can back up and give a short, automated proof.  The main inconvenience in the proof is that we cannot write a pattern that matches a [match] without including a case for every constructor of the inductive type we match over. *)
 
   Restart.
 
   induction e; crush;
     repeat (match goal with
-              | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
+              | [ |- context[match cfold ?E with NConst _ => _ | Plus _ _ => _
+                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
+                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
+                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+                dep_destruct (cfold E)
+              | [ |- context[match pairOut (cfold ?E) with Some _ => _
+                               | None => _ end] ] =>
+                dep_destruct (cfold E)
               | [ |- (if ?E then _ else _) = _ ] => destruct E
             end; crush).
 Qed.
@@ -543,7 +553,7 @@ Section insert.
       destruct a; present_balance.
     Qed.
 
-    Lemma present_balance2 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
+    Lemma present_balance2 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n),
       present z (projT2 (balance2 a y b))
       <-> rpresent z a \/ z = y \/ present z b.
       destruct a; present_balance.
@@ -589,21 +599,21 @@ Section insert.
           tauto.
     Qed.
 
-    Ltac present_insert t :=
-      unfold insert; inversion t;
+    Ltac present_insert :=
+      unfold insert; intros n t; inversion t;
         generalize (present_ins t); simpl;
           dep_destruct (ins t); tauto.
 
     Theorem present_insert_Red : forall n (t : rbtree Red n),
       present z (insert t)
       <-> (z = x \/ present z t).
-      intros; present_insert t.
+      present_insert.
     Qed.
 
     Theorem present_insert_Black : forall n (t : rbtree Black n),
       present z (projT2 (insert t))
       <-> (z = x \/ present z t).
-      intros; present_insert t.
+      present_insert.
     Qed.
   End present.
 End insert.
