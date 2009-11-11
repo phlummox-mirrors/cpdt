@@ -143,45 +143,14 @@ Ltac crush' lemmas invOne :=
 
 Ltac crush := crush' false fail.
 
-Theorem dep_destruct : forall (T : Type) (T' : T -> Type) x (v : T' x) (P : T' x -> Type),
-  (forall x' (v' : T' x') (Heq : x' = x), P (match Heq in (_ = x) return (T' x) with
-                                               | refl_equal => v'
-                                             end))
-  -> P v.
-  intros.
-  generalize (X _ v (refl_equal _)); trivial.
-Qed.
+Require Import Program.Equality.
 
 Ltac dep_destruct E :=
-  let doit A :=
-    let T := type of A in
-      generalize dependent E;
-        let e := fresh "e" in
-          intro e; pattern e;
-            apply (@dep_destruct T);
-              let x := fresh "x" with v := fresh "v"  in
-                intros x v; destruct v; crush;
-                  let bestEffort Heq E tac :=
-                    repeat match goal with
-                             | [ H : context[E] |- _ ] =>
-                               match H with
-                                 | Heq => fail 1
-                                 | _ => generalize dependent H
-                               end
-                           end;
-                    generalize Heq; tac Heq; clear Heq; intro Heq;
-                      rewrite (UIP_refl _ _ Heq); intros in
-                  repeat match goal with
-                           | [ Heq : ?X = ?X |- _ ] =>
-                             generalize (UIP_refl _ _ Heq); intro; subst; clear Heq
-                           | [ Heq : ?E = _ |- _ ] => bestEffort Heq E ltac:(fun E => rewrite E)
-                           | [ Heq : _ = ?E |- _ ] => bestEffort Heq E ltac:(fun E => rewrite <- E)
-                         end
-                  in match type of E with
-                       | _ ?A => doit A
-                       | _ _ ?A => doit A
-                       | _ _ _ ?A => doit A
-                     end.
+  let x := fresh "x" in
+    remember E as x; simpl in x; dependent destruction x;
+      try match goal with
+            | [ H : _ = E |- _ ] => rewrite <- H in *; clear H
+          end.
 
 Ltac clear_all :=
   repeat match goal with
