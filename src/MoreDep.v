@@ -374,14 +374,18 @@ Qed.
 
 (** * Dependently-Typed Red-Black Trees *)
 
-(** TODO: Add commentary for this section. *)
+(** Red-black trees are a favorite purely-functional data structure with an interesting invariant.  We can use dependent types to enforce that operations on red-black trees preserve the invariant.  For simplicity, we specialize our red-black trees to represent sets of [nat]s. *)
 
 Inductive color : Set := Red | Black.
 
 Inductive rbtree : color -> nat -> Set :=
 | Leaf : rbtree Black 0
-| RedNode : forall n, rbtree Black n -> nat-> rbtree Black n -> rbtree Red n
+| RedNode : forall n, rbtree Black n -> nat -> rbtree Black n -> rbtree Red n
 | BlackNode : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rbtree Black (S n).
+
+(** A value of type [rbtree c d] is a red-black tree node whose root has color [c] and that has black depth [d].  The latter property means that there are no more than [d] black-colored nodes on any path from the root to a leaf. *)
+
+(** At first, it can be unclear that this choice of type indices tracks any useful property.  To convince ourselves, we will prove that every red-black tree is balanced.  We will phrase our theorem in terms of a depth calculating function that ignores the extra information in the types.  It will be useful to parameterize this function over a combining operation, so that we can re-use the same code to calculate the minimum or maximum height among all paths from root to leaf. *)
 
 (* EX: Prove that every [rbtree] is balanced. *)
 
@@ -391,7 +395,7 @@ Require Import Max Min.
 Section depth.
   Variable f : nat -> nat -> nat.
 
-  Fixpoint depth c n (t : rbtree c n) {struct t} : nat :=
+  Fixpoint depth c n (t : rbtree c n) : nat :=
     match t with
       | Leaf => 0
       | RedNode _ t1 _ t2 => S (f (depth t1) (depth t2))
@@ -399,12 +403,41 @@ Section depth.
     end.
 End depth.
 
+(** Our proof of balanced-ness decomposes naturally into a lower bound and an upper bound.  We prove the lower bound first.  Unsurprisingly, a tree's black depth provides such a bound on the minimum path length.  We use the richly-typed procedure [min_dec] to do case analysis on whether [min X Y] equals [X] or [Y]. *)
+
 Theorem depth_min : forall c n (t : rbtree c n), depth min t >= n.
   induction t; crush;
     match goal with
       | [ |- context[min ?X ?Y] ] => destruct (min_dec X Y)
     end; crush.
 Qed.
+
+(** There is an analogous upper-bound theorem based on black depth.  Unfortunately, a symmetric proof script does not suffice to establish it. *)
+
+Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
+  induction t; crush;
+    match goal with
+      | [ |- context[max ?X ?Y] ] => destruct (max_dec X Y)
+    end; crush.
+
+(** Two subgoals remain.  One of them is: [[
+  n : nat
+  t1 : rbtree Black n
+  n0 : nat
+  t2 : rbtree Black n
+  IHt1 : depth max t1 <= n + (n + 0) + 1
+  IHt2 : depth max t2 <= n + (n + 0) + 1
+  e : max (depth max t1) (depth max t2) = depth max t1
+  ============================
+   S (depth max t1) <= n + (n + 0) + 1
+ 
+   ]]
+
+   We see that [IHt1] is %\textit{%#<i>#almost#</i>#%}% the fact we need, but it is not quite strong enough.  We will need to strengthen our induction hypothesis to get the proof to go through. *)
+
+Abort.
+
+(** In particular, we prove a lemma that provides a stronger upper bound for trees with black root nodes.  We got stuck above in a case about a red root node.  Since red nodes have only black children, our IH strengthening will enable us to finish the proof. *)
 
 Lemma depth_max' : forall c n (t : rbtree c n), match c with
                                                   | Red => depth max t <= 2 * n + 1
@@ -415,27 +448,35 @@ Lemma depth_max' : forall c n (t : rbtree c n), match c with
       | [ |- context[max ?X ?Y] ] => destruct (max_dec X Y)
     end; crush;
     repeat (match goal with
-              | [ H : context[match ?C with Red => _ | Black => _ end] |- _ ] => destruct C
+              | [ H : context[match ?C with Red => _ | Black => _ end] |- _ ] =>
+                destruct C
             end; crush).
 Qed.
+
+(** The original theorem follows easily from the lemma.  We use the tactic [generalize pf], which, when [pf] proves the proposition [P], changes the goal from [Q] to [P -> Q].  It is useful to do this because it makes the truth of [P] manifest syntactically, so that automation machinery can rely on [P], even if that machinery is not smart enough to establish [P] on its own. *)
 
 Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
   intros; generalize (depth_max' t); destruct c; crush.
 Qed.
+
+(** The final balance theorem establishes that the minimum and maximum path lengths of any tree are within a factor of two of each other. *)
 
 Theorem balanced : forall c n (t : rbtree c n), 2 * depth min t + 1 >= depth max t.
   intros; generalize (depth_min t); generalize (depth_max t); crush.
 Qed.
 (* end thide *)
 
+(** Now we are ready to implement an example operation on our trees, insertion.  Insertion can be thought of as breaking the tree invariants locally but then rebalancing.  In particular, in intermediate states we find red nodes that may have red children.  The type [rtree] captures the idea of such a node, continuing to track black depth as a type index. *)
 
 Inductive rtree : nat -> Set :=
 | RedNode' : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rtree n.
 
+(** Before starting to define [insert], we define predicates capturing when a data value is in the set represented by a normal or possibly-invalid tree. *)
+
 Section present.
   Variable x : nat.
 
-  Fixpoint present c n (t : rbtree c n) {struct t} : Prop :=
+  Fixpoint present c n (t : rbtree c n) : Prop :=
     match t with
       | Leaf => False
       | RedNode _ a y b => present a \/ x = y \/ present b
@@ -448,39 +489,77 @@ Section present.
     end.
 End present.
 
+(** Insertion relies on two balancing operations.  It will be useful to give types to these operations using a relative of the subset types from last chapter.  While subset types let us pair a value with a proof about that value, here we want to pair a value with another non-proof dependently-typed value.  The [sigT] type fills this role. *)
+
 Locate "{ _ : _ & _ }".
+(** [[
+Notation            Scope     
+"{ x : A  & P }" := sigT (fun x : A => P)
+]] *)
+
 Print sigT.
+(** [[
+Inductive sigT (A : Type) (P : A -> Type) : Type :=
+    existT : forall x : A, P x -> sigT P
+]] *)
+
+(** It will be helpful to define a concise notation for the constructor of [sigT]. *)
 
 Notation "{< x >}" := (existT _ _ x).
 
+(** Each balance function is used to construct a new tree whose keys include the keys of two input trees, as well as a new key.  One of the two input trees may violate the red-black alternation invariant (that is, it has an [rtree] type), while the other tree is known to be valid.  Crucially, the two input trees have the same black depth.
+
+   A balance operation may return a tree whose root is of either color.  Thus, we use a [sigT] type to package the result tree with the color of its root.  Here is the definition of the first balance operation, which applies when the possibly-invalid [rtree] belongs to the left of the valid [rbtree]. *)
+
 Definition balance1 n (a : rtree n) (data : nat) c2 :=
-  match a in rtree n return rbtree c2 n -> { c : color & rbtree c (S n) } with
+  match a in rtree n return rbtree c2 n
+    -> { c : color & rbtree c (S n) } with
     | RedNode' _ _ _ t1 y t2 =>
-      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
-        | RedNode _ a x b => fun c d => {<RedNode (BlackNode a x b) y (BlackNode c data d)>}
+      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n
+        -> { c : color & rbtree c (S n) } with
+        | RedNode _ a x b => fun c d =>
+          {<RedNode (BlackNode a x b) y (BlackNode c data d)>}
         | t1' => fun t2 =>
-          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
-            | RedNode _ b x c => fun a d => {<RedNode (BlackNode a y b) x (BlackNode c data d)>}
+          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n
+            -> { c : color & rbtree c (S n) } with
+            | RedNode _ b x c => fun a d =>
+              {<RedNode (BlackNode a y b) x (BlackNode c data d)>}
             | b => fun a t => {<BlackNode (RedNode a y b) data t>}
           end t1'
       end t2
   end.
 
+(** We apply a trick that I call the %\textit{%#<i>#convoy pattern#</i>#%}%.  Recall that [match] annotations only make it possible to describe a dependence of a [match] %\textit{%#<i>#result type#</i>#%}% on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
+
+   In particular, we can extend the [match] to return %\textit{%#<i>#functions over the free variables whose types we want to refine#</i>#%}%.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the "old version" of the variable to be refined, and the type checker is happy.
+
+   After writing this code, even I do not understand the precise details of how balancing works.  I consulted Chris Okasaki's paper "Red-Black Trees in a Functional Setting" and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.
+
+   Here is the symmetric function [balance2], for cases where the possibly-invalid tree appears on the right rather than on the left. *)
+
 Definition balance2 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n -> { c : color & rbtree c (S n) } with
     | RedNode' _ _ _ t1 z t2 =>
-      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
-        | RedNode _ b y c => fun d a => {<RedNode (BlackNode a data b) y (BlackNode c z d)>}
+      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n
+        -> { c : color & rbtree c (S n) } with
+        | RedNode _ b y c => fun d a =>
+          {<RedNode (BlackNode a data b) y (BlackNode c z d)>}
         | t1' => fun t2 =>
-          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n -> { c : color & rbtree c (S n) } with
-            | RedNode _ c z' d => fun b a => {<RedNode (BlackNode a data b) z (BlackNode c z' d)>}
+          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n
+            -> { c : color & rbtree c (S n) } with
+            | RedNode _ c z' d => fun b a =>
+              {<RedNode (BlackNode a data b) z (BlackNode c z' d)>}
             | b => fun a t => {<BlackNode t data (RedNode a z b)>}
           end t1'
       end t2
   end.
 
+(** Now we are almost ready to get down to the business of writing an [insert] function.  First, we enter a section that declares a variable [x], for the key we want to insert. *)
+
 Section insert.
   Variable x : nat.
+
+  (** Most of the work of insertion is done by a helper function [ins], whose return types are expressed using a type-level function [insResult]. *)
 
   Definition insResult c n :=
     match c with
@@ -488,8 +567,12 @@ Section insert.
       | Black => { c' : color & rbtree c' n }
     end.
 
-  Fixpoint ins c n (t : rbtree c n) {struct t} : insResult c n :=
-    match t in (rbtree c n) return (insResult c n) with
+  (** That is, inserting into a tree with root color [c] and black depth [n], the variety of tree we get out depends on [c].  If we started with a red root, then we get back a possibly-invalid tree of depth [n].  If we started with a black root, we get back a valid tree of depth [n] with a root node of an arbitary color.
+
+     Here is the definition of [ins].  Again, we do not want to dwell on the functional details. *)
+
+  Fixpoint ins c n (t : rbtree c n) : insResult c n :=
+    match t with
       | Leaf => {< RedNode Leaf x Leaf >}
       | RedNode _ a y b =>
         if le_lt_dec x y
@@ -509,28 +592,44 @@ Section insert.
             end (ins b)
     end.
 
+  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisifies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally-bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
+
+     Finally, we are in the home stretch of our effort to define [insert].  We just need a few more definitions of non-recursive functions.  First, we need to give the final characterization of [insert]'s return type.  Inserting into a red-rooted tree gives a black-rooted tree where black depth has increased, and inserting into a black-rooted tree gives a tree where black depth has stayed the same and where the root is an arbitrary color. *)
+
   Definition insertResult c n :=
     match c with
       | Red => rbtree Black (S n)
       | Black => { c' : color & rbtree c' n }
     end.
 
+  (** A simple clean-up procedure translates [insResult]s into [insertResult]s. *)
+
   Definition makeRbtree c n : insResult c n -> insertResult c n :=
-    match c return insResult c n -> insertResult c n with
+    match c with
       | Red => fun r =>
-        match r in rtree n return insertResult Red n with
+        match r with
           | RedNode' _ _ _ a x b => BlackNode a x b
         end
       | Black => fun r => r
     end.
 
+  (** We modify Coq's default choice of implicit arguments for [makeRbtree], so that we do not need to specify the [c] and [n] arguments explicitly in later calls. *)
+
   Implicit Arguments makeRbtree [c n].
+
+  (** Finally, we define [insert] as a simple composition of [ins] and [makeRbtree]. *)
 
   Definition insert c n (t : rbtree c n) : insertResult c n :=
     makeRbtree (ins t).
 
+  (** As we noted earlier, the type of [insert] guarantees that it outputs balanced trees whose depths have not increased too much.  We also want to know that [insert] operates correctly on trees interpreted as finite sets, so we finish this section with a proof of that fact. *)
+
   Section present.
     Variable z : nat.
+
+    (** The variable [z] stands for an arbitrary key.  We will reason about [z]'s presence in particular trees.  As usual, outside the section the theorems we prove will quantify over all possible keys, giving us the facts we wanted.
+
+       We start by proving the correctness of the balance operations.  It is useful to define a custom tactic [present_balance] that encapsulates the reasoning common to the two proofs.  We use the keyword [Ltac] to assign a name to a proof script.  This particular script just iterates between [crush] and identification of a tree that is being pattern-matched on and should be destructed. *)
 
     Ltac present_balance :=
       crush;
@@ -547,6 +646,8 @@ Section insert.
                                  end] ] => dep_destruct T
               end; crush).
 
+    (** The balance correctness theorems are simple first-order logic equivalences, where we use the function [projT2] to project the payload of a [sigT] value. *)
+
     Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
       present z (projT2 (balance1 a y b))
       <-> rpresent z a \/ z = y \/ present z b.
@@ -559,11 +660,17 @@ Section insert.
       destruct a; present_balance.
     Qed.
 
+    (** To state the theorem for [ins], it is useful to define a new type-level function, since [ins] returns different result types based on the type indices passed to it.  Recall that [x] is the section variable standing for the key we are inserting. *)
+
     Definition present_insResult c n :=
       match c return (rbtree c n -> insResult c n -> Prop) with
         | Red => fun t r => rpresent z r <-> z = x \/ present z t
         | Black => fun t r => present z (projT2 r) <-> z = x \/ present z t
       end.
+
+    (** Now the statement and proof of the [ins] correctness theorem are straightforward, if verbose.  We proceed by induction on the structure of a tree, followed by finding case analysis opportunities on expressions we see being analyzed in [if] or [match] expressions.  After that, we pattern-match to find opportunities to use the theorems we proved about balancing.  Finally, we identify two variables that are asserted by some hypothesis to be equal, and we use that hypothesis to replace one variable with the other everywhere. *)
+
+(** printing * $*$ *)
 
     Theorem present_ins : forall c n (t : rbtree c n),
       present_insResult t (ins t).
@@ -571,7 +678,8 @@ Section insert.
         repeat (match goal with
                   | [ H : context[if ?E then _ else _] |- _ ] => destruct E
                   | [ |- context[if ?E then _ else _] ] => destruct E
-                  | [ H : context[match ?C with Red => _ | Black => _ end] |- _ ] => destruct C
+                  | [ H : context[match ?C with Red => _ | Black => _ end]
+                      |- _ ] => destruct C
                 end; crush);
         try match goal with
               | [ H : context[balance1 ?A ?B ?C] |- _ ] =>
@@ -589,7 +697,7 @@ Section insert.
               | [ |- context[balance2 ?A ?B ?C] ] =>
                 generalize (present_balance2 A B C)
             end;
-        intuition;
+        crush;
           match goal with
             | [ z : nat, x : nat |- _ ] =>
               match goal with
@@ -598,6 +706,10 @@ Section insert.
           end;
           tauto.
     Qed.
+
+(** printing * $\times$ *)
+
+    (** The hard work is done.  The most readable way to state correctness of [insert] involves splitting the property into two color-specific theorems.  We write a tactic to encapsulate the reasoning steps that work to establish both facts. *)
 
     Ltac present_insert :=
       unfold insert; intros n t; inversion t;
@@ -648,8 +760,8 @@ Inductive regexp : (string -> Prop) -> Set :=
 | Concat : forall (P1 P2 : string -> Prop) (r1 : regexp P1) (r2 : regexp P2),
   regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2).
 
-[[
 User error: Large non-propositional inductive types must be in Type
+ 
 ]]
 
 What is a large inductive type?  In Coq, it is an inductive type that has a constructor which quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
@@ -728,15 +840,15 @@ Lemma substring_app_snd : forall s2 s1 n,
   induction s1; crush.
 Qed.
 
-Hint Rewrite substring_app_fst substring_app_snd using (trivial; fail) : cpdt.
+Hint Rewrite substring_app_fst substring_app_snd using solve [trivial] : cpdt.
 (* end hide *)
 
 (** A few auxiliary functions help us in our final matcher definition.  The function [split] will be used to implement the regexp concatenation case. *)
 
 Section split.
   Variables P1 P2 : string -> Prop.
-  Variable P1_dec : forall s, {P1 s} + { ~P1 s}.
-  Variable P2_dec : forall s, {P2 s} + { ~P2 s}.
+  Variable P1_dec : forall s, {P1 s} + {~ P1 s}.
+  Variable P2_dec : forall s, {P2 s} + {~ P2 s}.
   (** We require a choice of two arbitrary string predicates and functions for deciding them. *)
 
   Variable s : string.
@@ -746,13 +858,11 @@ Section split.
 
   Definition split' (n : nat) : n <= length s
     -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
-    + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2}.
+    + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~ P1 s1 \/ ~ P2 s2}.
     refine (fix F (n : nat) : n <= length s
       -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
-      + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2} :=
-      match n return n <= length s
-        -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
-        + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~P1 s1 \/ ~P2 s2} with
+      + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~ P1 s1 \/ ~ P2 s2} :=
+      match n with
         | O => fun _ => Reduce (P1_dec "" && P2_dec s)
         | S n' => fun _ => (P1_dec (substring 0 (S n') s)
             && P2_dec (substring (S n') (length s - S n') s))
@@ -768,17 +878,17 @@ Section split.
   (** There is one subtle point in the [split'] code that is worth mentioning.  The main body of the function is a [match] on [n].  In the case where [n] is known to be [S n'], we write [S n'] in several places where we might be tempted to write [n].  However, without further work to craft proper [match] annotations, the type-checker does not use the equality between [n] and [S n'].  Thus, it is common to see patterns repeated in [match] case bodies in dependently-typed Coq code.  We can at least use a [let] expression to avoid copying the pattern more than once, replacing the first case body with:
 
      [[
-
         | S n' => fun _ => let n := S n' in
           (P1_dec (substring 0 n s)
             && P2_dec (substring n (length s - n) s))
           || F n' _
+ 
      ]]
 
      [split] itself is trivial to implement in terms of [split'].  We just ask [split'] to begin its search with [n = length s]. *)
 
   Definition split : {exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2}
-    + {forall s1 s2, s = s1 ++ s2 -> ~P1 s1 \/ ~P2 s2}.
+    + {forall s1 s2, s = s1 ++ s2 -> ~ P1 s1 \/ ~ P2 s2}.
     refine (Reduce (split' (n := length s) _)); crush; eauto.
   Defined.
 End split.
@@ -883,7 +993,7 @@ Hint Rewrite minus_minus using omega : cpdt.
 
 Section dec_star.
   Variable P : string -> Prop.
-  Variable P_dec : forall s, {P s} + { ~P s}.
+  Variable P_dec : forall s, {P s} + {~ P s}.
 
   (** Some new lemmas and hints about the [star] type family are useful here.  We omit them here; they are included in the book source at this point. *)
 
@@ -960,7 +1070,7 @@ Section dec_star.
     Variable P' : string -> Prop.
     Variable P'_dec : forall n' : nat, n' > n
       -> {P' (substring n' (length s - n') s)}
-      + { ~P' (substring n' (length s - n') s)}.
+      + {~ P' (substring n' (length s - n') s)}.
     (** When we use [dec_star''], we will instantiate [P'_dec] with a function for continuing the search for more instances of [P] in [s]. *)
 
     (** Now we come to [dec_star''] itself.  It takes as an input a natural [l] that records how much of the string has been searched so far, as we did for [split'].  The return type expresses that [dec_star''] is looking for an index into [s] that splits [s] into a nonempty prefix and a suffix, such that the prefix satisfies [P] and the suffix satisfies [P']. *)
@@ -969,18 +1079,14 @@ Section dec_star.
       : {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l
-        -> ~P (substring n (S l') s)
-        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)}.
+        -> ~ P (substring n (S l') s)
+        \/ ~ P' (substring (n + S l') (length s - (n + S l')) s)}.
       refine (fix F (l : nat) : {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l
-        -> ~P (substring n (S l') s)
-        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} :=
-      match l return {exists l', S l' <= l
-        /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
-      + {forall l', S l' <= l ->
-        ~P (substring n (S l') s)
-        \/ ~P' (substring (n + S l') (length s - (n + S l')) s)} with
+        -> ~ P (substring n (S l') s)
+        \/ ~ P' (substring (n + S l') (length s - (n + S l')) s)} :=
+      match l with
         | O => _
         | S l' =>
           (P_dec (substring n (S l') s) && P'_dec (n' := n + S l') _)
@@ -1014,13 +1120,11 @@ Section dec_star.
   
   Definition dec_star' (n n' : nat) : length s - n' <= n
     -> {star P (substring n' (length s - n') s)}
-    + { ~star P (substring n' (length s - n') s)}.
-    refine (fix F (n n' : nat) {struct n} : length s - n' <= n
+    + {~ star P (substring n' (length s - n') s)}.
+    refine (fix F (n n' : nat) : length s - n' <= n
       -> {star P (substring n' (length s - n') s)}
-      + { ~star P (substring n' (length s - n') s)} :=
-      match n return length s - n' <= n
-        -> {star P (substring n' (length s - n') s)}
-        + { ~star P (substring n' (length s - n') s)} with
+      + {~ star P (substring n' (length s - n') s)} :=
+      match n with
         | O => fun _ => Yes
         | S n'' => fun _ =>
           le_gt_dec (length s) n'
@@ -1037,7 +1141,7 @@ Section dec_star.
 
   (** Finally, we have [dec_star].  It has a straightforward implementation.  We introduce a spurious match on [s] so that [simpl] will know to reduce calls to [dec_star].  The heuristic that [simpl] uses is only to unfold identifier definitions when doing so would simplify some [match] expression. *)
 
-  Definition dec_star : {star P s} + { ~star P s}.
+  Definition dec_star : {star P s} + {~ star P s}.
     refine (match s return _ with
               | "" => Reduce (dec_star' (n := length s) 0 _)
               | _ => Reduce (dec_star' (n := length s) 0 _)
@@ -1058,8 +1162,8 @@ Hint Resolve app_cong.
 
 (** With these helper functions completed, the implementation of our [matches] function is refreshingly straightforward.  We only need one small piece of specific tactic work beyond what [crush] does for us. *)
 
-Definition matches P (r : regexp P) s : {P s} + { ~P s}.
-  refine (fix F P (r : regexp P) s : {P s} + { ~P s} :=
+Definition matches P (r : regexp P) s : {P s} + {~ P s}.
+  refine (fix F P (r : regexp P) s : {P s} + {~ P s} :=
     match r with
       | Char ch => string_dec s (String ch "")
       | Concat _ _ r1 r2 => Reduce (split (F _ r1) (F _ r2) s)
