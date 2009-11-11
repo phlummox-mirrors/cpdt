@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -499,7 +499,7 @@ Module PatMatch.
 
     Fixpoint patDenote t ts (p : pat t ts) {struct p} : typeDenote t -> option (hlist typeDenote ts) :=
       match p in (pat t ts) return (typeDenote t -> option (hlist typeDenote ts)) with
-        | PVar _ => fun v => Some (v, tt)
+        | PVar _ => fun v => Some (v ::: HNil)
         | PPair _ _ _ _ p1 p2 => fun v =>
           match patDenote p1 (fst v), patDenote p2 (snd v) with
             | Some tup1, Some tup2 => Some (happ tup1 tup2)
@@ -525,18 +525,18 @@ Module PatMatch.
         : (forall ts, member ts tss -> option (hlist typeDenote ts))
         -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
         -> typeDenote t2 :=
-        match tss return (forall ts, member ts tss -> _)
-          -> (forall ts, member ts tss -> _)
+        match tss return (forall ts, member ts tss -> option (hlist typeDenote ts))
+          -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
           -> _ with
           | nil => fun _ _ =>
             default
           | ts :: tss' => fun (envs : forall ts', member ts' (ts :: tss') -> option (hlist typeDenote ts'))
             (bodies : forall ts', member ts' (ts :: tss') -> hlist typeDenote ts' -> typeDenote t2) =>
-            match envs _ (hfirst (refl_equal _)) with
-              | None => matchesDenote tss'
-                (fun _ mem => envs _ (hnext mem))
-                (fun _ mem => bodies _ (hnext mem))
-              | Some env => (bodies _ (hfirst (refl_equal _))) env
+            match envs _ HFirst with
+              | None => matchesDenote
+                (fun _ mem => envs _ (HNext mem))
+                (fun _ mem => bodies _ (HNext mem))
+              | Some env => (bodies _ HFirst) env
             end
         end.
     End matchesDenote.
@@ -735,23 +735,23 @@ Module PatMatch.
       match p in (pat t1 ts) return ((hlist (exp var) ts -> result)
         -> result -> choice_tree var t1 result) with
         | PVar _ => fun succ fail =>
-          everywhere (fun disc => succ (disc, tt))
+          everywhere (fun disc => succ (disc ::: HNil))
 
         | PPair _ _ _ _ p1 p2 => fun succ fail =>
-          elaboratePat _ p1
+          elaboratePat p1
           (fun tup1 =>
-            elaboratePat _ p2
+            elaboratePat p2
             (fun tup2 =>
               succ (happ tup1 tup2))
             fail)
           (everywhere (fun _ => fail))
 
         | PInl _ _ _ p' => fun succ fail =>
-          (elaboratePat _ p' succ fail,
+          (elaboratePat p' succ fail,
             everywhere (fun _ => fail))
         | PInr _ _ _ p' => fun succ fail =>
           (everywhere (fun _ => fail),
-            elaboratePat _ p' succ fail)
+            elaboratePat p' succ fail)
       end.
 
     Implicit Arguments elaboratePat [var t1 ts result].
@@ -760,8 +760,8 @@ Module PatMatch.
       -> hlist (exp var) ts -> exp var t :=
       match ts return ((hlist var ts -> exp var t)
         -> hlist (exp var) ts -> exp var t) with
-        | nil => fun f _ => f tt
-        | _ :: _ => fun f tup => letify _ (fun tup' => x <- fst tup; f (x, tup')) (snd tup)
+        | nil => fun f _ => f HNil
+        | _ :: _ => fun f tup => letify (fun tup' => x <- hhd tup; f (x ::: tup')) (htl tup)
       end.
 
     Implicit Arguments letify [var t ts].
@@ -809,14 +809,14 @@ Module PatMatch.
         | ts :: tss' => fun (ps : forall ts', member ts' (ts :: tss') -> pat t1 ts')
           (es : forall ts', member ts' (ts :: tss') -> hlist var ts' -> Elab.exp var t2) =>
           merge (@mergeOpt _)
-          (elaboratePat (ps _ (hfirst (refl_equal _)))
+          (elaboratePat (ps _ HFirst)
             (fun ts => Some (letify
-              (fun ts' => es _ (hfirst (refl_equal _)) ts')
+              (fun ts' => es _ HFirst ts')
               ts))
             None)
-          (elaborateMatches tss'
-            (fun _ mem => ps _ (hnext mem))
-            (fun _ mem => es _ (hnext mem)))
+          (elaborateMatches
+            (fun _ mem => ps _ (HNext mem))
+            (fun _ mem => es _ (HNext mem)))
       end.
 
     Implicit Arguments elaborateMatches [var t1 t2 tss].
@@ -926,7 +926,7 @@ Module PatMatch.
     result (succ : hlist (Elab.exp typeDenote) ts -> result)
     (fail : result) v env,
     patDenote p v = Some env
-    -> exists env', grab (elaboratePat typeDenote p succ fail) v = succ env'
+    -> exists env', grab (elaboratePat p succ fail) v = succ env'
       /\ env = hmap Elab.expDenote env'.
     Hint Resolve hmap_happ.
 
@@ -935,11 +935,11 @@ Module PatMatch.
                 | [ |- context[grab (everywhere ?succ) ?v] ] =>
                   generalize (everywhere_correct succ (#v)%elab)
 
-                | [ H : forall result sudc fail, _ |- context[grab (elaboratePat _ _ ?S ?F) ?V] ] =>
+                | [ H : forall result succ fail, _ |- context[grab (elaboratePat _ ?S ?F) ?V] ] =>
                   generalize (H _ S F V); clear H
                 | [ H1 : context[match ?E with Some _ => _ | None => _ end],
-                  H2 : forall env, ?E = Some env -> _ |- _ ] =>
-                destruct E
+                    H2 : forall env, ?E = Some env -> _ |- _ ] =>
+                  destruct E
                 | [ H : forall env, Some ?E = Some env -> _ |- _ ] =>
                   generalize (H _ (refl_equal _)); clear H
               end; crush); eauto.
@@ -949,14 +949,14 @@ Module PatMatch.
     result (succ : hlist (Elab.exp typeDenote) ts -> result)
     (fail : result) v,
     patDenote p v = None
-    -> grab (elaboratePat typeDenote p succ fail) v = fail.
+    -> grab (elaboratePat p succ fail) v = fail.
     Hint Resolve everywhere_fail.
 
     induction p; try solve [ crush ];
       simpl; fold choice_tree; intuition; simpl in *;
         repeat match goal with
                  | [ IH : forall result succ fail v, patDenote ?P v = _ -> _
-                   |- context[grab (elaboratePat _ ?P ?S ?F) ?V] ] =>
+                   |- context[grab (elaboratePat ?P ?S ?F) ?V] ] =>
                    generalize (IH _ S F V); clear IH; intro IH;
                      generalize (elaboratePat_correct P S F V); intros;
                        destruct (patDenote P V); try discriminate
@@ -973,7 +973,7 @@ Module PatMatch.
     (env : hlist (Elab.exp typeDenote) ts),
     Elab.expDenote (letify f env)
     = Elab.expDenote (f (hmap Elab.expDenote env)).
-    induction ts; crush.
+    induction ts; crush; dep_destruct env; crush.
   Qed.
 
   Theorem elaborate_correct : forall t (e : Source.exp typeDenote t),
@@ -986,7 +986,7 @@ Module PatMatch.
         | [ tss : list (list type) |- _ ] =>
           induction tss; crush;
             match goal with
-              | [ |- context[grab (elaboratePat _ ?P ?S ?F) ?V] ] =>
+              | [ |- context[grab (elaboratePat ?P ?S ?F) ?V] ] =>
                 case_eq (patDenote P V); [intros env Heq;
                   destruct (elaboratePat_correct P S F _ Heq); crush;
                     match goal with

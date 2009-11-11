@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -17,56 +17,68 @@ Set Implicit Arguments.
 Section ilist.
   Variable A : Type.
 
-  Fixpoint ilist (n : nat) : Type :=
-    match n with
-      | O => unit
-      | S n' => A * ilist n'
-    end%type.
+  Inductive ilist : nat -> Type :=
+  | INil : ilist O
+  | ICons : forall n, A -> ilist n -> ilist (S n).
 
-  Definition inil : ilist O := tt.
-  Definition icons n x (ls : ilist n) : ilist (S n) := (x, ls).
-
-  Definition hd n (ls : ilist (S n)) : A := fst ls.
-  Definition tl n (ls : ilist (S n)) : ilist n := snd ls.
-
-  Implicit Arguments icons [n].
-
-  Fixpoint fin (n : nat) : Type :=
-    match n with
-      | O => Empty_set
-      | S n' => option (fin n')
+  Definition hd n (ls : ilist (S n)) :=
+    match ls in ilist n' return match n' with
+                                  | O => unit
+                                  | S _ => A
+                                end with
+      | INil => tt
+      | ICons _ x _ => x
+    end.
+  Definition tl n (ls : ilist (S n)) :=
+    match ls in ilist n' return match n' with
+                                  | O => unit
+                                  | S n => ilist n
+                                end with
+      | INil => tt
+      | ICons _ _ ls' => ls'
     end.
 
-  Fixpoint get (n : nat) : ilist n -> fin n -> A :=
-    match n return ilist n -> fin n -> A with
-      | O => fun _ idx => match idx with end
-      | S n' => fun ls idx =>
-        match idx with
-          | None => fst ls
-          | Some idx' => get n' (snd ls) idx'
+  Inductive fin : nat -> Set :=
+  | First : forall n, fin (S n)
+  | Next : forall n, fin n -> fin (S n).
+
+  Fixpoint get n (ls : ilist n) : fin n -> A :=
+    match ls with
+      | INil => fun idx =>
+        match idx in fin n' return (match n' with
+                                        | O => A
+                                        | S _ => unit
+                                      end) with
+          | First _ => tt
+          | Next _ _ => tt
         end
+      | ICons _ x ls' => fun idx =>
+        match idx in fin n' return (fin (pred n') -> A) -> A with
+          | First _ => fun _ => x
+          | Next _ idx' => fun get_ls' => get_ls' idx'
+        end (get ls')
     end.
 
   Section everywhere.
     Variable x : A.
 
     Fixpoint everywhere (n : nat) : ilist n :=
-      match n return ilist n with
-        | O => inil
-        | S n' => icons x (everywhere n')
+      match n with
+        | O => INil
+        | S n' => ICons x (everywhere n')
       end.
   End everywhere.
 
   Section singleton.
     Variables x default : A.
 
-    Fixpoint singleton (n m : nat) {struct n} : ilist n :=
-      match n return ilist n with
-        | O => inil
+    Fixpoint singleton (n m : nat) : ilist n :=
+      match n with
+        | O => INil
         | S n' =>
           match m with
-            | O => icons x (everywhere default n')
-            | S m' => icons default (singleton n' m')
+            | O => ICons x (everywhere default n')
+            | S m' => ICons default (singleton n' m')
           end
       end.
   End singleton.
@@ -74,10 +86,10 @@ Section ilist.
   Section map2.
     Variable f : A -> A -> A.
 
-    Fixpoint map2 (n : nat) : ilist n -> ilist n -> ilist n :=
-      match n return ilist n -> ilist n -> ilist n with
-        | O => fun _ _ => inil
-        | S n' => fun ls1 ls2 => icons (f (hd ls1) (hd ls2)) (map2 _ (tl ls1) (tl ls2))
+    Fixpoint map2 n (il1 : ilist n) : ilist n -> ilist n :=
+      match il1 in ilist n return ilist n -> ilist n with
+        | INil => fun _ => INil
+        | ICons _ x il1' => fun il2 => ICons (f x (hd il2)) (map2 il1' (tl il2))
       end.
   End map2.
 
@@ -86,107 +98,112 @@ Section ilist.
     Variable f : A -> B -> B.
     Variable i : B.
 
-    Fixpoint foldr (n : nat) : ilist n -> B :=
-      match n return ilist n -> B with
-        | O => fun _ => i
-        | S n' => fun ils => f (hd ils) (foldr n' (tl ils))
+    Fixpoint foldr n (il : ilist n) : B :=
+      match il with
+        | INil => i
+        | ICons _ x il' => f x (foldr il')
       end.
   End fold.
 End ilist.
 
-Implicit Arguments inil [A].
-Implicit Arguments icons [A n].
-
-Implicit Arguments icons [A n].
-Implicit Arguments get [A n].
-Implicit Arguments map2 [A n].
-Implicit Arguments foldr [A B n].
+Implicit Arguments INil [A].
+Implicit Arguments First [n].
 
 Section imap.
   Variables A B : Type.
   Variable f : A -> B.
 
-  Fixpoint imap (n : nat) : ilist A n -> ilist B n :=
-    match n return ilist A n -> ilist B n with
-      | O => fun _ => inil
-      | S n' => fun ls => icons (f (hd ls)) (imap _ (tl ls))
+  Fixpoint imap n (il : ilist A n) : ilist B n :=
+    match il with
+      | INil => INil
+      | ICons _ x il' => ICons (f x) (imap il')
     end.
 End imap.
-
-Implicit Arguments imap [A B n].
 
 Section hlist.
   Variable A : Type.
   Variable B : A -> Type.
 
-  Fixpoint hlist (ls : list A) : Type :=
-    match ls with
-      | nil => unit
-      | x :: ls' => B x * hlist ls'
-    end%type.
+  Inductive hlist : list A -> Type :=
+  | HNil : hlist nil
+  | HCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
 
-  Definition hnil : hlist nil := tt.
-  Definition hcons (x : A) (ls : list A) (v : B x) (hls : hlist ls) : hlist (x :: ls) :=
-    (v, hls).
+  Definition hhd ls (hl : hlist ls) :=
+    match hl in hlist ls return match ls with
+                                  | nil => unit
+                                  | x :: _ => B x
+                                end with
+      | HNil => tt
+      | HCons _ _ v _ => v
+    end.
+
+  Definition htl ls (hl : hlist ls) :=
+    match hl in hlist ls return match ls with
+                                  | nil => unit
+                                  | _ :: ls' => hlist ls'
+                                end with
+      | HNil => tt
+      | HCons _ _ _ hl' => hl'
+    end.
 
   Variable elm : A.
 
-  Fixpoint member (ls : list A) : Type :=
-    match ls with
-      | nil => Empty_set
-      | x :: ls' => (x = elm) + member ls'
-    end%type.
+  Inductive member : list A -> Type :=
+  | HFirst : forall ls, member (elm :: ls)
+  | HNext : forall x ls, member ls -> member (x :: ls).
 
-  Definition hfirst (x : A) (ls : list A) (pf : x = elm) : member (x :: ls) :=
-    inl _ pf.
-  Definition hnext (x : A) (ls : list A) (m : member ls) : member (x :: ls) :=
-    inr _ m.
-
-  Fixpoint hget (ls : list A) : hlist ls -> member ls -> B elm :=
-    match ls return hlist ls -> member ls -> B elm with
-      | nil => fun _ idx => match idx with end
-      | _ :: ls' => fun mls idx =>
-        match idx with
-          | inl pf => match pf with
-                        | refl_equal => fst mls
-                      end
-          | inr idx' => hget ls' (snd mls) idx'
+  Fixpoint hget ls (mls : hlist ls) : member ls -> B elm :=
+    match mls with
+      | HNil => fun mem =>
+        match mem in member ls' return (match ls' with
+                                          | nil => B elm
+                                          | _ :: _ => unit
+                                        end) with
+          | HFirst _ => tt
+          | HNext _ _ _ => tt
         end
+      | HCons _ _ x mls' => fun mem =>
+        match mem in member ls' return (match ls' with
+                                          | nil => Empty_set
+                                          | x' :: ls'' =>
+                                            B x' -> (member ls'' -> B elm) -> B elm
+                                        end) with
+          | HFirst _ => fun x _ => x
+          | HNext _ _ mem' => fun _ get_mls' => get_mls' mem'
+        end x (hget mls')
     end.
 
-  Fixpoint happ (ls1 ls2 : list A) {struct ls1} : hlist ls1 -> hlist ls2 -> hlist (ls1 ++ ls2) :=
-    match ls1 return hlist ls1 -> hlist ls2 -> hlist (ls1 ++ ls2) with
-      | nil => fun _ hls2 => hls2
-      | _ :: _ => fun hls1 hls2 => (fst hls1, happ _ _ (snd hls1) hls2)
+  Fixpoint happ (ls1 : list A) (hl1 : hlist ls1) : forall ls2, hlist ls2 -> hlist (ls1 ++ ls2) :=
+    match hl1 in hlist ls1 return forall ls2, hlist ls2 -> hlist (ls1 ++ ls2) with
+      | HNil => fun _ hl2 => hl2
+      | HCons _ _ x hl1' => fun _ hl2 => HCons x (happ hl1' hl2)
     end.
 
   Variable f : forall x, B x.
 
   Fixpoint hmake (ls : list A) : hlist ls :=
-    match ls return hlist ls with
-      | nil => hnil
-      | x :: ls' => hcons _ (f x) (hmake ls')
+    match ls with
+      | nil => HNil
+      | x :: ls' => HCons (f x) (hmake ls')
     end.
-
-  Implicit Arguments hget [ls].
 
   Theorem hget_hmake : forall ls (m : member ls),
     hget (hmake ls) m = f elm.
-    induction ls; crush.
-    case a0; reflexivity.
+    induction ls; crush;
+      match goal with
+        | [ |- context[match ?E with HFirst _ => _ | HNext _ _ _ => _ end] ] => dep_destruct E
+      end; crush.
   Qed.
 End hlist.
 
-Implicit Arguments hnil [A B].
-Implicit Arguments hcons [A B x ls].
-Implicit Arguments hget [A B elm ls].
-Implicit Arguments happ [A B ls1 ls2].
+Implicit Arguments HNil [A B].
+Implicit Arguments HCons [A B x ls].
 Implicit Arguments hmake [A B].
 
-Implicit Arguments hfirst [A elm x ls].
-Implicit Arguments hnext [A elm x ls].
+Implicit Arguments HFirst [A elm ls].
+Implicit Arguments HNext [A elm x ls].
 
-Infix ":::" := hcons (right associativity, at level 60).
+Infix ":::" := HCons (right associativity, at level 60).
 Infix "+++" := happ (right associativity, at level 60).
 
 Section hmap.
@@ -195,23 +212,23 @@ Section hmap.
 
   Variable f : forall x, B1 x -> B2 x.
 
-  Fixpoint hmap (ls : list A) : hlist B1 ls -> hlist B2 ls :=
-    match ls return hlist B1 ls -> hlist B2 ls with
-      | nil => fun _ => hnil
-      | _ :: _ => fun hl => f (fst hl) ::: hmap _ (snd hl)
+  Fixpoint hmap (ls : list A) (hl : hlist B1 ls) : hlist B2 ls :=
+    match hl with
+      | HNil => HNil
+      | HCons _ _ x hl' => f x ::: hmap hl'
     end.
-
-  Implicit Arguments hmap [ls].
 
   Theorem hmap_happ : forall ls2 (h2 : hlist B1 ls2) ls1 (h1 : hlist B1 ls1),
     hmap h1 +++ hmap h2 = hmap (h1 +++ h2).
-    induction ls1; crush.
+    induction h1; crush.
   Qed.
 
   Theorem hget_hmap : forall elm ls (hls : hlist B1 ls) (m : member elm ls),
     hget (hmap hls) m = f (hget hls m).
-    induction ls; crush.
-    case a1; crush.
+    induction hls; crush;
+      match goal with
+        | [ |- context[match ?E with HFirst _ => _ | HNext _ _ _ => _ end] ] => dep_destruct E
+      end; crush.
   Qed.
 End hmap.
 
