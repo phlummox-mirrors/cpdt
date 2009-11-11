@@ -7,7 +7,6 @@ MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
 VS_DOC        := $(MODULES_DOC:%=%.v)
-GLOBALS       := .coq_globals
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
 .PHONY: coq clean doc dvi html templates install cpdt.tgz
@@ -17,13 +16,13 @@ coq: Makefile.coq
 
 Makefile.coq: Makefile $(VS)
 	coq_makefile $(VS) \
-		COQC = "coqc -I src -dump-glob $(GLOBALS)" \
+		COQC = "coqc -I src" \
 		COQDEP = "coqdep -I src" \
 		-o Makefile.coq
 
 clean:: Makefile.coq
 	make -f Makefile.coq clean
-	rm -f Makefile.coq .depend $(GLOBALS) cpdt.tgz \
+	rm -f Makefile.coq .depend cpdt.tgz \
 		latex/*.sty latex/cpdt.* templates/*.v
 	rm -f *.aux *.dvi *.log
 
@@ -51,7 +50,6 @@ latex/%.pdf: latex/%.dvi
 html: Makefile $(VS) src/toc.html
 	mkdir -p html
 	cd src ; coqdoc --interpolate $(VS_DOC) \
-		--glob-from ../$(GLOBALS) \
 		-d ../html
 	cp src/toc.html html/
 

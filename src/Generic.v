@@ -217,7 +217,7 @@ Section ok.
   Definition datatypeDenoteOk :=
     forall P : T -> Prop,
       (forall c (m : member c dt) (x : nonrecursive c) (r : ilist T (recursive c)),
-        (forall i : index (recursive c), P (get r i))
+        (forall i : fin (recursive c), P (get r i))
         -> P ((hget dd m) x r))
       -> forall v, P v.
 
