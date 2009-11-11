@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -32,22 +32,22 @@ Section ilist.
   | Nil : ilist O
   | Cons : forall n, A -> ilist n -> ilist (S n).
 
-  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family [index], where [index n] is isomorphic to [{m : nat | m < n}].  Such a type family is also often called [Fin] or similar, standing for "finite." *)
+  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family [fin], where [fin n] is isomorphic to [{m : nat | m < n}].  The type family names stands for "finite." *)
 
   (* EX: Define a function [get] for extracting an [ilist] element by position. *)
 
 (* begin thide *)
-  Inductive index : nat -> Set :=
-  | First : forall n, index (S n)
-  | Next : forall n, index n -> index (S n).
+  Inductive fin : nat -> Set :=
+  | First : forall n, fin (S n)
+  | Next : forall n, fin n -> fin (S n).
 
-  (** [index] essentially makes a more richly-typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.
+  (** [fin] essentially makes a more richly-typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.
 
      Now it is easy to pick a [Prop]-free type for a selection function.  As usual, our first implementation attempt will not convince the type checker, and we will attack the deficiencies one at a time.
 
      [[
-  Fixpoint get n (ls : ilist n) {struct ls} : index n -> A :=
-    match ls in ilist n return index n -> A with
+  Fixpoint get n (ls : ilist n) : fin n -> A :=
+    match ls with
       | Nil => fun idx => ?
       | Cons _ x ls' => fun idx =>
         match idx with
@@ -58,13 +58,13 @@ Section ilist.
 
     ]]
 
-    We apply the usual wisdom of delaying arguments in [Fixpoint]s so that they may be included in [return] clauses.  This still leaves us with a quandary in each of the [match] cases.  First, we need to figure out how to take advantage of the contradiction in the [Nil] case.  Every [index] has a type of the form [S n], which cannot unify with the [O] value that we learn for [n] in the [Nil] case.  The solution we adopt is another case of [match]-within-[return].
+    We apply the usual wisdom of delaying arguments in [Fixpoint]s so that they may be included in [return] clauses.  This still leaves us with a quandary in each of the [match] cases.  First, we need to figure out how to take advantage of the contradiction in the [Nil] case.  Every [fin] has a type of the form [S n], which cannot unify with the [O] value that we learn for [n] in the [Nil] case.  The solution we adopt is another case of [match]-within-[return].
 
     [[
-  Fixpoint get n (ls : ilist n) {struct ls} : index n -> A :=
-    match ls in ilist n return index n -> A with
+  Fixpoint get n (ls : ilist n) : fin n -> A :=
+    match ls with
       | Nil => fun idx =>
-        match idx in index n' return (match n' with
+        match idx in fin n' return (match n' with
                                         | O => A
                                         | S _ => unit
                                       end) with
@@ -80,13 +80,13 @@ Section ilist.
 
     ]]
 
-    Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply a trick that we will call "the convoy pattern," introducing a new function and applying it immediately, to satisfy the type checker.
+    Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply the convoy pattern that we met last chapter.  This application is a little more clever than those we saw before; we use the natural number predecessor function [pred] to express the relationship between the types of these variables.
 
     [[
-  Fixpoint get n (ls : ilist n) {struct ls} : index n -> A :=
-    match ls in ilist n return index n -> A with
+  Fixpoint get n (ls : ilist n) : fin n -> A :=
+    match ls with
       | Nil => fun idx =>
-        match idx in index n' return (match n' with
+        match idx in fin n' return (match n' with
                                         | O => A
                                         | S _ => unit
                                       end) with
@@ -94,7 +94,7 @@ Section ilist.
           | Next _ _ => tt
         end
       | Cons _ x ls' => fun idx =>
-        match idx in index n' return ilist (pred n') -> A with
+        match idx in fin n' return ilist (pred n') -> A with
           | First _ => fun _ => x
           | Next _ idx' => fun ls' => get ls' idx'
         end ls'
@@ -104,10 +104,10 @@ Section ilist.
 
     There is just one problem left with this implementation.  Though we know that the local [ls'] in the [Next] case is equal to the original [ls'], the type-checker is not satisfied that the recursive call to [get] does not introduce non-termination.  We solve the problem by convoy-binding the partial application of [get] to [ls'], rather than [ls'] by itself. *)
 
-  Fixpoint get n (ls : ilist n) {struct ls} : index n -> A :=
-    match ls in ilist n return index n -> A with
+  Fixpoint get n (ls : ilist n) : fin n -> A :=
+    match ls with
       | Nil => fun idx =>
-        match idx in index n' return (match n' with
+        match idx in fin n' return (match n' with
                                         | O => A
                                         | S _ => unit
                                       end) with
@@ -115,7 +115,7 @@ Section ilist.
           | Next _ _ => tt
         end
       | Cons _ x ls' => fun idx =>
-        match idx in index n' return (index (pred n') -> A) -> A with
+        match idx in fin n' return (fin (pred n') -> A) -> A with
           | First _ => fun _ => x
           | Next _ idx' => fun get_ls' => get_ls' idx'
         end (get ls')
@@ -131,27 +131,26 @@ Implicit Arguments First [n].
 (** A few examples show how to make use of these definitions. *)
 
 Check Cons 0 (Cons 1 (Cons 2 Nil)).
-(** [[
-
-Cons 0 (Cons 1 (Cons 2 Nil))
+(** %\vspace{-.15in}% [[
+  Cons 0 (Cons 1 (Cons 2 Nil))
      : ilist nat 3
 ]] *)
+
 (* begin thide *)
 Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) First.
-(** [[
-
+(** %\vspace{-.15in}% [[
      = 0
      : nat
 ]] *)
-Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next First).
-(** [[
 
+Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next First).
+(** %\vspace{-.15in}% [[
      = 1
      : nat
 ]] *)
-Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
-(** [[
 
+Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
+(** %\vspace{-.15in}% [[
      = 2
      : nat
 ]] *)
@@ -163,15 +162,15 @@ Section ilist_map.
   Variables A B : Set.
   Variable f : A -> B.
 
-  Fixpoint imap n (ls : ilist A n) {struct ls} : ilist B n :=
-    match ls in ilist _ n return ilist B n with
+  Fixpoint imap n (ls : ilist A n) : ilist B n :=
+    match ls with
       | Nil => Nil
       | Cons _ x ls' => Cons (f x) (imap ls')
     end.
 
   (** It is easy to prove that [get] "distributes over" [imap] calls.  The only tricky bit is remembering to use the [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
 
-  Theorem get_imap : forall n (idx : index n) (ls : ilist A n),
+  Theorem get_imap : forall n (idx : fin n) (ls : ilist A n),
     get (imap ls) idx = f (get ls idx).
 (* begin thide *)
     induction ls; dep_destruct idx; crush.
@@ -182,7 +181,7 @@ End ilist_map.
 
 (** * Heterogeneous Lists *)
 
-(** Programmers who move to statically-typed functional languages from "scripting languages" often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a "type-level" list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and it we can do it much more cleanly and directly in Coq. *)
+(** Programmers who move to statically-typed functional languages from "scripting languages" often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a "type-level" list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and we can do it much more cleanly and directly in Coq. *)
 
 Section hlist.
   Variable A : Type.
@@ -213,8 +212,8 @@ Section hlist.
 
      We can use [member] to adapt our definition of [get] to [hlists].  The same basic [match] tricks apply.  In the [MCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
 
-  Fixpoint hget ls (mls : hlist ls) {struct mls} : member ls -> B elm :=
-    match mls in hlist ls return member ls -> B elm with
+  Fixpoint hget ls (mls : hlist ls) : member ls -> B elm :=
+    match mls with
       | MNil => fun mem =>
         match mem in member ls' return (match ls' with
                                           | nil => B elm
@@ -254,14 +253,13 @@ Example someValues : hlist (fun T : Set => T) someTypes :=
   MCons 5 (MCons true MNil).
 
 Eval simpl in hget someValues MFirst.
-(** [[
-
+(** %\vspace{-.15in}% [[
      = 5
      : (fun T : Set => T) nat
 ]] *)
-Eval simpl in hget someValues (MNext MFirst).
-(** [[
 
+Eval simpl in hget someValues (MNext MFirst).
+(** %\vspace{-.15in}% [[
      = true
      : (fun T : Set => T) bool
 ]] *)
@@ -288,7 +286,6 @@ Inductive type : Set :=
 
 Inductive exp : list type -> type -> Set :=
 | Const : forall ts, exp ts Unit
-
 (* begin thide *)
 | Var : forall ts t, member t ts -> exp ts t
 | App : forall ts dom ran, exp ts (Arrow dom ran) -> exp ts dom -> exp ts ran
@@ -310,8 +307,8 @@ Fixpoint typeDenote (t : type) : Set :=
 (* EX: Define an interpreter for [exp]s. *)
 
 (* begin thide *)
-Fixpoint expDenote ts t (e : exp ts t) {struct e} : hlist typeDenote ts -> typeDenote t :=
-  match e in exp ts t return hlist typeDenote ts -> typeDenote t with
+Fixpoint expDenote ts t (e : exp ts t) : hlist typeDenote ts -> typeDenote t :=
+  match e with
     | Const _ => fun _ => tt
 
     | Var _ _ mem => fun s => hget s mem
@@ -322,33 +319,32 @@ Fixpoint expDenote ts t (e : exp ts t) {struct e} : hlist typeDenote ts -> typeD
 (** Like for previous examples, our interpreter is easy to run with [simpl]. *)
 
 Eval simpl in expDenote Const MNil.
-(** [[
-
+(** %\vspace{-.15in}% [[
     = tt
      : typeDenote Unit
 ]] *)
-Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
-(** [[
 
+Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
+(** %\vspace{-.15in}% [[
      = fun x : unit => x
      : typeDenote (Arrow Unit Unit)
 ]] *)
+
 Eval simpl in expDenote (Abs (dom := Unit)
   (Abs (dom := Unit) (Var (MNext MFirst)))) MNil.
-(** [[
-
+(** %\vspace{-.15in}% [[
      = fun x _ : unit => x
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]] *)
-Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) MNil.
-(** [[
 
+Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) MNil.
+(** %\vspace{-.15in}% [[
      = fun _ x0 : unit => x0
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]] *)
-Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
-(** [[
 
+Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
+(** %\vspace{-.15in}% [[
      = tt
      : typeDenote Unit
 ]] *)
@@ -376,16 +372,16 @@ Section filist.
 
   (** We say that a list of length 0 has no contents, and a list of length [S n'] is a pair of a data value and a list of length [n']. *)
 
-  Fixpoint findex (n : nat) : Set :=
+  Fixpoint ffin (n : nat) : Set :=
     match n with
       | O => Empty_set
-      | S n' => option (findex n')
+      | S n' => option (ffin n')
     end.
 
   (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail). *)
 
-  Fixpoint fget (n : nat) : filist n -> findex n -> A :=
-    match n return filist n -> findex n -> A with
+  Fixpoint fget (n : nat) : filist n -> ffin n -> A :=
+    match n with
       | O => fun _ idx => match idx with end
       | S n' => fun ls idx =>
         match idx with
@@ -394,8 +390,9 @@ Section filist.
         end
     end.
 
-  (** Our new [get] implementation needs only one dependent [match], which just copies the stated return type of the function.  Our choices of data structure implementations lead to just the right typing behavior for this new definition to work out. *)
+  (** Our new [get] implementation needs only one dependent [match], and its annotation is inferred for us.  Our choices of data structure implementations lead to just the right typing behavior for this new definition to work out. *)
 (* end thide *)
+
 End filist.
 
 (** Heterogeneous lists are a little trickier to define with recursion, but we then reap similar benefits in simplicity of use. *)
@@ -423,14 +420,13 @@ Section fhlist.
       | x :: ls' => (x = elm) + fmember ls'
     end%type.
 
-  (** The definition of [fmember] follows the definition of [findex].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [index] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
+  (** The definition of [fmember] follows the definition of [ffin].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [index] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
 
      We know all of the tricks needed to write a first attempt at a [get] function for [fhlist]s.
 
      [[
-
   Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
-    match ls return fhlist ls -> fmember ls -> B elm with
+    match ls with
       | nil => fun _ idx => match idx with end
       | _ :: ls' => fun mls idx =>
         match idx with
@@ -444,7 +440,7 @@ Section fhlist.
     Only one problem remains.  The expression [fst mls] is not known to have the proper type.  To demonstrate that it does, we need to use the proof available in the [inl] case of the inner [match]. *)
 
   Fixpoint fhget (ls : list A) : fhlist ls -> fmember ls -> B elm :=
-    match ls return fhlist ls -> fmember ls -> B elm with
+    match ls with
       | nil => fun _ idx => match idx with end
       | _ :: ls' => fun mls idx =>
         match idx with
@@ -458,13 +454,14 @@ Section fhlist.
   (** By pattern-matching on the equality proof [pf], we make that equality known to the type-checker.  Exactly why this works can be seen by studying the definition of equality. *)
 
   Print eq.
-  (** [[
-
+  (** %\vspace{-.15in}% [[
 Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
+ 
 ]]
 
-In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes.  All examples of similar dependent pattern matching that we have seen before require explicit annotations, but Coq implements a special case of annotation inference for matches on equality proofs. *)
+In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes. *)
 (* end thide *)
+
 End fhlist.
 
 Implicit Arguments fhget [A B elm ls].
@@ -489,7 +486,7 @@ Section ifoldr.
   Variable f : A -> B -> B.
   Variable i : B.
 
-  Fixpoint ifoldr n (ls : ilist A n) {struct ls} : B :=
+  Fixpoint ifoldr n (ls : ilist A n) : B :=
     match ls with
       | Nil => i
       | Cons _ x ls' => f x (ifoldr ls')
@@ -520,21 +517,23 @@ Theorem sum_inc : forall t, sum (inc t) >= sum t.
   ============================
    ifoldr (fun (t' : tree nat) (n0 : nat) => sum t' + n0) 0 (imap inc i) >=
    ifoldr (fun (t' : tree nat) (n0 : nat) => sum t' + n0) 0 i
+ 
    ]]
 
    We are left with a single subgoal which does not seem provable directly.  This is the same problem that we met in Chapter 3 with other nested inductive types. *)
 
   Check tree_ind.
-  (** [[
-
-tree_ind
+  (** %\vspace{-.15in}% [[
+  tree_ind
      : forall (A : Set) (P : tree A -> Prop),
        (forall a : A, P (Leaf a)) ->
        (forall (n : nat) (i : ilist (tree A) n), P (Node i)) ->
        forall t : tree A, P t
+ 
 ]]
 
 The automatically-generated induction principle is too weak.  For the [Node] case, it gives us no inductive hypothesis.  We could write our own induction principle, as we did in Chapter 3, but there is an easier way, if we are willing to alter the definition of [tree]. *)
+
 Abort.
 
 Reset tree.
@@ -544,42 +543,39 @@ Reset tree.
 Section tree.
   Variable A : Set.
 
-  (** [[
-
+  (** %\vspace{-.15in}% [[
   Inductive tree : Set :=
   | Leaf : A -> tree
   | Node : forall n, filist tree n -> tree.
 
-  ]]
-
-[[
-
 Error: Non strictly positive occurrence of "tree" in
  "forall n : nat, filist tree n -> tree"
+ 
 ]]
 
   The special-case rule for nested datatypes only works with nested uses of other inductive types, which could be replaced with uses of new mutually-inductive types.  We defined [filist] recursively, so it may not be used for nested recursion.
 
-  Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, reflexive types.  Instead of merely using [index] to get elements out of [ilist], we can %\textit{%#<i>#define#</i>#%}% [ilist] in terms of [index].  For the reasons outlined above, it turns out to be easier to work with [findex] in place of [index]. *)
+  Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, reflexive types.  Instead of merely using [fin] to get elements out of [ilist], we can %\textit{%#<i>#define#</i>#%}% [ilist] in terms of [fin].  For the reasons outlined above, it turns out to be easier to work with [ffin] in place of [fin]. *)
 
   Inductive tree : Set :=
   | Leaf : A -> tree
-  | Node : forall n, (findex n -> tree) -> tree.
+  | Node : forall n, (ffin n -> tree) -> tree.
 
-  (** A [Node] is indexed by a natural number [n], and the node's [n] children are represented as a function from [findex n] to trees, which is isomorphic to the [ilist]-based representation that we used above. *)
+  (** A [Node] is indexed by a natural number [n], and the node's [n] children are represented as a function from [ffin n] to trees, which is isomorphic to the [ilist]-based representation that we used above. *)
+
 End tree.
 
 Implicit Arguments Node [A n].
 
-(** We can redefine [sum] and [inc] for our new [tree] type.  Again, it is useful to define a generic fold function first.  This time, it takes in a function whose range is some [findex] type, and it folds another function over the results of calling the first function at every possible [findex] value. *)
+(** We can redefine [sum] and [inc] for our new [tree] type.  Again, it is useful to define a generic fold function first.  This time, it takes in a function whose range is some [ffin] type, and it folds another function over the results of calling the first function at every possible [ffin] value. *)
 
 Section rifoldr.
   Variables A B : Set.
   Variable f : A -> B -> B.
   Variable i : B.
 
-  Fixpoint rifoldr (n : nat) : (findex n -> A) -> B :=
-    match n return (findex n -> A) -> B with
+  Fixpoint rifoldr (n : nat) : (ffin n -> A) -> B :=
+    match n with
       | O => fun _ => i
       | S n' => fun get => f (get None) (rifoldr n' (fun idx => get (Some idx)))
     end.
@@ -608,7 +604,7 @@ Lemma plus_ge : forall x1 y1 x2 y2,
   crush.
 Qed.
 
-Lemma sum_inc' : forall n (f1 f2 : findex n -> nat),
+Lemma sum_inc' : forall n (f1 f2 : ffin n -> nat),
   (forall idx, f1 idx >= f2 idx)
   -> rifoldr plus 0 f1 >= rifoldr plus 0 f2.
   Hint Resolve plus_ge.
@@ -639,11 +635,11 @@ Inductive exp' : type' -> Type :=
 
 | BConst : bool -> exp' Bool
 (* begin thide *)
-| Cond : forall n t, (findex n -> exp' Bool)
-  -> (findex n -> exp' t) -> exp' t -> exp' t.
+| Cond : forall n t, (ffin n -> exp' Bool)
+  -> (ffin n -> exp' t) -> exp' t -> exp' t.
 (* end thide *)
 
-(** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [findex n -> exp' Bool], and the bodies are represented with a function of type [findex n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.
+(** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [ffin n -> exp' Bool], and the bodies are represented with a function of type [ffin n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.
 
 We start implementing our interpreter with a standard type denotation function. *)
 
@@ -660,8 +656,8 @@ Section cond.
   Variable A : Set.
   Variable default : A.
 
-  Fixpoint cond (n : nat) : (findex n -> bool) -> (findex n -> A) -> A :=
-    match n return (findex n -> bool) -> (findex n -> A) -> A with
+  Fixpoint cond (n : nat) : (ffin n -> bool) -> (ffin n -> A) -> A :=
+    match n with
       | O => fun _ _ => default
       | S n' => fun tests bodies =>
         if tests None
@@ -677,17 +673,14 @@ Implicit Arguments cond [A n].
 
 (** Now the expression interpreter is straightforward to write. *)
 
-Fixpoint exp'Denote t (e : exp' t) {struct e} : type'Denote t :=
-  match e in exp' t return type'Denote t with
-    | NConst n =>
-      n
-    | Plus e1 e2 =>
-      exp'Denote e1 + exp'Denote e2
+Fixpoint exp'Denote t (e : exp' t) : type'Denote t :=
+  match e with
+    | NConst n => n
+    | Plus e1 e2 => exp'Denote e1 + exp'Denote e2
     | Eq e1 e2 =>
       if eq_nat_dec (exp'Denote e1) (exp'Denote e2) then true else false
 
-    | BConst b =>
-      b
+    | BConst b => b
     | Cond _ _ tests bodies default =>
 (* begin thide *)
       cond
@@ -705,8 +698,8 @@ Section cfoldCond.
   Variable default : exp' t.
 
   Fixpoint cfoldCond (n : nat)
-    : (findex n -> exp' Bool) -> (findex n -> exp' t) -> exp' t :=
-    match n return (findex n -> exp' Bool) -> (findex n -> exp' t) -> exp' t with
+    : (ffin n -> exp' Bool) -> (ffin n -> exp' t) -> exp' t :=
+    match n with
       | O => fun _ _ => default
       | S n' => fun tests bodies =>
         match tests None return _ with
@@ -747,8 +740,8 @@ Implicit Arguments cfoldCond [t n].
 
 (** Like for the interpreters, most of the action was in this helper function, and [cfold] itself is easy to write. *)
 
-Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
-  match e in exp' t return exp' t with
+Fixpoint cfold t (e : exp' t) : exp' t :=
+  match e with
     | NConst n => NConst n
     | Plus e1 e2 =>
       let e1' := cfold e1 in
@@ -779,7 +772,7 @@ Fixpoint cfold t (e : exp' t) {struct e} : exp' t :=
 (** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly-automated one, with the only wrinkle being a guided instantation of the quantifiers in the induction hypothesis. *)
 
 Lemma cfoldCond_correct : forall t (default : exp' t)
-  n (tests : findex n -> exp' Bool) (bodies : findex n -> exp' t),
+  n (tests : ffin n -> exp' Bool) (bodies : ffin n -> exp' t),
   exp'Denote (cfoldCond default tests bodies)
   = exp'Denote (Cond n tests bodies default).
   induction n; crush;
@@ -802,8 +795,8 @@ Qed.
 
 (** It is also useful to know that the result of a call to [cond] is not changed by substituting new tests and bodies functions, so long as the new functions have the same input-output behavior as the old.  It turns out that, in Coq, it is not possible to prove in general that functions related in this way are equal.  We treat this issue with our discussion of axioms in a later chapter.  For now, it suffices to prove that the particular function [cond] is %\textit{%#<i>#extensional#</i>#%}%; that is, it is unaffected by substitution of functions with input-output equivalents. *)
 
-Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : findex n -> bool)
-  (bodies bodies' : findex n -> A),
+Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : ffin n -> bool)
+  (bodies bodies' : ffin n -> A),
   (forall idx, tests idx = tests' idx)
   -> (forall idx, bodies idx = bodies' idx)
   -> cond default tests bodies
@@ -831,6 +824,19 @@ Qed.
 (* end thide *)
 
 
+(** * Choosing Between Representations *)
+
+(** It is not always clear which of these representation techniques to apply in a particular situation, but I will try to summarize the pros and cons of each.
+
+   Inductive types are often the most pleasant to work with, after someone has spent the time implementing some basic library functions for them, using fancy [match] annotations.  Many aspects of Coq's logic and tactic support are specialized to deal with inductive types, and you may miss out if you use alternate encodings.
+
+   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a function [replace] of type [forall A, filist A n -> fin n -> A -> filist A n], such that [replace l f x] should substitute [x] for the element in position [f] of [l].  A call to [replace] on a variable [l] of type [filist A (S n)] would probably be simplified to an explicit pair, even though we know nothing about the structure of [l] beyond its type.  In a proof involving many recursive types, this kind of unhelpful "simplification" can lead to rapid bloat in the sizes of subgoals.
+
+   Another disadvantage of recursive types is that they only apply to type families whose indices determine their "skeletons."  This is not true for all data structures; a good counterexample comes from the richly-typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
+
+   Reflexive encodings of data types are seen relatively rarely.  As our examples demonstrated, manipulating index values manually can lead to hard-to-read code.  A normal inductive type is generally easier to work with, once someone has gone through the trouble of implementing an induction principle manually with the techniques we studied in Chapter 3.  For small developments, avoiding that kind of coding can justify the use of reflexive data structures. *)
+
+
 (** * Exercises *)
 
 (** remove printing * *)
@@ -849,6 +855,7 @@ Qed.
 t ::= bool | t + t
 p ::= x | b | inl p | inr p
 e ::= x | b | inl e | inr e | case e of [p => e]* | _ => e
+ 
 ]]
 
   [x] stands for a variable, and [b] stands for a boolean constant.  The production for [case] expressions means that a pattern-match includes zero or more pairs of patterns and expressions, along with a default case.

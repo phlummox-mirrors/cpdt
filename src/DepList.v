@@ -31,14 +31,14 @@ Section ilist.
 
   Implicit Arguments icons [n].
 
-  Fixpoint index (n : nat) : Type :=
+  Fixpoint fin (n : nat) : Type :=
     match n with
       | O => Empty_set
-      | S n' => option (index n')
+      | S n' => option (fin n')
     end.
 
-  Fixpoint get (n : nat) : ilist n -> index n -> A :=
-    match n return ilist n -> index n -> A with
+  Fixpoint get (n : nat) : ilist n -> fin n -> A :=
+    match n return ilist n -> fin n -> A with
       | O => fun _ idx => match idx with end
       | S n' => fun ls idx =>
         match idx with
