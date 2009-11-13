@@ -199,6 +199,8 @@ Dependent Data Structures & \texttt{DataStruct.v} \\
 \hline
 Reasoning About Equality Proofs & \texttt{Equality.v} \\
 \hline
+Generic Programming & \texttt{Generic.v} \\
+\hline
 Proof Search in Ltac & \texttt{Match.v} \\
 \hline
 Proof by Reflection & \texttt{Reflection.v} \\
@@ -214,8 +216,6 @@ Extensional Transformations & \texttt{Extensional.v} \\
 Intensional Transformations & \texttt{Intensional.v} \\
 \hline
 Modeling Impure Languages & \texttt{Impure.v} \\
-\hline
-Generic Programming & \texttt{Generic.v} \\
 \hline
 \end{tabular} \end{center}
 

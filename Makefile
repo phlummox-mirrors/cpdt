@@ -1,8 +1,8 @@
 MODULES_NODOC := Axioms Tactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
-	MoreDep DataStruct Equality Match Reflection Firstorder Hoas Interps \
-	Extensional Intensional Impure Generic
+	MoreDep DataStruct Equality Generic Match Reflection Firstorder Hoas \
+	Interps Extensional Intensional Impure
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
@@ -30,7 +30,7 @@ doc: latex/cpdt.dvi latex/cpdt.pdf html
 
 latex/cpdt.tex: Makefile $(VS)
 	cd src ; coqdoc --interpolate --latex -s $(VS_DOC) \
-		-p "\usepackage{url}" \
+		-p "\usepackage{url,amsmath,amssymb}" \
 		-p "\title{Certified Programming with Dependent Types}" \
 		-p "\author{Adam Chlipala}" \
 		-p "\iffalse" \
@@ -38,7 +38,7 @@ latex/cpdt.tex: Makefile $(VS)
 
 latex/%.tex: src/%.v
 	coqdoc --interpolate --latex -s \
-		-p "\usepackage{url}" \
+		-p "\usepackage{url,amsmath,amssymb}" \
 		$< -o $@
 
 latex/%.dvi: latex/%.tex
