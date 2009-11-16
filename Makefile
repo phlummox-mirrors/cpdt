@@ -45,7 +45,7 @@ latex/%.dvi: latex/%.tex
 	cd latex ; latex $* ; latex $*
 
 latex/%.pdf: latex/%.dvi
-	cd latex ; pdflatex $*
+	cd latex ; pdflatex $* ; pdflatex $*
 
 html: Makefile $(VS) src/toc.html
 	mkdir -p html
@@ -68,5 +68,4 @@ install: cpdt.tgz latex/cpdt.pdf html
 	cp cpdt.tgz staging/
 	cp latex/cpdt.pdf staging/
 	cp -R html staging/
-#	rsync -az --exclude '*~' staging/* bowser.eecs.harvard.edu:public_html/cpdt/book/
-	rsync -az --exclude '*~' staging/* ssh.hcoop.net:sites/chlipala/adam/cpdt/
+	rsync -az --exclude '*~' staging/* schizomaniac.net:sites/chlipala/adam/cpdt/
