@@ -17,7 +17,7 @@ Notation "[ e ]" := (exist _ e _) : specif_scope.
 Notation "x <== e1 ; e2" := (let (x, _) := e1 in e2)
 (right associativity, at level 60) : specif_scope.
 
-Open Local Scope specif_scope.
+Local Open Scope specif_scope.
 Delimit Scope specif_scope with specif.
 
 Notation "'Yes'" := (left _ _) : specif_scope.
@@ -88,7 +88,7 @@ Notation "[ P ]" := (partial P) : type_scope.
 Notation "'Yes'" := (Proved _) : partial_scope.
 Notation "'No'" := (Uncertain _) : partial_scope.
 
-Open Local Scope partial_scope.
+Local Open Scope partial_scope.
 Delimit Scope partial_scope with partial.
 
 Notation "'Reduce' v" := (if v then Yes else No) : partial_scope.
