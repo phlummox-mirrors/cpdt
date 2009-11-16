@@ -90,8 +90,8 @@ Module STLC.
         | t1 --> t2 => typeDenote t1 -> typeDenote t2
       end.
 
-    Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
-      match e in (exp _ t) return (typeDenote t) with
+    Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+      match e with
         | Var _ v => v
           
         | Const n => n
@@ -107,7 +107,8 @@ Module STLC.
     Section exp_equiv.
       Variables var1 var2 : type -> Type.
 
-      Inductive exp_equiv : list { t : type & var1 t * var2 t }%type -> forall t, exp var1 t -> exp var2 t -> Prop :=
+      Inductive exp_equiv : list { t : type & var1 t * var2 t }%type
+        -> forall t, exp var1 t -> exp var2 t -> Prop :=
       | EqVar : forall G t (v1 : var1 t) v2,
         In (existT _ t (v1, v2)) G
         -> exp_equiv G (#v1) (#v2)
@@ -237,8 +238,8 @@ Module STLC.
         | Bind _ p x => progDenote (x (primopDenote p))
       end
 
-    with primopDenote t (p : primop typeDenote t) {struct p} : typeDenote t :=
-      match p in (primop _ t) return (typeDenote t) with
+    with primopDenote t (p : primop typeDenote t) : typeDenote t :=
+      match p with
         | Var _ v => v
 
         | Const n => n
@@ -274,9 +275,9 @@ Module STLC.
     Import Source.
     Open Scope cps_scope.
 
-    Fixpoint cpsExp t (e : exp (fun t => var (cpsType t)) t) {struct e}
+    Fixpoint cpsExp t (e : exp (fun t => var (cpsType t)) t)
       : (var (cpsType t) -> prog var) -> prog var :=
-      match e in (exp _ t) return ((var (cpsType t) -> prog var) -> prog var) with
+      match e with
         | Var _ v => fun k => k v
 
         | Const n => fun k =>
@@ -329,7 +330,7 @@ Module STLC.
 
 (* begin thide *)
   Fixpoint lr (t : Source.type) : Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop :=
-    match t return (Source.typeDenote t -> CPS.typeDenote (cpsType t) -> Prop) with
+    match t with
       | Nat => fun n1 n2 => n1 = n2
       | t1 --> t2 => fun f1 f2 =>
         forall x1 x2, lr _ x1 x2
@@ -497,8 +498,9 @@ Module PatMatch.
         | t1 ++ t2 => (typeDenote t1 + typeDenote t2)%type
       end.
 
-    Fixpoint patDenote t ts (p : pat t ts) {struct p} : typeDenote t -> option (hlist typeDenote ts) :=
-      match p in (pat t ts) return (typeDenote t -> option (hlist typeDenote ts)) with
+    Fixpoint patDenote t ts (p : pat t ts)
+      : typeDenote t -> option (hlist typeDenote ts) :=
+      match p with
         | PVar _ => fun v => Some (v ::: HNil)
         | PPair _ _ _ _ p1 p2 => fun v =>
           match patDenote p1 (fst v), patDenote p2 (snd v) with
@@ -525,13 +527,13 @@ Module PatMatch.
         : (forall ts, member ts tss -> option (hlist typeDenote ts))
         -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
         -> typeDenote t2 :=
-        match tss return (forall ts, member ts tss -> option (hlist typeDenote ts))
-          -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
-          -> _ with
+        match tss with
           | nil => fun _ _ =>
             default
-          | ts :: tss' => fun (envs : forall ts', member ts' (ts :: tss') -> option (hlist typeDenote ts'))
-            (bodies : forall ts', member ts' (ts :: tss') -> hlist typeDenote ts' -> typeDenote t2) =>
+          | ts :: tss' => fun (envs : forall ts', member ts' (ts :: tss')
+            -> option (hlist typeDenote ts'))
+            (bodies : forall ts', member ts' (ts :: tss')
+              -> hlist typeDenote ts' -> typeDenote t2) =>
             match envs _ HFirst with
               | None => matchesDenote
                 (fun _ mem => envs _ (HNext mem))
@@ -543,8 +545,8 @@ Module PatMatch.
 
     Implicit Arguments matchesDenote [t2 tss].
 
-    Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
-      match e in (exp _ t) return (typeDenote t) with
+    Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+      match e with
         | Var _ v => v
 
         | EUnit => tt
@@ -645,8 +647,8 @@ Module PatMatch.
 
     Open Scope elab_scope.
 
-    Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
-      match e in (exp _ t) return (typeDenote t) with
+    Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+      match e with
         | Var _ v => v
 
         | EUnit => tt
@@ -692,11 +694,10 @@ Module PatMatch.
         | t => exp var t -> result
       end%type.
 
-    Fixpoint merge var t result {struct t}
+    Fixpoint merge var t result
       : (result -> result -> result)
       -> choice_tree var t result -> choice_tree var t result -> choice_tree var t result :=
-      match t return ((result -> result -> result)
-        -> choice_tree var t result -> choice_tree var t result -> choice_tree var t result) with
+      match t with
         | _ ** _ => fun mr ct1 ct2 =>
           merge _ _
           (merge _ _ mr)
@@ -709,9 +710,9 @@ Module PatMatch.
         | _ => fun mr ct1 ct2 e => mr (ct1 e) (ct2 e)
       end.
 
-    Fixpoint everywhere var t result {struct t}
+    Fixpoint everywhere var t result
       : (exp var t -> result) -> choice_tree var t result :=
-      match t return ((exp var t -> result) -> choice_tree var t result) with
+      match t with
         | t1 ** t2 => fun r =>
           everywhere (t := t1) (fun e1 =>
             everywhere (t := t2) (fun e2 =>
@@ -730,10 +731,9 @@ Module PatMatch.
   Section elaborate.
     Local Open Scope elab_scope.
 
-    Fixpoint elaboratePat var t1 ts result (p : pat t1 ts) {struct p} :
+    Fixpoint elaboratePat var t1 ts result (p : pat t1 ts) :
       (hlist (exp var) ts -> result) -> result -> choice_tree var t1 result :=
-      match p in (pat t1 ts) return ((hlist (exp var) ts -> result)
-        -> result -> choice_tree var t1 result) with
+      match p with
         | PVar _ => fun succ fail =>
           everywhere (fun disc => succ (disc ::: HNil))
 
@@ -756,10 +756,9 @@ Module PatMatch.
 
     Implicit Arguments elaboratePat [var t1 ts result].
 
-    Fixpoint letify var t ts {struct ts} : (hlist var ts -> exp var t)
+    Fixpoint letify var t ts : (hlist var ts -> exp var t)
       -> hlist (exp var) ts -> exp var t :=
-      match ts return ((hlist var ts -> exp var t)
-        -> hlist (exp var) ts -> exp var t) with
+      match ts with
         | nil => fun f _ => f HNil
         | _ :: _ => fun f tup => letify (fun tup' => x <- hhd tup; f (x ::: tup')) (htl tup)
       end.
@@ -767,12 +766,11 @@ Module PatMatch.
     Implicit Arguments letify [var t ts].
 
     Fixpoint expand var result t1 t2
-      (out : result -> exp var t2) {struct t1}
+      (out : result -> exp var t2)
       : forall ct : choice_tree var t1 result,
         exp var t1
         -> exp var t2 :=
-        match t1 return (forall ct : choice_tree var t1 result, exp var t1
-          -> exp var t2) with
+        match t1 with
           | (_ ** _)%source => fun ct disc =>
             expand
             (fun ct' => expand out ct' (#2 disc)%source)
@@ -797,13 +795,11 @@ Module PatMatch.
     Import Source.
 
     Fixpoint elaborateMatches var t1 t2
-      (tss : list (list type)) {struct tss}
+      (tss : list (list type))
       : (forall ts, member ts tss -> pat t1 ts)
       -> (forall ts, member ts tss -> hlist var ts -> Elab.exp var t2)
       -> choice_tree var t1 (option (Elab.exp var t2)) :=
-      match tss return (forall ts, member ts tss -> pat t1 ts)
-        -> (forall ts, member ts tss -> _)
-        -> _ with
+      match tss with
         | nil => fun _ _ =>
           everywhere (fun _ => None)
         | ts :: tss' => fun (ps : forall ts', member ts' (ts :: tss') -> pat t1 ts')
@@ -823,8 +819,8 @@ Module PatMatch.
 
     Open Scope cps_scope.
 
-    Fixpoint elaborate var t (e : Source.exp var t) {struct e} : Elab.exp var t :=
-      match e in (Source.exp _ t) return (Elab.exp var t) with
+    Fixpoint elaborate var t (e : Source.exp var t) : Elab.exp var t :=
+      match e with
         | Var _ v => #v
 
         | EUnit => ()
@@ -851,7 +847,7 @@ Module PatMatch.
     fun _ => elaborate (E _).
 
   Fixpoint grab t result : choice_tree typeDenote t result -> typeDenote t -> result :=
-    match t return (choice_tree typeDenote t result -> typeDenote t -> result) with
+    match t with
       | t1 ** t2 => fun ct v =>
         grab t2 _ (grab t1 _ ct (fst v)) (snd v)
       | t1 ++ t2 => fun ct v =>
@@ -875,7 +871,8 @@ Module PatMatch.
     (out : result -> Elab.exp typeDenote t2)
     (ct : choice_tree typeDenote t1 result)
     (disc : Elab.exp typeDenote t1),
-    Elab.expDenote (expand out ct disc) = Elab.expDenote (out (grab ct (Elab.expDenote disc))).
+    Elab.expDenote (expand out ct disc)
+    = Elab.expDenote (out (grab ct (Elab.expDenote disc))).
     induction t1; my_crush.
   Qed.
 
@@ -935,7 +932,8 @@ Module PatMatch.
                 | [ |- context[grab (everywhere ?succ) ?v] ] =>
                   generalize (everywhere_correct succ (#v)%elab)
 
-                | [ H : forall result succ fail, _ |- context[grab (elaboratePat _ ?S ?F) ?V] ] =>
+                | [ H : forall result succ fail, _
+                    |- context[grab (elaboratePat _ ?S ?F) ?V] ] =>
                   generalize (H _ S F V); clear H
                 | [ H1 : context[match ?E with Some _ => _ | None => _ end],
                     H2 : forall env, ?E = Some env -> _ |- _ ] =>
@@ -963,7 +961,8 @@ Module PatMatch.
                  | [ H : forall env, Some _ = Some env -> _ |- _ ] =>
                    destruct (H _ (refl_equal _)); clear H; intuition
                  | [ H : _ |- _ ] => rewrite H; intuition
-                 | [ |- context[match ?v with inl _ => _ | inr _ => _ end] ] => destruct v; auto
+                 | [ |- context[match ?v with inl _ => _ | inr _ => _ end] ] =>
+                   destruct v; auto
                end.
   Qed.
 
