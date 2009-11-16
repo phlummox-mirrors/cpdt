@@ -527,7 +527,9 @@ Module PatMatch.
         : (forall ts, member ts tss -> option (hlist typeDenote ts))
         -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
         -> typeDenote t2 :=
-        match tss with
+        match tss return (forall ts, member ts tss -> option (hlist typeDenote ts))
+          -> (forall ts, member ts tss -> hlist typeDenote ts -> typeDenote t2)
+          -> _ with
           | nil => fun _ _ =>
             default
           | ts :: tss' => fun (envs : forall ts', member ts' (ts :: tss')
@@ -799,7 +801,9 @@ Module PatMatch.
       : (forall ts, member ts tss -> pat t1 ts)
       -> (forall ts, member ts tss -> hlist var ts -> Elab.exp var t2)
       -> choice_tree var t1 (option (Elab.exp var t2)) :=
-      match tss with
+      match tss return (forall ts, member ts tss -> pat t1 ts)
+        -> (forall ts, member ts tss -> hlist var ts -> Elab.exp var t2)
+        -> _ with
         | nil => fun _ _ =>
           everywhere (fun _ => None)
         | ts :: tss' => fun (ps : forall ts', member ts' (ts :: tss') -> pat t1 ts')
