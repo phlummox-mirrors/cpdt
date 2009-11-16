@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -85,8 +85,8 @@ Module STLC.
       | t1 --> t2 => typeDenote t1 -> typeDenote t2
     end.
 
-  Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
-    match e in (exp _ t) return (typeDenote t) with
+  Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+    match e with
       | Var _ v => v
         
       | Const n => n
@@ -113,8 +113,8 @@ Module STLC.
   Section cfold.
     Variable var : type -> Type.
 
-    Fixpoint cfold t (e : exp var t) {struct e} : exp var t :=
-      match e in exp _ t return exp _ t with
+    Fixpoint cfold t (e : exp var t) : exp var t :=
+      match e with
         | Var _ v => #v
 
         | Const n => ^n
@@ -260,8 +260,8 @@ Module PSLC.
       | t1 ++ t2 => typeDenote t1 + typeDenote t2
     end%type.
 
-  Fixpoint expDenote t (e : exp typeDenote t) {struct e} : typeDenote t :=
-    match e in (exp _ t) return (typeDenote t) with
+  Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+    match e with
       | Var _ v => v
         
       | Const n => n
@@ -312,14 +312,15 @@ Module PSLC.
         | _ => tt
       end.
 
-    Definition pairOut t1 t2 (e : exp var (t1 ** t2)) : option (exp var t1 * exp var t2) :=
+    Definition pairOut t1 t2 (e : exp var (t1 ** t2))
+      : option (exp var t1 * exp var t2) :=
       match e in exp _ t return pairOutType t with
         | Pair _ _ e1 e2 => Some (e1, e2)
         | _ => pairOutDefault _
       end.
 
-    Fixpoint cfold t (e : exp var t) {struct e} : exp var t :=
-      match e in exp _ t return exp _ t with
+    Fixpoint cfold t (e : exp var t) : exp var t :=
+      match e with
         | Var _ v => #v
 
         | Const n => ^n
