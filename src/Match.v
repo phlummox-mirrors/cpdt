@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -35,14 +35,16 @@ Set Implicit Arguments.
 
 (** Another class of built-in tactics includes [auto], [eauto], and [autorewrite].  These are based on %\textit{%#<i>#hint databases#</i>#%}%, which we have seen extended in many examples so far.  These tactics are important, because, in Ltac programming, we cannot create "global variables" whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.
 
-The basic hints for [auto] and [eauto] are [Hint Immediate lemma], asking to try solving a goal immediately by applying the premise-free lemma; [Resolve lemma], which does the same but may add new premises that are themselves to be subjects of proof search; [Constructor type], which acts like [Resolve] applied to every constructor of an inductive type; and [Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
+The basic hints for [auto] and [eauto] are [Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; [Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; [Constructor type], which acts like [Resolve] applied to every constructor of an inductive type; and [Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
 
 All of these [Hint] commands can be issued alternatively with a more primitive hint kind, [Extern].  A few examples should do best to explain how [Hint Extern] works. *)
 
 Theorem bool_neq : true <> false.
 (* begin thide *)
   auto.
+
   (** [crush] would have discharged this goal, but the default hint database for [auto] contains no hint that applies. *)
+
 Abort.
 
 (** It is hard to come up with a [bool]-specific hint that is not just a restatement of the theorem we mean to prove.  Luckily, a simpler form suffices. *)
@@ -67,6 +69,7 @@ Section forall_and.
   Theorem forall_and : forall z, P z.
 (* begin thide *)
     crush.
+
     (** [crush] makes no progress beyond what [intros] would have accomplished.  [auto] will not apply the hypothesis [both] to prove the goal, because the conclusion of [both] does not unify with the conclusion of the goal.  However, we can teach [auto] to handle this kind of goal. *)
 
     Hint Extern 1 (P ?X) =>
@@ -79,6 +82,7 @@ Section forall_and.
 (* end thide *)
 
   (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  [proj1] is a function from the standard library for extracting a proof of [R] from a proof of [R /\ S]. *)
+
 End forall_and.
 
 (** After our success on this example, we might get more ambitious and seek to generalize the hint to all possible predicates [P].
@@ -86,13 +90,11 @@ End forall_and.
    [[
   Hint Extern 1 (?P ?X) =>
     match goal with
-      | [ H : forall x, ?P x /\ _ |- _ ] => apply (proj1 (H X))
+      | [ H : forall x, P x /\ _ |- _ ] => apply (proj1 (H X))
     end.
 
-    ]]
-
-   [[
 User error: Bound head variable
+ 
    ]]
 
    Coq's [auto] hint databases work as tables mapping %\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
@@ -125,10 +127,10 @@ Section autorewrite.
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
       intros; autorewrite with my_db.
       (** [[
-
 ============================
  g (g (g x)) = g x
           ]] *)
+
     Abort.
 
     (** Our new hint was used to rewrite the goal into a form where the old hint could no longer be applied.  This "non-monotonicity" of rewrite hints contrasts with the situation for [auto], where new hints may slow down proof search but can never "break" old proofs. *)
@@ -157,6 +159,7 @@ subgoal 3 is:
 subgoal 4 is:
  P (f x)
           ]] *)
+
     Abort.
 
     (** The inappropriate rule fired the same three times as before, even though we know we will not be able to prove the premises. *)
@@ -188,7 +191,11 @@ subgoal 4 is:
     Qed.
   End garden_path.
 
+  (** remove printing * *)
+
   (** It can also be useful to use the [autorewrite with db in *] form, which does rewriting in hypotheses, as well as in the conclusion. *)
+
+  (** printing * $*$ *)
 
   Lemma in_star : forall x y, f (f (f (f x))) = f (f y)
     -> f x = f (f (f y)).
@@ -286,7 +293,7 @@ Ltac my_tauto :=
 
 (** Since [match] patterns can share unification variables between hypothesis and conclusion patterns, it is easy to figure out when the conclusion matches a hypothesis.  The [exact] tactic solves a goal completely when given a proof term of the proper type.
 
-   It is also trivial to implement the "introduction rules" for a few of the connectives.  Implementing elimination rules is only a little more work, since we must bind a name for a hypothesis to [destruct].
+   It is also trivial to implement the "introduction rules" for a few of the connectives.  Implementing elimination rules is only a little more work, since we must give a name for a hypothesis to [destruct].
 
    The last rule implements modus ponens.  The most interesting part is the use of the Ltac-level [let] with a [fresh] expression.  [fresh] takes in a name base and returns a fresh hypothesis variable based on that name.  We use the new name variable [H] as the name we assign to the result of modus ponens.  The use of [generalize] changes our conclusion to be an implication from [Q].  We clear the original hypothesis and move [Q] into the context with name [H]. *)
 
@@ -323,16 +330,10 @@ Qed.
 
 Theorem m2 : forall P Q R : Prop, P -> Q -> R -> Q.
   intros; match goal with
-            | [ H : _ |- _ ] => pose H
+            | [ H : _ |- _ ] => idtac H
           end.
-  (** [[
 
-    r := H1 : R
-  ============================
-   Q
-   ]]
-
-   By applying [pose], a convenient debugging tool for "leaking information out of [match]es," we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
+  (** Coq prints "[H1]".  By applying [idtac] with an argument, a convenient debugging tool for "leaking information out of [match]es," we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
 
 (* begin thide *)
   match goal with
@@ -406,7 +407,6 @@ Section firstorder.
 (* begin thide *)
     completer.
     (** [[
-
   x : A
   H : P x
   H0 : Q x
@@ -449,12 +449,12 @@ Section firstorder'.
   Theorem fo' : forall x, P x -> S x.
 (* begin thide *)
     (** [[
-
     completer'.
-
+ 
     ]]
 
     Coq loops forever at this point.  What went wrong? *)
+
   Abort.
 (* end thide *)
 End firstorder'.
@@ -474,16 +474,13 @@ Qed.
 (* begin thide *)
 Theorem t1' : forall x : nat, x = x.
 (** [[
-
   match goal with
     | [ |- forall x, ?P ] => trivial
   end.
 
-  ]]
-
-    [[
 User error: No matching clauses for match goal
     ]] *)
+
 Abort.
 (* end thide *)
 
@@ -509,10 +506,8 @@ Ltac length ls :=
     | _ :: ls' => S (length ls')
   end.
 
-  ]]
-
-   [[
 Error: The reference ls' was not found in the current environment
+ 
    ]]
 
    At this point, we hopefully remember that pattern variable names must be prefixed by question marks in Ltac.
@@ -524,10 +519,8 @@ Ltac length ls :=
     | _ :: ?ls' => S (length ls')
   end.
 
-  ]]
-
-[[
 Error: The reference S was not found in the current environment
+ 
 ]]
 
    The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to "escape into" the Gallina parsing nonterminal. *)
@@ -545,13 +538,17 @@ Goal False.
   let n := length (1 :: 2 :: 3 :: nil) in
     pose n.
   (** [[
-
   n := S (length (2 :: 3 :: nil)) : nat
   ============================
    False
+ 
    ]]
 
-   [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)Abort.
+   We use the [pose] tactic, which extends the proof context with a new variable that is set equal to particular a term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
+
+   [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)
+
+Abort.
 
 Reset length.
 
@@ -569,11 +566,11 @@ Goal False.
   let n := length (1 :: 2 :: 3 :: nil) in
     pose n.
   (** [[
-
   n := 3 : nat
   ============================
    False
    ]] *)
+
 Abort.
 (* end thide *)
 
@@ -601,11 +598,11 @@ Goal False.
   let ls := map (nat * nat)%type ltac:(fun x => constr:(x, x)) (1 :: 2 :: 3 :: nil) in
     pose ls.
   (** [[
-
   l := (1, 1) :: (2, 2) :: (3, 3) :: nil : list (nat * nat)
   ============================
    False
    ]] *)
+
 Abort.
 (* end thide *)
 
@@ -640,14 +637,14 @@ Section test_inster.
   Hypothesis H1 : forall x y, P (g x y) -> Q (f x).
 
   Theorem test_inster : forall x y, P (g x y) -> Q (f x).
-    intros; inster 2.
+    inster 2.
   Qed.
 
   Hypothesis H3 : forall u v, P u /\ P v /\ u <> v -> P (g u v).
   Hypothesis H4 : forall u, Q (f u) -> P u /\ P (f u).
 
   Theorem test_inster2 : forall x y, x <> y -> P x -> Q (f y) -> Q (f x).
-    intros; inster 3.
+    inster 3.
   Qed.
 End test_inster.
 
@@ -790,7 +787,7 @@ Theorem imp_True : forall P,
   imp.
 Qed.
 
-(** Our final [matcher] tactic is now straightforward.  First, we [intros] all variables into scope.  Then we attempt simple premise simplifications, finishing the proof upon finding [False] and eliminating any existential quantifiers that we find.  After that, we search through the conclusion.  We remove [True] conjuncts, remove existential quantifiers by introducing unification variables for their bound variables, and search for matching premises to cancel.  Finally, when no more progress is made, we see if the goal has become trivial and can be solved by [imp_True]. *)
+(** Our final [matcher] tactic is now straightforward.  First, we [intros] all variables into scope.  Then we attempt simple premise simplifications, finishing the proof upon finding [False] and eliminating any existential quantifiers that we find.  After that, we search through the conclusion.  We remove [True] conjuncts, remove existential quantifiers by introducing unification variables for their bound variables, and search for matching premises to cancel.  Finally, when no more progress is made, we see if the goal has become trivial and can be solved by [imp_True].  In each case, we use the tactic [simple apply] in place of [apply] to use a simpler, less expensive unification algorithm. *)
 
 Ltac matcher :=
   intros;
@@ -810,26 +807,27 @@ Qed.
 (** In the generated proof, we find a trace of the workings of the search tactics. *)
 
 Print t2.
-(** [[
-
+(** %\vspace{-.15in}% [[
 t2 = 
 fun P Q : Prop =>
 comm_prem (assoc_prem1 (assoc_prem2 (False_prem (P:=P /\ P /\ Q) (P /\ Q))))
      : forall P Q : Prop, Q /\ (P /\ False) /\ P --> P /\ Q
-]] *)
+ 
+     ]]
 
-(** We can also see that [matcher] is well-suited for cases where some human intervention is needed after the automation finishes. *)
+We can also see that [matcher] is well-suited for cases where some human intervention is needed after the automation finishes. *)
 
 Theorem t3 : forall P Q R : Prop,
   P /\ Q --> Q /\ R /\ P.
   matcher.
   (** [[
-
   ============================
    True --> R
+ 
    ]]
 
    [matcher] canceled those conjuncts that it was able to cancel, leaving a simplified subgoal for us, much as [intuition] does. *)
+
 Abort.
 
 (** [matcher] even succeeds at guessing quantifier instantiations.  It is the unification that occurs in uses of the [Match] lemma that does the real work here. *)
@@ -839,9 +837,7 @@ Theorem t4 : forall (P : nat -> Prop) Q, (exists x, P x /\ Q) --> Q /\ (exists x
 Qed.
 
 Print t4.
-
-(** [[
-
+(** %\vspace{-.15in}% [[
 t4 = 
 fun (P : nat -> Prop) (Q : Prop) =>
 and_True_prem
