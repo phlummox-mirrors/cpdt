@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2009, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -73,7 +73,7 @@ Definition app_ident' := App (App app ident) one_again.
 (* EX: Define a function to count the number of variable occurrences in an [Exp]. *)
 
 (* begin thide *)
-Fixpoint countVars t (e : exp (fun _ => unit) t) {struct e} : nat :=
+Fixpoint countVars t (e : exp (fun _ => unit) t) : nat :=
   match e with
     | Const' _ => 0
     | Plus' e1 e2 => countVars e1 + countVars e2
@@ -96,7 +96,7 @@ Eval compute in CountVars app_ident'.
 (* EX: Define a function to count the number of occurrences of a single distinguished variable. *)
 
 (* begin thide *)
-Fixpoint countOne t (e : exp (fun _ => bool) t) {struct e} : nat :=
+Fixpoint countOne t (e : exp (fun _ => bool) t) : nat :=
   match e with
     | Const' _ => 0
     | Plus' e1 e2 => countOne e1 + countOne e2
@@ -132,7 +132,7 @@ Section ToString.
       | S n' => "S(" ++ natToString n' ++ ")"
     end.
 
-  Fixpoint toString t (e : exp (fun _ => string) t) (cur : string) {struct e} : string * string :=
+  Fixpoint toString t (e : exp (fun _ => string) t) (cur : string) : string * string :=
     match e with
       | Const' n => (cur, natToString n)
       | Plus' e1 e2 =>
@@ -167,8 +167,8 @@ Eval compute in ToString app_ident'.
 Section flatten.
   Variable var : type -> Type.
 
-  Fixpoint flatten t (e : exp (exp var) t) {struct e} : exp var t :=
-    match e in exp _ t return exp _ t with
+  Fixpoint flatten t (e : exp (exp var) t) : exp var t :=
+    match e with
       | Const' n => Const' n
       | Plus' e1 e2 => Plus' (flatten e1) (flatten e2)
       | Var _ e' => e'
@@ -212,7 +212,7 @@ Inductive isCtx : forall t1 t2, Ctx t1 t2 -> Prop :=
 | IsPlus2 : forall E1, Val E1 -> isCtx (PlusCong2 E1).
 
 Definition plug t1 t2 (C : Ctx t1 t2) : Exp t1 -> Exp t2 :=
-  match C in Ctx t1 t2 return Exp t1 -> Exp t2 with
+  match C with
     | AppCong1 _ _ X => fun F => App F X
     | AppCong2 _ _ F => fun X => App F X
     | PlusCong1 E2 => fun E1 => Plus E1 E2
@@ -390,8 +390,10 @@ Ltac equate_conj F G :=
     | (_ ?x1, _ ?x2) => constr:(x1 = x2)
     | (_ ?x1 ?y1, _ ?x2 ?y2) => constr:(x1 = x2 /\ y1 = y2)
     | (_ ?x1 ?y1 ?z1, _ ?x2 ?y2 ?z2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2)
-    | (_ ?x1 ?y1 ?z1 ?u1, _ ?x2 ?y2 ?z2 ?u2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2)
-    | (_ ?x1 ?y1 ?z1 ?u1 ?v1, _ ?x2 ?y2 ?z2 ?u2 ?v2) => constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2 /\ v1 = v2)
+    | (_ ?x1 ?y1 ?z1 ?u1, _ ?x2 ?y2 ?z2 ?u2) =>
+      constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2)
+    | (_ ?x1 ?y1 ?z1 ?u1 ?v1, _ ?x2 ?y2 ?z2 ?u2 ?v2) =>
+      constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2 /\ v1 = v2)
   end.
 
 Ltac my_crush :=
