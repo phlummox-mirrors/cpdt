@@ -487,7 +487,7 @@ Module PatMatch.
     Delimit Scope source_scope with source.
     Bind Scope source_scope with exp.
 
-    Open Local Scope source_scope.
+    Local Open Scope source_scope.
 
     Fixpoint typeDenote (t : type) : Set :=
       match t with
@@ -728,7 +728,7 @@ Module PatMatch.
   Implicit Arguments merge [var t result].
 
   Section elaborate.
-    Open Local Scope elab_scope.
+    Local Open Scope elab_scope.
 
     Fixpoint elaboratePat var t1 ts result (p : pat t1 ts) {struct p} :
       (hlist (exp var) ts -> result) -> result -> choice_tree var t1 result :=
