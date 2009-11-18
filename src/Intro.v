@@ -201,6 +201,8 @@ Reasoning About Equality Proofs & \texttt{Equality.v} \\
 \hline
 Generic Programming & \texttt{Generic.v} \\
 \hline
+Universes and Axioms & \texttt{Universes.v} \\
+\hline
 Proof Search in Ltac & \texttt{Match.v} \\
 \hline
 Proof by Reflection & \texttt{Reflection.v} \\
