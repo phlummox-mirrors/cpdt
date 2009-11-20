@@ -292,3 +292,102 @@ Error: Universe inconsistency (cannot enforce Top.51 < Top.51).
 ]]
 
 The key benefit parameters bring us is the ability to avoid quantifying over types in the types of constructors.  Such quantification induces less-than constraints, while parameters only introduce less-than-or-equal-to constraints. *)
+
+(* begin hide *)
+Unset Printing Universes.
+(* end hide *)
+
+
+(** * The [Prop] Universe *)
+
+(** In Chapter 4, we saw parallel versions of useful datatypes for "programs" and "proofs."  The convention was that programs live in [Set], and proofs live in [Prop].  We gave little explanation for why it is useful to maintain this distinction.  There is certainly documentation value from separating programs from proofs; in practice, different concerns apply to building the two types of objects.  It turns out, however, that these concerns motivate formal differences between the two universes in Coq.
+
+   Recall the types [sig] and [ex], which are the program and proof versions of existential quantification.  Their definitions differ only in one place, where [sig] uses [Type] and [ex] uses [Prop]. *)
+
+Print sig.
+(** %\vspace{-.15in}% [[
+  Inductive sig (A : Type) (P : A -> Prop) : Type :=
+    exist : forall x : A, P x -> sig P
+    ]] *)
+
+Print ex.
+(** %\vspace{-.15in}% [[
+  Inductive ex (A : Type) (P : A -> Prop) : Prop :=
+    ex_intro : forall x : A, P x -> ex P
+ 
+    ]]
+
+  It is natural to want a function to extract the first components of data structures like these.  Doing so is easy enough for [sig]. *)
+
+Definition projS A (P : A -> Prop) (x : sig P) : A :=
+  match x with
+    | exist v _ => v
+  end.
+
+(** We run into trouble with a version that has been changed to work with [ex].
+
+   [[
+Definition projE A (P : A -> Prop) (x : ex P) : A :=
+  match x with
+    | ex_intro v _ => v
+  end.
+
+Error:
+Incorrect elimination of "x" in the inductive type "ex":
+the return type has sort "Type" while it should be "Prop".
+Elimination of an inductive object of sort Prop
+is not allowed on a predicate in sort Type
+because proofs can be eliminated only to build proofs.
+ 
+   ]]
+
+  In formal Coq parlance, "elimination" means "pattern-matching."  The typing rules of Gallina forbid us from pattern-matching on a discriminee whose types belongs to [Prop], whenever the result type of the [match] has a type besides [Prop].  This is a sort of "information flow" policy, where the type system ensures that the details of proofs can never have any effect on parts of a development that are not also marked as proofs.
+
+  This restriction matches informal practice.  We think of programs and proofs as clearly separated, and, outside of constructive logic, the idea of computing with proofs is ill-formed.  The distinction also has practical importance in Coq, where it affects the behavior of extraction.
+
+  Recall that extraction is Coq's facility for translating Coq developments into programs in general-purpose programming languages like OCaml.  Extraction %\textit{%#<i>#erases#</i>#%}% proofs and leaves programs intact.  A simple example with [sig] and [ex] demonstrates the distinction. *)
+
+Definition sym_sig (x : sig (fun n => n = 0)) : sig (fun n => 0 = n) :=
+  match x with
+    | exist n pf => exist _ n (sym_eq pf)
+  end.
+
+Extraction sym_sig.
+(** <<
+(** val sym_sig : nat -> nat **)
+
+let sym_sig x = x
+>>
+
+Since extraction erases proofs, the second components of [sig] values are elided, making [sig] a simple identity type family.  The [sym_sig] operation is thus an identity function. *)
+
+Definition sym_ex (x : ex (fun n => n = 0)) : ex (fun n => 0 = n) :=
+  match x with
+    | ex_intro n pf => ex_intro _ n (sym_eq pf)
+  end.
+
+Extraction sym_ex.
+(** <<
+(** val sym_ex : __ **)
+
+let sym_ex = __
+>>
+
+In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the type %\texttt{%#<tt>#__#</tt>#%}%, whose single constructor is %\texttt{%#<tt>#__#</tt>#%}%.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
+
+Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADTs, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as you keep all of your proofs within [Prop], extraction is guaranteed to erase them.
+
+Many fans of the Curry-Howard correspondence support the idea of %\textit{%#<i>#extracting programs from proofs#</i>#%}%.  In reality, few users of Coq and related tools do any such thing.  Instead, extraction is better thought of as an optimization that reduces the runtime costs of expressive typing.
+
+%\medskip%
+
+We have seen two of the differences between proofs and programs: proofs are subject to an elimination restriction and are elided by extraction.  The remaining difference is that [Prop] is %\textit{%#<i>#impredicative#</i>#%}%, as this example shows. *)
+
+Check forall P Q : Prop, P \/ Q -> Q \/ P.
+(** %\vspace{-.15in}% [[
+  forall P Q : Prop, P \/ Q -> Q \/ P
+     : Prop
+ 
+     ]]
+
+  We see that it is possible to define a [Prop] that quantifies over other [Prop]s.  This is fortunate, as we start wanting that ability even for such basic purposes as stating propositional tautologies.  In the next section of this chapter, we will see some reasons why unrestricted impredicativity is undesirable.  The impredicativity of [Prop] interacts crucially with the elimination restriction to avoid those pitfalls. *)
