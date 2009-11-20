@@ -16,7 +16,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Universes and Axioms}% *)
 
-(** Many traditional theorems can be proved in Coq without special knowledge of CIC, the logic behind the prover.  A development just seems to be using a particular ASCII notation for standard formulas based on set theory.  Nonetheless, as we saw in Chapter 4, CIC differs from set theory in making it possible to define the usual logical connectives as derived notions.  The foundation of it all is a dependently-typed functional programming language, based on dependent function types and inductive type families.  By using the facilities of this language directly, we can accomplish some things much more easily than in mainstream math.
+(** Many traditional theorems can be proved in Coq without special knowledge of CIC, the logic behind the prover.  A development just seems to be using a particular ASCII notation for standard formulas based on set theory.  Nonetheless, as we saw in Chapter 4, CIC differs from set theory in starting from fewer orthogonal primitives.  It is possible to define the usual logical connectives as derived notions.  The foundation of it all is a dependently-typed functional programming language, based on dependent function types and inductive type families.  By using the facilities of this language directly, we can accomplish some things much more easily than in mainstream math.
 
    Gallina, which adds features to the more theoretical CIC, is the logic implemented in Coq.  It has a relatively simple foundation that can be defined rigorously in a page or two of formal proof rules.  Still, there are some important subtleties that have practical ramifications.  This chapter focuses on those subtleties, avoiding formal metatheory in favor of example code. *)
 
@@ -59,7 +59,7 @@ Check Type.
  
      ]]
 
-  Strangely enough, [Type] appears to be its own type.  It is known that polymorphic languages with this property are inconsistent.  That is, using such a language to encode proofs is unwise, because it is possible to "prove" any theorem.  What is really going on here?
+  Strangely enough, [Type] appears to be its own type.  It is known that polymorphic languages with this property are inconsistent.  That is, using such a language to encode proofs is unwise, because it is possible to "prove" any proposition.  What is really going on here?
 
   Let us repeat some of our queries after toggling a flag related to Coq's printing behavior. *)
 
@@ -88,7 +88,7 @@ Check Type.
  
      ]]
 
-  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it really stands for an infinite hierarchy of types.  The type of [Set] is [Type0], the type of [Type0] is [Type1], the type of [Type1] is [Type2], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
+  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it Sreally stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
 
   In the outputs of our first [Check] query, we see that the type level of [Set]'s type is [(0)+1]. Here [0] stands for the level of [Set], and we increment it to arrive at the level that %\textit{%#<i>#classifies#</i>#%}% [Set].
 
@@ -130,7 +130,7 @@ Check id Set.
 
 Error: Illegal application (Type Error):
 ...
-The 1st term has type "Type (* (Top.15)+1 *)" which should be coercible to "Set".
+The 1st term has type "Type $ (Top.15)+1 ^" which should be coercible to "Set".
  
   ]]
 
@@ -165,7 +165,7 @@ Error: Universe inconsistency (cannot enforce Top.16 < Top.16).
  
    ]]
 
-  This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is %\textit{%#<i>#predicative#</i>#%}%, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, for any object of quantified type, none of those quantifiers may never be instantiated with the object itself.  Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like "the set of all sets that do not contain themselves."  Similar paradoxes result from uncontrolled impredicativity in Coq. *)
+  This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is %\textit{%#<i>#predicative#</i>#%}%, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, for any object of quantified type, none of those quantifiers may ever be instantiated with the object itself.  Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like "the set of all sets that do not contain themselves."  Similar paradoxes result from uncontrolled impredicativity in Coq. *)
 
 
 (** ** Inductive Definitions *)
@@ -189,7 +189,9 @@ Inductive exp : Type -> Type :=
 | Pair : forall T1 T2, exp T1 -> exp T2 -> exp (T1 * T2)
 | Eq : forall T, exp T -> exp T -> exp bool.
 
-(** This definition is accepted.  We can build some sample expressions. *)
+(** Note that before we had to include an annotation [: Set] for the variable [T] in [Const]'s type, but we need no annotation now.  When the type of a variable is not known, and when that variable is used in a context where only types are allowed, Coq infers that the variable is of type [Type].  That is the right behavior here, but it was wrong for the [Set] version of [exp].
+
+   Our new definition is accepted.  We can build some sample expressions. *)
 
 Check Const 0.
 (** %\vspace{-.15in}% [[
@@ -205,7 +207,7 @@ Check Pair (Const 0) (Const tt).
 
 Check Eq (Const Set) (Const Type).
 (** %\vspace{-.15in}% [[
-  Eq (Const Set) (Const Type (* Top.59 *))
+  Eq (Const Set) (Const Type $ Top.59 ^ )
      : exp bool
  
      ]]
