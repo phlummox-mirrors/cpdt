@@ -88,7 +88,7 @@ Check Type.
  
      ]]
 
-  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it Sreally stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
+  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it really stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
 
   In the outputs of our first [Check] query, we see that the type level of [Set]'s type is [(0)+1]. Here [0] stands for the level of [Set], and we increment it to arrive at the level that %\textit{%#<i>#classifies#</i>#%}% [Set].
 
@@ -270,7 +270,7 @@ Inductive prod (A : Type $ Coq.Init.Datatypes.37 ^ )
 
   Something interesting is revealed in the annotated definition of [prod].  A type [prod A B] lives at a universe that is the maximum of the universes of [A] and [B].  From our earlier experiments, we might expect that [prod]'s universe would in fact need to be %\textit{%#<i>#one higher#</i>#%}% than the maximum.  The critical difference is that, in the definition of [prod], [A] and [B] are defined as %\textit{%#<i>#parameters#</i>#%}%; that is, they appear named to the left of the main colon, rather than appearing (possibly unnamed) to the right.
 
-  Parameters are not as flexible as normal inductive type arguments.  The range types of all of the constructors of a parameterized type must share the same indices.  Nonetheless, when it is possible to define a polymorphic type in this way, we gain the ability to use the new type family in more ways, without triggering universe inconsistencies.  For instance, nested pairs of types are perfectly legal. *)
+  Parameters are not as flexible as normal inductive type arguments.  The range types of all of the constructors of a parameterized type must share the same parameters.  Nonetheless, when it is possible to define a polymorphic type in this way, we gain the ability to use the new type family in more ways, without triggering universe inconsistencies.  For instance, nested pairs of types are perfectly legal. *)
 
 Check (nat, (Type, Set)).
 (** %\vspace{-.15in}% [[
@@ -459,7 +459,7 @@ Check (Base (Base 1)).
 
 (** ** The Basics *)
 
-(* One simple example of a useful axiom is the law of the excluded middle. *)
+(** One simple example of a useful axiom is the law of the excluded middle. *)
 
 Require Import Classical_Prop.
 Print classic.
@@ -498,7 +498,7 @@ Reset not_classic.
 
    Recall that Coq implements %\textit{%#<i>#constructive#</i>#%}% logic by default, where excluded middle is not provable.  Proofs in constructive logic can be thought of as programs.  A [forall] quantifier denotes a dependent function type, and a disjunction denotes a variant type.  In such a setting, excluded middle could be interpreted as a decision procedure for arbitrary propositions, which computability theory tells us cannot exist.  Thus, constructive logic with excluded middle can no longer be associated with our usual notion of programming.
 
-   Given all this, why is it all right to assert excluded middle as an axiom?  I do not want to go into the technical details, but the intuitive justification is that the elimination restriction for [Prop] prevents us from treating proofs as programs.  An excluded middle axiom that quantified over [Set] instead of [Prop] %\textit{%#<i>#would#</i>#%}% be problematic.  If a development used that axiom, we would not be able to extract the code to OCaml (soundly) without implementing a genuine universal decision procedure.  In contrast, values whose types belong to [Prop] are always erased by extraction, so we sidestep the axiom's algorithmic consequences.
+   Given all this, why is it all right to assert excluded middle as an axiom?  The intuitive justification is that the elimination restriction for [Prop] prevents us from treating proofs as programs.  An excluded middle axiom that quantified over [Set] instead of [Prop] %\textit{%#<i>#would#</i>#%}% be problematic.  If a development used that axiom, we would not be able to extract the code to OCaml (soundly) without implementing a genuine universal decision procedure.  In contrast, values whose types belong to [Prop] are always erased by extraction, so we sidestep the axiom's algorithmic consequences.
 
    Because the proper use of axioms is so precarious, there are helpful commands for determining which axioms a theorem relies on. *)
 
@@ -529,7 +529,7 @@ Print Assumptions t2.
  
   ]]
 
-  It is possible to avoid this dependence in some specific cases, where excluded middle %\textit{%#<i>#is#</i>#%}% provable, for decidable propositions. *)
+  It is possible to avoid this dependence in some specific cases, where excluded middle %\textit{%#<i>#is#</i>#%}% provable, for decidable families of propositions. *)
 
 Theorem classic_nat_eq : forall n m : nat, n = m \/ n <> m.
   induction n; destruct m; intuition; generalize (IHn m); intuition.
@@ -555,7 +555,7 @@ Print proof_irrelevance.
  
   ]]
 
-  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, without this axiom, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 6. *)
+  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 6. *)
 
 (* begin hide *)
 Lemma zgtz : 0 > 0 -> False.
@@ -615,7 +615,7 @@ Corollary UIP : forall A (x y : A) (pf1 pf2 : x = y), pf1 = pf2.
     end.
 Qed.
 
-(** These corollaries are special cases of proof irrelevance.  Many developments only need proof irrelevance for equality, so there is no need to assert full irrelevance for them.
+(** These corollaries are special cases of proof irrelevance.  In developments that only need proof irrelevance for equality, there is no need to assert full irrelevance.
 
    Another facet of proof irrelevance is that, like excluded middle, it is often provable for specific propositions.  For instance, [UIP] is provable whenever the type [A] has a decidable equality operation.  The module [Eqdep_dec] of the standard library contains a proof.  A similar phenomenon applies to other notable cases, including less-than proofs.  Thus, it is often possible to use proof irrelevance without asserting axioms.
 
@@ -665,7 +665,7 @@ Closed under the global context
  
   ]]
 
-  This function transforms a decidable predicate [P] into a function that produces an element satisfying [P] from a proof that such an element exists.  The functions [f] and [g], plus an associated injectivity property, are used to express the idea that the set [A] is countable.  Under these conditions, a simple brute force algorithm gets the job done: we just enumerate all elements of [A], stopping when we find one satisfying [P].  The existence proof, specified in terms of %\textit{%#<i>#unique#</i>#%}% existence [exists!], guarantees termination.  The definition of this operator in Coq uses some interesting techniques, as seen in the implementation of the [ConstructiveEpsilon] module.
+  This function transforms a decidable predicate [P] into a function that produces an element satisfying [P] from a proof that such an element exists.  The functions [f] and [g], in conjunction with an associated injectivity property, are used to express the idea that the set [A] is countable.  Under these conditions, a simple brute force algorithm gets the job done: we just enumerate all elements of [A], stopping when we find one satisfying [P].  The existence proof, specified in terms of %\textit{%#<i>#unique#</i>#%}% existence [exists!], guarantees termination.  The definition of this operator in Coq uses some interesting techniques, as seen in the implementation of the [ConstructiveEpsilon] module.
 
   Countable choice is provable in set theory without appealing to the general axiom of choice.  To support the more general principle in Coq, we must also add an axiom.  Here is a functional version of the axiom of unique choice. *)
 
