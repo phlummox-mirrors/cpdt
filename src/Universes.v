@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import DepList.
+Require Import DepList Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -341,7 +341,7 @@ because proofs can be eliminated only to build proofs.
  
    ]]
 
-  In formal Coq parlance, "elimination" means "pattern-matching."  The typing rules of Gallina forbid us from pattern-matching on a discriminee whose types belongs to [Prop], whenever the result type of the [match] has a type besides [Prop].  This is a sort of "information flow" policy, where the type system ensures that the details of proofs can never have any effect on parts of a development that are not also marked as proofs.
+  In formal Coq parlance, "elimination" means "pattern-matching."  The typing rules of Gallina forbid us from pattern-matching on a discriminee whose type belongs to [Prop], whenever the result type of the [match] has a type besides [Prop].  This is a sort of "information flow" policy, where the type system ensures that the details of proofs can never have any effect on parts of a development that are not also marked as proofs.
 
   This restriction matches informal practice.  We think of programs and proofs as clearly separated, and, outside of constructive logic, the idea of computing with proofs is ill-formed.  The distinction also has practical importance in Coq, where it affects the behavior of extraction.
 
@@ -390,4 +390,392 @@ Check forall P Q : Prop, P \/ Q -> Q \/ P.
  
      ]]
 
-  We see that it is possible to define a [Prop] that quantifies over other [Prop]s.  This is fortunate, as we start wanting that ability even for such basic purposes as stating propositional tautologies.  In the next section of this chapter, we will see some reasons why unrestricted impredicativity is undesirable.  The impredicativity of [Prop] interacts crucially with the elimination restriction to avoid those pitfalls. *)
+  We see that it is possible to define a [Prop] that quantifies over other [Prop]s.  This is fortunate, as we start wanting that ability even for such basic purposes as stating propositional tautologies.  In the next section of this chapter, we will see some reasons why unrestricted impredicativity is undesirable.  The impredicativity of [Prop] interacts crucially with the elimination restriction to avoid those pitfalls.
+
+  Impredicativity also allows us to implement a version of our earlier [exp] type that does not suffer from the weakness that we found. *)
+
+Inductive expP : Type -> Prop :=
+| ConstP : forall T, T -> expP T
+| PairP : forall T1 T2, expP T1 -> expP T2 -> expP (T1 * T2)
+| EqP : forall T, expP T -> expP T -> expP bool.
+
+Check ConstP 0.
+(** %\vspace{-.15in}% [[
+  ConstP 0
+     : expP nat
+     ]] *)
+
+Check PairP (ConstP 0) (ConstP tt).
+(** %\vspace{-.15in}% [[
+  PairP (ConstP 0) (ConstP tt)
+     : expP (nat * unit)
+     ]] *)
+
+Check EqP (ConstP Set) (ConstP Type).
+(** %\vspace{-.15in}% [[
+  EqP (ConstP Set) (ConstP Type)
+     : expP bool
+     ]] *)
+
+Check ConstP (ConstP O).
+(** %\vspace{-.15in}% [[
+  ConstP (ConstP 0)
+     : expP (expP nat)
+ 
+     ]]
+
+  In this case, our victory is really a shallow one.  As we have marked [expP] as a family of proofs, we cannot deconstruct our expressions in the usual programmatic ways, which makes them almost useless for the usual purposes.  Impredicative quantification is much more useful in defining inductive families that we really think of as judgments.  For instance, this code defines a notion of equality that is strictly stronger than the base equality [=]. *)
+
+Inductive eqPlus : forall T, T -> T -> Prop :=
+| Base : forall T (x : T), eqPlus x x
+| Func : forall dom ran (f1 f2 : dom -> ran),
+  (forall x : dom, eqPlus (f1 x) (f2 x))
+  -> eqPlus f1 f2.
+
+Check (Base 0).
+(** %\vspace{-.15in}% [[
+  Base 0
+     : eqPlus 0 0
+     ]] *)
+
+Check (Func (fun n => n) (fun n => 0 + n) (fun n => Base n)).
+(** %\vspace{-.15in}% [[
+  Func (fun n : nat => n) (fun n : nat => 0 + n) (fun n : nat => Base n)
+     : eqPlus (fun n : nat => n) (fun n : nat => 0 + n)
+     ]] *)
+
+Check (Base (Base 1)).
+(** %\vspace{-.15in}% [[
+  Base (Base 1)
+     : eqPlus (Base 1) (Base 1)
+     ]] *)
+
+
+(** * Axioms *)
+
+(** While the specific logic Gallina is hardcoded into Coq's implementation, it is possible to add certain logical rules in a controlled way.  In other words, Coq may be used to reason about many different refinements of Gallina where strictly more theorems are provable.  We achieve this by asserting %\textit{%#<i>#axioms#</i>#%}% without proof.
+
+   We will motivate the idea by touring through some standard axioms, as enumerated in Coq's online FAQ.  I will add additional commentary as appropriate. *)
+
+(** ** The Basics *)
+
+(* One simple example of a useful axiom is the law of the excluded middle. *)
+
+Require Import Classical_Prop.
+Print classic.
+(** %\vspace{-.15in}% [[
+  *** [ classic : forall P : Prop, P \/ ~ P ]
+ 
+  ]]
+
+  In the implementation of module [Classical_Prop], this axiom was defined with the command *)
+
+Axiom classic : forall P : Prop, P \/ ~ P.
+
+(** An [Axiom] may be declared with any type, in any of the universes.  There is a synonym [Parameter] for [Axiom], and that synonym is often clearer for assertions not of type [Prop].  For instance, we can assert the existence of objects with certain properties. *)
+
+Parameter n : nat.
+Axiom positive : n > 0.
+Reset n.
+
+(** This kind of "axiomatic presentation" of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
+
+   In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is %\textit{%#<i>#inconsistent#</i>#%}%.   That is, a set of axioms may imply [False], which allows any theorem to proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
+
+Axiom not_classic : exists P : Prop, ~ (P \/ ~ P).
+
+Theorem uhoh : False.
+  generalize classic not_classic; firstorder.
+Qed.
+
+Theorem uhoh_again : 1 + 1 = 3.
+  destruct uhoh.
+Qed.
+
+Reset not_classic.
+
+(** On the subject of the law of the excluded middle itself, this axiom is usually quite harmless, and many practical Coq developments assume it.  It has been proved metatheoretically to be consistent with CIC.  Here, "proved metatheoretically" means that someone proved on paper that excluded middle holds in a %\textit{%#<i>#model#</i>#%}% of CIC in set theory.  All of the other axioms that we will survey in this section hold in the same model, so they are all consistent together.
+
+   Recall that Coq implements %\textit{%#<i>#constructive#</i>#%}% logic by default, where excluded middle is not provable.  Proofs in constructive logic can be thought of as programs.  A [forall] quantifier denotes a dependent function type, and a disjunction denotes a variant type.  In such a setting, excluded middle could be interpreted as a decision procedure for arbitrary propositions, which computability theory tells us cannot exist.  Thus, constructive logic with excluded middle can no longer be associated with our usual notion of programming.
+
+   Given all this, why is it all right to assert excluded middle as an axiom?  I do not want to go into the technical details, but the intuitive justification is that the elimination restriction for [Prop] prevents us from treating proofs as programs.  An excluded middle axiom that quantified over [Set] instead of [Prop] %\textit{%#<i>#would#</i>#%}% be problematic.  If a development used that axiom, we would not be able to extract the code to OCaml (soundly) without implementing a genuine universal decision procedure.  In contrast, values whose types belong to [Prop] are always erased by extraction, so we sidestep the axiom's algorithmic consequences.
+
+   Because the proper use of axioms is so precarious, there are helpful commands for determining which axioms a theorem relies on. *)
+
+Theorem t1 : forall P : Prop, P -> ~ ~ P.
+  tauto.
+Qed.
+
+Print Assumptions t1.
+(** %\vspace{-.15in}% [[
+  Closed under the global context
+]] *)
+
+Theorem t2 : forall P : Prop, ~ ~ P -> P.
+  (** [[
+  tauto.
+
+Error: tauto failed.
+
+]] *)
+
+  intro P; destruct (classic P); tauto.
+Qed.
+
+Print Assumptions t2.
+(** %\vspace{-.15in}% [[
+  Axioms:
+  classic : forall P : Prop, P \/ ~ P
+ 
+  ]]
+
+  It is possible to avoid this dependence in some specific cases, where excluded middle %\textit{%#<i>#is#</i>#%}% provable, for decidable propositions. *)
+
+Theorem classic_nat_eq : forall n m : nat, n = m \/ n <> m.
+  induction n; destruct m; intuition; generalize (IHn m); intuition.
+Qed.
+
+Theorem t2' : forall n m : nat, ~ ~ (n = m) -> n = m.
+  intros n m; destruct (classic_nat_eq n m); tauto.
+Qed.
+
+Print Assumptions t2'.
+(** %\vspace{-.15in}% [[
+Closed under the global context
+  ]]
+
+  %\bigskip%
+
+  Mainstream mathematical practice assumes excluded middle, so it can be useful to have it available in Coq developments, though it is also nice to know that a theorem is proved in a simpler formal system than classical logic.  There is a similar story for %\textit{%#<i>#proof irrelevance#</i>#%}%, which simplifies proof issues that would not even arise in mainstream math. *)
+
+Require Import ProofIrrelevance.
+Print proof_irrelevance.
+(** %\vspace{-.15in}% [[
+  *** [ proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2 ]
+ 
+  ]]
+
+  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, without this axiom, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 6. *)
+
+(* begin hide *)
+Lemma zgtz : 0 > 0 -> False.
+  crush.
+Qed.
+(* end hide *)
+
+Definition pred_strong1 (n : nat) : n > 0 -> nat :=
+  match n with
+    | O => fun pf : 0 > 0 => match zgtz pf with end
+    | S n' => fun _ => n'
+  end.
+
+(** We might want to prove that different proofs of [n > 0] do not lead to different results from our richly-typed predecessor function. *)
+
+Theorem pred_strong1_irrel : forall n (pf1 pf2 : n > 0), pred_strong1 pf1 = pred_strong1 pf2.
+  destruct n; crush.
+Qed.
+
+(** The proof script is simple, but it involved peeking into the definition of [pred_strong1].  For more complicated function definitions, it can be considerably more work to prove that they do not discriminate on details of proof arguments.  This can seem like a shame, since the [Prop] elimination restriction makes it impossible to write any function that does otherwise.  Unfortunately, this fact is only true metatheoretically, unless we assert an axiom like [proof_irrelevance].  With that axiom, we can prove our theorem without consulting the definition of [pred_strong1]. *)
+
+Theorem pred_strong1_irrel' : forall n (pf1 pf2 : n > 0), pred_strong1 pf1 = pred_strong1 pf2.
+  intros; f_equal; apply proof_irrelevance.
+Qed.
+
+
+(** %\bigskip%
+
+   In the chapter on equality, we already discussed some axioms that are related to proof irrelevance.  In particular, Coq's standard library includes this axiom: *)
+
+Require Import Eqdep.
+Import Eq_rect_eq.
+Print eq_rect_eq.
+(** %\vspace{-.15in}% [[
+  *** [ eq_rect_eq : 
+  forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+  x = eq_rect p Q x p h ]
+ 
+  ]]
+
+  This axiom says that it is permissible to simplify pattern matches over proofs of equalities like [e = e].  The axiom is logically equivalent to some simpler corollaries. *)
+
+Corollary UIP_refl : forall A (x : A) (pf : x = x), pf = refl_equal x.
+  intros; replace pf with (eq_rect x (eq x) (refl_equal x) x pf); [
+    symmetry; apply eq_rect_eq
+    | exact (match pf as pf' return match pf' in _ = y return x = y with
+                                      | refl_equal => refl_equal x
+                                    end = pf' with
+               | refl_equal => refl_equal _
+             end) ].
+Qed.
+
+Corollary UIP : forall A (x y : A) (pf1 pf2 : x = y), pf1 = pf2.
+  intros; generalize pf1 pf2; subst; intros;
+    match goal with
+      | [ |- ?pf1 = ?pf2 ] => rewrite (UIP_refl pf1); rewrite (UIP_refl pf2); reflexivity
+    end.
+Qed.
+
+(** These corollaries are special cases of proof irrelevance.  Many developments only need proof irrelevance for equality, so there is no need to assert full irrelevance for them.
+
+   Another facet of proof irrelevance is that, like excluded middle, it is often provable for specific propositions.  For instance, [UIP] is provable whenever the type [A] has a decidable equality operation.  The module [Eqdep_dec] of the standard library contains a proof.  A similar phenomenon applies to other notable cases, including less-than proofs.  Thus, it is often possible to use proof irrelevance without asserting axioms.
+
+   %\bigskip%
+
+   There are two more basic axioms that are often assumed, to avoid complications that do not arise in set theory. *)
+
+Require Import FunctionalExtensionality.
+Print functional_extensionality_dep.
+(** %\vspace{-.15in}% [[
+  *** [ functional_extensionality_dep : 
+  forall (A : Type) (B : A -> Type) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g ]
+ 
+  ]]
+
+  This axiom says that two functions are equal if they map equal inputs to equal outputs.  Such facts are not provable in general in CIC, but it is consistent to assume that they are.
+
+  A simple corollary shows that the same property applies to predicates.  In some cases, one might prefer to assert this corollary as the axiom, to restrict the consequences to proofs and not programs. *)
+
+Corollary predicate_extensionality : forall (A : Type) (B : A -> Prop) (f g : forall x : A, B x),
+  (forall x : A, f x = g x) -> f = g.
+  intros; apply functional_extensionality_dep; assumption.
+Qed.
+
+
+(** ** Axioms of Choice *)
+
+(** Some Coq axioms are also points of contention in mainstream math.  The most prominent example is the axiom of choice.  In fact, there are multiple versions that we might consider, and, considered in isolation, none of these versions means quite what it means in classical set theory.
+
+   First, it is possible to implement a choice operator %\textit{%#<i>#without#</i>#%}% axioms in some potentially surprising cases. *)
+
+Require Import ConstructiveEpsilon.
+Check constructive_definite_description.
+(** %\vspace{-.15in}% [[
+  constructive_definite_description
+     : forall (A : Set) (f : A -> nat) (g : nat -> A),
+       (forall x : A, g (f x) = x) ->
+       forall P : A -> Prop,
+       (forall x : A, {P x} + {~ P x}) ->
+       (exists! x : A, P x) -> {x : A | P x}
+       ]] *)
+
+Print Assumptions constructive_definite_description.
+(** %\vspace{-.15in}% [[
+Closed under the global context
+ 
+  ]]
+
+  This function transforms a decidable predicate [P] into a function that produces an element satisfying [P] from a proof that such an element exists.  The functions [f] and [g], plus an associated injectivity property, are used to express the idea that the set [A] is countable.  Under these conditions, a simple brute force algorithm gets the job done: we just enumerate all elements of [A], stopping when we find one satisfying [P].  The existence proof, specified in terms of %\textit{%#<i>#unique#</i>#%}% existence [exists!], guarantees termination.  The definition of this operator in Coq uses some interesting techniques, as seen in the implementation of the [ConstructiveEpsilon] module.
+
+  Countable choice is provable in set theory without appealing to the general axiom of choice.  To support the more general principle in Coq, we must also add an axiom.  Here is a functional version of the axiom of unique choice. *)
+
+Require Import ClassicalUniqueChoice.
+Check dependent_unique_choice.
+(** %\vspace{-.15in}% [[
+  dependent_unique_choice
+     : forall (A : Type) (B : A -> Type) (R : forall x : A, B x -> Prop),
+       (forall x : A, exists! y : B x, R x y) ->
+       exists f : forall x : A, B x, forall x : A, R x (f x)
+ 
+  ]]
+
+  This axiom lets us convert a relational specification [R] into a function implementing that specification.  We need only prove that [R] is truly a function.  An alternate, stronger formulation applies to cases where [R] maps each input to one or more outputs.  We also simplify the statement of the theorem by considering only non-dependent function types. *)
+
+Require Import ClassicalChoice.
+Check choice.
+(** %\vspace{-.15in}% [[
+choice
+     : forall (A B : Type) (R : A -> B -> Prop),
+       (forall x : A, exists y : B, R x y) ->
+       exists f : A -> B, forall x : A, R x (f x)
+ 
+  ]]
+
+  This principle is proved as a theorem, based on the unique choice axiom and an additional axiom of relational choice from the [RelationalChoice] module.
+
+  In set theory, the axiom of choice is a fundamental philosophical commitment one makes about the universe of sets.  In Coq, the choice axioms say something weaker.  For instance, consider the simple restatement of the [choice] axiom where we replace existential quantification by its Curry-Howard analogue, subset types. *)
+
+Definition choice_Set (A B : Type) (R : A -> B -> Prop) (H : forall x : A, {y : B | R x y})
+  : {f : A -> B | forall x : A, R x (f x)} :=
+  exist (fun f => forall x : A, R x (f x))
+  (fun x => proj1_sig (H x)) (fun x => proj2_sig (H x)).
+
+(** Via the Curry-Howard correspondence, this "axiom" can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtlely different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
+
+   However, when we combine an axiom of choice with the law of the excluded middle, the idea of "choice" becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of "programs," but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This truly is more than repackaging a function with a different type.
+
+   %\bigskip%
+
+   The Coq tools support a command-line flag %\texttt{%#<tt>#-impredicative-set#</tt>#%}%, which modifies Gallina in a more fundamental way by making [Set] impredicative.  A term like [forall T : Set, T] has type [Set], and inductive definitions in [Set] may have constructors that quantify over arguments of any types.  To maintain consistency, an elimination restriction must be imposed, similarly to the restriction for [Prop].  The restriction only applies to large inductive types, where some constructor quantifies over a type of type [Type].  In such cases, a value in this inductive type may only be pattern-matched over to yield a result type whose type is [Set] or [Prop].  This contrasts with [Prop], where the restriction applies even to non-large inductive types, and where the result type may only have type [Prop].
+
+   In old versions of Coq, [Set] was impredicative by default.  Later versions make [Set] predicative to avoid inconsistency with some classical axioms.  In particular, one should watch out when using impredicative [Set] with axioms of choice.  In combination with excluded middle or predicate extensionality, this can lead to inconsistency.  Impredicative [Set] can be useful for modeling inherently impredicative mathematical concepts, but almost all Coq developments get by fine without it. *)
+
+(** ** Axioms and Computation *)
+
+(** One additional axiom-related wrinkle arises from an aspect of Gallina that is very different from set theory: a notion of %\textit{%#<i>#computational equivalence#</i>#%}% is central to the definition of the formal system.  Axioms tend not to play well with computation.  Consider this example.  We start by implementing a function that uses a type equality proof to perform a safe type-cast. *)
+
+Definition cast (x y : Set) (pf : x = y) (v : x) : y :=
+  match pf with
+    | refl_equal => v
+  end.
+
+(** Computation over programs that use [cast] can proceed smoothly. *)
+
+Eval compute in (cast (refl_equal (nat -> nat)) (fun n => S n)) 12.
+(** [[
+     = 13
+     : nat
+     ]] *)
+
+(** Things do not go as smoothly when we use [cast] with proofs that rely on axioms. *)
+
+Theorem t3 : (forall n : nat, fin (S n)) = (forall n : nat, fin (n + 1)). 
+  change ((forall n : nat, (fun n => fin (S n)) n) = (forall n : nat, (fun n => fin (n + 1)) n));
+    rewrite (functional_extensionality (fun n => fin (n + 1)) (fun n => fin (S n))); crush.
+Qed.
+
+Eval compute in (cast t3 (fun _ => First)) 12.
+(** [[
+     = match t3 in (_ = P) return P with
+       | refl_equal => fun n : nat => First
+       end 12
+     : fin (12 + 1)
+ 
+     ]]
+
+  Computation gets stuck in a pattern-match on the proof [t3].  The structure of [t3] is not known, so the match cannot proceed.  It turns out a more basic problem leads to this particular situation.  We ended the proof of [t3] with [Qed], so the definition of [t3] is not available to computation.  That is easily fixed. *)
+
+Reset t3.
+
+Theorem t3 : (forall n : nat, fin (S n)) = (forall n : nat, fin (n + 1)). 
+  change ((forall n : nat, (fun n => fin (S n)) n) = (forall n : nat, (fun n => fin (n + 1)) n));
+    rewrite (functional_extensionality (fun n => fin (n + 1)) (fun n => fin (S n))); crush.
+Defined.
+
+Eval compute in (cast t3 (fun _ => First)) 12.
+(** [[
+     = match
+         match
+           match
+             functional_extensionality
+     ....
+ 
+     ]]
+
+  We elide most of the details.  A very unwieldy tree of nested matches on equality proofs appears.  This time evaluation really %\textit{%#<i>#is#</i>#%}% stuck on a use of an axiom.
+
+  If we are careful in using tactics to prove an equality, we can still compute with casts over the proof. *)
+
+Lemma plus1 : forall n, S n = n + 1.
+  induction n; simpl; intuition.
+Defined.
+
+Theorem t4 : forall n, fin (S n) = fin (n + 1).
+  intro; f_equal; apply plus1.
+Defined.
+
+Eval compute in cast (t4 13) First.
+(** %\vspace{-.15in}% [[
+     = First
+     : fin (13 + 1)
+     ]] *)
