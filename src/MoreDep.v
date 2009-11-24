@@ -121,7 +121,7 @@ Error: Non exhaustive pattern-matching: no clause found for pattern Nil
  
 ]]
 
-Unlike in ML, we cannot use inexhaustive pattern matching, becuase there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  We might try using an [in] clause somehow.
+Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  We might try using an [in] clause somehow.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
