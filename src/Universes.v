@@ -291,11 +291,50 @@ Error: Universe inconsistency (cannot enforce Top.51 < Top.51).
  
 ]]
 
-The key benefit parameters bring us is the ability to avoid quantifying over types in the types of constructors.  Such quantification induces less-than constraints, while parameters only introduce less-than-or-equal-to constraints. *)
+The key benefit parameters bring us is the ability to avoid quantifying over types in the types of constructors.  Such quantification induces less-than constraints, while parameters only introduce less-than-or-equal-to constraints.
+
+Coq includes one more (potentially confusing) feature related to parameters.  While Gallina does not support real universe polymorphism, there is a convenience facility that mimics universe polymorphism in some cases.  We can illustrate what this means with a simple example. *)
+
+Inductive foo (A : Type) : Type :=
+| Foo : A -> foo A.
 
 (* begin hide *)
 Unset Printing Universes.
 (* end hide *)
+
+Check foo nat.
+(** %\vspace{-.15in}% [[
+  foo nat
+     : Set
+     ]] *)
+
+Check foo Set.
+(** %\vspace{-.15in}% [[
+  foo Set
+     : Type
+     ]] *)
+
+Check foo True.
+(** %\vspace{-.15in}% [[
+  foo True
+     : Prop
+ 
+     ]]
+
+  The basic pattern here is that Coq is willing to automatically build a "copied-and-pasted" version of an inductive definition, where some occurrences of [Type] have been replaced by [Set] or [Prop].  In each context, the type-checker tries to find the valid replacements that are lowest in the type hierarchy.  Automatic cloning of definitions can be much more convenient than manual cloning.  We have already taken advantage of the fact that we may re-use the same families of tuple and list types to form values in [Set] and [Type].
+
+  Imitation polymorphism can be confusing in some contexts.  For instance, it is what is responsible for this weird behavior. *)
+
+Inductive bar : Type := Bar : bar.
+
+Check bar.
+(** %\vspace{-.15in}% [[
+  bar
+     : Prop
+ 
+     ]]
+
+  The type that Coq comes up with may be used in strictly more contexts than the type one might have expected. *)
 
 
 (** * The [Prop] Universe *)
