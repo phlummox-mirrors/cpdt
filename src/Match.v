@@ -851,3 +851,252 @@ and_True_prem
      : forall (P : nat -> Prop) (Q : Prop),
        (exists x : nat, P x /\ Q) --> Q /\ (exists x : nat, P x)
 ]] *)
+
+
+(** * Creating Unification Variables *)
+
+(** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variable internally to support flexible proof search.  While [eauto] and its relatives do %\textit{%#<i>#backward#</i>#%}% reasoning, we often want to do similar %\textit{%#<i>#forward#</i>#%}% reasoning, where unification variables can be useful for similar reasons.
+
+   For example, we can write a tactic that instantiates the quantifiers of a universally-quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
+
+   Before we are ready to write a tactic, we can try out its ingredients one at a time. *)
+
+Theorem t5 : (forall x : nat, S x > x) -> 2 > 1.
+  intros.
+
+  (** [[
+  H : forall x : nat, S x > x
+  ============================
+   2 > 1
+ 
+   ]]
+
+   To instantiate [H] generically, we first need to name the value to be used for [x]. *)
+
+  evar (y : nat).
+
+  (** [[
+  H : forall x : nat, S x > x
+  y := ?279 : nat
+  ============================
+   2 > 1
+ 
+   ]]
+
+   The proof context is extended with a new variable [y], which has been assigned to be equal to a fresh unification variable [?279].  We want to instantiate [H] with [?279].  To get ahold of the new unification variable, rather than just its alias [y], we perform a trivial call-by-value reduction in the expression [y].  In particular, we only request the use of one reduction rule, [delta], which deals with definition unfolding.  We pass a flag further stipulating that only the definition of [y] be unfolded.  This is a simple trick for getting at the value of a synonym variable. *)
+
+  let y' := eval cbv delta [y] in y in
+    clear y; generalize (H y').
+
+  (** [[
+  H : forall x : nat, S x > x
+  ============================
+   S ?279 > ?279 -> 2 > 1
+ 
+   ]]
+
+   Our instantiation was successful.  We can finish by using the refined formula to replace the original. *)
+
+  clear H; intro H.
+
+  (** [[
+  H : S ?281 > ?281
+  ============================
+   2 > 1
+ 
+   ]]
+
+   We can finish the proof by using [apply]'s unification to figure out the proper value of [?281].  (The original unification variable was replaced by another, as often happens in the internals of the various tactics' implementations.) *)
+
+  apply H.
+Qed.
+
+(** Now we can write a tactic that encapsulates the pattern we just employed, instantiating all quantifiers of a particular hypothesis. *)
+
+Ltac insterU H :=
+  repeat match type of H with
+           | forall x : ?T, _ =>
+             let x := fresh "x" in
+               evar (x : T);
+               let x' := eval cbv delta [x] in x in
+                 clear x; generalize (H x'); clear H; intro H
+         end.
+
+Theorem t5' : (forall x : nat, S x > x) -> 2 > 1.
+  intro H; insterU H; apply H.
+Qed.
+
+(** This particular example is somewhat silly, since [apply] by itself would have solved the goal originally.  Separate forward reasoning is more useful on hypotheses that end in existential quantifications.  Before we go through an example, it is useful to define a variant of [insterU] that does not clear the base hypothesis we pass to it. *)
+
+Ltac insterKeep H :=
+  let H' := fresh "H'" in
+    generalize H; intro H'; insterU H'.
+
+Section t6.
+  Variables A B : Type.
+  Variable P : A -> B -> Prop.
+  Variable f : A -> A -> A.
+  Variable g : B -> B -> B.
+
+  Hypothesis H1 : forall v, exists u, P v u.
+  Hypothesis H2 : forall v1 u1 v2 u2,
+    P v1 u1
+    -> P v2 u2
+    -> P (f v1 v2) (g u1 u2).
+
+  Theorem t6 : forall v1 v2, exists u1, exists u2, P (f v1 v2) (g u1 u2).
+    intros.
+
+    (** Neither [eauto] nor [firstorder] is clever enough to prove this goal.  We can help out by doing some of the work with quantifiers ourselves. *)
+
+    do 2 insterKeep H1.
+
+    (** Our proof state is extended with two generic instances of [H1].
+
+       [[
+  H' : exists u : B, P ?4289 u
+  H'0 : exists u : B, P ?4288 u
+  ============================
+   exists u1 : B, exists u2 : B, P (f v1 v2) (g u1 u2)
+ 
+   ]]
+
+   [eauto] still cannot prove the goal, so we eliminate the two new existential quantifiers. *)
+
+    repeat match goal with
+             | [ H : ex _ |- _ ] => destruct H
+           end.
+
+    (** Now the goal is simple enough to solve by logic programming. *)
+
+    eauto.
+  Qed.
+End t6.
+
+(** Our [insterU] tactic does not fare so well with quantified hypotheses that also contain implications.  We can see the problem in a slight modification of the last example.  We introduce a new unary predicate [Q] and use it to state an additional requirement of our hypothesis [H1]. *)
+
+Section t7.
+  Variables A B : Type.
+  Variable Q : A -> Prop.
+  Variable P : A -> B -> Prop.
+  Variable f : A -> A -> A.
+  Variable g : B -> B -> B.
+
+  Hypothesis H1 : forall v, Q v -> exists u, P v u.
+  Hypothesis H2 : forall v1 u1 v2 u2,
+    P v1 u1
+    -> P v2 u2
+    -> P (f v1 v2) (g u1 u2).
+
+  Theorem t6 : forall v1 v2, Q v1 -> Q v2 -> exists u1, exists u2, P (f v1 v2) (g u1 u2).
+    intros; do 2 insterKeep H1;
+      repeat match goal with
+               | [ H : ex _ |- _ ] => destruct H
+             end; eauto.
+
+    (** This proof script does not hit any errors until the very end, when an error message like this one is displayed.
+
+       [[
+No more subgoals but non-instantiated existential variables :
+Existential 1 =
+?4384 : [A : Type
+         B : Type
+         Q : A -> Prop
+         P : A -> B -> Prop
+         f : A -> A -> A
+         g : B -> B -> B
+         H1 : forall v : A, Q v -> exists u : B, P v u
+         H2 : forall (v1 : A) (u1 : B) (v2 : A) (u2 : B),
+              P v1 u1 -> P v2 u2 -> P (f v1 v2) (g u1 u2)
+         v1 : A
+         v2 : A
+         H : Q v1
+         H0 : Q v2
+         H' : Q v2 -> exists u : B, P v2 u |- Q v2] 
+ 
+         ]]
+
+         There is another similar line about a different existential variable.  Here, "existential variable" means what we have also called "unification variable."  In the course of the proof, some unification variable [?4384] was introduced but never unified.  Unification variables are just a device to structure proof search; the language of Gallina proof terms does not include them.  Thus, we cannot produce a proof term without instantiating the variable.
+
+         The error message shows that [?4384] is meant to be a proof of [Q v2] in a particular proof state, whose variables and hypotheses are displayed.  It turns out that [?4384] was created by [insterU], as the value of a proof to pass to [H1].  Recall that, in Gallina, implication is just a degenerate case of [forall] quantification, so the [insterU] code to match against [forall] also matched the implication.  Since any proof of [Q v2] is as good as any other in this context, there was never any opportunity to use unification to determine exactly which proof is appropriate.  We expect similar problems with any implications in arguments to [insterU]. *)
+
+  Abort.
+End t7.
+
+Reset insterU.
+
+(** We can redefine [insterU] to treat implications differently.  In particular, we pattern-match on the type of the type [T] in [forall x : ?T, ...].  If [T] has type [Prop], then [x]'s instantiation should be thought of as a proof.  Thus, instead of picking a new unification variable for it, we instead apply a user-supplied tactic [tac].  It is important that we end this special [Prop] case with [|| fail 1], so that, if [tac] fails to prove [T], we abort the instantiation, rather than continuing on to the default quantifier handling. *)
+
+Ltac insterU tac H :=
+  repeat match type of H with
+           | forall x : ?T, _ =>
+             match type of T with
+               | Prop =>
+                 (let H' := fresh "H'" in
+                   assert (H' : T); [
+                     solve [ tac ]
+                     | generalize (H H'); clear H H'; intro H ])
+                 || fail 1
+               | _ =>
+                 let x := fresh "x" in
+                   evar (x : T);
+                   let x' := eval cbv delta [x] in x in
+                     clear x; generalize (H x'); clear H; intro H
+             end
+         end.
+
+Ltac insterKeep tac H :=
+  let H' := fresh "H'" in
+    generalize H; intro H'; insterU tac H'.
+
+Section t7.
+  Variables A B : Type.
+  Variable Q : A -> Prop.
+  Variable P : A -> B -> Prop.
+  Variable f : A -> A -> A.
+  Variable g : B -> B -> B.
+
+  Hypothesis H1 : forall v, Q v -> exists u, P v u.
+  Hypothesis H2 : forall v1 u1 v2 u2,
+    P v1 u1
+    -> P v2 u2
+    -> P (f v1 v2) (g u1 u2).
+
+  Theorem t6 : forall v1 v2, Q v1 -> Q v2 -> exists u1, exists u2, P (f v1 v2) (g u1 u2).
+
+    (** We can prove the goal by calling [insterKeep] with a tactic that tries to find and apply a [Q] hypothesis over a variable about which we do not yet know any [P] facts.  We need to begin this tactic code with [idtac; ] to get around a strange limitation in Coq's proof engine, where a first-class tactic argument may not begin with a [match]. *)
+
+    intros; do 2 insterKeep ltac:(idtac; match goal with
+                                           | [ H : Q ?v |- _ ] =>
+                                             match goal with
+                                               | [ _ : context[P v _] |- _ ] => fail 1
+                                               | _ => apply H
+                                             end
+                                         end) H1;
+    repeat match goal with
+             | [ H : ex _ |- _ ] => destruct H
+           end; eauto.
+  Qed.
+End t7.
+
+(** It is often useful to instantiate existential variables explicitly.  A built-in tactic provides one way of doing so. *)
+
+Theorem t8 : exists p : nat * nat, fst p = 3.
+  econstructor; instantiate (1 := (3, 2)); reflexivity.
+Qed.
+
+(** The [1] above is identifying an existential variable appearing in the current goal, with the last existential appearing assigned number 1, the second last assigned number 2, and so on.  The named existential is replaced everywhere by the term to the right of the [:=].
+
+   The [instantiate] tactic can be convenient for exploratory proving, but it leads to very brittle proof scripts that are unlikely to adapt to changing theorem statements.  It is often more helpful to have a tactic that can be used to assign a value to a term that is known to be an existential.  By employing a roundabout implementation technique, we can build a tactic that generalizes this functionality.  In particular, our tactic [equate] will assert that two terms are equal.  If one of the terms happens to be an existential, then it will be replaced everywhere with the other term. *)
+
+Ltac equate x y :=
+  let H := fresh "H" in
+    assert (H : x = y); [ reflexivity | clear H ].
+
+(** [equate] fails if it is not possible to prove [x = y] by [reflexivity].  We perform the proof only for its unification side effects, clearing the fact [x = y] afterward.  With [equate], we can build a less brittle version of the prior example. *)
+
+Theorem t9 : exists p : nat * nat, fst p = 3.
+  econstructor; match goal with
+                  | [ |- fst ?x = 3 ] => equate x (3, 2)
+                end; reflexivity.
+Qed.
