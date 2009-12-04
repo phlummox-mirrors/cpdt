@@ -8,6 +8,8 @@
  *)
 
 (* begin hide *)
+Require Import Arith.
+
 Require Import Tactics.
 
 Set Implicit Arguments.
@@ -15,6 +17,195 @@ Set Implicit Arguments.
 
 
 (** %\chapter{Proving in the Large}% *)
+
+(** It is somewhat unfortunate that the term "theorem-proving" looks so much like the word "theory."  Most researchers and practitioners in software assume that mechanized theorem-proving is profoundly impractical.  Indeed, until recently, most advances in theorem-proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
+
+   Thus, this chapter gives some tips for structuring and maintaining large Coq developments. *)
+
+
+(** * Ltac Anti-Patterns *)
+
+(** In this book, I have been following an unusual style, where proofs are not considered finished until they are "fully automated," in a certain sense.  Each such theorem is proved by a single tactic.  Since Ltac is a Turing-complete programming language, it is not hard to squeeze arbitrary heuristics into single tactics, using operators like the semicolon to combine steps.  In contrast, most Ltac proofs "in the wild" consist of many steps, performed by individual tactics followed by periods.  Is it really worth drawing a distinction between proof steps terminated by semicolons and steps terminated by periods?
+
+   I argue that this is, in fact, a very important distinction, with serious consequences for a majority of important verification domains.  The more uninteresting drudge work found in a proof domain, the more important it is to work to prove theorems with single tactics.  From an automation standpoint, single-tactic proofs can be extremely effective, and automation becomes more and more critical as proofs are populated by more uninteresting detail.  In this section, I will give some examples of the consequences of more common proof styles.
+
+   As a running example, consider a basic language of arithmetic expressions, an interpreter for it, and a transformation that scales up every constant in an expression. *)
+
+Inductive exp : Set :=
+| Const : nat -> exp
+| Plus : exp -> exp -> exp.
+
+Fixpoint eval (e : exp) : nat :=
+  match e with
+    | Const n => n
+    | Plus e1 e2 => eval e1 + eval e2
+  end.
+
+Fixpoint times (k : nat) (e : exp) : exp :=
+  match e with
+    | Const n => Const (k * n)
+    | Plus e1 e2 => Plus (times k e1) (times k e2)
+  end.
+
+(** We can write a very manual proof that [double] really doubles an expression's value. *)
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  induction e.
+
+  trivial.
+
+  simpl.
+  rewrite IHe1.
+  rewrite IHe2.
+  rewrite mult_plus_distr_l.
+  trivial.
+Qed.
+
+(** We use spaces to separate the two inductive cases.  The second case mentions automatically-generated hypothesis names explicitly.  As a result, innocuous changes to the theorem statement can invalidate the proof. *)
+
+Reset eval_times.
+
+Theorem eval_double : forall k x,
+  eval (times k x) = k * eval x.
+  induction x.
+
+  trivial.
+
+  simpl.
+(** [[
+  rewrite IHe1.
+
+Error: The reference IHe1 was not found in the current environment.
+ 
+  ]]
+
+  The inductive hypotheses are named [IHx1] and [IHx2] now, not [IHe1] and [IHe2]. *)
+
+Abort.
+
+(** We might decide to use a more explicit invocation of [induction] to give explicit binders for all of the names that we will reference later in the proof. *)
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  induction e as [ | ? IHe1 ? IHe2 ].
+
+  trivial.
+
+  simpl.
+  rewrite IHe1.
+  rewrite IHe2.
+  rewrite mult_plus_distr_l.
+  trivial.
+Qed.
+
+(** We pass [induction] an %\textit{%#<i>#intro pattern#</i>#%}%, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
+
+   That category of complaint has to do with understanding proofs as static artifacts.  As with programming in general, with serious projects, it tends to be much more important to be able to support evolution of proofs as theorems change.  Unstructured proofs like the above examples can be very hard to update in concert with theorem statements.  For instance, consider how the last proof script plays out when we modify [times] to introduce a bug. *)
+
+Reset times.
+
+Fixpoint times (k : nat) (e : exp) : exp :=
+  match e with
+    | Const n => Const (1 + k * n)
+    | Plus e1 e2 => Plus (times k e1) (times k e2)
+  end.
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  induction e as [ | ? IHe1 ? IHe2 ].
+
+  trivial.
+
+  simpl.
+(** [[
+  rewrite IHe1.
+
+Error: The reference IHe1 was not found in the current environment.
+ 
+  ]] *)
+
+Abort.
+
+(** Can you spot what went wrong, without stepping through the script step-by-step?  The problem is that [trivial] never fails.  Originally, [trivial] had been succeeding in proving an equality that follows by reflexivity.  Our change to [times] leads to a case where that equality is no longer true.  [trivial] happily leaves the false equality in place, and we continue on to the span of tactics intended for the second inductive case.  Unfortunately, those tactics end up being applied to the %\textit{%#<i>#first#</i>#%}% case instead.  This example is on a very small scale; similar consequences can be much more confusing in large developments. *)
+
+Reset times.
+
+Fixpoint times (k : nat) (e : exp) : exp :=
+  match e with
+    | Const n => Const (k * n)
+    | Plus e1 e2 => Plus (times k e1) (times k e2)
+  end.
+
+(** Many real developments try to make essentially unstructured proofs look structured by applying careful indentation conventions, idempotent case-marker tactics included soley to serve as documentation, and so on.  All of these strategies suffer from the same kind of failure of abstraction that was just demonstrated.  I like to say that, if you find yourself caring about indentation in a proof script, it is a sign that the script is structured poorly.
+
+   We can rewrite the current proof with a single tactic. *)
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  induction e as [ | ? IHe1 ? IHe2 ]; [
+    trivial
+    | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
+Qed.
+
+(** This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.
+
+   The situation gets worse in considering extensions to the theorem we want to prove.  Let us add multiplication nodes to our [exp] type and see how the proof fares. *)
+
+Reset exp.
+
+Inductive exp : Set :=
+| Const : nat -> exp
+| Plus : exp -> exp -> exp
+| Mult : exp -> exp -> exp.
+
+Fixpoint eval (e : exp) : nat :=
+  match e with
+    | Const n => n
+    | Plus e1 e2 => eval e1 + eval e2
+    | Mult e1 e2 => eval e1 * eval e2
+  end.
+
+Fixpoint times (k : nat) (e : exp) : exp :=
+  match e with
+    | Const n => Const (k * n)
+    | Plus e1 e2 => Plus (times k e1) (times k e2)
+    | Mult e1 e2 => Mult (times k e1) e2
+  end.
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+(** [[
+  induction e as [ | ? IHe1 ? IHe2 ]; [
+    trivial
+    | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
+
+Error: Expects a disjunctive pattern with 3 branches.
+
+  ]] *)
+
+Abort.
+
+(** Unsurprisingly, the old proof fails, because it explicitly says that there are two inductive cases.  To update the script, we must, at a minimum, remember the order in which the inductive cases are generated, so that we can insert the new case in the appropriate place.  Even then, it will be painful to add the case, because we cannot walk through proof steps interactively when they occur inside an explicit set of cases. *)
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  induction e as [ | ? IHe1 ? IHe2 | ? IHe1 ? IHe2 ]; [
+    trivial
+    | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial
+    | simpl; rewrite IHe1; rewrite mult_assoc; trivial ].
+Qed.
+
+(** Now we are in a position to see how much nicer is the style of proof that we have followed in most of this book. *)
+
+Reset eval_times.
+
+Theorem eval_times : forall k e,
+  eval (times k e) = k * eval e.
+  Hint Rewrite mult_plus_distr_l mult_assoc : cpdt.
+
+  induction e; crush.
+Qed.
 
 
 (** * Modules *)
