@@ -207,6 +207,8 @@ Proof Search in Ltac & \texttt{Match.v} \\
 \hline
 Proof by Reflection & \texttt{Reflection.v} \\
 \hline
+Proving in the Large & \texttt{Large.v} \\
+\hline
 First-Order Abstract Syntax & \texttt{Firstorder.v} \\
 \hline
 Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
