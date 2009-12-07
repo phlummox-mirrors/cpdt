@@ -401,6 +401,27 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
             end; crush).
 Qed.
 
+Section slow.
+  Hint Resolve trans_eq.
+
+  Variable A : Set.
+  Variables P Q R S : A -> A -> Prop.
+  Variable f : A -> A.
+
+  Hypothesis H1 : forall x y, P x y -> Q x y -> R x y -> f x = f y.
+  Hypothesis H2 : forall x y, S x y -> R x y.
+
+  Lemma slow : forall x y, P x y -> Q x y -> S x y -> f x = f y.
+    debug eauto.
+  Qed.
+
+  Hypothesis H3 : forall x y, x = y -> f x = f y.
+
+  Lemma slow' : forall x y, P x y -> Q x y -> S x y -> f x = f y.
+    debug eauto.
+  Qed.
+End slow.
+
 
 (** * Modules *)
 
@@ -425,7 +446,7 @@ Module Type GROUP_THEOREMS.
   Axiom unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
 End GROUP_THEOREMS.
 
-Module Group (M : GROUP) : GROUP_THEOREMS.
+Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
   Module M := M.
 
   Import M.
@@ -457,3 +478,31 @@ Module Group (M : GROUP) : GROUP_THEOREMS.
     apply ident'.
   Qed.
 End Group.
+
+Require Import ZArith.
+Open Scope Z_scope.
+
+Module Int.
+  Definition G := Z.
+  Definition f x y := x + y.
+  Definition e := 0.
+  Definition i x := -x.
+
+  Theorem assoc : forall a b c, f (f a b) c = f a (f b c).
+    unfold f; crush.
+  Qed.
+  Theorem ident : forall a, f e a = a.
+    unfold f, e; crush.
+  Qed.
+  Theorem inverse : forall a, f (i a) a = e.
+    unfold f, i, e; crush.
+  Qed.
+End Int.
+
+Module IntTheorems := Group(Int).
+
+Check IntTheorems.unique_ident.
+
+Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
+  exact IntTheorems.unique_ident.
+Qed.
