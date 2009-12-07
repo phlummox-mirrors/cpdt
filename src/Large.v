@@ -202,10 +202,10 @@ Qed.
 
 Reset eval_times.
 
+Hint Rewrite mult_plus_distr_l : cpdt.
+
 Theorem eval_times : forall k e,
   eval (times k e) = k * eval e.
-  Hint Rewrite mult_plus_distr_l mult_assoc : cpdt.
-
   induction e; crush.
 Qed.
 
@@ -274,6 +274,132 @@ Qed.
 (** In the limit, a complicated inductive proof might rely on one hint for each inductive case.  The lemma for each hint could restate the associated case.  Compared to manual proof scripts, we arrive at more readable results.  Scripts no longer need to depend on the order in which cases are generated.  The lemmas are easier to digest separately than are fragments of tactic code, since lemma statements include complete proof contexts.  Such contexts can only be extracted from monolithic manual proofs by stepping through scripts interactively.
 
    The more common situation is that a large induction has several easy cases that automation makes short work of.  In the remaining cases, automation performs some standard simplification.  Among these cases, some may require quite involved proofs; such a case may deserve a hint lemma of its own, where the lemma statement may copy the simplified version of the case.  Alternatively, the proof script for the main theorem may be extended with some automation code targeted at the specific case.  Even such targeted scripting is more desirable than manual proving, because it may be read and understood without knowledge of a proof's hierarchical structure, case ordering, or name binding structure. *)
+
+
+(** * Debugging and Maintaining Automation *)
+
+(** Fully-automated proofs are desirable because they open up possibilities for automatic adaptation to changes of specification.  A well-engineered script within a narrow domain can survive many changes to the formulation of the problem it solves.  Still, as we are working with higher-order logic, most theorems fall within no obvious decidable theories.  It is inevitable that most long-lived automated proofs will need updating.
+
+   Before we are ready to update our proofs, we need to write them in the first place.  While fully-automated scripts are most robust to changes of specification, it is hard to write every new proof directly in that form.  Instead, it is useful to begin a theorem with exploratory proving and then gradually refine it into a suitable automated form.
+
+   Consider this theorem from Chapter 7, which we begin by proving in a mostly manual way, invoking [crush] after each steop to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
+
+(* begin hide *)
+Require Import MoreDep.
+(* end hide *)
+
+Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+  induction e; crush.
+
+  dep_destruct (cfold e1); crush.
+  dep_destruct (cfold e2); crush.
+
+  dep_destruct (cfold e1); crush.
+  dep_destruct (cfold e2); crush.
+
+  dep_destruct (cfold e1); crush.
+  dep_destruct (cfold e2); crush.
+
+  dep_destruct (cfold e1); crush.
+  dep_destruct (expDenote e1); crush.
+
+  dep_destruct (cfold e); crush.
+
+  dep_destruct (cfold e); crush.
+Qed.
+
+(** In this complete proof, it is hard to avoid noticing a pattern.  We rework the proof, abstracting over the patterns we find. *)
+
+Reset cfold_correct.
+
+Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+  induction e; crush.
+
+  (** The expression we want to destruct here turns out to be the discriminee of a [match], and we can easily enough write a tactic that destructs all such expressions. *)
+
+  Ltac t :=
+    repeat (match goal with
+              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
+                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
+                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
+                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+                dep_destruct E
+            end; crush).
+
+  t.
+
+  (** This tactic invocation discharges the whole case.  It does the same on the next two cases, but it gets stuck on the fourth case. *)
+
+  t.
+
+  t.
+
+  t.
+
+  (** The subgoal's conclusion is:
+     [[
+    ============================
+   (if expDenote e1 then expDenote (cfold e2) else expDenote (cfold e3)) =
+   expDenote (if expDenote e1 then cfold e2 else cfold e3)
+ 
+   ]]
+
+   We need to expand our [t] tactic to handle this case. *)
+
+  Ltac t' :=
+    repeat (match goal with
+              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
+                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
+                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
+                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+                dep_destruct E
+              | [ |- (if ?E then _ else _) = _ ] => destruct E
+            end; crush).
+
+  t'.
+
+  (** Now the goal is discharged, but [t'] has no effect on the next subgoal. *)
+
+  t'.
+
+  (** A final revision of [t] finishes the proof. *)
+
+  Ltac t'' :=
+    repeat (match goal with
+              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
+                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
+                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
+                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+                dep_destruct E
+              | [ |- (if ?E then _ else _) = _ ] => destruct E
+              | [ |- context[match pairOut ?E with Some _ => _
+                               | None => _ end] ] =>
+                dep_destruct E
+            end; crush).
+
+  t''.
+
+  t''.
+Qed.
+
+(** We can take the final tactic and move it into the initial part of the proof script, arriving at a nicely-automated proof. *)
+
+Reset t.
+
+Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+  induction e; crush;
+    repeat (match goal with
+              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
+                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
+                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
+                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+                dep_destruct E
+              | [ |- (if ?E then _ else _) = _ ] => destruct E
+              | [ |- context[match pairOut ?E with Some _ => _
+                               | None => _ end] ] =>
+                dep_destruct E
+            end; crush).
+Qed.
 
 
 (** * Modules *)
