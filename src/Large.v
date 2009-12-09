@@ -518,8 +518,14 @@ Abort.
 
 (** printing * $\times$ *)
 
+(** Sometimes a change to a development has undesirable performance consequences, even if it does not prevent any old proof scripts from completing.  If the performance consequences are severe enough, the proof scripts can be considered broken for practical purposes.
+
+   Here is one example of a performance surprise. *)
+
 Section slow.
   Hint Resolve trans_eq.
+
+  (** The central element of the problem is the addition of transitivity as a hint.  With transitivity available, it is easy for proof search to wind up exploring exponential search spaces.  We also add a few other arbitrary variables and hypotheses, designed to lead to trouble later. *)
 
   Variable A : Set.
   Variables P Q R S : A -> A -> Prop.
@@ -528,16 +534,96 @@ Section slow.
   Hypothesis H1 : forall x y, P x y -> Q x y -> R x y -> f x = f y.
   Hypothesis H2 : forall x y, S x y -> R x y.
 
+  (** We prove a simple lemma very quickly, using the [Time] command to measure exactly how quickly. *)
+
   Lemma slow : forall x y, P x y -> Q x y -> S x y -> f x = f y.
-    debug eauto.
+    Time eauto 6.
+    (** [[
+Finished transaction in 0. secs (0.068004u,0.s)
+]] *)
+
   Qed.
+
+  (** Now we add a different hypothesis, which is innocent enough; in fact, it is even provable as a theorem. *)
 
   Hypothesis H3 : forall x y, x = y -> f x = f y.
 
   Lemma slow' : forall x y, P x y -> Q x y -> S x y -> f x = f y.
-    debug eauto.
+    Time eauto 6.
+    (** [[
+Finished transaction in 2. secs (1.264079u,0.s)
+ 
+      ]]
+
+      Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
+
+    Restart.
+    info eauto 6.
+    (** [[
+ == intro x; intro y; intro H; intro H0; intro H4;
+       simple eapply trans_eq.
+    simple apply refl_equal.
+    
+    simple eapply trans_eq.
+    simple apply refl_equal.
+    
+    simple eapply trans_eq.
+    simple apply refl_equal.
+    
+    simple apply H1.
+    eexact H.
+    
+    eexact H0.
+    
+    simple apply H2; eexact H4.
+ 
+    ]]
+
+    This output does not tell us why proof search takes so long, but it does provide a clue that would be useful if we had forgotten that we added transitivity as a hint.  The [eauto] tactic is applying depth-first search, and the proof script where the real action is ends up buried inside a chain of pointless invocations of transitivity, where each invocation uses reflexivity to discharge one subgoal.  Each increment to the depth argument to [eauto] adds another silly use of transitivity.  This wasted proof effort only adds linear time overhead, as long as proof search never makes false steps.  No false steps were made before we added the new hypothesis, but somehow the addition made possible a new faulty path.  To understand which paths we enabled, we can use the [debug] command. *)
+
+    Restart.
+    debug eauto 6.
+
+    (** The output is a large proof tree.  The beginning of the tree is enough to reveal what is happening:
+
+       [[
+1 depth=6 
+1.1 depth=6 intro
+1.1.1 depth=6 intro
+1.1.1.1 depth=6 intro
+1.1.1.1.1 depth=6 intro
+1.1.1.1.1.1 depth=6 intro
+1.1.1.1.1.1.1 depth=5 apply H3
+1.1.1.1.1.1.1.1 depth=4 eapply trans_eq
+1.1.1.1.1.1.1.1.1 depth=4 apply refl_equal
+1.1.1.1.1.1.1.1.1.1 depth=3 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1 depth=3 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1 depth=2 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.1 depth=2 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=1 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=1 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=0 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.2 depth=1 apply sym_eq ; trivial
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.2.1 depth=0 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.3 depth=0 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.2 depth=2 apply sym_eq ; trivial
+1.1.1.1.1.1.1.1.1.1.1.1.2.1 depth=1 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.1 depth=1 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.1.1 depth=0 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.2 depth=1 apply sym_eq ; trivial
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.2.1 depth=0 eapply trans_eq
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.3 depth=0 eapply trans_eq
+ 
+       ]]
+
+       The first choice [eauto] makes is to apply [H3], since [H3] has the fewest hypotheses of all of the hypotheses and hints that match.  However, it turns out that the single hypothesis generated is unprovable.  That does not stop [eauto] from trying to prove it with an exponentially-sized tree of applications of transitivity, reflexivity, and symmetry of equality.  It is the children of the initial [apply H3] that account for all of the noticeable time in proof execution.  In a more realistic development, we might use this output of [info] to realize that adding transitivity as a hint was a bad idea. *)
+
   Qed.
 End slow.
+
+(** It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to built proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run [Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
+
+   The [abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
 
 
 (** * Modules *)
