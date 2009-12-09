@@ -401,6 +401,123 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
             end; crush).
 Qed.
 
+(** Even after we put together nice automated proofs, we must deal with specification changes that can invalidate them.  It is not generally possible to step through single-tactic proofs interactively.  There is a command [Debug On] that lets us step through points in tactic execution, but the debugger tends to make counterintuitive choices of which points we would like to stop at, and per-point output is quite verbose, so most Coq users do not find this debugging mode very helpful.  How are we to understand what has broken in a script that used to work?
+
+   An example helps demonstrate a useful approach.  Consider what would have happened in our proof of [reassoc_correct] if we had first added an unfortunate rewriting hint. *)
+
+Reset reassoc_correct.
+
+Theorem confounder : forall e1 e2 e3,
+  eval e1 * eval e2 * eval e3 = eval e1 * (eval e2 + 1 - 1) * eval e3.
+  crush.
+Qed.
+
+Hint Rewrite confounder : cpdt.
+
+Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
+  induction e; crush;
+    match goal with
+      | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
+        destruct E; crush
+    end.
+
+  (** One subgoal remains:
+     
+     [[
+  ============================
+   eval e1 * (eval e3 + 1 - 1) * eval e4 = eval e1 * eval e2
+ 
+   ]]
+
+   The poorly-chosen rewrite rule fired, changing the goal to a form where another hint no longer applies.  Imagine that we are in the middle of a large development with many hints.  How would we diagnose the problem?  First, we might not be sure which case of the inductive proof has gone wrong.  It is useful to separate out our automation procedure and apply it manually. *)
+
+  Restart.
+
+  Ltac t := crush; match goal with
+                     | [ |- context[match ?E with Const _ => _ | Plus _ _ => _
+                                      | Mult _ _ => _ end] ] =>
+                       destruct E; crush
+                   end.
+
+  induction e.
+
+  (** Since we see the subgoals before any simplification occurs, it is clear that this is the case for constants.  [t] makes short work of it. *)
+  
+  t.
+
+  (** The next subgoal, for addition, is also discharged without trouble. *)
+
+  t.
+
+  (** The final subgoal is for multiplication, and it is here that we get stuck in the proof state summarized above. *)
+
+  t.
+
+  (** What is [t] doing to get us to this point?  The [info] command can help us answer this kind of question. *)
+
+  (** remove printing * *)
+  Undo.
+  info t.
+  (** [[
+ == simpl in *; intuition; subst; autorewrite with cpdt in *; 
+    simpl in *; intuition; subst; autorewrite with cpdt in *; 
+    simpl in *; intuition; subst; destruct (reassoc e2).
+    simpl in *; intuition.
+    
+    simpl in *; intuition.
+    
+    simpl in *; intuition; subst; autorewrite with cpdt in *;
+       refine (eq_ind_r
+                 (fun n : nat =>
+                  n * (eval e3 + 1 - 1) * eval e4 = eval e1 * eval e2) _ IHe1);
+       autorewrite with cpdt in *; simpl in *; intuition; 
+    subst; autorewrite with cpdt in *; simpl in *; 
+    intuition; subst.
+ 
+    ]]
+
+    A detailed trace of [t]'s execution appears.  Since we are using the very general [crush] tactic, many of these steps have no effect and only occur as instances of a more general strategy.  We can copy-and-paste the details to see where things go wrong. *)
+
+  Undo.
+
+  (** We arbitrarily split the script into chunks.  The first few seem not to do any harm. *)
+
+  simpl in *; intuition; subst; autorewrite with cpdt in *.
+  simpl in *; intuition; subst; autorewrite with cpdt in *.
+  simpl in *; intuition; subst; destruct (reassoc e2).
+  simpl in *; intuition.
+  simpl in *; intuition.
+
+  (** The next step is revealed as the culprit, bringing us to the final unproved subgoal. *)
+
+  simpl in *; intuition; subst; autorewrite with cpdt in *.
+
+  (** We can split the steps further to assign blame. *)
+
+  Undo.
+
+  simpl in *.
+  intuition.
+  subst.
+  autorewrite with cpdt in *.
+
+  (** It was the final of these four tactics that made the rewrite.  We can find out exactly what happened.  The [info] command presents hierarchical views of proof steps, and we can zoom down to a lower level of detail by applying [info] to one of the steps that appeared in the original trace. *)
+
+  Undo.
+
+  info autorewrite with cpdt in *.
+  (** [[
+ == refine (eq_ind_r (fun n : nat => n = eval e1 * eval e2) _
+              (confounder (reassoc e1) e3 e4)).
+ 
+      ]]
+
+      The way a rewrite is displayed is somewhat baroque, but we can see that theorem [confounder] is the final culprit.  At this point, we could remove that hint, prove an alternate version of the key lemma [rewr], or come up with some other remedy.  Fixing this kind of problem tends to be relatively easy once the problem is revealed. *)
+
+Abort.
+
+(** printing * $\times$ *)
+
 Section slow.
   Hint Resolve trans_eq.
 
