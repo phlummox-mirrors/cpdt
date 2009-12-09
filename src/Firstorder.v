@@ -20,15 +20,23 @@ Set Implicit Arguments.
 
    \chapter{First-Order Abstract Syntax}% *)
 
-(** TODO: Prose for this chapter *)
+(** Many people interested in interactive theorem-proving want to prove theorems about programming languages.  That domain also provides a good setting for demonstrating how to apply the ideas from the earlier parts of this book.  This part introduces some techniques for encoding the syntax and semantics of programming languages, along with some example proofs designed to be as practical as possible, rather than to illustrate basic Coq technique.
+
+   To prove anything about a language, we must first formalize the language's syntax.  We have a broad design space to choose from, and it makes sense to start with the simplest options, so-called %\textit{%#<i>#first-order#</i>#%}% syntax encodings that do not use dependent types.  These encodings are first-order because they do not use Coq function types in a critical way.  In this chapter, we consider the most popular first-order encodings, using each to prove a basic type soundness theorem. *)
 
 
 (** * Concrete Binding *)
 
+(** The most obvious encoding of the syntax of programming languages follows usual context-free grammars literally.  We represent variables as strings and include a variable in our AST definition wherever a variable appears in the informal grammar.  Concrete binding turns out to involve a surprisingly large amount of menial bookkeeping, especially when we encode higher-order languages with nested binder scopes.  This section's example should give a flavor of what is required. *)
+
 Module Concrete.
+
+  (** We need our variable type and its decidable equality operation. *)
 
   Definition var := string.
   Definition var_eq := string_dec.
+
+  (** We will formalize basic simply-typed lambda calculus.  The syntax of expressions and types follows what we would write in a context-free grammar. *)
 
   Inductive exp : Set :=
   | Const : bool -> exp
@@ -40,11 +48,19 @@ Module Concrete.
   | Bool : type
   | Arrow : type -> type -> type.
 
+  (** It is useful to define a syntax extension that lets us write function types in more standard notation. *)
+
   Infix "-->" := Arrow (right associativity, at level 60).
+
+  (** Now we turn to a typing judgment.  We will need to define it in terms of typing contexts, which we represent as lists of pairs of variables and types. *)
 
   Definition ctx := list (var * type).
 
+  (** The definitions of our judgments will be prettier if we write them using mixfix syntax.  To define a judgment for looking up the type of a variable in a context, we first %\textit{%#</i>#reserve#</i>#%}% a notation for the judgment.  Reserved notations enable mutually-recursive definition of a judgment and its notation; in this sense, the reservation is like a forward declaration in C. *)
+
   Reserved Notation "G |-v x : t" (no associativity, at level 90, x at next level).
+
+  (** Now we define the judgment itself, using a [where] clause to associate a notation definition. *)
 
   Inductive lookup : ctx -> var -> type -> Prop :=
   | First : forall x t G,
@@ -57,6 +73,8 @@ Module Concrete.
     where "G |-v x : t" := (lookup G x t).
 
   Hint Constructors lookup.
+
+  (** The same technique applies to defining the main typing judgment.  We use an [at next level] clause to cause the argument [e] of the notation to be parsed at a low enough precedence level. *)
 
   Reserved Notation "G |-e e : t" (no associativity, at level 90, e at next level).
 
@@ -78,16 +96,20 @@ Module Concrete.
 
   Hint Constructors hasType.
 
+  (** It is useful to know that variable lookup results are unchanged by adding extra bindings to the end of a context. *)
+
   Lemma weaken_lookup : forall x t G' G1,
     G1 |-v x : t
     -> G1 ++ G' |-v x : t.
-    induction G1 as [ | [x' t'] tl ]; crush;
+    induction G1 as [ | [? ?] ? ]; crush;
       match goal with
         | [ H : _ |-v _ : _ |- _ ] => inversion H; crush
       end.
   Qed.
 
   Hint Resolve weaken_lookup.
+
+  (** The same property extends to the full typing judgment. *)
 
   Theorem weaken_hasType' : forall G' G e t,
     G |-e e : t
@@ -104,9 +126,13 @@ Module Concrete.
 
   Hint Resolve weaken_hasType.
 
+  (** Much of the inconvenience of first-order encodings comes from the need to treat capture-avoiding substitution explicitly.  We must start by defining a substitution function. *)
+
   Section subst.
     Variable x : var.
     Variable e1 : exp.
+
+    (** We are substituting expression [e1] for every free occurrence of [x].  Note that this definition is specialized to the case where [e1] is closed; substitution is substantially more complicated otherwise, potentially involving explicit alpha-variation.  Luckily, our example of type safety for a call-by-value semantics only requires this restricted variety of substitution. *)
 
     Fixpoint subst (e2 : exp) : exp :=
       match e2 with
@@ -122,16 +148,22 @@ Module Concrete.
             else subst e')
       end.
 
+    (** We can prove a few theorems about substitution in well-typed terms, where we assume that [e1] is closed and has type [xt]. *)
+
     Variable xt : type.
     Hypothesis Ht' : nil |-e e1 : xt.
 
+    (** It is helpful to establish a notation asserting the freshness of a particular variable in a context. *)
+
     Notation "x # G" := (forall t' : type, In (x, t') G -> False) (no associativity, at level 90).
+
+    (** To prove type preservation, we will need lemmas proving consequences of variable lookup proofs. *)
 
     Lemma subst_lookup' : forall x' t,
       x <> x'
       -> forall G1, G1 ++ (x, xt) :: nil |-v x' : t
         -> G1 |-v x' : t.
-      induction G1 as [ | [x'' t'] tl ]; crush;
+      induction G1 as [ | [? ?] ? ]; crush;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
         end; crush.
@@ -143,7 +175,7 @@ Module Concrete.
       x' # G1
       -> G1 ++ (x, xt) :: nil |-v x' : t
       -> t = xt.
-      induction G1 as [ | [x'' t'] tl ]; crush; eauto;
+      induction G1 as [ | [? ?] ? ]; crush; eauto;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
         end; crush; (elimtype False; eauto;
@@ -157,11 +189,13 @@ Module Concrete.
 
     Implicit Arguments subst_lookup [x' t G1].
 
+    (** Another set of lemmas allows us to remove provably unused variables from the ends of typing contexts. *)
+
     Lemma shadow_lookup : forall v t t' G1,
       G1 |-v x : t'
       -> G1 ++ (x, xt) :: nil |-v v : t
       -> G1 |-v v : t.
-      induction G1 as [ | [x'' t''] tl ]; crush;
+      induction G1 as [ | [? ?] ? ]; crush;
         match goal with
           | [ H : nil |-v _ : _ |- _ ] => inversion H
           | [ H1 : _ |-v _ : _, H2 : _ |-v _ : _ |- _ ] =>
@@ -178,7 +212,7 @@ Module Concrete.
 
       induction 1; crush; eauto;
         match goal with
-          | [ H : (?x0, _) :: _ ++ (x, _) :: _ |-e _ : _ |- _ ] =>
+          | [ H : (?x0, _) :: _ ++ (?x, _) :: _ |-e _ : _ |- _ ] =>
             destruct (var_eq x0 x); subst; eauto
         end.
     Qed.
@@ -192,6 +226,8 @@ Module Concrete.
 
     Hint Resolve shadow_hasType.
 
+    (** Disjointness facts may be extended to larger contexts when the appropriate obligations are met. *)
+
     Lemma disjoint_cons : forall x x' t (G : ctx),
       x # G
       -> x' <> x
@@ -203,6 +239,8 @@ Module Concrete.
     Qed.
 
     Hint Resolve disjoint_cons.
+
+    (** Finally, we arrive at the main theorem about substitution: it preserves typing. *)
 
     Theorem subst_hasType : forall G e2 t,
       G |-e e2 : t
@@ -219,6 +257,8 @@ Module Concrete.
         end; crush.
     Qed.
 
+    (** We wrap the last theorem into an easier-to-apply form specialized to closed expressions. *)
+
     Theorem subst_hasType_closed : forall e2 t,
       (x, xt) :: nil |-e e2 : t
       -> nil |-e subst e2 : t.
@@ -228,13 +268,19 @@ Module Concrete.
 
   Hint Resolve subst_hasType_closed.
 
+  (** A notation for substitution will make the operational semantics easier to read. *)
+
   Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 80).
+
+  (** To define a call-by-value small-step semantics, we rely on a standard judgment characterizing which expressions are values. *)
 
   Inductive val : exp -> Prop :=
   | VConst : forall b, val (Const b)
   | VAbs : forall x e, val (Abs x e).
 
   Hint Constructors val.
+
+  (** Now the step relation is easy to define. *)
 
   Reserved Notation "e1 ==> e2" (no associativity, at level 90).
 
@@ -254,6 +300,8 @@ Module Concrete.
 
   Hint Constructors step.
 
+  (** The progress theorem says that any well-typed expression can take a step.  To deal with limitations of the [induction] tactic, we put most of the proof in a lemma whose statement uses the usual trick of introducing extra equality hypotheses. *)
+
   Lemma progress' : forall G e t, G |-e e : t
     -> G = nil
     -> val e \/ exists e', e ==> e'.
@@ -261,15 +309,17 @@ Module Concrete.
       try match goal with
             | [ H : _ |-e _ : _ --> _ |- _ ] => inversion H
           end;
-      repeat match goal with
-               | [ H : _ |- _ ] => solve [ inversion H; crush; eauto ]
-             end.
+      match goal with
+        | [ H : _ |- _ ] => solve [ inversion H; crush; eauto ]
+      end.
   Qed.
 
   Theorem progress : forall e t, nil |-e e : t
     -> val e \/ exists e', e ==> e'.
     intros; eapply progress'; eauto.
   Qed.
+
+  (** A similar pattern works for the preservation theorem, which says that any step of execution preserves an expression's type. *)
 
   Lemma preservation' : forall G e t, G |-e e : t
     -> G = nil
@@ -289,8 +339,12 @@ Module Concrete.
 
 End Concrete.
 
+(** This was a relatively simple example, giving only a taste of the proof burden associated with concrete syntax.  We were helped by the fact that, with call-by-value semantics, we only need to reason about substitution in closed expressions.  There was also no need to alpha-vary an expression. *)
+
 
 (** * De Bruijn Indices *)
+
+(** De Bruijn indices are much more popular than concrete syntax.  This technique provides a %\textit{%#<i>#canonical#</i>#%}% representation of syntax, where any two alpha-equivalent expressions have syntactically equal encodings, removing the need for explicit reasoning about alpha conversion.  Variables are represented as natural numbers, where variable [n] denotes a reference to the [n]th closest enclosing binder.  Because variable references in effect point to binders, there is no need to label binders, such as function abstraction, with variables. *)
 
 Module DeBruijn.
 
@@ -308,6 +362,8 @@ Module DeBruijn.
   | Arrow : type -> type -> type.
 
   Infix "-->" := Arrow (right associativity, at level 60).
+
+  (** The definition of typing proceeds much the same as in the last section.  Since variables are numbers, contexts can be simple lists of types.  This makes it possible to write the lookup judgment without mentioning inequality of variables. *)
 
   Definition ctx := list type.
 
@@ -342,7 +398,11 @@ Module DeBruijn.
 
     where "G |-e e : t" := (hasType G e t).
 
+  (** In the [hasType] case for function abstraction, there is no need to choose a variable name.  We simply push the function domain type onto the context [G]. *)
+
   Hint Constructors hasType.
+
+  (** We prove roughly the same weakening theorems as before. *)
 
   Lemma weaken_lookup : forall G' v t G,
     G |-v v : t
@@ -370,6 +430,8 @@ Module DeBruijn.
   Section subst.
     Variable e1 : exp.
 
+    (** Substitution is easier to define than with concrete syntax.  While our old definition needed to use two comparisons for equality of variables, the de Bruijn substitution only needs one comparison. *)
+
     Fixpoint subst (x : var) (e2 : exp) : exp :=
       match e2 with
         | Const b => Const b
@@ -382,6 +444,8 @@ Module DeBruijn.
       end.
 
     Variable xt : type.
+
+    (** We prove similar theorems about inversion of variable lookup. *)
 
     Lemma subst_eq : forall t G1,
       G1 ++ xt :: nil |-v length G1 : t
@@ -414,6 +478,8 @@ Module DeBruijn.
 
     Hypothesis Ht' : nil |-e e1 : xt.
 
+    (** The next lemma is included solely to guide [eauto], which will not apply computational equivalences automatically. *)
+
     Lemma hasType_push : forall dom G1 e' ran,
       dom :: G1 |-e subst (length (dom :: G1)) e' : ran
       -> dom :: G1 |-e subst (S (length G1)) e' : ran.
@@ -421,6 +487,8 @@ Module DeBruijn.
     Qed.
 
     Hint Resolve hasType_push.
+
+    (** Finally, we are ready for the main theorem about substitution and typing. *)
 
     Theorem subst_hasType : forall G e2 t,
       G |-e e2 : t
@@ -444,6 +512,8 @@ Module DeBruijn.
   End subst.
 
   Hint Resolve subst_hasType_closed.
+
+  (** We define the operational semantics much as before. *)
 
   Notation "[ x ~> e1 ] e2" := (subst e1 x e2) (no associativity, at level 80).
 
@@ -470,6 +540,8 @@ Module DeBruijn.
     where "e1 ==> e2" := (step e1 e2).
 
   Hint Constructors step.
+
+  (** Since we have added the right hints, the progress and preservation theorem statements and proofs are exactly the same as in the concrete encoding example. *)
 
   Lemma progress' : forall G e t, G |-e e : t
     -> G = nil
