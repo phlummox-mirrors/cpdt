@@ -628,6 +628,12 @@ End slow.
 
 (** * Modules *)
 
+(** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's %\textit{%#<i>#module system#</i>#%}% provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML and Objective Caml, and the discussion that follows assumes familiarity with the basics of one of those systems.
+
+   ML modules facilitate the grouping of abstract types with operations over those types.  Moreover, there is support for %\textit{%#<i>#functors#</i>#%}%, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
+
+   When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, this module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [e] for [f], and an operation [i] that is a left inverse for [f]. *)
+
 Module Type GROUP.
   Parameter G : Set.
   Parameter f : G -> G -> G.
@@ -639,6 +645,8 @@ Module Type GROUP.
   Axiom inverse : forall a, f (i a) a = e.
 End GROUP.
 
+(** Many useful theorems hold of arbitrary groups.  We capture some such theorem statements in another module signature. *)
+
 Module Type GROUP_THEOREMS.
   Declare Module M : GROUP.
 
@@ -648,6 +656,8 @@ Module Type GROUP_THEOREMS.
 
   Axiom unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
 End GROUP_THEOREMS.
+
+(** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M].  The proofs are completely manual, since it would take some effort to build suitable generic automation; rather, these theorems can serve as a basis for an automated procedure for simplifying group expressions, along the lines of the procedure for monoids from the last chapter.  We take the proofs from the Wikipedia page on elementary group theory. *)
 
 Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
   Module M := M.
@@ -682,6 +692,8 @@ Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
   Qed.
 End Group.
 
+(** We can show that the integers with [+] form a group. *)
+
 Require Import ZArith.
 Open Scope Z_scope.
 
@@ -702,10 +714,18 @@ Module Int.
   Qed.
 End Int.
 
+(** Next, we can produce integer-specific versions of the generic group theorems. *)
+
 Module IntTheorems := Group(Int).
 
 Check IntTheorems.unique_ident.
+(** %\vspace{-.15in}% [[
+  IntTheorems.unique_ident
+     : forall e' : Int.G, (forall a : Int.G, Int.f e' a = a) -> e' = Int.e
+     ]] *)
 
 Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
   exact IntTheorems.unique_ident.
 Qed.
+
+(** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module. *)
