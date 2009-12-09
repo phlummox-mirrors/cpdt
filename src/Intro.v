@@ -49,6 +49,8 @@ We would all like to have programs check that our programs are correct.  Due in 
 There are a good number of (though definitely not "many") tools that are in wide use today for building machine-checked mathematical proofs and machine-certified programs.  This is my attempt at an exhaustive list of interactive "proof assistants" satisfying a few criteria.  First, the authors of each tool must intend for it to be put to use for software-related applications.  Second, there must have been enough engineering effort put into the tool that someone not doing research on the tool itself would feel his time was well spent using it.  A third criterion is more of an empirical validation of the second: the tool must have a significant user community outside of its own development team.
 
 %
+\medskip
+
 \begin{tabular}{rl}
 \textbf{ACL2} & \url{http://www.cs.utexas.edu/users/moore/acl2/} \\
 \textbf{Coq} & \url{http://coq.inria.fr/} \\
@@ -56,6 +58,8 @@ There are a good number of (though definitely not "many") tools that are in wide
 \textbf{PVS} & \url{http://pvs.csl.sri.com/} \\
 \textbf{Twelf} & \url{http://www.twelf.org/} \\
 \end{tabular}
+
+\medskip
 %
 #
 <table align="center">
