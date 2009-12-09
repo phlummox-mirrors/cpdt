@@ -729,3 +729,114 @@ Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
 Qed.
 
 (** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module. *)
+
+
+(** * Build Processes *)
+
+(** As in software development, large Coq projects are much more manageable when split across multiple files and when decomposed into libraries.  Coq and Proof General provide very good support for these activities.
+
+   Consider a library that we will name [Lib], housed in directory %\texttt{%#<tt>#LIB#</tt>#%}% and split between files %\texttt{%#<tt>#A.v#</tt>#%}%, %\texttt{%#<tt>#B.v#</tt>#%}%, and %\texttt{%#<tt>#C.v#</tt>#%}%.  A simple Makefile will compile the library, relying on the standard Coq tool %\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
+
+<<
+MODULES := A B C
+VS      := $(MODULES:%=%.v)
+
+.PHONY: coq clean
+
+coq: Makefile.coq
+        make -f Makefile.coq
+
+Makefile.coq: Makefile $(VS)
+        coq_makefile -R . Lib $(VS) -o Makefile.coq
+
+clean:: Makefile.coq
+        make -f Makefile.coq clean
+        rm -f Makefile.coq
+>>
+
+   The Makefile begins by defining a variable %\texttt{%#<tt>#VS#</tt>#%}% holding the list of filenames to be included in the project.  The primary target is %\texttt{%#<tt>#coq#</tt>#%}%, which depends on the construction of an auxiliary Makefile called %\texttt{%#<tt>#Makefile.coq#</tt>#%}%.  Another rule explains how to build that file.  We call %\texttt{%#<tt>#coq_makefile#</tt>#%}%, using the %\texttt{%#<tt>#-R#</tt>#%}% flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that %\texttt{%#<tt>#X.v#</tt>#%}% is compiled into %\texttt{%#<tt>#X.vo#</tt>#%}%.
+
+   Now code in %\texttt{%#<tt>#B.v#</tt>#%}% may refer to definitions in %\texttt{%#<tt>#A.v#</tt>#%}% after running
+
+   [[
+Require Import Lib.A.
+
+   ]]
+
+   Library [Lib] is presented as a module, containing a submodule [A], which contains the definitions from %\texttt{%#<tt>#A.v#</tt>#%}%.  These are genuine modules in the sense of Coq's module system, and they may be passed to functors and so on.
+
+   [Require Import] is a convenient combination of two more primitive commands.  [Require] finds the %\texttt{%#<tt>#.vo#</tt>#%}% file containing the named module, ensuring that the module is loaded into memory.  [Import] loads all top-level definitions of the named module into the current namespace, and it may be used with local modules that do not have corresponding %\texttt{%#<tt>#.vo#</tt>#%}% files.  Another command, [Load], is for inserting the contents of a named file verbatim.  It is generally better to use the module-based commands, since they avoid rerunning proof scripts, and they facilitate reorganization of directory structure without the need to change code.
+
+   Now we would like to use our library from a different development, called [Client] and found in directory %\texttt{%#<tt>#CLIENT#</tt>#%}%, which has its own Makefile.
+
+<<
+MODULES := D E
+VS      := $(MODULES:%=%.v)
+
+.PHONY: coq clean
+
+coq: Makefile.coq
+        make -f Makefile.coq
+
+Makefile.coq: Makefile $(VS)
+        coq_makefile -R LIB Lib -R . Client $(VS) -o Makefile.coq
+
+clean:: Makefile.coq
+        make -f Makefile.coq clean
+        rm -f Makefile.coq
+>>
+
+   We change the %\texttt{%#<tt>#coq_makefile#</tt>#%}% call to indicate where the library [Lib] is found.  Now %\texttt{%#<tt>#D.v#</tt>#%}% and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from [Lib] module [A] after running
+
+   [[
+Require Import Lib.A.
+
+   ]]
+
+   and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from %\texttt{%#<tt>#D.v#</tt>#%}% by running
+
+   [[
+Require Import Client.D.
+
+   ]]
+
+   It can be useful to split a library into several files, but it is also inconvenient for client code to import library modules individually.  We can get the best of both worlds by, for example, adding an extra source file %\texttt{%#<tt>#Lib.v#</tt>#%}% to [Lib]'s directory and Makefile.
+
+   [[
+Require Export Lib.A Lib.B Lib.C.
+
+   ]]
+
+   Now client code can import all definitions from all of [Lib]'s modules simply by running
+
+   [[
+Require Import Lib.
+
+   ]]
+
+   The two Makefiles above share a lot of code, so, in practice, it is useful to define a common Makefile that is included by multiple library-specific Makefiles.
+
+   %\medskip%
+
+   The remaining ingredient is the proper way of editing library code files in Proof General.  Recall this snippet of %\texttt{%#<tt>#.emacs#</tt>#%}% code from Chapter 2, which tells Proof General where to find the library associated with this book.
+
+<<
+(custom-set-variables
+  ...
+  '(coq-prog-args '("-I" "/path/to/cpdt/src"))
+  ...
+)
+>>
+
+   To do interactive editing of our current example, we just need to change the flags to point to the right places.
+
+<<
+(custom-set-variables
+  ...
+; '(coq-prog-args '("-I" "/path/to/cpdt/src"))
+  '(coq-prog-args '("-R" "LIB" "Lib" "-R" "CLIENT" "Client"))
+  ...
+)
+>>
+
+   When working on multiple projects, it is useful to leave multiple versions of this setting in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, commenting out all but one of them at any moment in time.  To switch between projects, change the commenting structure and restart Emacs. *)
