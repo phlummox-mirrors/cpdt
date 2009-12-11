@@ -136,16 +136,10 @@ Module Concrete.
 
     Fixpoint subst (e2 : exp) : exp :=
       match e2 with
-        | Const b => Const b
-        | Var x' =>
-          if var_eq x' x
-            then e1
-            else Var x'
+        | Const _ => e2
+        | Var x' => if var_eq x' x then e1 else e2
         | App e1 e2 => App (subst e1) (subst e2)
-        | Abs x' e' =>
-          Abs x' (if var_eq x' x
-            then e'
-            else subst e')
+        | Abs x' e' => Abs x' (if var_eq x' x then e' else subst e')
       end.
 
     (** We can prove a few theorems about substitution in well-typed terms, where we assume that [e1] is closed and has type [xt]. *)
@@ -434,11 +428,8 @@ Module DeBruijn.
 
     Fixpoint subst (x : var) (e2 : exp) : exp :=
       match e2 with
-        | Const b => Const b
-        | Var x' =>
-          if var_eq x' x
-            then e1
-            else Var x'
+        | Const _ => e2
+        | Var x' => if var_eq x' x then e1 else e2
         | App e1 e2 => App (subst x e1) (subst x e2)
         | Abs e' => Abs (subst (S x) e')
       end.
@@ -577,3 +568,281 @@ Module DeBruijn.
   Qed.
 
 End DeBruijn.
+
+
+(** * Locally Nameless Syntax *)
+
+Module LocallyNameless.
+
+  Definition free_var := string.
+  Definition bound_var := nat.
+
+  Inductive exp : Set :=
+  | Const : bool -> exp
+  | FreeVar : free_var -> exp
+  | BoundVar : bound_var -> exp
+  | App : exp -> exp -> exp
+  | Abs : exp -> exp.
+
+  Inductive type : Set :=
+  | Bool : type
+  | Arrow : type -> type -> type.
+
+  Infix "-->" := Arrow (right associativity, at level 60).
+
+  Definition ctx := list (free_var * type).
+
+  Reserved Notation "G |-v x : t" (no associativity, at level 90, x at next level).
+
+  Reserved Notation "G |-v x : t" (no associativity, at level 90, x at next level).
+
+  Inductive lookup : ctx -> free_var -> type -> Prop :=
+  | First : forall x t G,
+    (x, t) :: G |-v x : t
+  | Next : forall x t x' t' G,
+    x <> x'
+    -> G |-v x : t
+    -> (x', t') :: G |-v x : t
+
+    where "G |-v x : t" := (lookup G x t).
+
+  Hint Constructors lookup.
+
+  Reserved Notation "G |-e e : t" (no associativity, at level 90, e at next level).
+
+  Section open.
+    Variable x : free_var.
+
+    Fixpoint open (n : bound_var) (e : exp) : exp :=
+      match e with
+        | Const _ => e
+        | FreeVar _ => e
+        | BoundVar n' =>
+          if eq_nat_dec n' n
+            then FreeVar x
+            else if le_lt_dec n' n
+              then e
+              else BoundVar (pred n')
+        | App e1 e2 => App (open n e1) (open n e2)
+        | Abs e1 => Abs (open (S n) e1)
+      end.
+  End open.
+
+  Inductive notFreeIn (x : free_var) : exp -> Prop :=
+  | NfConst : forall c, notFreeIn x (Const c)
+  | NfFreeVar : forall y, y <> x -> notFreeIn x (FreeVar y)
+  | NfBoundVar : forall y, notFreeIn x (BoundVar y)
+  | NfApp : forall e1 e2, notFreeIn x e1 -> notFreeIn x e2 -> notFreeIn x (App e1 e2)
+  | NfAbs : forall e1, (forall y, y <> x -> notFreeIn x (open y O e1)) -> notFreeIn x (Abs e1).
+
+  Hint Constructors notFreeIn.
+
+  Inductive hasType : ctx -> exp -> type -> Prop :=
+  | TConst : forall G b,
+    G |-e Const b : Bool
+  | TFreeVar : forall G v t,
+    G |-v v : t
+    -> G |-e FreeVar v : t
+  | TApp : forall G e1 e2 dom ran,
+    G |-e e1 : dom --> ran
+    -> G |-e e2 : dom
+    -> G |-e App e1 e2 : ran
+  | TAbs : forall G e' dom ran,
+    (forall x, notFreeIn x e' -> (x, dom) :: G |-e open x O e' : ran)
+    -> G |-e Abs e' : dom --> ran
+
+    where "G |-e e : t" := (hasType G e t).
+
+  Hint Constructors hasType.
+
+  (** We prove roughly the same weakening theorems as before. *)
+
+  Lemma weaken_lookup : forall G' v t G,
+    G |-v v : t
+    -> G ++ G' |-v v : t.
+    induction 1; crush.
+  Qed.
+
+  Hint Resolve weaken_lookup.
+
+  Theorem weaken_hasType' : forall G' G e t,
+    G |-e e : t
+    -> G ++ G' |-e e : t.
+    induction 1; crush; eauto.
+  Qed.
+
+  Theorem weaken_hasType : forall e t,
+    nil |-e e : t
+    -> forall G', G' |-e e : t.
+    intros; change G' with (nil ++ G');
+      eapply weaken_hasType'; eauto.
+  Qed.
+
+  Hint Resolve weaken_hasType.
+
+  Section subst.
+    Variable x : free_var.
+    Variable e1 : exp.
+
+    Fixpoint subst (e2 : exp) : exp :=
+      match e2 with
+        | Const _ => e2
+        | FreeVar x' => if string_dec x' x then e1 else e2
+        | BoundVar _ => e2
+        | App e1 e2 => App (subst e1) (subst e2)
+        | Abs e' => Abs (subst e')
+      end.
+  End subst.
+
+
+  Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 80).
+
+  Inductive val : exp -> Prop :=
+  | VConst : forall b, val (Const b)
+  | VAbs : forall e, val (Abs e).
+
+  Hint Constructors val.
+
+  Reserved Notation "e1 ==> e2" (no associativity, at level 90).
+
+  Inductive step : exp -> exp -> Prop :=
+  | Beta : forall x e1 e2,
+    val e2
+    -> notFreeIn x e1
+    -> App (Abs e1) e2 ==> [x ~> e2] (open x O e1)
+  | Cong1 : forall e1 e2 e1',
+    e1 ==> e1'
+    -> App e1 e2 ==> App e1' e2
+  | Cong2 : forall e1 e2 e2',
+    val e1
+    -> e2 ==> e2'
+    -> App e1 e2 ==> App e1 e2'
+
+    where "e1 ==> e2" := (step e1 e2).
+
+  Hint Constructors step.
+
+  Open Scope string_scope.
+
+  Fixpoint vlen (e : exp) : nat :=
+    match e with
+      | Const _ => 0
+      | FreeVar x => String.length x
+      | BoundVar _ => 0
+      | App e1 e2 => vlen e1 + vlen e2
+      | Abs e1 => vlen e1
+    end.
+
+  Opaque le_lt_dec.
+
+  Hint Extern 1 (@eq exp _ _) => f_equal.
+
+  Lemma open_comm : forall x1 x2 e n1 n2,
+    open x1 n1 (open x2 (S n2 + n1) e)
+    = open x2 (n2 + n1) (open x1 n1 e).
+    induction e; crush;
+      repeat (match goal with
+                | [ |- context[if ?E then _ else _] ] => destruct E
+              end; crush).
+
+    replace (S (n2 + n1)) with (n2 + S n1); auto.
+  Qed.
+
+  Hint Rewrite plus_0_r : cpdt.
+
+  Lemma open_comm0 : forall x1 x2 e n,
+    open x1 0 (open x2 (S n) e)
+    = open x2 n (open x1 0 e).
+    intros; generalize (open_comm x1 x2 e 0 n); crush.
+  Qed.    
+
+  Hint Extern 1 (notFreeIn _ (open _ 0 (open _ (S _) _))) => rewrite open_comm0.
+
+  Lemma notFreeIn_open : forall x y,
+    x <> y
+    -> forall e,
+      notFreeIn x e
+      -> forall n, notFreeIn x (open y n e).
+    induction 2; crush;
+      repeat (match goal with
+                | [ |- context[if ?E then _ else _] ] => destruct E
+              end; crush).
+  Qed.    
+
+  Hint Resolve notFreeIn_open.
+
+  Lemma infVar : forall x y, String.length x > String.length y
+    -> y <> x.
+    intros; destruct (string_dec x y); intros; subst; crush.
+  Qed.
+
+  Hint Resolve infVar.
+
+  Lemma inf' : forall x e, String.length x > vlen e -> notFreeIn x e.
+    induction e; crush; eauto.
+  Qed.
+
+  Fixpoint primes (n : nat) : string :=
+    match n with
+      | O => "x"
+      | S n' => primes n' ++ "'"
+    end.
+
+  Lemma length_app : forall s2 s1, String.length (s1 ++ s2) = String.length s1 + String.length s2.
+    induction s1; crush.
+  Qed.
+
+  Hint Rewrite length_app : cpdt.
+
+  Lemma length_primes : forall n, String.length (primes n) = S n.
+    induction n; crush.
+  Qed.
+
+  Hint Rewrite length_primes : cpdt.
+
+  Lemma inf : forall e, exists x, notFreeIn x e.
+    intro; exists (primes (vlen e)); apply inf'; crush.
+  Qed.
+
+  Lemma progress_Abs : forall e1 e2,
+    val e2
+    -> exists e', App (Abs e1) e2 ==> e'.
+    intros; destruct (inf e1); eauto.
+  Qed.
+
+  Hint Resolve progress_Abs.
+
+  Lemma progress' : forall G e t, G |-e e : t
+    -> G = nil
+    -> val e \/ exists e', e ==> e'.
+    induction 1; crush; eauto;
+      try match goal with
+            | [ H : _ |-e _ : _ --> _ |- _ ] => inversion H
+          end;
+      repeat match goal with
+               | [ H : _ |- _ ] => solve [ inversion H; crush; eauto ]
+             end.
+  Qed.
+
+  Theorem progress : forall e t, nil |-e e : t
+    -> val e \/ exists e', e ==> e'.
+    intros; eapply progress'; eauto.
+  Qed.
+
+  (*Lemma preservation' : forall G e t, G |-e e : t
+    -> G = nil
+    -> forall e', e ==> e'
+      -> nil |-e e' : t.
+    induction 1; inversion 2; crush; eauto;
+      match goal with
+        | [ H : _ |-e Abs _ : _ |- _ ] => inversion H
+      end; eauto.
+  Qed.
+
+  Theorem preservation : forall e t, nil |-e e : t
+    -> forall e', e ==> e'
+      -> nil |-e e' : t.
+    intros; eapply preservation'; eauto.
+  Qed.*)
+
+End LocallyNameless.
