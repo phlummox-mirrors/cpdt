@@ -60,7 +60,7 @@ Module Concrete.
 
   Reserved Notation "G |-v x : t" (no associativity, at level 90, x at next level).
 
-  (** Now we define the judgment itself, using a [where] clause to associate a notation definition. *)
+  (** Now we define the judgment itself, for variable typing, using a [where] clause to associate a notation definition. *)
 
   Inductive lookup : ctx -> var -> type -> Prop :=
   | First : forall x t G,
