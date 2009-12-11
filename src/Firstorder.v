@@ -682,13 +682,16 @@ Module LocallyNameless.
 
   Hint Constructors lclosed.
 
+  Ltac ln := crush;
+    repeat (match goal with
+              | [ |- context[if ?E then _ else _] ] => destruct E
+              | [ _ : context[if ?E then _ else _] |- _ ] => destruct E
+            end; crush); eauto.
+  
   Lemma lclosed_S : forall x e n,
     lclosed n (open x n e)
     -> lclosed (S n) e.
-    induction e; inversion 1; crush;
-      repeat (match goal with
-                | [ _ : context[if ?E then _ else _] |- _ ] => destruct E
-              end; crush).
+    induction e; inversion 1; ln.
   Qed.
 
   Hint Resolve lclosed_S.
@@ -711,13 +714,12 @@ Module LocallyNameless.
       | S n' => primes n' ++ "'"
     end.
 
-  Check fold_left.
-
   Fixpoint sumLengths (L : list free_var) : nat :=
     match L with
       | nil => O
       | x :: L' => String.length x + sumLengths L'
     end.
+
   Definition fresh (L : list free_var) := primes (sumLengths L).
 
   Theorem freshOk' : forall x L, String.length x > sumLengths L
@@ -751,15 +753,24 @@ Module LocallyNameless.
 
   Lemma lclosed_open : forall n e, lclosed n e
     -> forall x, open x n e = e.
-    induction 1; crush;
-      repeat (match goal with
-                | [ |- context[if ?E then _ else _] ] => destruct E
-              end; crush).
+    induction 1; ln.
   Qed.
 
   Hint Resolve lclosed_open hasType_lclosed.
 
   Open Scope list_scope.
+
+  Lemma In_cons1 : forall T (x x' : T) ls,
+    x = x'
+    -> In x (x' :: ls).
+    crush.
+  Qed.
+
+  Lemma In_cons2 : forall T (x x' : T) ls,
+    In x ls
+    -> In x (x' :: ls).
+    crush.
+  Qed.
 
   Lemma In_app1 : forall T (x : T) ls2 ls1,
     In x ls1
@@ -773,9 +784,21 @@ Module LocallyNameless.
     induction ls1; crush.
   Qed.
 
-  Hint Resolve In_app1 In_app2.
+  Lemma freshOk_app1 : forall L1 L2,
+    ~ In (fresh (L1 ++ L2)) L1.
+    intros; generalize (freshOk (L1 ++ L2)); crush.
+  Qed.
+
+  Lemma freshOk_app2 : forall L1 L2,
+    ~ In (fresh (L1 ++ L2)) L2.
+    intros; generalize (freshOk (L1 ++ L2)); crush.
+  Qed.
+
+  Hint Resolve In_cons1 In_cons2 In_app1 In_app2.
 
   Section subst.
+    Hint Resolve freshOk_app1 freshOk_app2.
+
     Variable x : free_var.
     Variable e1 : exp.
 
@@ -793,15 +816,17 @@ Module LocallyNameless.
     Definition disj x (G : ctx) := In x (map (@fst _ _) G) -> False.
     Infix "#" := disj (no associativity, at level 90).
 
+    Ltac disj := crush;
+      match goal with
+        | [ _ : _ :: _ = ?G0 ++ _ |- _ ] => destruct G0
+      end; crush; eauto.
+
     Lemma lookup_disj' : forall t G1,
       G1 |-v x : t
       -> forall G, x # G
         -> G1 = G ++ (x, xt) :: nil
         -> t = xt.
-      unfold disj; induction 1; crush;
-        match goal with
-          | [ _ : _ :: _ = ?G0 ++ _ |- _ ] => destruct G0
-        end; crush; eauto.
+      unfold disj; induction 1; disj.
     Qed.
 
     Lemma lookup_disj : forall t G,
@@ -816,10 +841,7 @@ Module LocallyNameless.
         -> forall G, G1 = G ++ (x, xt) :: nil
           -> v <> x
           -> G |-v v : t.
-      induction 1; crush;
-        match goal with
-          | [ _ : _ :: _ = ?G0 ++ _ |- _ ] => destruct G0
-        end; crush.
+      induction 1; disj.
     Qed.
 
     Lemma lookup_ne : forall G v t,
@@ -841,13 +863,18 @@ Module LocallyNameless.
       lclosed n e1
       -> x <> x0
       -> open x0 n (subst e') = subst (open x0 n e').
-      induction e'; crush;
-        repeat (match goal with
-                  | [ |- context[if ?E then _ else _] ] => destruct E
-                end; crush); eauto 6.
+      induction e'; ln.
     Qed.
 
-    Hint Rewrite open_subst : cpdt.
+    Lemma hasType_open_subst : forall G x0 e t,
+      G |-e subst (open x0 0 e) : t
+      -> x <> x0
+      -> lclosed 0 e1
+      -> G |-e open x0 0 (subst e) : t.
+      intros; rewrite open_subst; eauto.
+    Qed.
+
+    Hint Resolve hasType_open_subst.
 
     Lemma disj_push : forall x0 (t : type) G,
       x # G
@@ -856,13 +883,13 @@ Module LocallyNameless.
       unfold disj; crush.
     Qed.
 
-    Hint Immediate disj_push.
+    Hint Resolve disj_push.
 
     Lemma lookup_cons : forall x0 dom G x1 t,
       G |-v x1 : t
-      -> x0 # G
+      -> ~In x0 (map (@fst _ _) G)
       -> (x0, dom) :: G |-v x1 : t.
-      unfold disj; induction 1; crush;
+      induction 1; crush;
         match goal with
           | [ H : _ |-v _ : _ |- _ ] => inversion H
         end; crush.
@@ -871,18 +898,23 @@ Module LocallyNameless.
     Hint Resolve lookup_cons.
     Hint Unfold disj.
 
+    Lemma TAbs_specialized : forall G e' dom ran L x1,
+      (forall x, ~In x (x1 :: L ++ map (@fst _ _) G) -> (x, dom) :: G |-e open x O e' : ran)
+      -> G |-e Abs e' : dom --> ran.
+      eauto.
+    Qed.
+
     Lemma hasType_subst' : forall G1 e t,
       G1 |-e e : t
       -> forall G, G1 = G ++ (x, xt) :: nil
         -> x # G
         -> G |-e e1 : xt
         -> G |-e subst e : t.
-      induction 1; crush; eauto.
-
-      destruct (string_dec v x); crush.
-
-      apply TAbs with (x :: L ++ map (@fst _ _) G0); crush; eauto 7.
-      apply H0; eauto 6.
+      induction 1; ln;
+        match goal with
+          | [ L : list free_var, _ : ?x # _ |- _ ] =>
+            apply TAbs_specialized with L x; eauto 20
+        end.
     Qed.
       
     Theorem hasType_subst : forall e t,
@@ -896,6 +928,16 @@ Module LocallyNameless.
   Hint Resolve hasType_subst.
 
   Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 60).
+
+  Lemma alpha_open : forall x1 x2 e1 e2 n,
+    ~In x1 (freeVars e2)
+    -> ~In x2 (freeVars e2)
+    -> [x1 ~> e1](open x1 n e2) = [x2 ~> e1](open x2 n e2).
+    induction e2; crush;
+      repeat (match goal with
+                | [ |- context[if ?E then _ else _] ] => destruct E
+              end; crush).
+  Qed.
 
   Inductive val : exp -> Prop :=
   | VConst : forall b, val (Const b)
@@ -939,27 +981,16 @@ Module LocallyNameless.
     intros; eapply progress'; eauto.
   Qed.
 
-  Lemma alpha_open : forall x1 x2 e1 e2 n,
-    ~In x1 (freeVars e2)
-    -> ~In x2 (freeVars e2)
-    -> [x1 ~> e1](open x1 n e2) = [x2 ~> e1](open x2 n e2).
-    induction e2; crush;
-      repeat (match goal with
-                | [ |- context[if ?E then _ else _] ] => destruct E
-              end; crush).
-  Qed.
-
-  Lemma freshOk_app1 : forall L1 L2,
-    ~ In (fresh (L1 ++ L2)) L1.
-    intros; generalize (freshOk (L1 ++ L2)); crush.
-  Qed.
-
-  Lemma freshOk_app2 : forall L1 L2,
-    ~ In (fresh (L1 ++ L2)) L2.
-    intros; generalize (freshOk (L1 ++ L2)); crush.
-  Qed.
-
   Hint Resolve freshOk_app1 freshOk_app2.
+
+  Lemma hasType_alpha_open : forall G L e0 e2 x t,
+    ~ In x (freeVars e0)
+    -> G |-e [fresh (L ++ freeVars e0) ~> e2](open (fresh (L ++ freeVars e0)) 0 e0) : t
+    -> G |-e [x ~> e2](open x 0 e0) : t.
+    intros; rewrite (alpha_open x (fresh (L ++ freeVars e0))); auto.
+  Qed.
+
+  Hint Resolve hasType_alpha_open.
 
   Lemma preservation' : forall G e t, G |-e e : t
     -> G = nil
@@ -969,8 +1000,6 @@ Module LocallyNameless.
       match goal with
         | [ H : _ |-e Abs _ : _ |- _ ] => inversion H
       end; eauto.
-
-    rewrite (alpha_open x (fresh (L ++ freeVars e0))); eauto.
   Qed.
 
   Theorem preservation : forall e t, nil |-e e : t
