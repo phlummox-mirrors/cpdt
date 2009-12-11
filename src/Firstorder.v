@@ -628,14 +628,14 @@ Module LocallyNameless.
       end.
   End open.
 
-  Inductive notFreeIn (x : free_var) : exp -> Prop :=
-  | NfConst : forall c, notFreeIn x (Const c)
-  | NfFreeVar : forall y, y <> x -> notFreeIn x (FreeVar y)
-  | NfBoundVar : forall y, notFreeIn x (BoundVar y)
-  | NfApp : forall e1 e2, notFreeIn x e1 -> notFreeIn x e2 -> notFreeIn x (App e1 e2)
-  | NfAbs : forall e1, (forall y, y <> x -> notFreeIn x (open y O e1)) -> notFreeIn x (Abs e1).
-
-  Hint Constructors notFreeIn.
+  Fixpoint freeVars (e : exp) : list free_var :=
+    match e with
+      | Const _ => nil
+      | FreeVar x => x :: nil
+      | BoundVar _ => nil
+      | App e1 e2 => freeVars e1 ++ freeVars e2
+      | Abs e1 => freeVars e1
+    end.
 
   Inductive hasType : ctx -> exp -> type -> Prop :=
   | TConst : forall G b,
@@ -647,146 +647,83 @@ Module LocallyNameless.
     G |-e e1 : dom --> ran
     -> G |-e e2 : dom
     -> G |-e App e1 e2 : ran
-  | TAbs : forall G e' dom ran,
-    (forall x, notFreeIn x e' -> (x, dom) :: G |-e open x O e' : ran)
+  | TAbs : forall G e' dom ran L,
+    (forall x, ~In x L -> (x, dom) :: G |-e open x O e' : ran)
     -> G |-e Abs e' : dom --> ran
 
     where "G |-e e : t" := (hasType G e t).
 
   Hint Constructors hasType.
 
-  (** We prove roughly the same weakening theorems as before. *)
-
-  Lemma weaken_lookup : forall G' v t G,
-    G |-v v : t
-    -> G ++ G' |-v v : t.
-    induction 1; crush.
+  Lemma lookup_push : forall G G' x t x' t',
+    (forall x t, G |-v x : t -> G' |-v x : t)
+    -> (x, t) :: G |-v x' : t'
+    -> (x, t) :: G' |-v x' : t'.
+    inversion 2; crush.
   Qed.
 
-  Hint Resolve weaken_lookup.
+  Hint Resolve lookup_push.
 
-  Theorem weaken_hasType' : forall G' G e t,
+  Theorem weaken_hasType : forall G e t,
     G |-e e : t
-    -> G ++ G' |-e e : t.
+    -> forall G', (forall x t, G |-v x : t -> G' |-v x : t)
+      -> G' |-e e : t.
     induction 1; crush; eauto.
-  Qed.
-
-  Theorem weaken_hasType : forall e t,
-    nil |-e e : t
-    -> forall G', G' |-e e : t.
-    intros; change G' with (nil ++ G');
-      eapply weaken_hasType'; eauto.
   Qed.
 
   Hint Resolve weaken_hasType.
 
-  Section subst.
-    Variable x : free_var.
-    Variable e1 : exp.
+  Inductive lclosed : nat -> exp -> Prop :=
+  | CConst : forall n b, lclosed n (Const b)
+  | CFreeVar : forall n v, lclosed n (FreeVar v)
+  | CBoundVar : forall n v, v < n -> lclosed n (BoundVar v)
+  | CApp : forall n e1 e2, lclosed n e1 -> lclosed n e2 -> lclosed n (App e1 e2)
+  | CAbs : forall n e1, lclosed (S n) e1 -> lclosed n (Abs e1).
 
-    Fixpoint subst (e2 : exp) : exp :=
-      match e2 with
-        | Const _ => e2
-        | FreeVar x' => if string_dec x' x then e1 else e2
-        | BoundVar _ => e2
-        | App e1 e2 => App (subst e1) (subst e2)
-        | Abs e' => Abs (subst e')
-      end.
-  End subst.
+  Hint Constructors lclosed.
 
+  Lemma lclosed_S : forall x e n,
+    lclosed n (open x n e)
+    -> lclosed (S n) e.
+    induction e; inversion 1; crush;
+      repeat (match goal with
+                | [ _ : context[if ?E then _ else _] |- _ ] => destruct E
+              end; crush).
+  Qed.
 
-  Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 80).
+  Hint Resolve lclosed_S.
 
-  Inductive val : exp -> Prop :=
-  | VConst : forall b, val (Const b)
-  | VAbs : forall e, val (Abs e).
+  Lemma lclosed_weaken : forall n e,
+    lclosed n e
+    -> forall n', n' >= n
+      -> lclosed n' e.
+    induction 1; crush.
+  Qed.
 
-  Hint Constructors val.
-
-  Reserved Notation "e1 ==> e2" (no associativity, at level 90).
-
-  Inductive step : exp -> exp -> Prop :=
-  | Beta : forall x e1 e2,
-    val e2
-    -> notFreeIn x e1
-    -> App (Abs e1) e2 ==> [x ~> e2] (open x O e1)
-  | Cong1 : forall e1 e2 e1',
-    e1 ==> e1'
-    -> App e1 e2 ==> App e1' e2
-  | Cong2 : forall e1 e2 e2',
-    val e1
-    -> e2 ==> e2'
-    -> App e1 e2 ==> App e1 e2'
-
-    where "e1 ==> e2" := (step e1 e2).
-
-  Hint Constructors step.
+  Hint Resolve lclosed_weaken.
+  Hint Extern 1 (_ >= _) => omega.
 
   Open Scope string_scope.
-
-  Fixpoint vlen (e : exp) : nat :=
-    match e with
-      | Const _ => 0
-      | FreeVar x => String.length x
-      | BoundVar _ => 0
-      | App e1 e2 => vlen e1 + vlen e2
-      | Abs e1 => vlen e1
-    end.
-
-  Opaque le_lt_dec.
-
-  Hint Extern 1 (@eq exp _ _) => f_equal.
-
-  Lemma open_comm : forall x1 x2 e n1 n2,
-    open x1 n1 (open x2 (S n2 + n1) e)
-    = open x2 (n2 + n1) (open x1 n1 e).
-    induction e; crush;
-      repeat (match goal with
-                | [ |- context[if ?E then _ else _] ] => destruct E
-              end; crush).
-
-    replace (S (n2 + n1)) with (n2 + S n1); auto.
-  Qed.
-
-  Hint Rewrite plus_0_r : cpdt.
-
-  Lemma open_comm0 : forall x1 x2 e n,
-    open x1 0 (open x2 (S n) e)
-    = open x2 n (open x1 0 e).
-    intros; generalize (open_comm x1 x2 e 0 n); crush.
-  Qed.    
-
-  Hint Extern 1 (notFreeIn _ (open _ 0 (open _ (S _) _))) => rewrite open_comm0.
-
-  Lemma notFreeIn_open : forall x y,
-    x <> y
-    -> forall e,
-      notFreeIn x e
-      -> forall n, notFreeIn x (open y n e).
-    induction 2; crush;
-      repeat (match goal with
-                | [ |- context[if ?E then _ else _] ] => destruct E
-              end; crush).
-  Qed.    
-
-  Hint Resolve notFreeIn_open.
-
-  Lemma infVar : forall x y, String.length x > String.length y
-    -> y <> x.
-    intros; destruct (string_dec x y); intros; subst; crush.
-  Qed.
-
-  Hint Resolve infVar.
-
-  Lemma inf' : forall x e, String.length x > vlen e -> notFreeIn x e.
-    induction e; crush; eauto.
-  Qed.
-
+  
   Fixpoint primes (n : nat) : string :=
     match n with
       | O => "x"
       | S n' => primes n' ++ "'"
     end.
+
+  Check fold_left.
+
+  Fixpoint sumLengths (L : list free_var) : nat :=
+    match L with
+      | nil => O
+      | x :: L' => String.length x + sumLengths L'
+    end.
+  Definition fresh (L : list free_var) := primes (sumLengths L).
+
+  Theorem freshOk' : forall x L, String.length x > sumLengths L
+    -> ~In x L.
+    induction L; crush.
+  Qed.
 
   Lemma length_app : forall s2 s1, String.length (s1 ++ s2) = String.length s1 + String.length s2.
     induction s1; crush.
@@ -800,17 +737,190 @@ Module LocallyNameless.
 
   Hint Rewrite length_primes : cpdt.
 
-  Lemma inf : forall e, exists x, notFreeIn x e.
-    intro; exists (primes (vlen e)); apply inf'; crush.
+  Theorem freshOk : forall L, ~In (fresh L) L.
+    intros; apply freshOk'; unfold fresh; crush.
   Qed.
 
-  Lemma progress_Abs : forall e1 e2,
+  Hint Resolve freshOk.
+
+  Lemma hasType_lclosed : forall G e t,
+    G |-e e : t
+    -> lclosed O e.
+    induction 1; eauto.
+  Qed.
+
+  Lemma lclosed_open : forall n e, lclosed n e
+    -> forall x, open x n e = e.
+    induction 1; crush;
+      repeat (match goal with
+                | [ |- context[if ?E then _ else _] ] => destruct E
+              end; crush).
+  Qed.
+
+  Hint Resolve lclosed_open hasType_lclosed.
+
+  Open Scope list_scope.
+
+  Lemma In_app1 : forall T (x : T) ls2 ls1,
+    In x ls1
+    -> In x (ls1 ++ ls2).
+    induction ls1; crush.
+  Qed.
+
+  Lemma In_app2 : forall T (x : T) ls2 ls1,
+    In x ls2
+    -> In x (ls1 ++ ls2).
+    induction ls1; crush.
+  Qed.
+
+  Hint Resolve In_app1 In_app2.
+
+  Section subst.
+    Variable x : free_var.
+    Variable e1 : exp.
+
+    Fixpoint subst (e2 : exp) : exp :=
+      match e2 with
+        | Const _ => e2
+        | FreeVar x' => if string_dec x' x then e1 else e2
+        | BoundVar _ => e2
+        | App e1 e2 => App (subst e1) (subst e2)
+        | Abs e' => Abs (subst e')
+      end.
+
+    Variable xt : type.
+
+    Definition disj x (G : ctx) := In x (map (@fst _ _) G) -> False.
+    Infix "#" := disj (no associativity, at level 90).
+
+    Lemma lookup_disj' : forall t G1,
+      G1 |-v x : t
+      -> forall G, x # G
+        -> G1 = G ++ (x, xt) :: nil
+        -> t = xt.
+      unfold disj; induction 1; crush;
+        match goal with
+          | [ _ : _ :: _ = ?G0 ++ _ |- _ ] => destruct G0
+        end; crush; eauto.
+    Qed.
+
+    Lemma lookup_disj : forall t G,
+      x # G
+      -> G ++ (x, xt) :: nil |-v x : t
+      -> t = xt.
+      intros; eapply lookup_disj'; eauto.
+    Qed.
+
+    Lemma lookup_ne' : forall G1 v t,
+      G1 |-v v : t
+        -> forall G, G1 = G ++ (x, xt) :: nil
+          -> v <> x
+          -> G |-v v : t.
+      induction 1; crush;
+        match goal with
+          | [ _ : _ :: _ = ?G0 ++ _ |- _ ] => destruct G0
+        end; crush.
+    Qed.
+
+    Lemma lookup_ne : forall G v t,
+      G ++ (x, xt) :: nil |-v v : t
+      -> v <> x
+      -> G |-v v : t.
+      intros; eapply lookup_ne'; eauto.
+    Qed.
+
+    Hint Extern 1 (_ |-e _ : _) =>
+      match goal with
+        | [ H1 : _, H2 : _ |- _ ] => rewrite (lookup_disj H1 H2)
+      end.
+    Hint Resolve lookup_ne.
+
+    Hint Extern 1 (@eq exp _ _) => f_equal.
+
+    Lemma open_subst : forall x0 e' n,
+      lclosed n e1
+      -> x <> x0
+      -> open x0 n (subst e') = subst (open x0 n e').
+      induction e'; crush;
+        repeat (match goal with
+                  | [ |- context[if ?E then _ else _] ] => destruct E
+                end; crush); eauto 6.
+    Qed.
+
+    Hint Rewrite open_subst : cpdt.
+
+    Lemma disj_push : forall x0 (t : type) G,
+      x # G
+      -> x <> x0
+      -> x # (x0, t) :: G.
+      unfold disj; crush.
+    Qed.
+
+    Hint Immediate disj_push.
+
+    Lemma lookup_cons : forall x0 dom G x1 t,
+      G |-v x1 : t
+      -> x0 # G
+      -> (x0, dom) :: G |-v x1 : t.
+      unfold disj; induction 1; crush;
+        match goal with
+          | [ H : _ |-v _ : _ |- _ ] => inversion H
+        end; crush.
+    Qed.
+
+    Hint Resolve lookup_cons.
+    Hint Unfold disj.
+
+    Lemma hasType_subst' : forall G1 e t,
+      G1 |-e e : t
+      -> forall G, G1 = G ++ (x, xt) :: nil
+        -> x # G
+        -> G |-e e1 : xt
+        -> G |-e subst e : t.
+      induction 1; crush; eauto.
+
+      destruct (string_dec v x); crush.
+
+      apply TAbs with (x :: L ++ map (@fst _ _) G0); crush; eauto 7.
+      apply H0; eauto 6.
+    Qed.
+      
+    Theorem hasType_subst : forall e t,
+      (x, xt) :: nil |-e e : t
+      -> nil |-e e1 : xt
+      -> nil |-e subst e : t.
+      intros; eapply hasType_subst'; eauto.
+    Qed.
+  End subst.
+
+  Hint Resolve hasType_subst.
+
+  Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 60).
+
+  Inductive val : exp -> Prop :=
+  | VConst : forall b, val (Const b)
+  | VAbs : forall e, val (Abs e).
+
+  Hint Constructors val.
+
+  Reserved Notation "e1 ==> e2" (no associativity, at level 90).
+
+  Inductive step : exp -> exp -> Prop :=
+  | Beta : forall e1 e2 x,
     val e2
-    -> exists e', App (Abs e1) e2 ==> e'.
-    intros; destruct (inf e1); eauto.
-  Qed.
+    -> ~In x (freeVars e1)
+    -> App (Abs e1) e2 ==> [x ~> e2] (open x O e1)
+  | Cong1 : forall e1 e2 e1',
+    e1 ==> e1'
+    -> App e1 e2 ==> App e1' e2
+  | Cong2 : forall e1 e2 e2',
+    val e1
+    -> e2 ==> e2'
+    -> App e1 e2 ==> App e1 e2'
 
-  Hint Resolve progress_Abs.
+    where "e1 ==> e2" := (step e1 e2).
+
+  Hint Constructors step.
 
   Lemma progress' : forall G e t, G |-e e : t
     -> G = nil
@@ -829,7 +939,29 @@ Module LocallyNameless.
     intros; eapply progress'; eauto.
   Qed.
 
-  (*Lemma preservation' : forall G e t, G |-e e : t
+  Lemma alpha_open : forall x1 x2 e1 e2 n,
+    ~In x1 (freeVars e2)
+    -> ~In x2 (freeVars e2)
+    -> [x1 ~> e1](open x1 n e2) = [x2 ~> e1](open x2 n e2).
+    induction e2; crush;
+      repeat (match goal with
+                | [ |- context[if ?E then _ else _] ] => destruct E
+              end; crush).
+  Qed.
+
+  Lemma freshOk_app1 : forall L1 L2,
+    ~ In (fresh (L1 ++ L2)) L1.
+    intros; generalize (freshOk (L1 ++ L2)); crush.
+  Qed.
+
+  Lemma freshOk_app2 : forall L1 L2,
+    ~ In (fresh (L1 ++ L2)) L2.
+    intros; generalize (freshOk (L1 ++ L2)); crush.
+  Qed.
+
+  Hint Resolve freshOk_app1 freshOk_app2.
+
+  Lemma preservation' : forall G e t, G |-e e : t
     -> G = nil
     -> forall e', e ==> e'
       -> nil |-e e' : t.
@@ -837,12 +969,14 @@ Module LocallyNameless.
       match goal with
         | [ H : _ |-e Abs _ : _ |- _ ] => inversion H
       end; eauto.
+
+    rewrite (alpha_open x (fresh (L ++ freeVars e0))); eauto.
   Qed.
 
   Theorem preservation : forall e t, nil |-e e : t
     -> forall e', e ==> e'
       -> nil |-e e' : t.
     intros; eapply preservation'; eauto.
-  Qed.*)
+  Qed.
 
 End LocallyNameless.
