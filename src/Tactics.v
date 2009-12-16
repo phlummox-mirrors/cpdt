@@ -156,3 +156,25 @@ Ltac clear_all :=
   repeat match goal with
            | [ H : _ |- _ ] => clear H
          end.
+
+Ltac guess tac H :=
+  repeat match type of H with
+           | forall x : ?T, _ =>
+             match type of T with
+               | Prop =>
+                 (let H' := fresh "H'" in
+                   assert (H' : T); [
+                     solve [ tac ]
+                     | generalize (H H'); clear H H'; intro H ])
+                 || fail 1
+               | _ =>
+                 let x := fresh "x" in
+                   evar (x : T);
+                   let x' := eval cbv delta [x] in x in
+                     clear x; generalize (H x'); clear H; intro H
+             end
+         end.
+
+Ltac guessKeep tac H :=
+  let H' := fresh "H'" in
+    generalize H; intro H'; guess tac H'.
