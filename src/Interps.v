@@ -18,10 +18,12 @@ Set Implicit Arguments.
 
 (** %\chapter{Type-Theoretic Interpreters}% *)
 
-(** TODO: Prose for this chapter *)
+(** Throughout this book, we have given semantics for programming languages via executable interpreters written in Gallina.  PHOAS is quite compatible with that model, when we want to formalize many of the wide variety of interesting non-Turing-complete programming languages.  Most such languages have very straightforward elaborations into Gallina.  In this chapter, we show how to extend our past approach to higher-order languages encoded with PHOAS, and we show how simple program transformations may be proved correct with respect to these elaborative semantics. *)
 
 
 (** * Simply-Typed Lambda Calculus *)
+
+(** We begin with a copy of last chapter's encoding of the syntax of simply-typed lambda calculus with natural numbers and addition.  The primes at the ends of constructor names are gone, since here our primary subject is [exp]s instead of [Exp]s. *)
 
 Module STLC.
   Inductive type : Type :=
@@ -58,6 +60,8 @@ Module STLC.
   Implicit Arguments App [var t1 t2].
   Implicit Arguments Abs [var t1 t2].
 
+  (** The definitions that follow will be easier to read if we define some parsing notations for the constructors. *)
+
   Notation "# v" := (Var v) (at level 70).
 
   Notation "^ n" := (Const n) (at level 70).
@@ -67,23 +71,28 @@ Module STLC.
   Notation "\ x , e" := (Abs (fun x => e)) (at level 78).
   Notation "\ ! , e" := (Abs (fun _ => e)) (at level 78).
 
-  Definition zero : Exp Nat := fun _ => ^0.
-  Definition one : Exp Nat := fun _ => ^1.
-  Definition zpo : Exp Nat := fun _ => zero _ +^ one _.
-  Definition ident : Exp (Nat --> Nat) := fun _ => \x, #x.
-  Definition app_ident : Exp Nat := fun _ => ident _ @ zpo _.
-  Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
-    \f, \x, #f @ #x.
-  Definition app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
+  (** A few examples will be useful for testing the functions we will write. *)
+
+  Example zero : Exp Nat := fun _ => ^0.
+  Example one : Exp Nat := fun _ => ^1.
+  Example zpo : Exp Nat := fun _ => zero _ +^ one _.
+  Example ident : Exp (Nat --> Nat) := fun _ => \x, #x.
+  Example app_ident : Exp Nat := fun _ => ident _ @ zpo _.
+  Example app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ => \f, \x, #f @ #x.
+  Example app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
 
   (* EX: Define an interpreter for [Exp]s. *)
 
 (* begin thide *)
+  (** To write our interpreter, we must first interpret object language types as meta language types. *)
+
   Fixpoint typeDenote (t : type) : Set :=
     match t with
       | Nat => nat
       | t1 --> t2 => typeDenote t1 -> typeDenote t2
     end.
+
+  (** The crucial trick of the expression interpreter is to represent variables using the [typeDenote] function.  Due to limitations in Coq's syntax extension system, we cannot take advantage of some of our notations when they appear in patterns, so, to be consistent, in patterns we avoid notations altogether. *)
 
   Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
     match e with
@@ -99,15 +108,54 @@ Module STLC.
   Definition ExpDenote t (e : Exp t) := expDenote (e _).
 (* end thide *)
 
+  (** Some tests establish that [ExpDenote] produces Gallina terms like we might write manually. *)
+
   Eval compute in ExpDenote zero.
+  (** %\vspace{-.15in}% [[
+     = 0
+     : typeDenote Nat
+     ]] *)
+
   Eval compute in ExpDenote one.
+  (** %\vspace{-.15in}% [[
+     = 1
+     : typeDenote Nat
+     ]] *)
+
   Eval compute in ExpDenote zpo.
+  (** %\vspace{-.15in}% [[
+     = 1
+     : typeDenote Nat
+     ]] *)
+
   Eval compute in ExpDenote ident.
+  (** %\vspace{-.15in}% [[
+     = fun x : nat => x
+     : typeDenote (Nat --> Nat)
+     ]] *)
+
   Eval compute in ExpDenote app_ident.
+  (** %\vspace{-.15in}% [[
+     = 1
+     : typeDenote Nat
+     ]] *)
+
   Eval compute in ExpDenote app.
+  (** %\vspace{-.15in}% [[
+     = fun (x : nat -> nat) (x0 : nat) => x x0
+     : typeDenote ((Nat --> Nat) --> Nat --> Nat)
+     ]] *)
+
   Eval compute in ExpDenote app_ident'.
+  (** %\vspace{-.15in}% [[
+     = 1
+     : typeDenote Nat
+     ]] *)
+
 
   (* EX: Define a constant-folding function for [Exp]s. *)
+
+  (** We can update to the higher-order case our common example of a constant folding function.  The workhorse function [cfold] is parameterized to apply to an [exp] that uses any [var] type.  An output of [cfold] uses the same [var] type as the input.  As in the definition of [expDenote], we cannot use most of our notations in patterns, but we use them freely to make the bodies of [match] cases easier to read. *)
 
 (* begin thide *)
   Section cfold.
@@ -127,7 +175,7 @@ Module STLC.
           end
 
         | App _ _ e1 e2 => cfold e1 @ cfold e2
-        | Abs _ _ e' => Abs (fun x => cfold (e' x))
+        | Abs _ _ e' => \x, cfold (e' x)
       end.
   End cfold.
 
@@ -135,6 +183,8 @@ Module STLC.
 (* end thide *)
 
   (* EX: Prove the correctness of constant-folding. *)
+
+  (** Now we would like to prove the correctness of [Cfold], which follows from a simple inductive lemma about [cfold]. *)
 
 (* begin thide *)
   Lemma cfold_correct : forall t (e : exp _ t),
@@ -154,6 +204,8 @@ End STLC.
 
 
 (** * Adding Products and Sums *)
+
+(** The example is easily adapted to support products and sums, the basis of non-recursive datatypes in ML and Haskell. *)
 
 Module PSLC.
   (* EX: Extend the development with products and sums. *)
@@ -239,17 +291,20 @@ Module PSLC.
   Notation "'case' e 'of' x => e1 | y => e2" := (SumCase e (fun x => e1) (fun y => e2))
     (at level 79).
 
-  Definition swap : Exp (Nat ** Nat --> Nat ** Nat) := fun _ =>
-    \p, [#2 #p, #1 #p].
-  Definition zo : Exp (Nat ** Nat) := fun _ => [^0, ^1].
-  Definition swap_zo : Exp (Nat ** Nat) := fun _ => swap _ @ zo _.
+  (** A few examples can be defined easily, using the notations above. *)
 
-  Definition natOut : Exp (Nat ++ Nat --> Nat) := fun _ =>
+  Example swap : Exp (Nat ** Nat --> Nat ** Nat) := fun _ => \p, [#2 #p, #1 #p].
+  Example zo : Exp (Nat ** Nat) := fun _ => [^0, ^1].
+  Example swap_zo : Exp (Nat ** Nat) := fun _ => swap _ @ zo _.
+
+  Example natOut : Exp (Nat ++ Nat --> Nat) := fun _ =>
     \s, case #s of x => #x | y => #y +^ #y.
-  Definition ns1 : Exp (Nat ++ Nat) := fun _ => Inl (^3).
-  Definition ns2 : Exp (Nat ++ Nat) := fun _ => Inr (^5).
-  Definition natOut_ns1 : Exp Nat := fun _ => natOut _ @ ns1 _.
-  Definition natOut_ns2 : Exp Nat := fun _ => natOut _ @ ns2 _.
+  Example ns1 : Exp (Nat ++ Nat) := fun _ => Inl (^3).
+  Example ns2 : Exp (Nat ++ Nat) := fun _ => Inr (^5).
+  Example natOut_ns1 : Exp Nat := fun _ => natOut _ @ ns1 _.
+  Example natOut_ns2 : Exp Nat := fun _ => natOut _ @ ns2 _.
+
+  (** The semantics adapts without incident. *)
 
 (* begin thide *)
   Fixpoint typeDenote (t : type) : Set :=
@@ -287,14 +342,57 @@ Module PSLC.
 (* end thide *)
 
   Eval compute in ExpDenote swap.
-  Eval compute in ExpDenote zo.
-  Eval compute in ExpDenote swap_zo.
+  (** %\vspace{-.15in}% [[
+     = fun x : nat * nat => (let (_, y) := x in y, let (x0, _) := x in x0)
+     : typeDenote (Nat ** Nat --> Nat ** Nat)
+     ]] *)
 
-  Eval compute in ExpDenote natOut.
+  Eval compute in ExpDenote zo.
+  (** %\vspace{-.15in}% [[
+     = (0, 1)
+     : typeDenote (Nat ** Nat)
+     ]] *)
+
+  Eval compute in ExpDenote swap_zo.
+  (** %\vspace{-.15in}% [[
+     = (1, 0)
+     : typeDenote (Nat ** Nat)
+     ]] *)
+
+  Eval cbv beta iota delta -[plus] in ExpDenote natOut.
+  (** %\vspace{-.15in}% [[
+     = fun x : nat + nat => match x with
+                            | inl v => v
+                            | inr v => v + v
+                            end
+     : typeDenote (Nat ++ Nat --> Nat)
+     ]] *)
+
   Eval compute in ExpDenote ns1.
+  (** %\vspace{-.15in}% [[
+     = inl nat 3
+     : typeDenote (Nat ++ Nat)
+     ]] *)
+
   Eval compute in ExpDenote ns2.
+  (** %\vspace{-.15in}% [[
+     = inr nat 5
+     : typeDenote (Nat ++ Nat)
+     ]] *)
+
   Eval compute in ExpDenote natOut_ns1.
+  (** %\vspace{-.15in}% [[
+     = 3
+     : typeDenote Nat
+     ]] *)
+
   Eval compute in ExpDenote natOut_ns2.
+  (** %\vspace{-.15in}% [[
+     = 10
+     : typeDenote Nat
+     ]] *)
+
+  (** We adapt the [cfold] function using the same basic dependent-types trick that we applied in an earlier chapter to a very similar function for a language without variables. *)
 
 (* begin thide *)
   Section cfold.
@@ -307,7 +405,7 @@ Module PSLC.
       end.
 
     Definition pairOutDefault (t : type) : pairOutType t :=
-      match t return pairOutType t with
+      match t with
         | _ ** _ => None
         | _ => tt
       end.
@@ -333,7 +431,7 @@ Module PSLC.
           end
 
         | App _ _ e1 e2 => cfold e1 @ cfold e2
-        | Abs _ _ e' => Abs (fun x => cfold (e' x))
+        | Abs _ _ e' => \x, cfold (e' x)
 
         | Pair _ _ e1 e2 => [cfold e1, cfold e2]
         | Fst t1 _ e' =>
@@ -360,6 +458,8 @@ Module PSLC.
 
   Definition Cfold t (E : Exp t) : Exp t := fun _ => cfold (E _).
 
+  (** The proofs are almost as straightforward as before.  We first establish two simple theorems about pairs and their projections. *)
+
   Section pairs.
     Variables A B : Type.
 
@@ -377,6 +477,8 @@ Module PSLC.
   End pairs.
 
   Hint Resolve pair_eta1 pair_eta2.
+
+  (** To the proof script for the main lemma, we add just one more [match] case, detecting when case analysis is appropriate on discriminees of matches over sum types. *)
 
   Lemma cfold_correct : forall t (e : exp _ t),
     expDenote (cfold e) = expDenote e.
