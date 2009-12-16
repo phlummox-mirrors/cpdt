@@ -460,13 +460,15 @@ Eval compute in Subst one app_ident1.
 
 (** * A Type Soundness Proof *)
 
-Reserved Notation "E1 ==> E2" (no associativity, at level 90).
+(** With [Subst] defined, there are few surprises encountered in defining a standard small-step, call-by-value semantics for our object language.  We begin by classifying a subset of expressions as values. *)
 
 Inductive Val : forall t, Exp t -> Prop :=
 | VConst : forall n, Val (Const n)
 | VAbs : forall dom ran (B : Exp1 dom ran), Val (Abs B).
 
 Hint Constructors Val.
+
+(** Since this language is more complicated than the one we considered in the chapter on first-order encodings, we will use explicit evaluation contexts to define the semantics.  A value of type [Ctx t u] is a context that yields an expression of type [u] when filled by an expression of type [t].  We have one context for each position of the [App] and [Plus] constructors. *)
 
 Inductive Ctx : type -> type -> Type :=
 | AppCong1 : forall (dom ran : type),
@@ -476,11 +478,15 @@ Inductive Ctx : type -> type -> Type :=
 | PlusCong1 : Exp Nat -> Ctx Nat Nat
 | PlusCong2 : Exp Nat -> Ctx Nat Nat.
 
+(** A judgment characterizes when contexts are valid, enforcing the standard call-by-value restriction that certain positions must hold values. *)
+
 Inductive isCtx : forall t1 t2, Ctx t1 t2 -> Prop :=
 | IsApp1 : forall dom ran (X : Exp dom), isCtx (AppCong1 ran X)
 | IsApp2 : forall dom ran (F : Exp (dom --> ran)), Val F -> isCtx (AppCong2 F)
 | IsPlus1 : forall E2, isCtx (PlusCong1 E2)
 | IsPlus2 : forall E1, Val E1 -> isCtx (PlusCong2 E1).
+
+(** A simple definition implements plugging a context with a specific expression. *)
 
 Definition plug t1 t2 (C : Ctx t1 t2) : Exp t1 -> Exp t2 :=
   match C with
@@ -491,6 +497,10 @@ Definition plug t1 t2 (C : Ctx t1 t2) : Exp t1 -> Exp t2 :=
   end.
 
 Infix "@" := plug (no associativity, at level 60).
+
+(** Finally, we have the step relation itself, which combines our ingredients in the standard way.  In the congruence rule, we introduce the extra variable [E1] and its associated equality to make the rule easier for [eauto] to apply. *)
+
+Reserved Notation "E1 ==> E2" (no associativity, at level 90).
 
 Inductive Step : forall t, Exp t -> Exp t -> Prop :=
 | Beta : forall dom ran (B : Exp1 dom ran) (X : Exp dom),
@@ -510,6 +520,8 @@ Hint Constructors isCtx Step.
 
 (* EX: Prove type soundness. *)
 
+(** To prove type soundness for this semantics, we need to overcome one crucial obstacle.  Standard proofs use induction on the structure of typing derivations.  Our encoding mixes typing derivations with expression syntax, so we want to induct over expression structure.  Our expressions are represented as functions, which do not, in general, admit induction in Coq.  However, because of our use of parametric polymorphism, we know that our expressions do, in fact, have inductive structure.  In particular, every closed value of [Exp] type must belong to the following relation. *)
+
 (* begin thide *)
 Inductive Closed : forall t, Exp t -> Prop :=
 | CConst : forall n,
@@ -525,15 +537,23 @@ Inductive Closed : forall t, Exp t -> Prop :=
 | CAbs : forall dom ran (E1 : Exp1 dom ran),
   Closed (Abs E1).
 
+(** How can we prove such a fact?  It probably cannot be established in Coq without axioms.  Rather, one would have to establish it metatheoretically, reasoning informally outside of Coq.  For now, we assert the fact as an axiom.  The later chapter on intensional transformations shows one approach to removing the need for an axiom. *)
+
 Axiom closed : forall t (E : Exp t), Closed E.
+
+(** The usual progress and preservation theorems are now very easy to prove.  In fact, preservation is implicit in our dependently-typed definition of [Step].  This is a huge win, because we avoid completely the theorem about substitution and typing that made up the bulk of each proof in the chapter on first-order encodings.  The progress theorem yields to a few lines of automation.
+
+   We define a slight variant of [crush] which also looks for chances to use the theorem [inj_pair2] on hypotheses.  This theorem deals with an artifact of the way that [inversion] works on dependently-typed hypotheses. *)
 
 Ltac my_crush' :=
   crush;
   repeat (match goal with
-            | [ H : _ |- _ ] => generalize (inj_pairT2 _ _ _ _ _ H); clear H
+            | [ H : _ |- _ ] => generalize (inj_pair2 _ _ _ _ _ H); clear H
           end; crush).
 
 Hint Extern 1 (_ = _ @ _) => simpl.
+
+(** This is the point where we need to do induction over functions, in the form of expressions [E].  The judgment [Closed] provides the perfect framework; we induct over [Closed] derivations. *)
 
 Lemma progress' : forall t (E : Exp t),
   Closed E
@@ -544,6 +564,8 @@ Lemma progress' : forall t (E : Exp t),
            end; eauto 6.
 Qed.
 
+(** Our final proof of progress makes one top-level use of the axiom [closed] that we asserted above. *)
+
 Theorem progress : forall t (E : Exp t),
   Val E \/ exists E', E ==> E'.
   intros; apply progress'; apply closed.
@@ -552,6 +574,10 @@ Qed.
 
 
 (** * Big-Step Semantics *)
+
+(** Another standard exercise in operational semantics is proving the equivalence of small-step and big-step semantics.  We can carry out this exercise for our PHOAS lambda calculus.  Most of the steps are just as pleasant as in the previous section, but things get complicated near to the end.
+
+   We must start by defining the big-step semantics itself.  The definition is completely standard. *)
 
 Reserved Notation "E1 ===> E2" (no associativity, at level 90).
 
@@ -577,6 +603,8 @@ Hint Constructors BigStep.
 
 (* EX: Prove the equivalence of the small- and big-step semantics. *)
 
+(** To prove a crucial intermediate lemma, we will want to name the transitive-reflexive closure of the small-step relation. *)
+
 (* begin thide *)
 Reserved Notation "E1 ==>* E2" (no associativity, at level 90).
 
@@ -590,6 +618,8 @@ Inductive MultiStep : forall t, Exp t -> Exp t -> Prop :=
   where "E1 ==>* E2" := (MultiStep E1 E2).
 
 Hint Constructors MultiStep.
+
+(** A few basic properties of evaluation and values admit easy proofs. *)
 
 Theorem MultiStep_trans : forall t (E1 E2 E3 : Exp t),
   E1 ==>* E2
@@ -612,6 +642,8 @@ Qed.
 
 Hint Resolve Big_Val Val_Big.
 
+(** Another useful property deals with pushing multi-step evaluation inside of contexts. *)
+
 Lemma Multi_Cong : forall t t' (C : Ctx t t'),
   isCtx C
   -> forall E E', E ==>* E'
@@ -630,11 +662,15 @@ Qed.
 
 Hint Resolve Multi_Cong'.
 
+(** Unrestricted use of transitivity of [==>*] can lead to very large [eauto] search spaces, which has very inconvenient efficiency consequences.  Instead, we define a special tactic [mtrans] that tries applying transitivity with a particular intermediate expression. *)
+
 Ltac mtrans E :=
   match goal with
     | [ |- E ==>* _ ] => fail 1
     | _ => apply MultiStep_trans with E; [ solve [ eauto ] | eauto ]
   end.
+
+(** With [mtrans], we can give a reasonably short proof of one direction of the equivalence between big-step and small-step semantics.  We include proof cases specific to rules of the big-step semantics, since leaving the details to [eauto] would lead to a very slow proof script.  The use of [solve] in [mtrans]'s definition keeps us from going down unfruitful paths. *)
 
 Theorem Big_Multi : forall t (E V : Exp t),
   E ===> V
@@ -647,6 +683,8 @@ Theorem Big_Multi : forall t (E V : Exp t),
            end.
 Qed.
 
+(** We are almost ready to prove the other direction of the equivalence.  First, we wrap an earlier lemma in a form that will work better with [eauto]. *)
+
 Lemma Big_Val' : forall t (V1 V2 : Exp t),
   Val V2
   -> V1 = V2
@@ -655,6 +693,8 @@ Lemma Big_Val' : forall t (V1 V2 : Exp t),
 Qed.
 
 Hint Resolve Big_Val'.
+
+(** Now we build some quite involved tactic support for reasoning about equalities over PHOAS terms.  First, we will call [equate_conj F G] to determine the consequences of an equality [F = G].  When [F = f e_1 ... e_n] and [G = f e'_1 ... e'_n], [equate_conj] will return a conjunction [e_1 = e'_1 /\ ... /\ e_n = e'_n].  We hardcode a pattern for each value of [n] from 1 to 5. *)
 
 Ltac equate_conj F G :=
   match constr:(F, G) with
@@ -666,6 +706,8 @@ Ltac equate_conj F G :=
     | (_ ?x1 ?y1 ?z1 ?u1 ?v1, _ ?x2 ?y2 ?z2 ?u2 ?v2) =>
       constr:(x1 = x2 /\ y1 = y2 /\ z1 = z2 /\ u1 = u2 /\ v1 = v2)
   end.
+
+(** The main tactic is [my_crush], which generalizes our earlier [my_crush'] by performing inversion on hypotheses that equate PHOAS terms.  Coq's built-in [inversion] is only designed to be useful on equalities over inductive types.  PHOAS terms are functions, so [inversion] is not very helpful on them.  To perform the equivalent of [discriminate], we instantiate the terms with [var] as [fun _ => unit] and then appeal to normal [discriminate].  This eliminates some contradictory cases.  To perform the equivalent of [injection], we must consider all possible [var] instantiations.  Some fairly intricate logic strings together these elements.  The details are not worth discussing, since our conclusion will be that one should avoid dealing with proofs of facts like this one. *)
 
 Ltac my_crush :=
   my_crush';
@@ -696,6 +738,8 @@ Ltac my_crush :=
           end; my_crush');
   my_crush'.
 
+(** With that complicated tactic available, the proof of the main lemma is straightforward. *)
+
 Lemma Multi_Big' : forall t (E E' : Exp t),
   E ==> E'
   -> forall E'', E' ===> E''
@@ -711,6 +755,8 @@ Qed.
 
 Hint Resolve Multi_Big'.
 
+(** The other direction of the overall equivalence follows as an easy corollary. *)
+
 Theorem Multi_Big : forall t (E V : Exp t),
   E ==>* V
   -> Val V
@@ -718,3 +764,5 @@ Theorem Multi_Big : forall t (E V : Exp t),
   induction 1; crush; eauto.
 Qed.
 (* end thide *)
+
+(** The lesson here is that working directly with PHOAS terms can easily lead to extremely intricate proofs.  It is usually a better idea to stick to inductive proofs about %\textit{%#<i>#instantiated#</i>#%}% PHOAS terms; in the case of this example, that means proofs about [exp] instead of [Exp].  Such results can usually be wrapped into results about [Exp] without further induction.  Different theorems demand different variants of this underlying advice, and we will consider several of them in the chapters to come. *)
