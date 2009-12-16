@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import Arith List.
+Require Import Arith Eqdep List.
 
 Require Import Axioms DepList Tactics.
 
@@ -279,4 +279,91 @@ Lemma Wf_wf : forall t (E : Exp t),
   Wf E
   -> wf nil (E (fun _ => nat)).
   intros; eapply Wf_wf'; eauto.
+Qed.
+
+Theorem None_Some : forall T (x : T),
+  None = Some x
+  -> False.
+  congruence.
+Qed.
+
+Theorem Some_Some : forall T (x y : T),
+  Some x = Some y
+  -> x = y.
+  congruence.
+Qed.
+
+Fixpoint makeVar {ts n t} : ts ## n = Some t -> member t ts :=
+  match ts return ts ## n = Some t -> member t ts with
+    | nil => fun Heq => match None_Some Heq with end
+    | t' :: ts' => if eq_nat_dec n (length ts') as b
+      return (if b then Some t' else lookup ts' n) = Some t -> member t (t' :: ts')
+      then fun Heq => match Some_Some Heq in _ = t0 return member t0 (t' :: ts') with
+                        | refl_equal => HFirst
+                      end
+      else fun Heq => HNext (makeVar Heq)
+  end.
+
+Axiom cheat : forall T, T.
+
+Fixpoint dbify {ts} t (e : Phoas.exp (fun _ => nat) t) : wf ts e -> DeBruijn.exp ts t :=
+  match e in Phoas.exp _ t return wf ts e -> DeBruijn.exp ts t with
+    | Phoas.Var _ n => fun wf => DeBruijn.Var (makeVar wf)
+
+    | Phoas.Const n => fun _ => DeBruijn.Const n
+    | Phoas.Plus e1 e2 => fun wf => DeBruijn.Plus (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
+
+    | Phoas.App _ _ e1 e2 => fun wf => DeBruijn.App (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
+    | Phoas.Abs _ _ e1 => fun wf => DeBruijn.Abs (dbify (e1 (length ts)) wf)
+  end.
+
+Definition Dbify t (E : Phoas.Exp t) (W : Wf E) : DeBruijn.exp nil t :=
+  dbify (E _) (Wf_wf W).
+
+Fixpoint makeG' ts (s : hlist typeDenote ts) : list { t : type & nat * typeDenote t }%type :=
+  match s with
+    | HNil => nil
+    | HCons _ ts' v s' => existT _ _ (length ts', v) :: makeG' s'
+  end.
+
+Lemma In_makeG'_contra' : forall t v2 ts (s : hlist _ ts) n,
+  In (existT _ t (n, v2)) (makeG' s)
+  -> n >= length ts
+  -> False.
+  induction s; crush; eauto.
+Qed.
+
+Lemma In_makeG'_contra : forall t v2 ts (s : hlist _ ts),
+  In (existT _ t (length ts, v2)) (makeG' s)
+  -> False.
+  intros; eapply In_makeG'_contra'; eauto.
+Qed.
+
+Hint Resolve In_makeG'_contra.
+
+Lemma In_makeG' : forall t v1 v2 ts s (w : ts ## v1 = Some t),
+  In (existT _ t (v1, v2)) (makeG' s)
+  -> hget s (makeVar w) = v2.
+  induction s; crush;
+    match goal with
+      | [ |- context[if ?E then _ else _] ] => destruct E; crush
+    end;
+    repeat match goal with
+             | [ |- context[match ?pf with refl_equal => _ end] ] => rewrite (UIP_refl _ _ pf)
+           end; crush; elimtype False; eauto.
+Qed.
+
+Hint Resolve In_makeG'.
+
+Lemma dbify_sound : forall G t (e1 : Phoas.exp _ t) (e2 : Phoas.exp _ t),
+  exp_equiv G e1 e2
+  -> forall ts (w : wf ts e1) s,
+    G = makeG' s
+    -> DeBruijn.expDenote (dbify e1 w) s = Phoas.expDenote e2.
+  induction 1; crush; ext_eq; crush.
+Qed.
+
+Theorem Dbify_sound : forall t (E : Exp t) (W : Wf E),
+  DeBruijn.expDenote (Dbify W) HNil = Phoas.ExpDenote E.
+  unfold Dbify, Phoas.ExpDenote; intros; eapply dbify_sound; eauto.
 Qed.
