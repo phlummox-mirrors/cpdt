@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import List.
+Require Import Arith List.
 
 Require Import Axioms DepList Tactics.
 
@@ -107,6 +107,8 @@ Module Phoas.
       (forall v1 v2, exp_equiv (existT _ t1 (v1, v2) :: G) (f1 v1) (f2 v2))
       -> exp_equiv G (Abs f1) (Abs f2).
   End exp_equiv.
+
+  Definition Wf t (E : Exp t) := forall var1 var2, exp_equiv nil (E var1) (E var2).
 End Phoas.
 (* end hide *)
 
@@ -200,5 +202,81 @@ Section vars.
   Qed.
 End vars.
 
+Theorem Phoasify_wf : forall t (e : DeBruijn.exp nil t),
+  Wf (Phoasify e).
+  unfold Wf, Phoasify; intros;
+    apply (phoasify_wf e (HNil (B := var1)) (HNil (B := var2))).
+Qed.
+
 
 (** * From PHOAS to De Bruijn *)
+
+Fixpoint lookup (G : list type) (n : nat) : option type :=
+  match G with
+    | nil => None
+    | t :: G' => if eq_nat_dec n (length G') then Some t else lookup G' n
+  end.
+
+Infix "##" := lookup (left associativity, at level 1).
+
+Fixpoint wf (ts : list type) t (e : Phoas.exp (fun _ => nat) t) : Prop :=
+  match e with
+    | Phoas.Var t n => ts ## n = Some t
+    | Phoas.Const _ => True
+    | Phoas.Plus e1 e2 => wf ts e1 /\ wf ts e2
+    | Phoas.App _ _ e1 e2 => wf ts e1 /\ wf ts e2
+    | Phoas.Abs t1 _ e1 => wf (t1 :: ts) (e1 (length ts))
+  end.
+
+Fixpoint makeG (ts : list type) : list { t : type & nat * nat }%type :=
+  match ts with
+    | nil => nil
+    | t :: ts' => existT _ t (length ts', length ts') :: makeG ts'
+  end.
+
+Opaque eq_nat_dec.
+Hint Extern 1 (_ >= _) => omega.
+
+Lemma lookup_contra' : forall t ts n,
+  ts ## n = Some t
+  -> n >= length ts
+  -> False.
+  induction ts; crush;
+    match goal with
+      | [ _ : context[if ?E then _ else _] |- _ ] => destruct E; crush
+    end; eauto.
+Qed.
+
+Lemma lookup_contra : forall t ts,
+  ts ## (length ts) = Some t
+  -> False.
+  intros; eapply lookup_contra'; eauto.
+Qed.
+
+Hint Resolve lookup_contra.
+
+Lemma lookup_In : forall t v1 v2 ts,
+  In (existT (fun _ : type => (nat * nat)%type) t (v1, v2)) (makeG ts)
+  -> ts ## v1 = Some t.
+  induction ts; crush;
+    match goal with
+      | [ |- context[if ?E then _ else _] ] => destruct E; crush
+    end; elimtype False; eauto.
+Qed.
+
+Hint Resolve lookup_In.
+
+Hint Extern 1 (_ :: _ = makeG (_ :: _)) => reflexivity.
+
+Lemma Wf_wf' : forall G t e1 (e2 : Phoas.exp (fun _ => nat) t),
+  exp_equiv G e1 e2
+  -> forall ts, G = makeG ts
+    -> wf ts e1.
+  induction 1; crush; eauto.
+Qed.
+
+Lemma Wf_wf : forall t (E : Exp t),
+  Wf E
+  -> wf nil (E (fun _ => nat)).
+  intros; eapply Wf_wf'; eauto.
+Qed.
