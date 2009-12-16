@@ -85,14 +85,14 @@ Module Source.
 
   Bind Scope source_scope with exp.
 
-  Definition zero : Exp Nat := fun _ => ^0.
-  Definition one : Exp Nat := fun _ => ^1.
-  Definition zpo : Exp Nat := fun _ => zero _ +^ one _.
-  Definition ident : Exp (Nat --> Nat) := fun _ => \x, #x.
-  Definition app_ident : Exp Nat := fun _ => ident _ @ zpo _.
-  Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
+  Example zero : Exp Nat := fun _ => ^0.
+  Example one : Exp Nat := fun _ => ^1.
+  Example zpo : Exp Nat := fun _ => zero _ +^ one _.
+  Example ident : Exp (Nat --> Nat) := fun _ => \x, #x.
+  Example app_ident : Exp Nat := fun _ => ident _ @ zpo _.
+  Example app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
     \f, \x, #f @ #x.
-  Definition app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
+  Example app_ident' : Exp Nat := fun _ => app _ @ ident _ @ zpo _.
 
   Fixpoint typeDenote (t : type) : Set :=
     match t with
