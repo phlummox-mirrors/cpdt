@@ -18,10 +18,105 @@ Set Implicit Arguments.
 
 (** %\chapter{Higher-Order Abstract Syntax}% *)
 
-(** TODO: Prose for this chapter *)
+(** In many cases, detailed reasoning about variable binders and substitution is a small annoyance; in other cases, it becomes the dominant cost of proving a theorem formally.  No matter which of these possibilities prevails, it is clear that it would be very pragmatic to find a way to avoid reasoning about variable identity or freshness.  A well-established alternative to first-order encodings is %\textit{%#<i>#higher-order abstract syntax#</i>#%}%, or HOAS.  In mechanized theorem-proving, HOAS is most closely associated with the LF meta logic and the tools based on it, including Twelf.
+
+In this chapter, we will see that HOAS cannot be implemented directly in Coq.  However, a few very similar encodings are possible and are in fact very effective in some important domains. *)
 
 
-(** * Parametric Higher-Order Abstract Syntax *)
+(** * Classic HOAS *)
+
+(** The motto of HOAS is simple: represent object language binders using meta language binders.  Here, "object language" refers to the language being formalized, while the meta language is the language in which the formalization is done.  Our usual meta language, Coq's Gallina, contains the standard binding facilities of functional programming, making it a promising base for higher-order encodings.
+
+   Recall the concrete encoding of basic untyped lambda calculus expressions. *)
+
+Inductive uexp : Set :=
+| UVar : string -> uexp
+| UApp : uexp -> uexp -> uexp
+| UAbs : string -> uexp -> uexp.
+
+(** The explicit presence of variable names forces us to think about issues of freshness and variable capture.  The HOAS alternative would look like this. *)
+
+Reset uexp.
+
+(** [[
+Inductive uexp : Set :=
+| UApp : uexp -> uexp -> uexp
+| UAbs : (uexp -> uexp) -> uexp.
+ 
+  ]]
+
+  We have avoided any mention of variables.  Instead, we encode the binding done by abstraction using the binding facilities associated with Gallina functions.  For instance, we might represent the term $\lambda x. \; x \; x$#<tt>\x. x x</tt># as [UAbs (fun x => UApp x x)].  Coq has built-in support for matching binders in anonymous [fun] expressions to their uses, so we avoid needing to implement our own binder-matching logic.
+
+  This definition is not quite HOAS, because of the broad variety of functions that Coq would allow us to pass as arguments to [UAbs].  We can thus construct many [uexp]s that do not correspond to normal lambda terms.  These deviants are called %\textit{%#<i>#exotic terms#</i>#%}%.  In LF, functions may only be written in a very restrictive computational language, lacking, among other things, pattern matching and recursive function definitions.  Thus, thanks to a careful balancing act of design decisions, exotic terms are not possible with usual HOAS encodings in LF.
+
+  Our definition of [uexp] has a more fundamental problem: it is invalid in Gallina.
+
+  [[
+Error: Non strictly positive occurrence of "uexp" in
+ "(uexp -> uexp) -> uexp".
+ 
+  ]]
+
+  We have violated a rule that we considered before: an inductive type may not be defined in terms of functions over itself.  Way back in Chapter 3, we considered this example and the reasons why we should be glad that Coq rejects it.  Thus, we will need to use more cleverness to reap similar benefits.
+
+  The root problem is that our expressions contain variables representing expressions of the same kind.  Many useful kinds of syntax involve no such cycles.  For instance, it is easy to use HOAS to encode standard first-order logic in Coq. *)
+
+Inductive prop : Type :=
+| Eq : forall T, T -> T -> prop
+| Not : prop -> prop
+| And : prop -> prop -> prop
+| Or : prop -> prop -> prop
+| Forall : forall T, (T -> prop) -> prop
+| Exists : forall T, (T -> prop) -> prop.
+
+Fixpoint propDenote (p : prop) : Prop :=
+  match p with
+    | Eq _ x y => x = y
+    | Not p => ~ (propDenote p)
+    | And p1 p2 => propDenote p1 /\ propDenote p2
+    | Or p1 p2 => propDenote p1 \/ propDenote p2
+    | Forall _ f => forall x, propDenote (f x)
+    | Exists _ f => exists x, propDenote (f x)
+  end.
+
+(** Unfortunately, there are other recursive functions that we might like to write but cannot.  One simple example is a function to count the number of constructors used to build a [prop].  To look inside a [Forall] or [Exists], we need to look inside the quantifier's body, which is represented as a function.  In Gallina, as in most statically-typed functional languages, the only way to interact with a function is to call it.  We have no hope of doing that here; the domain of the function in question has an arbitary type [T], so [T] may even be uninhabited.  If we had a universal way of constructing values to look inside functions, we would have uncovered a consistency bug in Coq!
+
+   We are still suffering from the possibility of writing exotic terms, such as this example: *)
+
+Example true_prop := Eq 1 1.
+Example false_prop := Not true_prop.
+Example exotic_prop := Forall (fun b : bool => if b then true_prop else false_prop).
+
+(** Thus, the idea of a uniform way of looking inside a binder to find another well-defined [prop] is hopelessly doomed.
+
+   A clever HOAS variant called %\textit{%#<i>#weak HOAS#</i>#%}% manages to rule out exotic terms in Coq.  Here is a weak HOAS version of untyped lambda terms. *)
+
+Parameter var : Set.
+
+Inductive uexp : Set :=
+| UVar : var -> uexp
+| UApp : uexp -> uexp -> uexp
+| UAbs : (var -> uexp) -> uexp.
+
+(** We postulate the existence of some set [var] of variables, and variable nodes appear explicitly in our syntax.  A binder is represented as a function over %\textit{%#<i>#variables#</i>#%}%, rather than as a function over %\textit{%#<i>#expressions#</i>#%}%.  This breaks the cycle that led Coq to reject the literal HOAS definition.  It is easy to encode our previous example, $\lambda x. \; x \; x$#<tt>\x. x x</tt>#: *)
+
+Example self_app := UAbs (fun x => UApp (UVar x) (UVar x)).
+
+(** What about exotic terms?  The problems they caused earlier came from the fact that Gallina is expressive enough to allow us to perform case analysis on the types we used as the domains of binder functions.  With weak HOAS, we use an abstract type [var] as the domain.  Since we assume the existence of no functions for deconstructing [var]s, Coq's type soundness enforces that no Gallina term of type [uexp] can take different values depending on the value of a [var] available in the typing context, %\textit{%#<i>#except#</i>#%}% by incorporating those variables into a [uexp] value in a legal way.
+
+   Weak HOAS retains the other disadvantage of our previous example: it is hard to write recursive functions that deconstruct terms.  As with the previous example, some functions %\textit{%#<i>#are#</i>#%}% implementable.  For instance, we can write a function to reverse the function and argument positions of every [UApp] node. *)
+
+Fixpoint swap (e : uexp) : uexp :=
+  match e with
+    | UVar _ => e
+    | UApp e1 e2 => UApp (swap e2) (swap e1)
+    | UAbs e1 => UAbs (fun x => swap (e1 x))
+  end.
+
+(** However, it is still impossible to write a function to compute the size of an expression.  We would still need to manufacture a value of type [var] to peer under a binder, and that is impossible, because [var] is an abstract type. *)
+
+
+(** * Parametric HOAS *)
 
 Inductive type : Type :=
 | Nat : type
