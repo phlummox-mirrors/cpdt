@@ -18,6 +18,10 @@ Set Implicit Arguments.
 
 (** %\chapter{Intensional Transformations}% *)
 
+(** The essential benefit of higher-order encodings is that variable contexts are implicit.  We represent the object language's contexts within the meta language's contexts.  For translations like CPS conversion, this is a clear win, since such translations do not need to keep track of details of which variables are available.  Other important translations, including closure conversion, need to work with variables as first-class, analyzable values.
+
+   Another example is conversion from PHOAS terms to de Bruijn terms.  The output format makes the structure of variables explicit, so the translation requires explicit reasoning about variable identity.  In this chapter, we implement verified translations in both directions between last chapter's PHOAS language and a de Bruijn version of it.  Along the way, we show one approach to avoiding the use of axioms with PHOAS. *)
+
 (* begin hide *)
 
 Inductive type : Type :=
@@ -112,6 +116,8 @@ Module Phoas.
 End Phoas.
 (* end hide *)
 
+(** The de Bruijn version of simply-typed lambda calculus is defined in a manner that should be old hat by now. *)
+
 Module DeBruijn.
   Inductive exp : list type -> type -> Type :=
     | Var : forall G t,
@@ -148,6 +154,8 @@ Import Phoas DeBruijn.
 
 (** * From De Bruijn to PHOAS *)
 
+(** The heart of the translation into PHOAS is this function [phoasify], which is parameterized by an [hlist] that represents a mapping from de Bruijn variables to PHOAS variables. *)
+
 Section phoasify.
   Variable var : type -> Type.
 
@@ -166,19 +174,36 @@ End phoasify.
 Definition Phoasify t (e : DeBruijn.exp nil t) : Phoas.Exp t :=
   fun _ => phoasify e HNil.
 
+(** It turns out to be trivial to establish the translation's soundness. *)
+
 Theorem phoasify_sound : forall G t (e : DeBruijn.exp G t) s,
   Phoas.expDenote (phoasify e s) = DeBruijn.expDenote e s.
   induction e; crush; ext_eq; crush.
 Qed.
 
+(** We can prove that any output of [Phoasify] is well-formed, in a sense strong enough to let us avoid asserting last chapter's axiom. *)
+
+Print Wf.
+(** %\vspace{-.15in}% [[
+Wf = 
+fun (t : type) (E : Exp t) =>
+forall var1 var2 : type -> Type, exp_equiv nil (E var1) (E var2)
+     : forall t : type, Exp t -> Prop
+     ]] *)
+
 Section vars.
   Variables var1 var2 : type -> Type.
 
-  Fixpoint zip G (s1 : hlist var1 G) : hlist var2 G -> list {t : type & var1 t * var2 t}%type :=
+  (** In the course of proving well-formedness, we will need to translate back and forth between the de Bruijn and PHOAS representations of free variable information.  The function [zip] combines two de Bruijn substitutions into a single PHOAS context. *)
+
+  Fixpoint zip G (s1 : hlist var1 G)
+    : hlist var2 G -> list {t : type & var1 t * var2 t}%type :=
     match s1 with
       | HNil => fun _ => nil
       | HCons _ _ v1 s1' => fun s2 => existT _ _ (v1, hhd s2) :: zip s1' (htl s2)
     end.
+
+  (** Two simple lemmas about [zip] will make useful hints. *)
 
   Lemma In_zip : forall t G (s1 : hlist _ G) s2 (m : member t G),
     In (existT _ t (hget s1 m, hget s2 m)) (zip s1 s2).
@@ -194,7 +219,9 @@ Section vars.
 
   Hint Resolve In_zip unsimpl_zip.
 
-  Theorem phoasify_wf : forall G t (e : DeBruijn.exp G t) s1 s2,
+  (** Now it is trivial to prove the main inductive lemma about well-formedness. *)
+
+  Lemma phoasify_wf : forall G t (e : DeBruijn.exp G t) s1 s2,
     exp_equiv (zip s1 s2) (phoasify e s1) (phoasify e s2).
     Hint Constructors exp_equiv.
     
@@ -202,22 +229,32 @@ Section vars.
   Qed.
 End vars.
 
+(** We apply [phoasify_wf] manually to prove the final theorem. *)
+
 Theorem Phoasify_wf : forall t (e : DeBruijn.exp nil t),
   Wf (Phoasify e).
   unfold Wf, Phoasify; intros;
     apply (phoasify_wf e (HNil (B := var1)) (HNil (B := var2))).
 Qed.
 
+(** Now, if we compose [Phoasify] with any translation over PHOAS terms, we can verify the composed translation without relying on axioms.  The conclusion of [Phoasify_wf] is robustly useful in verifying a wide variety of translations that use a wide variety of [var] instantiations. *)
+
 
 (** * From PHOAS to De Bruijn *)
 
-Fixpoint lookup (G : list type) (n : nat) : option type :=
-  match G with
+(** The translation to de Bruijn terms is more involved.  We will essentially be instantiating and using a PHOAS term following a convention isomorphic to %\textit{%#<i>#de Bruijn levels#</i>#%}%, which are different from the de Bruijn indices that we have treated so far.  With levels, a given bound variable is referred to by the same number at each of its occurrences.  In any expression, the binders that are not enclosed by other binders are assigned level 0, a binder with just one enclosing binder is assigned level 1, and so on.  The uniformity of references to any binder will be critical to our translation, since it is compatible with the pattern of filling in all of a PHOAS variable's locations at once by applying a function.
+
+   We implement a special lookup function, for reading a numbered variable's type out of a de Bruijn level typing context.  The last variable in the list is taken to have level 0, the next-to-last level 1, and so on. *)
+
+Fixpoint lookup (ts : list type) (n : nat) : option type :=
+  match ts with
     | nil => None
-    | t :: G' => if eq_nat_dec n (length G') then Some t else lookup G' n
+    | t :: ts' => if eq_nat_dec n (length ts') then Some t else lookup ts' n
   end.
 
 Infix "##" := lookup (left associativity, at level 1).
+
+(** With [lookup], we can define a notion of well-formedness for PHOAS expressions that we are treating according to the de Bruijn level convention. *)
 
 Fixpoint wf (ts : list type) t (e : Phoas.exp (fun _ => nat) t) : Prop :=
   match e with
@@ -228,11 +265,17 @@ Fixpoint wf (ts : list type) t (e : Phoas.exp (fun _ => nat) t) : Prop :=
     | Phoas.Abs t1 _ e1 => wf (t1 :: ts) (e1 (length ts))
   end.
 
+(** ** Connecting Notions of Well-Formedness *)
+
+(** Our first order of business now is to prove that any well-formed [Exp] instantiates to a well-formed de Bruijn level expression.  We start by characterizing, as a function of de Bruijn level contexts, the set of PHOAS contexts that will occur in the proof, where we will be inducting over an [exp_equiv] derivation. *)
+
 Fixpoint makeG (ts : list type) : list { t : type & nat * nat }%type :=
   match ts with
     | nil => nil
     | t :: ts' => existT _ t (length ts', length ts') :: makeG ts'
   end.
+
+(** Now we prove a connection between [lookup] and [makeG], by way of a lemma about [lookup]. *)
 
 Opaque eq_nat_dec.
 Hint Extern 1 (_ >= _) => omega.
@@ -266,6 +309,8 @@ Qed.
 
 Hint Resolve lookup_In.
 
+(** We can prove the main inductive lemma by induction over [exp_equiv] derivations. *)
+
 Hint Extern 1 (_ :: _ = makeG (_ :: _)) => reflexivity.
 
 Lemma Wf_wf' : forall G t e1 (e2 : Phoas.exp (fun _ => nat) t),
@@ -281,6 +326,10 @@ Lemma Wf_wf : forall t (E : Exp t),
   intros; eapply Wf_wf'; eauto.
 Qed.
 
+(** ** The Translation *)
+
+(** Implementing the translation itself will require some proofs.  Our main function [dbify] will take [wf] proofs as arguments, and these proofs will be critical to constructing de Bruijn index terms.  First, we use [congruence] to prove two basic theorems about [option]s. *)
+
 Theorem None_Some : forall T (x : T),
   None = Some x
   -> False.
@@ -293,38 +342,46 @@ Theorem Some_Some : forall T (x y : T),
   congruence.
 Qed.
 
+(** We can use these theorems to implement [makeVar], which translates a proof about [lookup] into a de Bruijn index variable with a closely related type. *)
+
 Fixpoint makeVar {ts n t} : ts ## n = Some t -> member t ts :=
-  match ts return ts ## n = Some t -> member t ts with
+  match ts with
     | nil => fun Heq => match None_Some Heq with end
-    | t' :: ts' => if eq_nat_dec n (length ts') as b
-      return (if b then Some t' else lookup ts' n) = Some t -> member t (t' :: ts')
-      then fun Heq => match Some_Some Heq in _ = t0 return member t0 (t' :: ts') with
-                        | refl_equal => HFirst
-                      end
+    | t' :: ts' => if eq_nat_dec n (length ts') as b return (if b then _ else _) = _ -> _
+      then fun Heq => match Some_Some Heq with refl_equal => HFirst end
       else fun Heq => HNext (makeVar Heq)
   end.
 
-Axiom cheat : forall T, T.
+(** Now [dbify] is straightforward to define.  We use the functions [proj1] and [proj2] to decompose proofs of conjunctions. *)
 
 Fixpoint dbify {ts} t (e : Phoas.exp (fun _ => nat) t) : wf ts e -> DeBruijn.exp ts t :=
   match e in Phoas.exp _ t return wf ts e -> DeBruijn.exp ts t with
     | Phoas.Var _ n => fun wf => DeBruijn.Var (makeVar wf)
 
     | Phoas.Const n => fun _ => DeBruijn.Const n
-    | Phoas.Plus e1 e2 => fun wf => DeBruijn.Plus (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
+    | Phoas.Plus e1 e2 => fun wf =>
+      DeBruijn.Plus (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
 
-    | Phoas.App _ _ e1 e2 => fun wf => DeBruijn.App (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
+    | Phoas.App _ _ e1 e2 => fun wf =>
+      DeBruijn.App (dbify e1 (proj1 wf)) (dbify e2 (proj2 wf))
     | Phoas.Abs _ _ e1 => fun wf => DeBruijn.Abs (dbify (e1 (length ts)) wf)
   end.
+
+(** We define the parametric translation [Dbify] by appealing to the well-formedness translation theorem [Wf_wf] that we proved earlier. *)
 
 Definition Dbify t (E : Phoas.Exp t) (W : Wf E) : DeBruijn.exp nil t :=
   dbify (E _) (Wf_wf W).
 
-Fixpoint makeG' ts (s : hlist typeDenote ts) : list { t : type & nat * typeDenote t }%type :=
+(** To prove soundness, it is helpful to classify a set of contexts which depends on a de Bruijn index substitution. *)
+
+Fixpoint makeG' ts (s : hlist typeDenote ts)
+  : list { t : type & nat * typeDenote t }%type :=
   match s with
     | HNil => nil
     | HCons _ ts' v s' => existT _ _ (length ts', v) :: makeG' s'
   end.
+
+(** We prove an analogous lemma to the one we proved connecting [makeG] and [lookup].  This time, we connect [makeG'] and [hget]. *)
 
 Lemma In_makeG'_contra' : forall t v2 ts (s : hlist _ ts) n,
   In (existT _ t (n, v2)) (makeG' s)
@@ -349,11 +406,14 @@ Lemma In_makeG' : forall t v1 v2 ts s (w : ts ## v1 = Some t),
       | [ |- context[if ?E then _ else _] ] => destruct E; crush
     end;
     repeat match goal with
-             | [ |- context[match ?pf with refl_equal => _ end] ] => rewrite (UIP_refl _ _ pf)
+             | [ |- context[match ?pf with refl_equal => _ end] ] =>
+               rewrite (UIP_refl _ _ pf)
            end; crush; elimtype False; eauto.
 Qed.
 
 Hint Resolve In_makeG'.
+
+(** Now the main inductive lemma can be stated and proved simply. *)
 
 Lemma dbify_sound : forall G t (e1 : Phoas.exp _ t) (e2 : Phoas.exp _ t),
   exp_equiv G e1 e2
@@ -362,6 +422,8 @@ Lemma dbify_sound : forall G t (e1 : Phoas.exp _ t) (e2 : Phoas.exp _ t),
     -> DeBruijn.expDenote (dbify e1 w) s = Phoas.expDenote e2.
   induction 1; crush; ext_eq; crush.
 Qed.
+
+(** In the usual way, we wrap [dbify_sound] into the final soundness theorem, formally establishing the expressive equivalence of PHOAS and de Bruijn index terms. *)
 
 Theorem Dbify_sound : forall t (E : Exp t) (W : Wf E),
   DeBruijn.expDenote (Dbify W) HNil = Phoas.ExpDenote E.
