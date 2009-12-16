@@ -7,7 +7,198 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
+(* begin hide *)
+Require Import List.
+
+Require Import Axioms DepList Tactics.
+
+Set Implicit Arguments.
+(* end hide *)
+
 
 (** %\chapter{Intensional Transformations}% *)
 
-(** TODO: This chapter!  (Old version was too complicated) *)
+(* begin hide *)
+
+Inductive type : Type :=
+| Nat : type
+| Arrow : type -> type -> type.
+
+Infix "-->" := Arrow (right associativity, at level 60).
+
+Fixpoint typeDenote (t : type) : Set :=
+  match t with
+    | Nat => nat
+    | t1 --> t2 => typeDenote t1 -> typeDenote t2
+  end.
+
+Module Phoas.
+  Section vars.
+    Variable var : type -> Type.
+
+    Inductive exp : type -> Type :=
+    | Var : forall t,
+      var t
+      -> exp t
+
+    | Const : nat -> exp Nat
+    | Plus : exp Nat -> exp Nat -> exp Nat
+
+    | App : forall t1 t2,
+      exp (t1 --> t2)
+      -> exp t1
+      -> exp t2
+    | Abs : forall t1 t2,
+      (var t1 -> exp t2)
+      -> exp (t1 --> t2).
+  End vars.
+
+  Definition Exp t := forall var, exp var t.
+
+  Implicit Arguments Var [var t].
+  Implicit Arguments Const [var].
+  Implicit Arguments Plus [var].
+  Implicit Arguments App [var t1 t2].
+  Implicit Arguments Abs [var t1 t2].
+
+  Notation "# v" := (Var v) (at level 70).
+
+  Notation "^ n" := (Const n) (at level 70).
+  Infix "+^" := Plus (left associativity, at level 79).
+
+  Infix "@" := App (left associativity, at level 77).
+  Notation "\ x , e" := (Abs (fun x => e)) (at level 78).
+  Notation "\ ! , e" := (Abs (fun _ => e)) (at level 78).
+
+  Fixpoint expDenote t (e : exp typeDenote t) : typeDenote t :=
+    match e with
+      | Var _ v => v
+        
+      | Const n => n
+      | Plus e1 e2 => expDenote e1 + expDenote e2
+        
+      | App _ _ e1 e2 => (expDenote e1) (expDenote e2)
+      | Abs _ _ e' => fun x => expDenote (e' x)
+    end.
+
+  Definition ExpDenote t (e : Exp t) := expDenote (e _).
+
+  Section exp_equiv.
+    Variables var1 var2 : type -> Type.
+
+    Inductive exp_equiv : list { t : type & var1 t * var2 t }%type
+      -> forall t, exp var1 t -> exp var2 t -> Prop :=
+    | EqVar : forall G t (v1 : var1 t) v2,
+      In (existT _ t (v1, v2)) G
+      -> exp_equiv G (#v1) (#v2)
+
+    | EqConst : forall G n,
+      exp_equiv G (^n) (^n)
+    | EqPlus : forall G x1 y1 x2 y2,
+      exp_equiv G x1 x2
+      -> exp_equiv G y1 y2
+      -> exp_equiv G (x1 +^ y1) (x2 +^ y2)
+
+    | EqApp : forall G t1 t2 (f1 : exp _ (t1 --> t2)) (x1 : exp _ t1) f2 x2,
+      exp_equiv G f1 f2
+      -> exp_equiv G x1 x2
+      -> exp_equiv G (f1 @ x1) (f2 @ x2)
+    | EqAbs : forall G t1 t2 (f1 : var1 t1 -> exp var1 t2) f2,
+      (forall v1 v2, exp_equiv (existT _ t1 (v1, v2) :: G) (f1 v1) (f2 v2))
+      -> exp_equiv G (Abs f1) (Abs f2).
+  End exp_equiv.
+End Phoas.
+(* end hide *)
+
+Module DeBruijn.
+  Inductive exp : list type -> type -> Type :=
+    | Var : forall G t,
+      member t G
+      -> exp G t
+
+    | Const : forall G, nat -> exp G Nat
+    | Plus : forall G, exp G Nat -> exp G Nat -> exp G Nat
+
+    | App : forall G t1 t2,
+      exp G (t1 --> t2)
+      -> exp G t1
+      -> exp G t2
+    | Abs : forall G t1 t2,
+      exp (t1 :: G) t2
+      -> exp G (t1 --> t2).
+
+  Implicit Arguments Const [G].
+
+  Fixpoint expDenote G t (e : exp G t) : hlist typeDenote G -> typeDenote t :=
+    match e with
+      | Var _ _ v => fun s => hget s v
+        
+      | Const _ n => fun _ => n
+      | Plus _ e1 e2 => fun s => expDenote e1 s + expDenote e2 s
+        
+      | App _ _ _ e1 e2 => fun s => (expDenote e1 s) (expDenote e2 s)
+      | Abs _ _ _ e' => fun s x => expDenote e' (x ::: s)
+    end.
+End DeBruijn.
+
+Import Phoas DeBruijn.
+
+
+(** * From De Bruijn to PHOAS *)
+
+Section phoasify.
+  Variable var : type -> Type.
+
+  Fixpoint phoasify G t (e : DeBruijn.exp G t) : hlist var G -> Phoas.exp var t :=
+    match e with
+      | Var _ _ v => fun s => #(hget s v)
+
+      | Const _ n => fun _ => ^n
+      | Plus _ e1 e2 => fun s => phoasify e1 s +^ phoasify e2 s
+
+      | App _ _ _ e1 e2 => fun s => phoasify e1 s @ phoasify e2 s
+      | Abs _ _ _ e' => fun s => \x, phoasify e' (x ::: s)
+    end.
+End phoasify.
+
+Definition Phoasify t (e : DeBruijn.exp nil t) : Phoas.Exp t :=
+  fun _ => phoasify e HNil.
+
+Theorem phoasify_sound : forall G t (e : DeBruijn.exp G t) s,
+  Phoas.expDenote (phoasify e s) = DeBruijn.expDenote e s.
+  induction e; crush; ext_eq; crush.
+Qed.
+
+Section vars.
+  Variables var1 var2 : type -> Type.
+
+  Fixpoint zip G (s1 : hlist var1 G) : hlist var2 G -> list {t : type & var1 t * var2 t}%type :=
+    match s1 with
+      | HNil => fun _ => nil
+      | HCons _ _ v1 s1' => fun s2 => existT _ _ (v1, hhd s2) :: zip s1' (htl s2)
+    end.
+
+  Lemma In_zip : forall t G (s1 : hlist _ G) s2 (m : member t G),
+    In (existT _ t (hget s1 m, hget s2 m)) (zip s1 s2).
+    induction s1; intro s2; dep_destruct s2; intro m; dep_destruct m; crush.
+  Qed.
+
+  Lemma unsimpl_zip : forall t (v1 : var1 t) (v2 : var2 t)
+    G (s1 : hlist _ G) s2 t' (e1 : Phoas.exp _ t') e2,
+   exp_equiv (zip (v1 ::: s1) (v2 ::: s2)) e1 e2
+   -> exp_equiv (existT _ _ (v1, v2) :: zip s1 s2) e1 e2.
+    trivial.
+  Qed.
+
+  Hint Resolve In_zip unsimpl_zip.
+
+  Theorem phoasify_wf : forall G t (e : DeBruijn.exp G t) s1 s2,
+    exp_equiv (zip s1 s2) (phoasify e s1) (phoasify e s2).
+    Hint Constructors exp_equiv.
+    
+    induction e; crush.
+  Qed.
+End vars.
+
+
+(** * From PHOAS to De Bruijn *)
