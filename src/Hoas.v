@@ -118,11 +118,45 @@ Fixpoint swap (e : uexp) : uexp :=
 
 (** * Parametric HOAS *)
 
+(** In the context of Haskell, Washburn and Weirich introduced a technique called %\emph{%#<i>#parametric HOAS#</i>#%}%, or PHOAS.  By making a slight alteration in the spirit of weak HOAS, we arrive at an encoding that addresses all three of the complaints above: the encoding is legal in Coq, exotic terms are impossible, and it is possible to write any syntax-deconstructing function that we can write with first-order encodings.  The last of these advantages is not even present with HOAS in Twelf.  In a sense, we receive it in exchange for giving up a free implementation of capture-avoiding substitution.
+
+   The first step is to change the weak HOAS type so that [var] is a variable inside a section, rather than a global parameter. *)
+
+Reset uexp.
+
+Section uexp.
+  Variable var : Set.
+
+  Inductive uexp : Set :=
+  | UVar : var -> uexp
+  | UApp : uexp -> uexp -> uexp
+  | UAbs : (var -> uexp) -> uexp.
+End uexp.
+
+(** Next, we can encapsulate choices of [var] inside a polymorphic function type. *)
+
+Definition Uexp := forall var, uexp var.
+
+(** This type [Uexp] is our final, exotic-term-free representation of lambda terms.  Inside the body of a [Uexp] function, [var] values may not be deconstructed illegaly, for much the same reason as with weak HOAS.  We simply trade an abstract type for parametric polymorphism.
+
+   Our running example $\lambda x. \; x \; x$#<tt>\x. x x</tt># is easily expressed: *)
+
+Example self_app : Uexp := fun var => UAbs (var := var)
+  (fun x : var => UApp (var := var) (UVar (var := var) x) (UVar (var := var) x)).
+
+(** Including all mentions of [var] explicitly helps clarify what is happening here, but it is convenient to let Coq's local type inference fill in these occurrences for us. *)
+
+Example self_app' : Uexp := fun _ => UAbs (fun x => UApp (UVar x) (UVar x)).
+
+(** We can go further and apply the PHOAS technique to dependently-typed ASTs, where Gallina typing guarantees that only well-typed terms can be represented.  For the rest of this chapter, we consider the example of simply-typed lambda calculus with natural numbers and addition.  We start with a conventional definition of the type language. *)
+
 Inductive type : Type :=
 | Nat : type
 | Arrow : type -> type -> type.
 
 Infix "-->" := Arrow (right associativity, at level 60).
+
+(** Our definition of the expression type follows the definition for untyped lambda calculus, with one important change.  Now our section variable [var] is not just a type.  Rather, it is a %\textit{%#<i>#function#</i>#%}% returning types.  The idea is that a variable of object language type [t] is represented by a [var t].  Note how this enables us to avoid indexing the [exp] type with a representation of typing contexts. *)
 
 Section exp.
   Variable var : type -> Type.
@@ -140,9 +174,13 @@ Implicit Arguments Const' [var].
 Implicit Arguments Var [var t].
 Implicit Arguments Abs' [var dom ran].
 
+(** Our final representation type wraps [exp] as before. *)
+
 Definition Exp t := forall var, exp var t.
+
 (* begin thide *)
-Definition Exp1 t1 t2 := forall var, var t1 -> exp var t2.
+
+(** We can define some smart constructors to make it easier to build [Exp]s without using polymorphism explicitly. *)
 
 Definition Const (n : nat) : Exp Nat :=
   fun _ => Const' n.
@@ -150,22 +188,30 @@ Definition Plus (E1 E2 : Exp Nat) : Exp Nat :=
   fun _ => Plus' (E1 _) (E2 _).
 Definition App dom ran (F : Exp (dom --> ran)) (X : Exp dom) : Exp ran :=
   fun _ => App' (F _) (X _).
+
+(** A case for function abstraction is not as natural, but we can implement one candidate in terms of a type family [Exp1], such that [Exp1 free result] represents an expression of type [result] with one free variable of type [free]. *)
+
+Definition Exp1 t1 t2 := forall var, var t1 -> exp var t2.
 Definition Abs dom ran (B : Exp1 dom ran) : Exp (dom --> ran) :=
   fun _ => Abs' (B _).
 (* end thide *)
 
 (* EX: Define appropriate shorthands, so that these definitions type-check. *)
 
-Definition zero := Const 0.
-Definition one := Const 1.
-Definition one_again := Plus zero one.
-Definition ident : Exp (Nat --> Nat) := Abs (fun _ X => Var X).
-Definition app_ident := App ident one_again.
-Definition app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
+(** Now it is easy to encode a number of example programs. *)
+
+Example zero := Const 0.
+Example one := Const 1.
+Example one_again := Plus zero one.
+Example ident : Exp (Nat --> Nat) := Abs (fun _ X => Var X).
+Example app_ident := App ident one_again.
+Example app : Exp ((Nat --> Nat) --> Nat --> Nat) := fun _ =>
   Abs' (fun f => Abs' (fun x => App' (Var f) (Var x))).
-Definition app_ident' := App (App app ident) one_again.
+Example app_ident' := App (App app ident) one_again.
 
 (* EX: Define a function to count the number of variable occurrences in an [Exp]. *)
+
+(** We can write syntax-deconstructing functions, such as [CountVars], which counts how many [Var] nodes appear in an [Exp].  First, we write a version [countVars] for [exp]s.  The main trick is to specialize [countVars] to work over expressions where [var] is instantiated as [fun _ => unit].  That is, every variable is just a value of type [unit], such that variables carry no information.  The important thing is that we have a value [tt] of type [unit] available, to use in descending into binders. *)
 
 (* begin thide *)
 Fixpoint countVars t (e : exp (fun _ => unit) t) : nat :=
@@ -177,18 +223,59 @@ Fixpoint countVars t (e : exp (fun _ => unit) t) : nat :=
     | Abs' _ _ e' => countVars (e' tt)
   end.
 
+(** We turn [countVars] into [CountVars] with explicit instantiation of a polymorphic [Exp] value [E].  We can write an underscore for the paramter to [E], because local type inference is able to infer the proper value. *)
+
 Definition CountVars t (E : Exp t) : nat := countVars (E _).
 (* end thide *)
 
+(** A few evaluations establish that [CountVars] behaves plausibly. *)
+
 Eval compute in CountVars zero.
+(** %\vspace{-.15in}% [[
+     = 0
+     : nat
+     ]] *)
+
 Eval compute in CountVars one.
+(** %\vspace{-.15in}% [[
+     = 0
+     : nat
+     ]] *)
+
 Eval compute in CountVars one_again.
+(** %\vspace{-.15in}% [[
+     = 0
+     : nat
+     ]] *)
+
 Eval compute in CountVars ident.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+     ]] *)
+
 Eval compute in CountVars app_ident.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+     ]] *)
+
 Eval compute in CountVars app.
+(** %\vspace{-.15in}% [[
+     = 2
+     : nat
+     ]] *)
+
 Eval compute in CountVars app_ident'.
+(** %\vspace{-.15in}% [[
+     = 3
+     : nat
+     ]] *)
+
 
 (* EX: Define a function to count the number of occurrences of a single distinguished variable. *)
+
+(** We might want to go further and count occurrences of a single distinguished free variable in an expression.  In this case, it is useful to instantiate [var] as [fun _ => bool].  We will represent the distinguished variable with [true] and all other variables with [false]. *)
 
 (* begin thide *)
 Fixpoint countOne t (e : exp (fun _ => bool) t) : nat :=
@@ -201,21 +288,48 @@ Fixpoint countOne t (e : exp (fun _ => bool) t) : nat :=
     | Abs' _ _ e' => countOne (e' false)
   end.
 
+(** We wrap [countOne] into [CountOne], which we type using the [Exp1] definition from before.  [CountOne] operates on an expression [E] with a single free variable.  We apply an instantiated [E] to [true] to mark this variable as the one [countOne] should look for.  [countOne] itself is careful to instantiate all other variables with [false]. *)
+
 Definition CountOne t1 t2 (E : Exp1 t1 t2) : nat :=
   countOne (E _ true).
 (* end thide *)
 
-Definition ident1 : Exp1 Nat Nat := fun _ X => Var X.
-Definition add_self : Exp1 Nat Nat := fun _ X => Plus' (Var X) (Var X).
-Definition app_zero : Exp1 (Nat --> Nat) Nat := fun _ X => App' (Var X) (Const' 0).
-Definition app_ident1 : Exp1 Nat Nat := fun _ X => App' (Abs' (fun Y => Var Y)) (Var X).
+(** We can check the behavior of [CountOne] on a few examples. *)
+
+Example ident1 : Exp1 Nat Nat := fun _ X => Var X.
+Example add_self : Exp1 Nat Nat := fun _ X => Plus' (Var X) (Var X).
+Example app_zero : Exp1 (Nat --> Nat) Nat := fun _ X => App' (Var X) (Const' 0).
+Example app_ident1 : Exp1 Nat Nat := fun _ X =>
+  App' (Abs' (fun Y => Var Y)) (Var X).
 
 Eval compute in CountOne ident1.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+     ]] *)
+
 Eval compute in CountOne add_self.
+(** %\vspace{-.15in}% [[
+     = 2
+     : nat
+     ]] *)
+
 Eval compute in CountOne app_zero.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+     ]] *)
+
 Eval compute in CountOne app_ident1.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+     ]] *)
+
 
 (* EX: Define a function to pretty-print [Exp]s as strings. *)
+
+(** The PHOAS encoding turns out to be just as general as the first-order encodings we saw previously.  To provide a taste of that generality, we implement a translation into concrete syntax, rendered in human-readable strings.  This is as easy as representing variables as strings. *)
 
 (* begin thide *)
 Section ToString.
@@ -226,6 +340,8 @@ Section ToString.
       | O => "O"
       | S n' => "S(" ++ natToString n' ++ ")"
     end.
+
+  (** Function [toString] takes an extra argument [cur], which holds the last variable name assigned to a binder.  We build new variable names by extending [cur] with primes.  The function returns a pair of the next available variable name and of the actual expression rendering. *)
 
   Fixpoint toString t (e : exp (fun _ => string) t) (cur : string) : string * string :=
     match e with
@@ -249,14 +365,51 @@ End ToString.
 (* end thide *)
 
 Eval compute in ToString zero.
+(** %\vspace{-.15in}% [[
+     = "O"%string
+     : string
+   ]] *)
+
 Eval compute in ToString one.
+(** %\vspace{-.15in}% [[
+     = "S(O)"%string
+     : string
+   ]] *)
+
 Eval compute in ToString one_again.
+(** %\vspace{-.15in}% [[
+     = "(O) + (S(O))"%string
+     : string
+   ]] *)
+
 Eval compute in ToString ident.
+(** %\vspace{-.15in}% [[
+     = "(\x, x)"%string
+     : string
+   ]] *)
+
 Eval compute in ToString app_ident.
+(** %\vspace{-.15in}% [[
+     = "((\x, x)) ((O) + (S(O)))"%string
+     : string
+   ]] *)
+
 Eval compute in ToString app.
+(** %\vspace{-.15in}% [[
+     = "(\x, (\x', (x) (x')))"%string
+     : string
+   ]] *)
+
 Eval compute in ToString app_ident'.
+(** %\vspace{-.15in}% [[
+     = "(((\x, (\x', (x) (x')))) ((\x'', x''))) ((O) + (S(O)))"%string
+     : string
+   ]] *)
+
 
 (* EX: Define a substitution function. *)
+
+(** Our final example is crucial to using PHOAS to encode standard operational semantics.  We define capture-avoiding substitution, in terms of a function [flatten] which takes in an expression that represents variables as expressions.  [flatten] replaces every node [Var e] with [e]. *)
 
 (* begin thide *)
 Section flatten.
@@ -272,14 +425,37 @@ Section flatten.
     end.
 End flatten.
 
+(** Flattening turns out to implement the heart of substitution.  We apply [E2], which has one free variable, to [E1], replacing the occurrences of the free variable by copies of [E1].  [flatten] takes care of removing the extra [Var] applications around these copies. *)
+
 Definition Subst t1 t2 (E1 : Exp t1) (E2 : Exp1 t1 t2) : Exp t2 := fun _ =>
   flatten (E2 _ (E1 _)).
 (* end thide *)
 
 Eval compute in Subst one ident1.
+(** %\vspace{-.15in}% [[
+     = fun var : type -> Type => Const' 1
+     : Exp Nat
+   ]] *)
+
 Eval compute in Subst one add_self.
+(** %\vspace{-.15in}% [[
+     = fun var : type -> Type => Plus' (Const' 1) (Const' 1)
+     : Exp Nat
+   ]] *)
+
 Eval compute in Subst ident app_zero.
+(** %\vspace{-.15in}% [[
+     = fun var : type -> Type =>
+       App' (Abs' (fun X : var Nat => Var X)) (Const' 0)
+     : Exp Nat
+   ]] *)
+
 Eval compute in Subst one app_ident1.
+(** %\vspace{-.15in}% [[
+     = fun var : type -> Type =>
+       App' (Abs' (fun x : var Nat => Var x)) (Const' 1)
+     : Exp Nat
+   ]] *)
 
 
 (** * A Type Soundness Proof *)
