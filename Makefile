@@ -2,7 +2,7 @@ MODULES_NODOC := Axioms Tactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
 	MoreDep DataStruct Equality Generic Universes Match Reflection \
-	Large Firstorder Hoas Interps Extensional Intensional OpSem
+	Large Firstorder DeBruijn Hoas Interps Extensional Intensional OpSem
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
