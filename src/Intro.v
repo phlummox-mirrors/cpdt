@@ -215,6 +215,8 @@ Proving in the Large & \texttt{Large.v} \\
 \hline
 First-Order Abstract Syntax & \texttt{Firstorder.v} \\
 \hline
+Dependent De Bruijn Indices & \texttt{DeBruijn.v} \\
+\hline
 Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
 \hline
 Type-Theoretic Interpreters & \texttt{Interps.v} \\
