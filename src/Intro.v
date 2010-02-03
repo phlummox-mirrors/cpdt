@@ -9,6 +9,8 @@
 
 (** %\fi
 
+\usepackage{hyperref}
+
 \begin{document}
 
 \maketitle
@@ -33,6 +35,7 @@ The license text is available at:
 (** %\vfill\mbox{}
 \end{center}
 
+\phantomsection
 \tableofcontents
 
 \chapter{Introduction}% *)
