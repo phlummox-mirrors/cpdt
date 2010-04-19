@@ -574,7 +574,7 @@ Definition UIP_refl' (A : Type) (x : A) (pf : x = x) : pf == refl_equal x :=
 
 (** There is no quick way to write such a proof by tactics, but the underlying proof term that we want is trivial.
 
-   Suppose that we want to use [UIP_refl'] to establish another lemma of the kind of we have run into several times so far. *)
+   Suppose that we want to use [UIP_refl'] to establish another lemma of the kind we have run into several times so far. *)
 
 Lemma lemma4 : forall (A : Type) (x : A) (pf : x = x),
   O = match pf with refl_equal => O end.
