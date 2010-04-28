@@ -669,7 +669,7 @@ End fhapp'.
 (* EX: Show that the approaches based on K and JMeq are equivalent logically. *)
 
 (* begin thide *)
-(** Assuming axioms (like axiom K and [JMeq_eq]) is a hazardous business.  The due diligence associated with it is necessarily global in scope, since two axioms may be consistent alone but inconsistent together.  It turns out that all of the major axioms proposed for reasoning about equality in Coq are logically equivalent, so that we only need to pick one to assert without proof.  In this section, we demonstrate this by showing how each the previous two sections' approaches reduces to the other logically.
+(** Assuming axioms (like axiom K and [JMeq_eq]) is a hazardous business.  The due diligence associated with it is necessarily global in scope, since two axioms may be consistent alone but inconsistent together.  It turns out that all of the major axioms proposed for reasoning about equality in Coq are logically equivalent, so that we only need to pick one to assert without proof.  In this section, we demonstrate this by showing how each of the previous two sections' approaches reduces to the other logically.
 
    To show that [JMeq] and its axiom let us prove [UIP_refl], we start from the lemma [UIP_refl'] from the previous section.  The rest of the proof is trivial. *)
 
