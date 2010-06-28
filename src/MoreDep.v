@@ -121,7 +121,7 @@ Error: Non exhaustive pattern-matching: no clause found for pattern Nil
  
 ]]
 
-Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  We might try using an [in] clause somehow.
+Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  In fact, recent versions of Coq %\textit{%#<i>#do#</i>#%}% allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
