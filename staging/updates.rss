@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Mention that recent versions of Coq allow some omitted "match" cases</title>
+        <pubDate>Mon, 28 Jun 2010 07:59:29 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adam@chlipala.net</author>
+</item>
+
+<item>
         <title>A few small typo fixes</title>
         <pubDate>Sat, 15 May 2010 06:42:47 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
