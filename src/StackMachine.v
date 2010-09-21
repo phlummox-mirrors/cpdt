@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import List.
+Require Import Arith Bool List.
 
 Require Import Tactics.
 
@@ -21,7 +21,7 @@ Set Implicit Arguments.
 
 (** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.2pl1, though parts may work with other versions.
 
-As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines [Require Import List Tactics.] and [Set Implicit Arguments.] at the start of the file, to match some code hidden in this rendering of the chapter source, and be sure to run the Coq binary %\texttt{%#<tt>#coqtop#</tt>#%}% with the command-line argument %\texttt{%#<tt>#-I SRC#</tt>#%}%, where %\texttt{%#<tt>#SRC#</tt>#%}% is the path to a directory containing the source for this book.  In either case, you will need to run %\texttt{%#<tt>#make#</tt>#%}% in the root directory of the source distribution for the book before getting started.  If you have installed Proof General properly, it should start automatically when you visit a %\texttt{%#<tt>#.v#</tt>#%}% buffer in Emacs.
+As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines [Require Import Arith Bool List Tactics.] and [Set Implicit Arguments.] at the start of the file, to match some code hidden in this rendering of the chapter source, and be sure to run the Coq binary %\texttt{%#<tt>#coqtop#</tt>#%}% with the command-line argument %\texttt{%#<tt>#-I SRC#</tt>#%}%, where %\texttt{%#<tt>#SRC#</tt>#%}% is the path to a directory containing the source for this book.  In either case, you will need to run %\texttt{%#<tt>#make#</tt>#%}% in the root directory of the source distribution for the book before getting started.  If you have installed Proof General properly, it should start automatically when you visit a %\texttt{%#<tt>#.v#</tt>#%}% buffer in Emacs.
 
 There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program.  The best way to add settings that will be shared by many source files is to add a custom variable setting to your %\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
 %\begin{verbatim}%#<pre>#(custom-set-variables
@@ -52,7 +52,7 @@ Inductive exp : Set :=
 
 (** Now we define the type of arithmetic expressions.  We write that a constant may be built from one argument, a natural number; and a binary operation may be built from a choice of operator and two operand expressions.
 
-A note for readers following along in the PDF version: coqdoc supports pretty-printing of tokens in LaTeX or HTML.  Where you see a right arrow character, the source contains the ASCII text %\texttt{%#<tt>#->#</tt>#%}%.  Other examples of this substitution appearing in this chapter are a double right arrow for %\texttt{%#<tt>#=>#</tt>#%}% and the inverted 'A' symbol for %\texttt{%#<tt>#forall#</tt>#%}%.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
+A note for readers following along in the PDF version: coqdoc supports pretty-printing of tokens in LaTeX or HTML.  Where you see a right arrow character, the source contains the ASCII text %\texttt{%#<tt>#->#</tt>#%}%.  Other examples of this substitution appearing in this chapter are a double right arrow for %\texttt{%#<tt>#=>#</tt>#%}%, the inverted 'A' symbol for %\texttt{%#<tt>#forall#</tt>#%}%, and the Cartesian product 'X' for %\texttt{%#<tt>#*#</tt>#%}%.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
 
 %\medskip%
 
@@ -419,12 +419,21 @@ We start out the same way as before, introducing new free variables and unfoldin
  
 ]]
 
-What we need is the associative law of list concatenation, available as a theorem [app_ass] in the standard library. *)
+What we need is the associative law of list concatenation, which is available as a theorem [app_ass] in the standard library. *)
 
 Check app_ass.
 (** [[
 app_ass
      : forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
+ 
+]]
+
+If we did not already know the name of the theorem, we could use the [SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
+
+SearchRewrite ((_ ++ _) ++ _).
+(** [[
+app_ass: forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
+ass_app: forall (A : Type) (l m n : list A), l ++ m ++ n = (l ++ m) ++ n
  
 ]]
 
@@ -545,7 +554,9 @@ Qed.
 
 Inductive type : Set := Nat | Bool.
 
-(** Now we define an expanded set of binary operators. *)
+(** Like most programming languages, Coq uses case-sensitive variable names, so that our user-defined type [type] is distinct from the [Type] keyword that we have already seen appear in the statement of a polymorphic theorem (and that we will meet in more detail later), and our constructor names [Nat] and [Bool] are distinct from the types [nat] and [bool] in the standard library.
+
+   Now we define an expanded set of binary operators. *)
 
 Inductive tbinop : type -> type -> type -> Set :=
 | TPlus : tbinop Nat Nat Nat
@@ -579,22 +590,8 @@ Definition typeDenote (t : type) : Set :=
 
 (** It can take a few moments to come to terms with the fact that [Set], the type of types of programs, is itself a first-class type, and that we can write functions that return [Set]s.  Past that wrinkle, the definition of [typeDenote] is trivial, relying on the [nat] and [bool] types from the Coq standard library.
 
-We need to define a few auxiliary functions, implementing our boolean binary operators that do not appear with the right types in the standard library.  They are entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
+We need to define one auxiliary function, implementing a boolean binary "less-than" operator, which only appears in the standard library with a type fancier than what we are prepared to deal with here.  The code is entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
 *)
-
-Definition eq_bool (b1 b2 : bool) : bool :=
-  match b1, b2 with
-    | true, true => true
-    | false, false => true
-    | _, _ => false
-  end.
-
-Fixpoint eq_nat (n1 n2 : nat) : bool :=
-  match n1, n2 with
-    | O, O => true
-    | S n1', S n2' => eq_nat n1' n2'
-    | _, _ => false
-  end.
 
 Fixpoint lt (n1 n2 : nat) : bool :=
   match n1, n2 with
@@ -603,7 +600,7 @@ Fixpoint lt (n1 n2 : nat) : bool :=
     | _, _ => false
   end.
 
-(** Now we can interpret binary operators: *)
+(** Now we can interpret binary operators, relying on standard-library equality test functions [eqb] and [beq_nat] for booleans and naturals, respectively: *)
 
 Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
   : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
@@ -611,8 +608,8 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
     | TPlus => plus
     | TTimes => mult
-    | TEq Nat => eq_nat
-    | TEq Bool => eq_bool
+    | TEq Nat => beq_nat
+    | TEq Bool => eqb
     | TLt => lt
   end.
 
@@ -630,8 +627,8 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
   match b with
     | TPlus => plus
     | TTimes => mult
-    | TEq Nat => eq_nat
-    | TEq Bool => eq_bool
+    | TEq Nat => beq_nat
+    | TEq Bool => eqb
     | TLt => lt
   end.
 
