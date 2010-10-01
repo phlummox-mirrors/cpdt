@@ -19,7 +19,9 @@ Set Implicit Arguments.
 (** %\chapter{Some Quick Examples}% *)
 
 
-(** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.2pl2, though parts may work with other versions.
+(** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
+
+I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.2pl2, though parts may work with other versions.
 
 To set up your Proof General environment to process the source to this chapter, a few simple steps are required.
 
@@ -606,10 +608,10 @@ Definition typeDenote (t : type) : Set :=
 We need to define one auxiliary function, implementing a boolean binary "less-than" operator, which only appears in the standard library with a type fancier than what we are prepared to deal with here.  The code is entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
 *)
 
-Fixpoint lt (n1 n2 : nat) : bool :=
+Fixpoint lessThan (n1 n2 : nat) : bool :=
   match n1, n2 with
     | O, S _ => true
-    | S n1', S n2' => lt n1' n2'
+    | S n1', S n2' => lessThan n1' n2'
     | _, _ => false
   end.
 
@@ -623,7 +625,7 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TTimes => mult
     | TEq Nat => beq_nat
     | TEq Bool => eqb
-    | TLt => lt
+    | TLt => lessThan
   end.
 
 (** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, so it is often necessary to write annotations, like we see above on the line with [match].
@@ -642,7 +644,7 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TTimes => mult
     | TEq Nat => beq_nat
     | TEq Bool => eqb
-    | TLt => lt
+    | TLt => lessThan
   end.
 
 (**
