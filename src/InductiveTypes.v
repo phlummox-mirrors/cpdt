@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 \chapter{Introducing Inductive Types}% *)
 
-(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq. *)
+(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and we have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment. *)
 
 
 (** * Enumerations *)
@@ -118,7 +118,7 @@ Inductive bool : Set :=
 
 (** We can use less vacuous pattern matching to define boolean negation. *)
 
-Definition not (b : bool) : bool :=
+Definition negb (b : bool) : bool :=
   match b with
     | true => false
     | false => true
@@ -126,12 +126,12 @@ Definition not (b : bool) : bool :=
 
 (** An alternative definition desugars to the above: *)
 
-Definition not' (b : bool) : bool :=
+Definition negb' (b : bool) : bool :=
   if b then false else true.
 
-(** We might want to prove that [not] is its own inverse operation. *)
+(** We might want to prove that [negb] is its own inverse operation. *)
 
-Theorem not_inverse : forall b : bool, not (not b) = b.
+Theorem negb_inverse : forall b : bool, negb (negb b) = b.
 (* begin thide *)
   destruct b.
 
@@ -141,12 +141,12 @@ Theorem not_inverse : forall b : bool, not (not b) = b.
 2 subgoals
   
   ============================
-   not (not true) = true
+   negb (negb true) = true
 ]]
 
 [[
 subgoal 2 is:
- not (not false) = false
+ negb (negb false) = false
  
 ]]
 
@@ -163,7 +163,7 @@ Qed.
 
 (** Another theorem about booleans illustrates another useful tactic. *)
 
-Theorem not_ineq : forall b : bool, not b <> b.
+Theorem negb_ineq : forall b : bool, negb b <> b.
 (* begin thide *)
   destruct b; discriminate.
 Qed.
@@ -936,7 +936,7 @@ Section nat_tree_ind'.
 
   ]]
 
-  Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  The term "nested inductive type" hints at the solution to the problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
+  Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term "nested inductive type" hints at the solution to this particular problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
@@ -949,7 +949,7 @@ Section nat_tree_ind'.
           end) ls)
     end.
 
-  (** We include an anonymous [fix] version of [list_nat_tree_ind] that is literally %\textit{%#<i>#nested#</i>#%}% inside the definition of the recursive function corresponding to the inductive definition that had the nested use of [list]. *)
+  (** We include an anonymous [fix] version of [list_nat_tree_ind] that is literally %\textit{%#<i>#nested#</i>#%}% inside the definition of the recursive function corresponding to the inductive definition that had the nested use of [list].   *)
 
 End nat_tree_ind'.
 
