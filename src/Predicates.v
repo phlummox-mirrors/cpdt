@@ -112,7 +112,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
  
      ]]
 
-     We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~P] expands to [not P]. *)
+     We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] expands to [not P]. *)
 
   Theorem arith_neq' : ~ (2 + 2 = 5).
 (* begin thide *)
@@ -498,9 +498,20 @@ Theorem isZero_contra' : isZero 1 -> 2 + 2 = 5.
  
    ]]
 
-   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  This has the net effect of decrementing each of these numbers.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  This has the net effect of decrementing each of these numbers. *)
 
 Abort.
+
+(** To see more clearly what is happening, we can consider the type of [isZero]'s induction principle. *)
+
+Check isZero_ind.
+(** %\vspace{-.15in}% [[
+isZero_ind
+     : forall P : nat -> Prop, P 0 -> forall n : nat, isZero n -> P n
+ 
+   ]]
+
+   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
 
 
 (* begin hide *)
@@ -716,7 +727,7 @@ subgoal 2 is:
  
  ]]
 
- We are already sunk trying to prove the first subgoal, since the argument to [even] was replaced by a fresh variable internally.  This time, we find it easiest to prove this theorem by way of a lemma.  Instead of trusting [induction] to replace expressions with fresh variables, we do it ourselves, explicitly adding the appropriate equalities as new assumptions. *)
+ We are already sunk trying to prove the first subgoal, since the argument to [even] was replaced by a fresh variable internally.  This time, we find it easier to prove this theorem by way of a lemma.  Instead of trusting [induction] to replace expressions with fresh variables, we do it ourselves, explicitly adding the appropriate equalities as new assumptions. *)
 
 Abort.
 
@@ -738,12 +749,11 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
  
    ]]
 
-  At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter. *)
+  At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
 
-  Check plus_n_Sm.
+  SearchRewrite (_ + S _).
   (** %\vspace{-.15in}% [[
-  plus_n_Sm
-     : forall n m : nat, S (n + m) = n + S m
+  plus_n_Sm : forall n m : nat, S (n + m) = n + S m
      ]] *)
 
   rewrite <- plus_n_Sm in H0.
@@ -911,7 +921,7 @@ match goal with
 end
 ]] #</li>#
     %\item%#<li># You probably do not want to use an inductive definition for compatibility of variable assignments and typings.#</li>#
-    %\item%#<li># The [Tactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in "forward reasoning" style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inverison should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
+    %\item%#<li># The [Tactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in "forward reasoning" style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inversion should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
     %\item%#<li># If you want [crush'] to apply polymorphic lemmas, you may have to do a little extra work, if the type parameter is not a free variable of your proof context (so that [crush'] does not know to try it).  For instance, if you define a polymorphic map insert function [assign] of some type [forall T : Set, ...], and you want particular applications of [assign] added automatically with type parameter [U], you would need to include [assign] in the lemma list as [assign U] (if you have implicit arguments off) or [assign (T := U)] or [@assign U] (if you have implicit arguments on).#</li>#
   #</ol> </li>#%\end{enumerate}%
 
