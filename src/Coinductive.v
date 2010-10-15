@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -142,14 +142,14 @@ Section map'.
   (** [[
   CoFixpoint map' (s : stream A) : stream B :=
     match s with
-      | Cons h t => interleave (Cons (f h) (map' s)) (Cons (f h) (map' s))
+      | Cons h t => interleave (Cons (f h) (map' t) (Cons (f h) (map' t))
     end.
  
     ]]
     
     We get another error message about an unguarded recursive call.  This is because we are violating the second guardedness condition, which says that, not only must co-recursive calls be arguments to constructors, there must also %\textit{%#<i>#not be anything but [match]es and calls to constructors of the same co-inductive type#</i>#%}% wrapped around these immediate uses of co-recursive calls.  The actual implemented rule for guardedness is a little more lenient than what we have just stated, but you can count on the illegality of any exception that would enhance the expressive power of co-recursion.
 
-     Why enforce a rule like this?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Perhaps this other function might be defined mutually with [map'].  It might deconstruct its first argument, retrieving [map' s] from within [Cons (f h) (map' s)].  Next it might try a [match] on this retrieved value, which amounts to deconstructing [map' s].  To figure out how this [match] turns out, we need to know the top-level structure of [map' s], but this is exactly what we started out trying to determine!  We run into a loop in the evaluation process, and we have reached a witness of inconsistency if we are evaluating [approx (map' s) 1] for any [s]. *)
+     Why enforce a rule like this?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Perhaps this other function might be defined mutually with [map'].  It might deconstruct its first argument, retrieving [map' t] from within [Cons (f h) (map' t)].  Next it might try a [match] on this retrieved value, which amounts to deconstructing [map' t].  To figure out how this [match] turns out, we need to know the top-level structure of [map' t], but this is exactly what we started out trying to determine!  We run into a loop in the evaluation process, and we have reached a witness of inconsistency if we are evaluating [approx (map' s) 1] for any [s]. *)
 (* end thide *)
 
 End map'.
@@ -233,7 +233,7 @@ Guarded.
 
      Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems %\textit{%#<i>#before#</i>#%}% we think we are ready to run [Qed].
      
-     We need to start the co-induction by applying one of [stream_eq]'s constructors.  To do that, we need to know that both arguments to the predicate are [Cons]es.  Informally, this is trivial, but [simpl] is not able to help us. *)
+     We need to start the co-induction by applying [stream_eq]'s constructor.  To do that, we need to know that both arguments to the predicate are [Cons]es.  Informally, this is trivial, but [simpl] is not able to help us. *)
 
   Undo.
   simpl.
@@ -348,12 +348,12 @@ Inductive instr : Set :=
 | Jmp : label -> instr
 | Jnz : reg -> label -> instr.
 
-(** We define a type [regs] of maps from registers to values.  To define a function [set] for setting a register's value in a map, we import the [Arith] module from Coq's standard library, and we use its function [eq_nat_dec] for comparing natural numbers. *)
+(** We define a type [regs] of maps from registers to values.  To define a function [set] for setting a register's value in a map, we import the [Arith] module from Coq's standard library, and we use its function [beq_nat] for comparing natural numbers. *)
 
 Definition regs := reg -> nat.
 Require Import Arith.
 Definition set (rs : regs) (r : reg) (v : nat) : regs :=
-  fun r' => if eq_nat_dec r r' then v else rs r'.
+  fun r' => if beq_nat r r' then v else rs r'.
 
 (** An inductive [exec] judgment captures the effect of an instruction on the program counter and register bank. *)
 
@@ -376,7 +376,7 @@ Lemma exec_total : forall pc rs i,
     end; eauto.
 Qed.
 
-(** We are ready to define a co-inductive judgment capturing the idea that a program runs forever.  We define the judgment in terms of a program [prog], represented as a function mapping each label to the instruction found there. *)
+(** We are ready to define a co-inductive judgment capturing the idea that a program runs forever.  We define the judgment in terms of a program [prog], represented as a function mapping each label to the instruction found there.  That is, to simplify the proof, we consider only infinitely-long programs. *)
 
 Section safe.
   Variable prog : label -> instr.
