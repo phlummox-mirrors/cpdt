@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -72,7 +72,7 @@ Fixpoint app' n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for %\textit{%#<i>#parameters#</i>#%}% to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called %\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  We could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called %\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -98,7 +98,7 @@ Qed.
 
 (* EX: Implement statically-checked "car"/"hd" *)
 
-(** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.
+(** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced in the previous chapter.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
@@ -143,6 +143,16 @@ Definition hd' n (ls : ilist n) :=
     | Nil => tt
     | Cons _ h _ => h
   end.
+
+Check hd'.
+(** %\vspace{-.15in}% [[
+hd'
+     : forall n : nat, ilist n -> match n with
+                                  | 0 => unit
+                                  | S _ => A
+                                  end
+ 
+  ]] *)
 
 Definition hd n (ls : ilist (S n)) : A := hd' ls.
 (* end thide *)
@@ -404,6 +414,13 @@ Section depth.
 End depth.
 
 (** Our proof of balanced-ness decomposes naturally into a lower bound and an upper bound.  We prove the lower bound first.  Unsurprisingly, a tree's black depth provides such a bound on the minimum path length.  We use the richly-typed procedure [min_dec] to do case analysis on whether [min X Y] equals [X] or [Y]. *)
+
+Check min_dec.
+(** %\vspace{-.15in}% [[
+min_dec
+     : forall n m : nat, {min n m = n} + {min n m = m}
+ 
+   ]] *)
 
 Theorem depth_min : forall c n (t : rbtree c n), depth min t >= n.
   induction t; crush;
@@ -730,12 +747,14 @@ Section insert.
   End present.
 End insert.
 
+(** We can generate executable OCaml code with the command [Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the %\textit{%#<i>#value#</i>#%}% of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+
 
 (** * A Certified Regular Expression Matcher *)
 
 (** Another interesting example is regular expressions with dependent types that express which predicates over strings particular regexps implement.  We can then assign a dependent type to a regular expression matching function, guaranteeing that it always decides the string property that we expect it to decide.
 
-   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts. *)
+   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  That is, a string [s] matches regular expression [star e] if and only if [s] can be decomposed into a sequence of substrings that all match [e].  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts. *)
 
 Require Import Ascii String.
 Open Scope string_scope.
@@ -751,7 +770,7 @@ Section star.
     -> star (s1 ++ s2).
 End star.
 
-(** Now we can make our first attempt at defining a [regexp] type that is indexed by predicates on strings.  Here is a reasonable-looking definition that is restricted to constant characters and concatenation.
+(** Now we can make our first attempt at defining a [regexp] type that is indexed by predicates on strings.  Here is a reasonable-looking definition that is restricted to constant characters and concatenation.  We use the constructor [String], which is the analogue of list cons for the type [string], where [""] is like list nil.
 
 [[
 Inductive regexp : (string -> Prop) -> Set :=
@@ -1175,6 +1194,8 @@ Definition matches P (r : regexp P) s : {P s} + {~ P s}.
   end; tauto.
 Defined.
 
+(** It is interesting to pause briefly to consider alternate implementations of [matches].  Dependent types give us much latitude in how specific correctness properties may be encoded with types.  For instance, we could have made [regexp] a non-indexed inductive type, along the lines of what is possible in traditional ML and Haskell.  We could then have implemented a recursive function to map [regexp]s to their intended meanings, much as we have done with types and programs in other examples.  That style is compatible with the [refine]-based approach that we have used here, and it might be an interesting exercise to redo the code from this subsection in that alternate style or some further encoding of the reader's choice.  The main advantage of indexed inductive types is that they generally lead to the smallest amount of code. *)
+
 (* begin hide *)
 Example hi := Concat (Char "h"%char) (Char "i"%char).
 Eval simpl in matches hi "hi".
@@ -1185,13 +1206,17 @@ Eval simpl in matches a_b "".
 Eval simpl in matches a_b "a".
 Eval simpl in matches a_b "aa".
 Eval simpl in matches a_b "b".
+(* end hide *)
+
+(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer. *)
 
 Example a_star := Star (Char "a"%char).
 Eval simpl in matches a_star "".
 Eval simpl in matches a_star "a".
 Eval simpl in matches a_star "b".
 Eval simpl in matches a_star "aa".
-(* end hide *)
+
+(** Evaluation inside Coq does not scale very well, so it is easy to build other tests that run for hours or more.  Such cases are better suited to execution with the extracted OCaml code. *)
 
 
 (** * Exercises *)
