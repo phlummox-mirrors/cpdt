@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -71,7 +71,20 @@ Definition pred_strong1 (n : nat) : n > 0 -> nat :=
 
 (** We expand the type of [pred] to include a %\textit{%#<i>#proof#</i>#%}% that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a %\textit{%#<i>#dependent#</i>#%}% type, because its type depends on the %\textit{%#<i>#value#</i>#%}% of the argument [n].
 
-One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural.
+   Coq's [Eval] command can execute particular invocations of [pred_strong1] just as easily as it can execute more traditional functional programs.  Note that Coq has decided that argument [n] of [pred_strong1] can be made %\textit{%#<i>#implicit#</i>#%}%, since it can be deduced from the type of the second argument, so we need not write [n] in function calls. *)
+
+Theorem two_gt0 : 2 > 0.
+  crush.
+Qed.
+
+Eval compute in pred_strong1 two_gt0.
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+ 
+ ]]
+
+ One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural.
 
 [[
 Definition pred_strong1' (n : nat) (pf : n > 0) : nat :=
@@ -145,6 +158,15 @@ Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
     | exist (S n') _ => n'
   end.
 
+(** To build a value of a subset type, we use the [exist] constructor, and the details of how to do that follow from the output of our earlier [Print sig] command. *)
+
+Eval compute in pred_strong2 (exist _ 2 two_gt0).
+(** %\vspace{-.15in}% [[
+     = 1
+     : nat
+ 
+     ]] *)
+
 Extraction pred_strong2.
 
 (** %\begin{verbatim}
@@ -173,7 +195,14 @@ Definition pred_strong3 (s : {n : nat | n > 0}) : {m : nat | proj1_sig s = S m} 
     | exist (S n') pf => exist _ n' (refl_equal _)
   end.
 
-(** The function [proj1_sig] extracts the base value from a subset type.  Besides the use of that function, the only other new thing is the use of the [exist] constructor to build a new [sig] value, and the details of how to do that follow from the output of our earlier [Print] command.  It also turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
+Eval compute in pred_strong3 (exist _ 2 two_gt0).
+(** %\vspace{-.15in}% [[
+     = exist (fun m : nat => 2 = S m) 1 (refl_equal 2)
+     : {m : nat | proj1_sig (exist (lt 0) 2 two_gt0) = S m}
+ 
+     ]] *)
+
+(** The function [proj1_sig] extracts the base value from a subset type.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
 
 By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
 
@@ -253,9 +282,16 @@ end
  
 ]]
 
-We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof.
+We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof. *)
 
-We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment. *)
+Eval compute in pred_strong4 two_gt0.
+(** %\vspace{-.15in}% [[
+     = exist (fun m : nat => 2 = S m) 1 (refl_equal 2)
+     : {m : nat | 2 = S m}
+ 
+     ]]
+
+     We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment. *)
 
 Notation "!" := (False_rec _ _).
 Notation "[ e ]" := (exist _ e _).
@@ -268,7 +304,16 @@ Definition pred_strong5 (n : nat) : n > 0 -> {m : nat | n = S m}.
     end); crush.
 Defined.
 
-(** One other alternative is worth demonstrating.  Recent Coq versions include a facility called [Program] that streamlines this style of definition.  Here is a complete implementation using [Program]. *)
+(** By default, notations are also used in pretty-printing terms, including results of evaluation. *)
+
+Eval compute in pred_strong5 two_gt0.
+(** %\vspace{-.15in}% [[
+     = [1]
+     : {m : nat | 2 = S m}
+ 
+     ]]
+
+  One other alternative is worth demonstrating.  Recent Coq versions include a facility called [Program] that streamlines this style of definition.  Here is a complete implementation using [Program]. *)
 
 Obligation Tactic := crush.
 
@@ -279,6 +324,13 @@ Program Definition pred_strong6 (n : nat) (_ : n > 0) : {m : nat | n = S m} :=
   end.
 
 (** Printing the resulting definition of [pred_strong6] yields a term very similar to what we built with [refine].  [Program] can save time in writing programs that use subset types.  Nonetheless, [refine] is often just as effective, and [refine] gives you more control over the form the final term takes, which can be useful when you want to prove additional theorems about your definition.  [Program] will sometimes insert type casts that can complicate theorem-proving. *)
+
+Eval compute in pred_strong6 two_gt0.
+(** %\vspace{-.15in}% [[
+     = [1]
+     : {m : nat | 2 = S m}
+ 
+     ]] *)
 
 
 (** * Decidable Proposition Types *)
@@ -312,6 +364,20 @@ Definition eq_nat_dec (n m : nat) : {n = m} + {n <> m}.
       | _, _ => No
     end); congruence.
 Defined.
+
+Eval compute in eq_nat_dec 2 2.
+(** %\vspace{-.15in}% [[
+     = Yes
+     : {2 = 2} + {2 <> 2}
+ 
+     ]] *)
+
+Eval compute in eq_nat_dec 2 3.
+(** %\vspace{-.15in}% [[
+     = No
+     : {2 = 2} + {2 <> 2}
+ 
+     ]] *)
 
 (** Our definition extracts to reasonable OCaml code. *)
 
@@ -401,8 +467,22 @@ Section In_dec.
 	| nil => No
 	| x' :: ls' => A_eq_dec x x' || f x ls'
       end); crush.
-  Qed.
+  Defined.
 End In_dec.
+
+Eval compute in In_dec eq_nat_dec 2 (1 :: 2 :: nil).
+(** %\vspace{-.15in}% [[
+     = Yes
+     : {In 2 (1 :: 2 :: nil)} + {~ In 2 (1 :: 2 :: nil)}
+ 
+     ]] *)
+
+Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
+(** %\vspace{-.15in}% [[
+     = No
+     : {In 3 (1 :: 2 :: nil)} + {~ In 3 (1 :: 2 :: nil)}
+ 
+     ]] *)
 
 (** [In_dec] has a reasonable extraction to OCaml. *)
 
@@ -456,7 +536,21 @@ Definition pred_strong7 (n : nat) : {{m | n = S m}}.
     end); trivial.
 Defined.
 
-(** Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family [sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
+Eval compute in pred_strong7 2.
+(** %\vspace{-.15in}% [[
+     = [[1]]
+     : {{m | 2 = S m}}
+ 
+     ]] *)
+
+Eval compute in pred_strong7 0.
+(** %\vspace{-.15in}% [[
+     = ??
+     : {{m | 0 = S m}}
+ 
+     ]]
+
+     Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family [sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
 
 Print sumor.
 (** %\vspace{-.15in}% [[
@@ -480,6 +574,20 @@ Definition pred_strong8 (n : nat) : {m : nat | n = S m} + {n = 0}.
       | S n' => [[[n']]]
     end); trivial.
 Defined.
+
+Eval compute in pred_strong8 2.
+(** %\vspace{-.15in}% [[
+     = [[[1]]]
+     : {m : nat | 2 = S m} + {2 = 0}
+ 
+     ]] *)
+
+Eval compute in pred_strong8 0.
+(** %\vspace{-.15in}% [[
+     = !!
+     : {m : nat | 0 = S m} + {0 = 0}
+ 
+     ]] *)
 
 
 (** * Monadic Notations *)
