@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -32,7 +32,7 @@ Section ilist.
   | Nil : ilist O
   | Cons : forall n, A -> ilist n -> ilist (S n).
 
-  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family [fin], where [fin n] is isomorphic to [{m : nat | m < n}].  The type family names stands for "finite." *)
+  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family [fin], where [fin n] is isomorphic to [{m : nat | m < n}].  The type family name stands for %``%#"#finite.#"#%''% *)
 
   (* EX: Define a function [get] for extracting an [ilist] element by position. *)
 
@@ -41,7 +41,7 @@ Section ilist.
   | First : forall n, fin (S n)
   | Next : forall n, fin n -> fin (S n).
 
-  (** [fin] essentially makes a more richly-typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.
+  (** [fin] essentially makes a more richly-typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
 
      Now it is easy to pick a [Prop]-free type for a selection function.  As usual, our first implementation attempt will not convince the type checker, and we will attack the deficiencies one at a time.
 
@@ -80,7 +80,9 @@ Section ilist.
 
     ]]
 
-    Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply the convoy pattern that we met last chapter.  This application is a little more clever than those we saw before; we use the natural number predecessor function [pred] to express the relationship between the types of these variables.
+    Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  In fact, the error message Coq gives for this exact code can be confusing, thanks to an overenthusiastic type inference heuristic.  We are told that the [Nil] case body has type [match X with | 0 => A | S _ => unit end] for a unification variable [X], while it is expected to have type [A].  We can see that setting [X] to [0] resolves the conflict, but Coq is not yet smart enough to do this unification automatically.  Repeating the function's type in a [return] annotation, used with an [in] annotation, leads us to a more informative error message, saying that [idx'] has type [fin n1] while it is expected to have type [fin n0], where [n0] is bound by the [Cons] pattern and [n1] by the [Next] pattern.  As the code is written above, nothing forces these two natural numbers to be equal, though we know intuitively that they must be.
+
+    We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply the convoy pattern that we met last chapter.  This application is a little more clever than those we saw before; we use the natural number predecessor function [pred] to express the relationship between the types of these variables.
 
     [[
   Fixpoint get n (ls : ilist n) : fin n -> A :=
@@ -168,7 +170,7 @@ Section ilist_map.
       | Cons _ x ls' => Cons (f x) (imap ls')
     end.
 
-  (** It is easy to prove that [get] "distributes over" [imap] calls.  The only tricky bit is remembering to use the [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
+  (** It is easy to prove that [get] %``%#"#distributes over#"#%''% [imap] calls.  The only tricky bit is remembering to use our [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
 
   Theorem get_imap : forall n (idx : fin n) (ls : ilist A n),
     get (imap ls) idx = f (get ls idx).
@@ -181,7 +183,7 @@ End ilist_map.
 
 (** * Heterogeneous Lists *)
 
-(** Programmers who move to statically-typed functional languages from "scripting languages" often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a "type-level" list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and we can do it much more cleanly and directly in Coq. *)
+(** Programmers who move to statically-typed functional languages from %``%#"#scripting languages#"#%''% often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a %``%#"#type-level#"#%''% list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and we can do it much more cleanly and directly in Coq. *)
 
 Section hlist.
   Variable A : Type.
@@ -208,7 +210,7 @@ Section hlist.
   | MFirst : forall ls, member (elm :: ls)
   | MNext : forall x ls, member ls -> member (x :: ls).
 
-  (** Because the element [elm] that we are "searching for" in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
+  (** Because the element [elm] that we are %``%#"#searching for#"#%''% in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
 
      We can use [member] to adapt our definition of [get] to [hlists].  The same basic [match] tricks apply.  In the [MCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
 
@@ -282,7 +284,7 @@ Inductive type : Set :=
 | Unit : type
 | Arrow : type -> type -> type.
 
-(** Now we can define a type family for expressions.  An [exp ts t] will stand for an expression that has type [t] and whose free variables have types in the list [ts].  We effectively use the de Bruijn variable representation, which we will discuss in more detail in later chapters.  Variables are represented as [member] values; that is, a variable is more or less a constructive proof that a particular type is found in the type environment. *)
+(** Now we can define a type family for expressions.  An [exp ts t] will stand for an expression that has type [t] and whose free variables have types in the list [ts].  We effectively use the de Bruijn variable representation, which we will discuss in more detail in later chapters, including a case study in Chapter 16.  Variables are represented as [member] values; that is, a variable is more or less a constructive proof that a particular type is found in the type environment. *)
 
 Inductive exp : list type -> type -> Set :=
 | Const : forall ts, exp ts Unit
@@ -356,7 +358,7 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 
 (** * Recursive Type Definitions *)
 
-(** There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as %\textit{%#<i>#recursive#</i>#%}% definitions. *)
+(** There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports %``%#"#type-level computation,#"#%''% we can redo our inductive definitions as %\textit{%#<i>#recursive#</i>#%}% definitions. *)
 
 (* EX: Come up with an alternate [ilist] definition that makes it easier to write [get]. *)
 
@@ -378,7 +380,7 @@ Section filist.
       | S n' => option (ffin n')
     end.
 
-  (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail). *)
+  (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail).  For instance, the three values of type [ffin 3] are [None], [Some None], and [Some (Some None)]. *)
 
   Fixpoint fget (n : nat) : filist n -> ffin n -> A :=
     match n with
@@ -511,7 +513,6 @@ Theorem sum_inc : forall t, sum (inc t) >= sum t.
 (* begin thide *)
   induction t; crush.
   (** [[
-
   n : nat
   i : ilist (tree nat) n
   ============================
@@ -639,9 +640,22 @@ Inductive exp' : type' -> Type :=
   -> (ffin n -> exp' t) -> exp' t -> exp' t.
 (* end thide *)
 
-(** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [ffin n -> exp' Bool], and the bodies are represented with a function of type [ffin n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.
+(** A [Cond] is parameterized by a natural [n], which tells us how many cases this conditional has.  The test expressions are represented with a function of type [ffin n -> exp' Bool], and the bodies are represented with a function of type [ffin n -> exp' t], where [t] is the overall type.  The final [exp' t] argument is the default case.  For example, here is an expression that successively checks whether [2 + 2 = 5] (returning 0 if so) or if [1 + 1 = 2] (returning 1 if so), returning 2 otherwise. *)
 
-We start implementing our interpreter with a standard type denotation function. *)
+Example ex1 := Cond 2
+  (fun f => match f with
+              | None => Eq (Plus (NConst 2) (NConst 2)) (NConst 5)
+              | Some None => Eq (Plus (NConst 1) (NConst 1)) (NConst 2)
+              | Some (Some v) => match v with end
+            end)
+  (fun f => match f with
+              | None => NConst 0
+              | Some None => NConst 1
+              | Some (Some v) => match v with end
+            end)
+  (NConst 2).
+
+(** We start implementing our interpreter with a standard type denotation function. *)
 
 Definition type'Denote (t : type') : Set :=
   match t with
@@ -830,9 +844,9 @@ Qed.
 
    Inductive types are often the most pleasant to work with, after someone has spent the time implementing some basic library functions for them, using fancy [match] annotations.  Many aspects of Coq's logic and tactic support are specialized to deal with inductive types, and you may miss out if you use alternate encodings.
 
-   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful "simplification" can lead to rapid bloat in the sizes of subgoals.
+   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.
 
-   Another disadvantage of recursive types is that they only apply to type families whose indices determine their "skeletons."  This is not true for all data structures; a good counterexample comes from the richly-typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
+   Another disadvantage of recursive types is that they only apply to type families whose indices determine their %``%#"#skeletons.#"#%''%  This is not true for all data structures; a good counterexample comes from the richly-typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
 
    Reflexive encodings of data types are seen relatively rarely.  As our examples demonstrated, manipulating index values manually can lead to hard-to-read code.  A normal inductive type is generally easier to work with, once someone has gone through the trouble of implementing an induction principle manually with the techniques we studied in Chapter 3.  For small developments, avoiding that kind of coding can justify the use of reflexive data structures.  There are also some useful instances of co-inductive definitions with nested data structures (e.g., lists of values in the co-inductive type) that can only be deconstructed effectively with reflexive encoding of the nested structures. *)
 
@@ -845,7 +859,7 @@ Qed.
 
 %\begin{enumerate}%#<ol>#
 
-%\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [htree] indexed by trees.  The structure of an [htree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [htree] by path.  Define a function [htmap2] for "mapping over two trees in parallel."  That is, [htmap2] takes in two [htree]s with the same index tree, and it forms a new [htree] with the same index by applying a binary function pointwise.
+%\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [htree] indexed by trees.  The structure of an [htree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [htree] by path.  Define a function [htmap2] for %``%#"#mapping over two trees in parallel.#"#%''%  That is, [htmap2] takes in two [htree]s with the same index tree, and it forms a new [htree] with the same index by applying a binary function pointwise.
 
   Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and index function.#</li>#
 
