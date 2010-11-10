@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A significant revision pass, based on extensive feedback kindly provided by Pierre Castéran</title>
+        <pubDate>Wed, 10 Nov 2010 16:33:49 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adam@chlipala.net</author>
+</item>
+
+<item>
         <title>Mention that recent versions of Coq allow some omitted "match" cases</title>
         <pubDate>Mon, 28 Jun 2010 07:59:29 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
