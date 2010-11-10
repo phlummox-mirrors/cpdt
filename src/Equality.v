@@ -23,7 +23,7 @@ Set Implicit Arguments.
 
 (** * The Definitional Equality *)
 
-(** We have seen many examples so far where proof goals follow "by computation."  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\textit{%#<i>#definitional equality#</i>#%}%.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\textit{%#<i>#definitional equality#</i>#%}%.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
 
    The [cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
 
@@ -95,12 +95,12 @@ Qed.
 
 (** The standard [eq] relation is critically dependent on the definitional equality.  [eq] is often called a %\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
-   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, we will introduce effective proof methods for goals that use proofs of the standard propositional equality "as data." *)
+   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, we will introduce effective proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
 
 
 (** * Heterogeneous Lists Revisited *)
 
-(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [member] types. *)
+(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated %``%#"#cursor#"#%''% type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [member] types. *)
 
 Section fhlist.
   Variable A : Type.
@@ -193,7 +193,7 @@ The term "refl_equal ?98" has type "?98 = ?98"
 
     In retrospect, the problem is not so hard to see.  Reflexivity proofs only show [x = x] for particular values of [x], whereas here we are thinking in terms of a proof of [a = elm], where the two sides of the equality are not equal syntactically.  Thus, the essential lemma we need does not even type-check!
 
-    Is it time to throw in the towel?  Luckily, the answer is "no."  In this chapter, we will see several useful patterns for proving obligations like this.
+    Is it time to throw in the towel?  Luckily, the answer is %``%#"#no.#"#%''%  In this chapter, we will see several useful patterns for proving obligations like this.
 
     For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments. *)
 
@@ -297,7 +297,7 @@ The term "refl_equal x'" has type "x' = x'" while it is expected to have type
  
      ]]
 
-     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], refering to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the "real" value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
+     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], refering to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the %``%#"#real#"#%''% value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
 
      Nonetheless, it turns out that, with one catch, we %\textit{%#<i>#can#</i>#%}% prove this lemma. *)
 
@@ -323,9 +323,9 @@ fun U : Type => Eq_rect_eq.eq_rect_eq U
  
       ]]
 
-      [eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  [eq_rect] is the automatically-generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.
+      [eq_rect_eq] states a %``%#"#fact#"#%''% that seems like common sense, once the notation is deciphered.  [eq_rect] is the automatically-generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.
 
-      Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via "informal" metatheory.
+      Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory.
 
       This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
 
@@ -339,7 +339,7 @@ fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
  
   ]]
 
-  This is the unfortunately-named "Streicher's axiom K," which says that a predicate on properly-typed equality proofs holds of all such proofs if it holds of reflexivity. *)
+  This is the unfortunately-named %``%#"#Streicher's axiom K,#"#%''% which says that a predicate on properly-typed equality proofs holds of all such proofs if it holds of reflexivity. *)
 
 End fhlist_map.
 
@@ -560,7 +560,7 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
  
     ]]
 
-[JMeq] stands for "John Major equality," a name coined by Conor McBride as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] %\textit{%#<i>#on arguments of different types#</i>#%}%.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+[JMeq] stands for %``%#"#John Major equality,#"#%''% a name coined by Conor McBride as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] %\textit{%#<i>#on arguments of different types#</i>#%}%.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -734,7 +734,7 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
 
-(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those %``%#"#simple#"#%''% proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
 
    It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases. *)
 (* end thide *)
@@ -763,7 +763,7 @@ Theorem S_eta : S = (fun n => S n).
 Qed.
 (* end thide *)
 
-(** The same axiom can help us prove equality of types, where we need to "reason under quantifiers." *)
+(** The same axiom can help us prove equality of types, where we need to %``%#"#reason under quantifiers.#"#%''% *)
 
 Theorem forall_eq : (forall x : nat, match x with
                                       | O => True
@@ -811,29 +811,29 @@ Qed.
   %\item%#<li># Define a datatype [type] of lambda types, including just booleans and function types.#</li>#
   %\item%#<li># Define a type family [exp : list type -> type -> Type] of lambda expressions, including boolean constants, variables, and function application and abstraction.#</li>#
   %\item%#<li># Implement a definitional interpreter for [exp]s, by way of a recursive function over expressions and substitutions for free variables, like in the related example from the last chapter.#</li>#
-  %\item%#<li># Implement a function [subst : forall t' ts t, exp (t' :: ts) t -> exp ts t' -> exp ts t].  The type of the first expression indicates that its most recently bound free variable has type [t'].  The second expression also has type [t'], and the job of [subst] is to substitute the second expression for every occurrence of the "first" variable of the first expression.#</li>#
+  %\item%#<li># Implement a function [subst : forall t' ts t, exp (t' :: ts) t -> exp ts t' -> exp ts t].  The type of the first expression indicates that its most recently bound free variable has type [t'].  The second expression also has type [t'], and the job of [subst] is to substitute the second expression for every occurrence of the %``%#"#first#"#%''% variable of the first expression.#</li>#
   %\item%#<li># Prove that [subst] preserves program meanings.  That is, prove
   [[
 forall t' ts t (e : exp (t' :: ts) t) (e' : exp ts t') (s : hlist typeDenote ts),
   expDenote (subst e e') s = expDenote e (expDenote e' s ::: s)
  
   ]]
-  where [:::] is an infix operator for heterogeneous "cons" that is defined in the book's [DepList] module.#</li>#
+  where [:::] is an infix operator for heterogeneous %``%#"#cons#"#%''% that is defined in the book's [DepList] module.#</li>#
 #</ol>#%\end{enumerate}%
   The material presented up to this point should be sufficient to enable a good solution of this exercise, with enough ingenuity.  If you get stuck, it may be helpful to use the following structure.  None of these elements need to appear in your solution, but we can at least guarantee that there is a reasonable solution based on them.
 %\begin{enumerate}%#<ol>#
   %\item%#<li># The [DepList] module will be useful.  You can get the standard dependent list definitions there, instead of copying-and-pasting from the last chapter.  It is worth reading the source for that module over, since it defines some new helpful functions and notations that we did not use last chapter.#</li>#
-  %\item%#<li># Define a recursive function [liftVar : forall ts1 ts2 t t', member t (ts1 ++ ts2) -> member t (ts1 ++ t' :: ts2)].  This function should "lift" a de Bruijn variable so that its type refers to a new variable inserted somewhere in the index list.#</li>#
-  %\item%#<li># Define a recursive function [lift' : forall ts t (e : exp ts t) ts1 ts2 t', ts = ts1 ++ ts2 -> exp (ts1 ++ t' :: ts2) t] which performs a similar lifting on an [exp].  The convoluted type is to get around restrictions on [match] annotations.  We delay "realizing" that the first index of [e] is built with list concatenation until after a dependent [match], and the new explicit proof argument must be used to cast some terms that come up in the [match] body.#</li>#
+  %\item%#<li># Define a recursive function [liftVar : forall ts1 ts2 t t', member t (ts1 ++ ts2) -> member t (ts1 ++ t' :: ts2)].  This function should %``%#"#lift#"#%''% a de Bruijn variable so that its type refers to a new variable inserted somewhere in the index list.#</li>#
+  %\item%#<li># Define a recursive function [lift' : forall ts t (e : exp ts t) ts1 ts2 t', ts = ts1 ++ ts2 -> exp (ts1 ++ t' :: ts2) t] which performs a similar lifting on an [exp].  The convoluted type is to get around restrictions on [match] annotations.  We delay %``%#"#realizing#"#%''% that the first index of [e] is built with list concatenation until after a dependent [match], and the new explicit proof argument must be used to cast some terms that come up in the [match] body.#</li>#
   %\item%#<li># Define a function [lift : forall ts t t', exp ts t -> exp (t' :: ts) t], which handles simpler top-level lifts.  This should be an easy one-liner based on [lift'].#</li>#
   %\item%#<li># Define a recursive function [substVar : forall ts1 ts2 t t', member t (ts1 ++ t' :: ts2) -> (t' = t) + member t (ts1 ++ ts2)].  This function is the workhorse behind substitution applied to a variable.  It returns [inl] to indicate that the variable we pass to it is the variable that we are substituting for, and it returns [inr] to indicate that the variable we are examining is %\textit{%#<i>#not#</i>#%}% the one we are substituting for.  In the first case, we get a proof that the necessary typing relationship holds, and, in the second case, we get the original variable modified to reflect the removal of the substitutee from the typing context.#</li>#
   %\item%#<li># Define a recursive function [subst' : forall ts t (e : exp ts t) ts1 t' ts2, ts = ts1 ++ t' :: ts2 -> exp (ts1 ++ ts2) t' -> exp (ts1 ++ ts2) t].  This is the workhorse of substitution in expressions, employing the same proof-passing trick as for [lift'].  You will probably want to use [lift] somewhere in the definition of [subst'].#</li>#
   %\item%#<li># Now [subst] should be a one-liner, defined in terms of [subst'].#</li>#
   %\item%#<li># Prove a correctness theorem for each auxiliary function, leading up to the proof of [subst] correctness.#</li>#
-  %\item%#<li># All of the reasoning about equality proofs in these theorems follows a regular pattern.  If you have an equality proof that you want to replace with [refl_equal] somehow, run [generalize] on that proof variable.  Your goal is to get to the point where you can [rewrite] with the original proof to change the type of the generalized version.  To avoid type errors (the infamous "second-order unification" failure messages), it will be helpful to run [generalize] on other pieces of the proof context that mention the equality's lefthand side.  You might also want to use [generalize dependent], which generalizes not just one variable but also all variables whose types depend on it.  [generalize dependent] has the sometimes-helpful property of removing from the context all variables that it generalizes.  Once you do manage the mind-bending trick of using the equality proof to rewrite its own type, you will be able to rewrite with [UIP_refl].#</li>#
+  %\item%#<li># All of the reasoning about equality proofs in these theorems follows a regular pattern.  If you have an equality proof that you want to replace with [refl_equal] somehow, run [generalize] on that proof variable.  Your goal is to get to the point where you can [rewrite] with the original proof to change the type of the generalized version.  To avoid type errors (the infamous %``%#"#second-order unification#"#%''% failure messages), it will be helpful to run [generalize] on other pieces of the proof context that mention the equality's lefthand side.  You might also want to use [generalize dependent], which generalizes not just one variable but also all variables whose types depend on it.  [generalize dependent] has the sometimes-helpful property of removing from the context all variables that it generalizes.  Once you do manage the mind-bending trick of using the equality proof to rewrite its own type, you will be able to rewrite with [UIP_refl].#</li>#
   %\item%#<li># A variant of the [ext_eq] axiom from the end of this chapter is available in the book module [Axioms], and you will probably want to use it in the [lift'] and [subst'] correctness proofs.#</li>#
-  %\item%#<li># The [change] tactic should come in handy in the proofs about [lift] and [subst], where you want to introduce "extraneous" list concatenations with [nil] to match the forms of earlier theorems.#</li>#
-  %\item%#<li># Be careful about [destruct]ing a term "too early."  You can use [generalize] on proof terms to bring into the proof context any important propositions about the term.  Then, when you [destruct] the term, it is updated in the extra propositions, too.  The [case_eq] tactic is another alternative to this approach, based on saving an equality between the original term and its new form.#</li>#
+  %\item%#<li># The [change] tactic should come in handy in the proofs about [lift] and [subst], where you want to introduce %``%#"#extraneous#"#%''% list concatenations with [nil] to match the forms of earlier theorems.#</li>#
+  %\item%#<li># Be careful about [destruct]ing a term %``%#"#too early.#"#%''%  You can use [generalize] on proof terms to bring into the proof context any important propositions about the term.  Then, when you [destruct] the term, it is updated in the extra propositions, too.  The [case_eq] tactic is another alternative to this approach, based on saving an equality between the original term and its new form.#</li>#
 #</ol>#%\end{enumerate}%
 #</li>#
    

@@ -71,7 +71,7 @@ A note for readers following along in the PDF version: coqdoc supports pretty-pr
 
 %\medskip%
 
-Now we are ready to say what these programs mean.  We will do this by writing an interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to "common sense" constructions.) *)
+Now we are ready to say what these programs mean.  We will do this by writing an interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to %``%#"#common sense#"#%''% constructions.) *)
 
 Definition binopDenote (b : binop) : nat -> nat -> nat :=
   match b with
@@ -101,9 +101,9 @@ Definition binopDenote := fun b =>
 
 ]]
 
-Languages like Haskell and ML have a convenient %\textit{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of "complete" type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient %\textit{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\textit{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\textit{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\textit{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\textit{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are "really true," if you believe in set theory.
+This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\textit{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\textit{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\textit{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\textit{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
 
 Coq is actually based on an extension of CIC called %\textit{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
@@ -147,7 +147,7 @@ Definition stack := list nat.
 
 (** An instruction either pushes a constant onto the stack or pops two arguments, applies a binary operator to them, and pushes the result onto the stack.  A program is a list of instructions, and a stack is a list of natural numbers.
 
-We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  [::] is the "list cons" operator from the Coq standard library. *)
+We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  [::] is the %``%#"#list cons#"#%''% operator from the Coq standard library. *)
 
 Definition instrDenote (i : instr) (s : stack) : option stack :=
   match i with
@@ -233,7 +233,7 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
+(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
 
 Lemma compile_correct' : forall e p s,
@@ -585,7 +585,7 @@ ML and Haskell have indexed algebraic datatypes.  For instance, their list types
 
 First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\textit{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
 (** We can define a similar type family for typed expressions. *)
@@ -605,7 +605,7 @@ Definition typeDenote (t : type) : Set :=
 
 (** It can take a few moments to come to terms with the fact that [Set], the type of types of programs, is itself a first-class type, and that we can write functions that return [Set]s.  Past that wrinkle, the definition of [typeDenote] is trivial, relying on the [nat] and [bool] types from the Coq standard library.
 
-We need to define one auxiliary function, implementing a boolean binary "less-than" operator, which only appears in the standard library with a type fancier than what we are prepared to deal with here.  The code is entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
+We need to define one auxiliary function, implementing a boolean binary %``%#"#less-than#"#%''% operator, which only appears in the standard library with a type fancier than what we are prepared to deal with here.  The code is entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
 *)
 
 Fixpoint lessThan (n1 n2 : nat) : bool :=
@@ -678,7 +678,7 @@ Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNC
 
 (** ** Target Language *)
 
-(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
+(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and %``%#"#get stuck.#"#%''%  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
 
 For our new languages, besides underflow, we also have the problem of stack slots with naturals instead of bools or vice versa.  This time, we will use indexed typed families to avoid the need to reason about potential failures.
 
@@ -864,7 +864,7 @@ Abort.
 Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
   tprogDenote (tcompile e ts) s = (texpDenote e, s).
 
-(** While lemma [compile_correct'] quantified over a program that is the "continuation" for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
+(** While lemma [compile_correct'] quantified over a program that is the %``%#"#continuation#"#%''% for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
 
    Let us try to prove this theorem in the same way that we settled on in the last section. *)
 

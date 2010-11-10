@@ -33,7 +33,7 @@ This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 
-One solution is to use types to contain the possibility of non-termination.  For instance, we can create a "non-termination monad," inside which we must write all of our general-recursive programs.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
+One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
 
 Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism, %\textit{%#<i>#co-inductive types#</i>#%}%, is the subject of this chapter. *)
 
@@ -328,7 +328,7 @@ Theorem ones_eq' : stream_eq ones ones'.
 Abort.
 (* end thide *)
 
-(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis. *)
+(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with %``%#"#hiding#"#%''% the co-inductive hypothesis. *)
 
 
 (** * Simple Modeling of Non-Terminating Programs *)
@@ -387,7 +387,7 @@ Section safe.
     -> safe pc' r'
     -> safe pc r.
 
-  (** Now we can prove that any starting address and register bank lead to safe infinite execution.  Recall that proofs of existentially-quantified formulas are all built with a single constructor of the inductive type [ex].  This means that we can use [destruct] to "open up" such proofs.  In the proof below, we want to perform this opening up on an appropriate use of the [exec_total] lemma.  This lemma's conclusion begins with two existential quantifiers, so we want to tell [destruct] that it should not stop at the first quantifier.  We accomplish our goal by using an %\textit{%#<i>#intro pattern#</i>#%}% with [destruct].  Consult the Coq manual for the details of intro patterns; the specific pattern [[? [? ?]]] that we use here accomplishes our goal of destructing both quantifiers at once. *)
+  (** Now we can prove that any starting address and register bank lead to safe infinite execution.  Recall that proofs of existentially-quantified formulas are all built with a single constructor of the inductive type [ex].  This means that we can use [destruct] to %``%#"#open up#"#%''% such proofs.  In the proof below, we want to perform this opening up on an appropriate use of the [exec_total] lemma.  This lemma's conclusion begins with two existential quantifiers, so we want to tell [destruct] that it should not stop at the first quantifier.  We accomplish our goal by using an %\textit{%#<i>#intro pattern#</i>#%}% with [destruct].  Consult the Coq manual for the details of intro patterns; the specific pattern [[? [? ?]]] that we use here accomplishes our goal of destructing both quantifiers at once. *)
   
   Theorem always_safe : forall pc rs,
     safe pc rs.
@@ -412,7 +412,7 @@ Print always_safe.
   %\item%#<li># Define a function [map] for building an output tree out of two input trees by traversing them in parallel and applying a two-argument function to their corresponding data values.#</li>#
   %\item%#<li># Define a tree [falses] where every node has the value [false].#</li>#
   %\item%#<li># Define a tree [true_false] where the root node has value [true], its children have value [false], all nodes at the next have the value [true], and so on, alternating boolean values from level to level.#</li>#
-  %\item%#<li># Prove that [true_false] is equal to the result of mapping the boolean "or" function [orb] over [true_false] and [falses].  You can make [orb] available with [Require Import Bool.].  You may find the lemma [orb_false_r] from the same module helpful.  Your proof here should not be about the standard equality [=], but rather about some new equality relation that you define.#</li>#
+  %\item%#<li># Prove that [true_false] is equal to the result of mapping the boolean %``%#"#or#"#%''% function [orb] over [true_false] and [falses].  You can make [orb] available with [Require Import Bool.].  You may find the lemma [orb_false_r] from the same module helpful.  Your proof here should not be about the standard equality [=], but rather about some new equality relation that you define.#</li>#
 #</ol>#%\end{enumerate}% #</li>#
 
 #</ol>#%\end{enumerate}% *)

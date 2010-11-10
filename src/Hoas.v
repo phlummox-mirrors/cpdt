@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -25,7 +25,7 @@ In this chapter, we will see that HOAS cannot be implemented directly in Coq.  H
 
 (** * Classic HOAS *)
 
-(** The motto of HOAS is simple: represent object language binders using meta language binders.  Here, "object language" refers to the language being formalized, while the meta language is the language in which the formalization is done.  Our usual meta language, Coq's Gallina, contains the standard binding facilities of functional programming, making it a promising base for higher-order encodings.
+(** The motto of HOAS is simple: represent object language binders using meta language binders.  Here, %``%#"#object language#"#%''% refers to the language being formalized, while the meta language is the language in which the formalization is done.  Our usual meta language, Coq's Gallina, contains the standard binding facilities of functional programming, making it a promising base for higher-order encodings.
 
    Recall the concrete encoding of basic untyped lambda calculus expressions. *)
 
@@ -500,6 +500,7 @@ Infix "@" := plug (no associativity, at level 60).
 
 (** Finally, we have the step relation itself, which combines our ingredients in the standard way.  In the congruence rule, we introduce the extra variable [E1] and its associated equality to make the rule easier for [eauto] to apply. *)
 
+(** printing ==> $\Rightarrow$ *)
 Reserved Notation "E1 ==> E2" (no associativity, at level 90).
 
 Inductive Step : forall t, Exp t -> Exp t -> Prop :=
@@ -579,6 +580,7 @@ Qed.
 
    We must start by defining the big-step semantics itself.  The definition is completely standard. *)
 
+(** printing ===> $\Longrightarrow$ *)
 Reserved Notation "E1 ===> E2" (no associativity, at level 90).
 
 Inductive BigStep : forall t, Exp t -> Exp t -> Prop :=
@@ -606,6 +608,7 @@ Hint Constructors BigStep.
 (** To prove a crucial intermediate lemma, we will want to name the transitive-reflexive closure of the small-step relation. *)
 
 (* begin thide *)
+(** printing ==>* $\Rightarrow^*$ *)
 Reserved Notation "E1 ==>* E2" (no associativity, at level 90).
 
 Inductive MultiStep : forall t, Exp t -> Exp t -> Prop :=

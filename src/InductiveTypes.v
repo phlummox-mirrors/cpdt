@@ -66,7 +66,7 @@ Qed.
 
 ]]
 
-%\noindent%...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
+%\noindent%...which corresponds to %``%#"#proof by case analysis#"#%''% in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
 What exactly %\textit{%#<i>#is#</i>#%}% the induction principle for [unit]?  We can ask Coq: *)
 
@@ -329,7 +329,7 @@ Check nat_list_ind.
 
 %\medskip%
 
-In general, we can implement any "tree" types as inductive types.  For example, here are binary trees of naturals. *)
+In general, we can implement any %``%#"#tree#"#%''% types as inductive types.  For example, here are binary trees of naturals. *)
 
 Inductive nat_btree : Set :=
 | NLeaf : nat_btree
@@ -579,7 +579,7 @@ Inductive formula : Set :=
 | And : formula -> formula -> formula
 | Forall : (nat -> formula) -> formula.
 
-(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of "variables" in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]: *)
+(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of %``%#"#variables#"#%''% in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]: *)
 
 Example forall_refl : formula := Forall (fun x => Eq x x).
 
@@ -936,7 +936,7 @@ Section nat_tree_ind'.
 
   ]]
 
-  Coq rejects this definition, saying "Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest."  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term "nested inductive type" hints at the solution to this particular problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
+  Coq rejects this definition, saying %``%#"#Recursive call to nat_tree_ind' has principal argument equal to "tr" instead of rest.#"#%''%  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term %``%#"#nested inductive type#"#%''% hints at the solution to this particular problem.  Just like true mutually-inductive types require mutually-recursive induction principles, nested types require nested recursion. *)
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
@@ -1051,7 +1051,7 @@ The advantage of using the hint is not very clear here, because the original pro
 Theorem true_neq_false : true <> false.
 
 (* begin thide *)
-(** We begin with the tactic [red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
+(** We begin with the tactic [red], which is short for %``%#"#one step of reduction,#"#%''% to unfold the definition of logical negation. *)
 
   red.
 (** [[
@@ -1128,11 +1128,11 @@ Qed.
 
 (** %\begin{enumerate}%#<ol>#
 
-%\item%#<li># Define an inductive type [truth] with three constructors, [Yes], [No], and [Maybe].  [Yes] stands for certain truth, [No] for certain falsehood, and [Maybe] for an unknown situation.  Define "not," "and," and "or" for this replacement boolean algebra.  Prove that your implementation of "and" is commutative and distributes over your implementation of "or."#</li>#
+%\item%#<li># Define an inductive type [truth] with three constructors, [Yes], [No], and [Maybe].  [Yes] stands for certain truth, [No] for certain falsehood, and [Maybe] for an unknown situation.  Define %``%#"#not,#"#%''% %``%#"#and,#"#%''% and %``%#"#or#"#%''% for this replacement boolean algebra.  Prove that your implementation of %``%#"#and#"#%''% is commutative and distributes over your implementation of %``%#"#or.#"#%''%#</li>#
 
 %\item%#<li># Modify the first example language of Chapter 2 to include variables, where variables are represented with [nat].  Extend the syntax and semantics of expressions to accommodate the change.  Your new [expDenote] function should take as a new extra first argument a value of type [var -> nat], where [var] is a synonym for naturals-as-variables, and the function assigns a value to each variable.  Define a constant folding function which does a bottom-up pass over an expression, at each stage replacing every binary operation on constants with an equivalent constant.  Prove that constant folding preserves the meanings of expressions.#</li>#
 
-%\item%#<li># Reimplement the second example language of Chapter 2 to use mutually-inductive types instead of dependent types.  That is, define two separate (non-dependent) inductive types [nat_exp] and [bool_exp] for expressions of the two different types, rather than a single indexed type.  To keep things simple, you may consider only the binary operators that take naturals as operands.  Add natural number variables to the language, as in the last exercise, and add an "if" expression form taking as arguments one boolean expression and two natural number expressions.  Define semantics and constant-folding functions for this new language.  Your constant folding should simplify not just binary operations (returning naturals or booleans) with known arguments, but also "if" expressions with known values for their test expressions but possibly undetermined "then" and "else" cases.  Prove that constant-folding a natural number expression preserves its meaning.#</li>#
+%\item%#<li># Reimplement the second example language of Chapter 2 to use mutually-inductive types instead of dependent types.  That is, define two separate (non-dependent) inductive types [nat_exp] and [bool_exp] for expressions of the two different types, rather than a single indexed type.  To keep things simple, you may consider only the binary operators that take naturals as operands.  Add natural number variables to the language, as in the last exercise, and add an %``%#"#if#"#%''% expression form taking as arguments one boolean expression and two natural number expressions.  Define semantics and constant-folding functions for this new language.  Your constant folding should simplify not just binary operations (returning naturals or booleans) with known arguments, but also %``%#"#if#"#%''% expressions with known values for their test expressions but possibly undetermined %``%#"#then#"#%''% and %``%#"#else#"#%''% cases.  Prove that constant-folding a natural number expression preserves its meaning.#</li>#
 
 %\item%#<li># Using a reflexive inductive definition, define a type [nat_tree] of infinitary trees, with natural numbers at their leaves and a countable infinity of new trees branching out of each internal node.  Define a function [increment] that increments the number in every leaf of a [nat_tree].  Define a function [leapfrog] over a natural [i] and a tree [nt].  [leapfrog] should recurse into the [i]th child of [nt], the [i+1]st child of that node, the [i+2]nd child of the next node, and so on, until reaching a leaf, in which case [leapfrog] should return the number at that leaf.  Prove that the result of any call to [leapfrog] is incremented by one by calling [increment] on the tree.#</li>#
 

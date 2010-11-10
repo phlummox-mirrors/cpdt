@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{More Dependent Types}% *)
 
-(** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
+(** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up %``%#"#free theorems#"#%''% to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
 
    In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes (that is, dependent inductive types outside [Prop]), a possibility which sets Coq apart from all of the competition not based on type theory. *)
 
@@ -195,7 +195,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => typeDenote t1 * typeDenote t2
   end%type.
 
-(** [typeDenote] compiles types of our object language into "native" Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  We will deal more explicitly with notations and notation scopes in later chapters.
+(** [typeDenote] compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  We will deal more explicitly with notations and notation scopes in later chapters.
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
@@ -548,9 +548,9 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
 
 (** We apply a trick that I call the %\textit{%#<i>#convoy pattern#</i>#%}%.  Recall that [match] annotations only make it possible to describe a dependence of a [match] %\textit{%#<i>#result type#</i>#%}% on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
 
-   In particular, we can extend the [match] to return %\textit{%#<i>#functions over the free variables whose types we want to refine#</i>#%}%.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the "old version" of the variable to be refined, and the type checker is happy.
+   In particular, we can extend the [match] to return %\textit{%#<i>#functions over the free variables whose types we want to refine#</i>#%}%.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
 
-   After writing this code, even I do not understand the precise details of how balancing works.  I consulted Chris Okasaki's paper "Red-Black Trees in a Functional Setting" and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.
+   After writing this code, even I do not understand the precise details of how balancing works.  I consulted Chris Okasaki's paper %``%#"#Red-Black Trees in a Functional Setting#"#%''% and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.
 
    Here is the symmetric function [balance2], for cases where the possibly-invalid tree appears on the right rather than on the left. *)
 

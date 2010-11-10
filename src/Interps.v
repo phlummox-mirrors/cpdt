@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -64,7 +64,9 @@ Module STLC.
 
   Notation "# v" := (Var v) (at level 70).
 
+  (** printing ^ $\dag$ *)
   Notation "^ n" := (Const n) (at level 70).
+  (** printing +^ $\hat{+}$ *)
   Infix "+^" := Plus (left associativity, at level 79).
 
   Infix "@" := App (left associativity, at level 77).
