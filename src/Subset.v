@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 \chapter{Subset Types and Variations}% *)
 
-(** So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\textit{%#<i>#dependent types#</i>#%}% to integrate programming, specification, and proving into a single phase. *)
+(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\textit{%#<i>#dependent types#</i>#%}% to integrate programming, specification, and proving into a single phase. *)
 
 
 (** * Introducing Subset Types *)
@@ -234,7 +234,7 @@ Definition pred_strong4 (n : nat) : n > 0 -> {m : nat | n = S m}.
     end).
 
 (* begin thide *)
-  (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  We do most of the work with the [refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
+  (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  We do most of the work with the [refine] tactic, to which we pass a partial %``%#"#proof#"#%''% of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
 
      [[
 2 subgoals
@@ -260,7 +260,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
 (* end thide *)
 Defined.
 
-(** We end the "proof" with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our proof script constructed. *)
+(** We end the %``%#"#proof#"#%''% with [Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  Let us see what our proof script constructed. *)
 
 Print pred_strong4.
 (** %\vspace{-.15in}% [[
@@ -448,7 +448,7 @@ let rec eq_nat_dec' n m0 =
 
 (** %\smallskip%
 
-We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
+We can build %``%#"#smart#"#%''% versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean %``%#"#or.#"#%''% *)
 
 (* begin thide *)
 Notation "x || y" := (if x then Yes else Reduce y).
@@ -592,7 +592,7 @@ Eval compute in pred_strong8 0.
 
 (** * Monadic Notations *)
 
-(** We can treat [maybe] like a monad, in the same way that the Haskell [Maybe] type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful. *)
+(** We can treat [maybe] like a monad, in the same way that the Haskell [Maybe] type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a %``%#"#bind#"#%''%-like notation will still be helpful. *)
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -611,7 +611,7 @@ Definition doublePred (n1 n2 : nat) : {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
     [[(m1, m2)]]); tauto.
 Defined.
 
-(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function. *)
+(** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function. *)
 
 (** printing <-- $\longleftarrow$ *)
 
@@ -668,7 +668,7 @@ Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
 
-(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include "assertions" in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
+(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include %``%#"#assertions#"#%''% in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
 
 Notation "e1 ;; e2" := (if e1 then e2 else ??)
   (right associativity, at level 60).
@@ -794,7 +794,7 @@ let rec typeCheck = function
 
 (** %\smallskip%
 
-We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
+We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the %``%#"#assertion#"#%''% notation. *)
 
 (* begin thide *)
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
@@ -889,7 +889,7 @@ Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
   %\item%#<li># Define a function [negate] that returns a simplified version of the negation of a [prop].  That is, the function should have type [forall p : prop, {p' : prop | forall truth, propDenote truth p <-> ~ propDenote truth p'}].  To simplify a variable, just negate it.  Simplify a negation by returning its argument.  Simplify conjunctions and disjunctions using De Morgan's laws, negating the arguments recursively and switching the kind of connective.  [decide] may be useful in some of the proof obligations, even if you do not use it in the computational part of [negate]'s definition.  Lemmas like [decide] allow us to compensate for the lack of a general Law of the Excluded Middle in CIC.#</li>#
 #</ol>#%\end{enumerate}% #</li>#
 
-%\item%#<li># Implement the DPLL satisfiability decision procedure for boolean formulas in conjunctive normal form, with a dependent type that guarantees its correctness.  An example of a reasonable type for this function would be [forall f : formula, {truth : tvals | formulaTrue truth f} + {forall truth, ~ formulaTrue truth f}].  Implement at least "the basic backtracking algorithm" as defined here:
+%\item%#<li># Implement the DPLL satisfiability decision procedure for boolean formulas in conjunctive normal form, with a dependent type that guarantees its correctness.  An example of a reasonable type for this function would be [forall f : formula, {truth : tvals | formulaTrue truth f} + {forall truth, ~ formulaTrue truth f}].  Implement at least %``%#"#the basic backtracking algorithm#"#%''% as defined here:
   %\begin{center}\url{http://en.wikipedia.org/wiki/DPLL_algorithm}\end{center}%
   #<blockquote><a href="http://en.wikipedia.org/wiki/DPLL_algorithm">http://en.wikipedia.org/wiki/DPLL_algorithm</a></blockquote>#
 It might also be instructive to implement the unit propagation and pure literal elimination optimizations described there or some other optimizations that have been used in modern SAT solvers.#</li>#

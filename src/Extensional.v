@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -37,6 +37,7 @@ Module Source.
 (* end hide *)
 
   Notation "'Nat'" := TNat : source_scope.
+  (** printing --> $\longrightarrow$ *)
   Infix "-->" := Arrow (right associativity, at level 60) : source_scope.
 
   Open Scope source_scope.
@@ -127,7 +128,7 @@ Module Source.
       -> exp_equiv G (#v1) (#v2)
 
     | EqConst : forall G n,
-      exp_equiv G (^n) (^n)
+      exp_equiv G (^ n) (^ n)
     | EqPlus : forall G x1 y1 x2 y2,
       exp_equiv G x1 x2
       -> exp_equiv G y1 y2
@@ -158,6 +159,7 @@ Module CPS.
   | Prod : type -> type -> type.
 
   Notation "'Nat'" := TNat : cps_scope.
+  (** printing ---> $\Longrightarrow$ *)
   Notation "t --->" := (Cont t) (at level 61) : cps_scope.
   Infix "**" := Prod (right associativity, at level 60) : cps_scope.
 
@@ -277,11 +279,12 @@ Import Source CPS.
 Fixpoint cpsType (t : Source.type) : CPS.type :=
   match t with
     | Nat => Nat%cps
-    | t1 --> t2 => (cpsType t1 ** (cpsType t2 --->) --->)%cps
+    | t1 --> t2 => (cpsType t1 ** (cpsType t2 ---> ) ---> )%cps
   end%source.
 
 (** Now we can define the expression translation.  The notation [x <-- e1; e2] stands for translating source-level expression [e1], binding [x] to the CPS-level result of running the translated program, and then evaluating CPS-level expression [e2] in that context. *)
 
+(** printing <-- $\longleftarrow$ *)
 Reserved Notation "x <-- e1 ; e2" (right associativity, at level 76, e1 at next level).
 
 Section cpsExp.
@@ -298,7 +301,7 @@ Section cpsExp.
       | Var _ v => fun k => k v
 
       | Const n => fun k =>
-        x <- ^n;
+        x <- ^ n;
         k x
       | Plus e1 e2 => fun k =>
         x1 <-- e1;
@@ -309,7 +312,7 @@ Section cpsExp.
       | App _ _ e1 e2 => fun k =>
         f <-- e1;
         x <-- e2;
-        kf <- \r, k r;
+        kf <- \ r, k r;
         p <- [x, kf];
         f @@ p
       | Abs _ _ e' => fun k =>

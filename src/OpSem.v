@@ -1,4 +1,4 @@
-(* Copyright (c) 2009, Adam Chlipala
+(* Copyright (c) 2009-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 (** The last few chapters have shown how PHOAS can make it relatively painless to reason about program transformations.  Each of our example languages so far has had a semantics that is easy to implement with an interpreter in Gallina.  Since Gallina is designed to rule out non-termination, we cannot hope to give interpreter-based semantics to Turing-complete programming languages.  Falling back on standard operational semantics leaves us with the old bureaucratic concerns about capture-avoiding substitution.  Can we encode Turing-complete, higher-order languages in Coq without sacrificing the advantages of higher-order encoding?
 
-   Any approach that applies to basic untyped lambda calculus is likely to extend to most object languages of interest.  We can attempt the "obvious" way of equipping a PHOAS definition for use in an operational semantics, without mentioning substitution explicitly.  Specifically, we try to work with expressions with [var] instantiated with a type of values. *)
+   Any approach that applies to basic untyped lambda calculus is likely to extend to most object languages of interest.  We can attempt the %``%#"#obvious#"#%''% way of equipping a PHOAS definition for use in an operational semantics, without mentioning substitution explicitly.  Specifically, we try to work with expressions with [var] instantiated with a type of values. *)
 
 Section exp.
   Variable var : Type.
@@ -58,7 +58,7 @@ Fixpoint expV := exp (val expV).
 
    ]]
 
-  Of course, this kind of definition is not structurally recursive, so Coq will not allow it.  Getting "substitution for free" seems to require some similar kind of self-reference.
+  Of course, this kind of definition is not structurally recursive, so Coq will not allow it.  Getting %``%#"#substitution for free#"#%''% seems to require some similar kind of self-reference.
 
   In this chapter, we will consider an alternate take on the problem.  We add a level of indirection, introducing more explicit syntax to break the cycle in type definitions.  Specifically, we represent function values as numbers that index into a %\emph{%#<i>#closure heap#</i>#%}% that our operational semantics maintains alongside the expression being evaluated. *)
 
@@ -83,6 +83,7 @@ Section lookup.
   (** The second of our two definitions expresses when one list extends another.  We will write [ls1 ~> ls2] to indicate that [ls1] could evolve into [ls2]; that is, [ls1] is a suffix of [ls2]. *)
 
   Definition extends (ls1 ls2 : list A) := exists ls, ls2 = ls ++ ls1.
+  (** printing ~> $\leadsto$ *)
   Infix "~>" := extends (no associativity, at level 80).
 
   (** We prove and add as hints a few basic theorems about [lookup] and [extends]. *)
@@ -292,6 +293,7 @@ Import Source CPS.
 
 (** Finally, we define a CPS translation in the same way as in our previous example for simply-typed lambda calculus. *)
 
+(** printing <-- $\longleftarrow$ *)
 Reserved Notation "x <-- e1 ; e2" (right associativity, at level 76, e1 at next level).
 
 Section cpsExp.
@@ -364,6 +366,8 @@ Section cr.
     -> cr (Source.VFun l1) (CPS.VFun l2).
 End cr.
 
+(** printing |-- $\vdash$ *)
+(** printing ~~ $\sim$ *)
 Notation "s1 & s2 |-- v1 ~~ v2" := (cr s1 s2 v1 v2) (no associativity, at level 70).
 
 Hint Constructors cr.
