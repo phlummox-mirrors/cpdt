@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -47,7 +47,7 @@ Even_SS
  
     ]]
 
-    %\noindent%...and so on.  This procedure always works (at least on machines with infinite resources), but it has a serious drawback, which we see when we print the proof it generates that 256 is even.  The final proof term has length linear in the input value.  This seems like a shame, since we could write a trivial and trustworthy program to verify evenness of constants.  The proof checker could simply call our program where needed.
+    %\noindent%...and so on.  This procedure always works (at least on machines with infinite resources), but it has a serious drawback, which we see when we print the proof it generates that 256 is even.  The final proof term has length super-linear in the input value.  (Coq's implicit arguments mechanism is hiding the values given for parameter [n] of [Even_SS], which is why the proof term only appears linear here.)  This seems like a shame, since we could write a trivial and trustworthy program to verify evenness of constants.  The proof checker could simply call our program where needed.
 
     It is also unfortunate not to have static typing guarantees that our tactic always behaves appropriately.  Other invocations of similar tactics might fail with dynamic type errors, and we would not know about the bugs behind these errors until we happened to attempt to prove complex enough goals.
 
@@ -90,7 +90,7 @@ Definition partialOut (P : Prop) (x : [P]) :=
     | Uncertain => I
   end.
 
-(** It may seem strange to define a function like this.  However, it turns out to be very useful in writing a reflective verison of our earlier [prove_even] tactic: *)
+(** It may seem strange to define a function like this.  However, it turns out to be very useful in writing a reflective version of our earlier [prove_even] tactic: *)
 
 Ltac prove_even_reflective :=
   match goal with
@@ -98,7 +98,7 @@ Ltac prove_even_reflective :=
   end.
 (* end thide *)
 
-(** We identify which natural number we are considering, and we "prove" its evenness by pulling the proof out of the appropriate [check_even] call. *)
+(** We identify which natural number we are considering, and we %``%#"#prove#"#%''% its evenness by pulling the proof out of the appropriate [check_even] call. *)
 
 Theorem even_256' : isEven 256.
   prove_even_reflective.
@@ -111,7 +111,9 @@ even_256' = partialOut (check_even 256)
  
     ]]
 
-    We can see a constant wrapper around the object of the proof.  For any even number, this form of proof will suffice.  What happens if we try the tactic with an odd number? *)
+    We can see a constant wrapper around the object of the proof.  For any even number, this form of proof will suffice.  The size of the proof term is now linear in the number being checked, containing two repetitions of the unary form of that number, one of which is hidden above within the implicit argument to [partialOut].
+
+    What happens if we try the tactic with an odd number? *)
 
 Theorem even_255 : isEven 255.
   (** [[
@@ -158,7 +160,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
 
-   To write a reflective procedure for this class of goals, we will need to get into the actual "reflection" part of "proof by reflection."  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\textit{%#<i>#reflect#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
+   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\textit{%#<i>#reflect#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
 
 (* begin thide *)
 Inductive taut : Set :=
@@ -167,7 +169,7 @@ Inductive taut : Set :=
 | TautOr : taut -> taut -> taut
 | TautImp : taut -> taut -> taut.
 
-(** We write a recursive function to "unreflect" this syntax back to [Prop]. *)
+(** We write a recursive function to %``%#"#unreflect#"#%''% this syntax back to [Prop]. *)
 
 Fixpoint tautDenote (t : taut) : Prop :=
   match t with
@@ -229,12 +231,12 @@ tautTrue
  
     ]]
 
-    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
 
 
 (** * A Monoid Expression Simplifier *)
 
-(** Proof by reflection does not require encoding of all of the syntax in a goal.  We can insert "variables" in our syntax types to allow injection of arbitrary pieces, even if we cannot apply specialized reasoning to them.  In this section, we explore that possibility by writing a tactic for normalizing monoid equations. *)
+(** Proof by reflection does not require encoding of all of the syntax in a goal.  We can insert %``%#"#variables#"#%''% in our syntax types to allow injection of arbitrary pieces, even if we cannot apply specialized reasoning to them.  In this section, we explore that possibility by writing a tactic for normalizing monoid equations. *)
 
 Section monoid.
   Variable A : Set.
@@ -249,7 +251,7 @@ Section monoid.
 
   (** We add variables and hypotheses characterizing an arbitrary instance of the algebraic structure of monoids.  We have an associative binary operator and an identity element for it.
 
-     It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a "catch-all" case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
+     It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a %``%#"#catch-all#"#%''% case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
 
 (* begin thide *)
   Inductive mexp : Set :=
@@ -257,7 +259,7 @@ Section monoid.
   | Var : A -> mexp
   | Op : mexp -> mexp -> mexp.
 
-  (** Next, we write an "un-reflect" function. *)
+  (** Next, we write an %``%#"#un-reflect#"#%''% function. *)
 
   Fixpoint mdenote (me : mexp) : A :=
     match me with
