@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -50,6 +50,7 @@ Module Concrete.
 
   (** It is useful to define a syntax extension that lets us write function types in more standard notation. *)
 
+  (** printing --> $\longrightarrow$ *)
   Infix "-->" := Arrow (right associativity, at level 60).
 
   (** Now we turn to a typing judgment.  We will need to define it in terms of typing contexts, which we represent as lists of pairs of variables and types. *)
@@ -58,6 +59,7 @@ Module Concrete.
 
   (** The definitions of our judgments will be prettier if we write them using mixfix syntax.  To define a judgment for looking up the type of a variable in a context, we first %\textit{%#</i>#reserve#</i>#%}% a notation for the judgment.  Reserved notations enable mutually-recursive definition of a judgment and its notation; in this sense, the reservation is like a forward declaration in C. *)
 
+  (** printing |-v $\vdash_\mathsf{v}$ *)
   Reserved Notation "G |-v x : t" (no associativity, at level 90, x at next level).
 
   (** Now we define the judgment itself, for variable typing, using a [where] clause to associate a notation definition. *)
@@ -76,6 +78,7 @@ Module Concrete.
 
   (** The same technique applies to defining the main typing judgment.  We use an [at next level] clause to cause the argument [e] of the notation to be parsed at a low enough precedence level. *)
 
+  (** printing |-e $\vdash_\mathsf{e}$ *)
   Reserved Notation "G |-e e : t" (no associativity, at level 90, e at next level).
 
   Inductive hasType : ctx -> exp -> type -> Prop :=
@@ -262,8 +265,9 @@ Module Concrete.
 
   Hint Resolve subst_hasType_closed.
 
-  (** A notation for substitution will make the operational semantics easier to read. *)
+  (** A notation for substitution will make the operational semantics easier to read.  %The ASCII operator \texttt{\textasciitilde{}>} will afterward be rendered as $\leadsto$.% *)
 
+  (** printing ~> $\leadsto$ *)
   Notation "[ x ~> e1 ] e2" := (subst x e1 e2) (no associativity, at level 80).
 
   (** To define a call-by-value small-step semantics, we rely on a standard judgment characterizing which expressions are values. *)
@@ -294,7 +298,7 @@ Module Concrete.
 
   Hint Constructors step.
 
-  (** The progress theorem says that any well-typed expression can take a step.  To deal with limitations of the [induction] tactic, we put most of the proof in a lemma whose statement uses the usual trick of introducing extra equality hypotheses. *)
+  (** The progress theorem says that any well-typed expression that is not a value can take a step.  To deal with limitations of the [induction] tactic, we put most of the proof in a lemma whose statement uses the usual trick of introducing extra equality hypotheses. *)
 
   Lemma progress' : forall G e t, G |-e e : t
     -> G = nil
@@ -446,7 +450,7 @@ Module DeBruijn.
 
     Implicit Arguments subst_eq [t G1].
 
-    Lemma subst_eq' : forall t G1 x,
+    Lemma subst_neq' : forall t G1 x,
       G1 ++ xt :: nil |-v x : t
       -> x <> length G1
       -> G1 |-v x : t.
@@ -456,7 +460,7 @@ Module DeBruijn.
         end.
     Qed.
 
-    Hint Resolve subst_eq'.
+    Hint Resolve subst_neq'.
 
     Lemma subst_neq : forall v t G1,
       G1 ++ xt :: nil |-v v : t
@@ -572,11 +576,11 @@ End DeBruijn.
 
 (** * Locally Nameless Syntax *)
 
-(** The most popular Coq syntax encoding today is the %\textit{%#<i>#locally nameless#</i>#%}% style, which has been around for a while but was popularized recently by Aydemir et al., following a methodology summarized in their paper "Engineering Formal Metatheory."  #<a href="http://www.cis.upenn.edu/~plclub/oregon08/">#A specialized tutorial by that group#</a>#%\footnote{\url{http://www.cis.upenn.edu/~plclub/oregon08/}}% explains the approach, based on a library.  In this section, we will build up all of the necessary ingredients from scratch.
+(** The most popular Coq syntax encoding today is the %\textit{%#<i>#locally nameless#</i>#%}% style, which has been around for a while but was popularized recently by Aydemir et al., following a methodology summarized in their paper %``%#"#Engineering Formal Metatheory.#"#%''%  #<a href="http://www.cis.upenn.edu/~plclub/oregon08/">#A specialized tutorial by that group#</a>#%\footnote{\url{http://www.cis.upenn.edu/~plclub/oregon08/}}% explains the approach, based on a library.  In this section, we will build up all of the necessary ingredients from scratch.
 
    The one-sentence summary of locally nameless encoding is that we represent free variables as concrete syntax does, and we represent bound variables with de Bruijn indices.  Many proofs involve reasoning about terms transplanted into different free variable contexts; concrete encoding of free variables means that, to perform such a transplanting, we need no fix-up operation to adjust de Bruijn indices.  At the same time, use of de Bruijn indices for local variables gives us canonical representations of expressions, with respect to the usual convention of alpha-equivalence.  This makes many operations, including substitution of open terms in open terms, easier to implement.
 
-   The "Engineering Formal Metatheory" methodology involves a number of subtle design decisions, which we will describe as they appear in the latest version of our running example. *)
+   The %``%#"#Engineering Formal Metatheory#"#%''% methodology involves a number of subtle design decisions, which we will describe as they appear in the latest version of our running example. *)
 
 Module LocallyNameless.
 
@@ -616,7 +620,7 @@ Module LocallyNameless.
 
   Hint Constructors lookup.
 
-  (** The first unusual operation we need is %\textit{%#<i>#opening#</i>#%}%, where we replace a particular bound variable with a particular free variable.  Whenever we "go under a binder," in the typing judgment or elsewhere, we choose a new free variable to replace the old bound variable of the binder.  Opening implements the replacement of one by the other.  It is like a specialized version of the substitution function we used for pure de Bruijn terms. *)
+  (** The first unusual operation we need is %\textit{%#<i>#opening#</i>#%}%, where we replace a particular bound variable with a particular free variable.  Whenever we %``%#"#go under a binder,#"#%''% in the typing judgment or elsewhere, we choose a new free variable to replace the old bound variable of the binder.  Opening implements the replacement of one by the other.  It is like a specialized version of the substitution function we used for pure de Bruijn terms.  We implement opening with both the richly-typed natural number equality test [eq_nat_dec] that we have discussed previously and with another standard library function [le_lt_dec], which is an analogous richly-typed test for [<=]. *)
 
   Section open.
     Variable x : free_var.
