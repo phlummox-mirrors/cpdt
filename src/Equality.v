@@ -734,7 +734,7 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
 
-(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always intercovert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
 
    It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases. *)
 (* end thide *)
