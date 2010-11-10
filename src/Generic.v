@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Generic Programming}% *)
 
-(** %\textit{%#<i>#Generic programming#</i>#%}% makes it possible to write functions that operate over different types of data.  Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style module systems and Haskell type classes are more flexible cases.  These language features are often not as powerful so we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a [deriving] clause, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do datatype-generic programming much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
+(** %\textit{%#<i>#Generic programming#</i>#%}% makes it possible to write functions that operate over different types of data.  Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style module systems and Haskell type classes are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a [deriving] clause, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do datatype-generic programming much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
 
    Generic programming can often be very useful in Coq developments, so we devote this chapter to studying it.  In a proof assistant, there is the new possibility of generic proofs about generic programs, which we also devote some space to. *)
 
@@ -38,7 +38,7 @@ Record constructor : Type := Con {
   recursive : nat
 }.
 
-(** The idea is that a constructor represented as [Con T n] has [n] arguments of the type that we are defining.  Additionally, all of the other, non-recursive arguments can be encoded in the type [T].  When there are no non-recursive arguments, [T] can be [unit].  When there are two non-recursive arguments, of types [A] and [B], [T] can be [A * B].  We can generalizer to any number of arguments via tupling.
+(** The idea is that a constructor represented as [Con T n] has [n] arguments of the type that we are defining.  Additionally, all of the other, non-recursive arguments can be encoded in the type [T].  When there are no non-recursive arguments, [T] can be [unit].  When there are two non-recursive arguments, of types [A] and [B], [T] can be [A * B].  We can generalize to any number of arguments via tupling.
 
    With this definition, it as easy to define a datatype representation in terms of lists of constructors. *)
 
@@ -80,7 +80,7 @@ Section denote.
   (** We write that a constructor is represented as a function returning a [T].  Such a function takes two arguments, which pack together the non-recursive and recursive arguments of the constructor.  We represent a tuple of all recursive arguments using the length-indexed list type [ilist] that we met in Chapter 7. *)
 
   Definition datatypeDenote := hlist constructorDenote.
-  (** Finally, the evidence for type [T] is a hetergeneous list, including a constructor denotation for every constructor encoding in a datatype encoding.  Recall that, since we are inside a section binding [T] as a variable, [constructorDenote] is automatically parameterized by [T]. *)
+  (** Finally, the evidence for type [T] is a heterogeneous list, including a constructor denotation for every constructor encoding in a datatype encoding.  Recall that, since we are inside a section binding [T] as a variable, [constructorDenote] is automatically parameterized by [T]. *)
 
 End denote.
 (* end thide *)
