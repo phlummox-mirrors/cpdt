@@ -1,4 +1,4 @@
-(* Copyright (c) 2009, Adam Chlipala
+(* Copyright (c) 2009-2010, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -150,7 +150,7 @@ Ltac simp := repeat progress (crush; try discriminate;
          end).
 (* end hide *)
 
-(** Less than a page of tactic code will be sufficient to automate our proof of commuativity.  We start by defining a workhorse simplification tactic [simp], which extends [crush] in a few ways.
+(** Less than a page of tactic code will be sufficient to automate our proof of commutativity.  We start by defining a workhorse simplification tactic [simp], which extends [crush] in a few ways.
 
   [[
 Ltac simp := repeat progress (crush; try discriminate;
