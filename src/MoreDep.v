@@ -665,7 +665,7 @@ Section insert.
 
     (** The balance correctness theorems are simple first-order logic equivalences, where we use the function [projT2] to project the payload of a [sigT] value. *)
 
-    Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n) ,
+    Lemma present_balance1 : forall n (a : rtree n) (y : nat) c2 (b : rbtree c2 n),
       present z (projT2 (balance1 a y b))
       <-> rpresent z a \/ z = y \/ present z b.
       destruct a; present_balance.

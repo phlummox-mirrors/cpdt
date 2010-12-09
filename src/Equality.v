@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Reasoning About Equality Proofs}% *)
 
-(** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, we will focus on design patterns for circumventing these tricky issues, and we will introduce the different notions of equality as they are germane. *)
+(** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, I will focus on design patterns for circumventing these tricky issues, and I will introduce the different notions of equality as they are germane. *)
 
 
 (** * The Definitional Equality *)
@@ -95,7 +95,7 @@ Qed.
 
 (** The standard [eq] relation is critically dependent on the definitional equality.  [eq] is often called a %\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
-   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, we will introduce effective proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
+   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
 
 
 (** * Heterogeneous Lists Revisited *)
@@ -482,7 +482,7 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
  
         ]]
 
-        We have made an important bit of progress, as now only a single call to [fhapp] appears in the conclusion.  Trying case analysis on our proofs still will not work, but there is a move we can make to enable it.  Not only does just one call to [fhapp] matter to us now, but it also %\textit{%#<i>#does not matter what the result of the call is#</i>#%}%.  In other words, the subgoal should remain true if we replace this [fhapp] call with a fresh variable.  The [generalize] tactic helps us do exactly that. *)
+        We have made an important bit of progress, as now only a single call to [fhapp] appears in the conclusion, repeated twice.  Trying case analysis on our proofs still will not work, but there is a move we can make to enable it.  Not only does just one call to [fhapp] matter to us now, but it also %\textit{%#<i>#does not matter what the result of the call is#</i>#%}%.  In other words, the subgoal should remain true if we replace this [fhapp] call with a fresh variable.  The [generalize] tactic helps us do exactly that. *)
 
     generalize (fhapp (fhapp b hls2) hls3).
     (** [[
