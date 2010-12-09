@@ -792,8 +792,7 @@ Lemma cfoldCond_correct : forall t (default : exp' t)
   induction n; crush;
     match goal with
       | [ IHn : forall tests bodies, _, tests : _ -> _, bodies : _ -> _ |- _ ] =>
-        generalize (IHn (fun idx => tests (Some idx)) (fun idx => bodies (Some idx)));
-          clear IHn; intro IHn
+        specialize (IHn (fun idx => tests (Some idx)) (fun idx => bodies (Some idx)))
     end;
     repeat (match goal with
               | [ |- context[match ?E with
@@ -844,7 +843,7 @@ Qed.
 
    Inductive types are often the most pleasant to work with, after someone has spent the time implementing some basic library functions for them, using fancy [match] annotations.  Many aspects of Coq's logic and tactic support are specialized to deal with inductive types, and you may miss out if you use alternate encodings.
 
-   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.
+   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.  Even worse, it can prevent syntactic pattern-matching, like in cases where [filist] is expected but a pair type is found in the %``%#"#simplified#"#%''% version.
 
    Another disadvantage of recursive types is that they only apply to type families whose indices determine their %``%#"#skeletons.#"#%''%  This is not true for all data structures; a good counterexample comes from the richly-typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
 
