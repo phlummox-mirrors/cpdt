@@ -80,7 +80,7 @@ Theorem reduce_me : pred' 1 = 0.
  
       ]]
    
-      The final reduction rule is zeta, which replaces a [let] expression by its body with the appropriate term subsituted. *)
+      The final reduction rule is zeta, which replaces a [let] expression by its body with the appropriate term substituted. *)
 
   cbv zeta.
   (** [[
@@ -297,7 +297,7 @@ The term "refl_equal x'" has type "x' = x'" while it is expected to have type
  
      ]]
 
-     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], refering to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the %``%#"#real#"#%''% value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
+     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], referring to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the %``%#"#real#"#%''% value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
 
      Nonetheless, it turns out that, with one catch, we %\textit{%#<i>#can#</i>#%}% prove this lemma. *)
 

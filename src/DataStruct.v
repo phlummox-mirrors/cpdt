@@ -783,7 +783,7 @@ Fixpoint cfold t (e : exp' t) : exp' t :=
   end.
 
 (* begin thide *)
-(** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly-automated one, with the only wrinkle being a guided instantation of the quantifiers in the induction hypothesis. *)
+(** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly-automated one, with the only wrinkle being a guided instantiation of the quantifiers in the induction hypothesis. *)
 
 Lemma cfoldCond_correct : forall t (default : exp' t)
   n (tests : ffin n -> exp' Bool) (bodies : ffin n -> exp' t),

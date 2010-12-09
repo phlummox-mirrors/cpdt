@@ -164,7 +164,7 @@ End ilist.
 
 (** * A Tagless Interpreter *)
 
-(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime ineffiency and gives us more confidence that our implementation is correct. *)
+(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
 
 Inductive type : Set :=
 | Nat : type
@@ -584,7 +584,7 @@ Section insert.
       | Black => { c' : color & rbtree c' n }
     end.
 
-  (** That is, inserting into a tree with root color [c] and black depth [n], the variety of tree we get out depends on [c].  If we started with a red root, then we get back a possibly-invalid tree of depth [n].  If we started with a black root, we get back a valid tree of depth [n] with a root node of an arbitary color.
+  (** That is, inserting into a tree with root color [c] and black depth [n], the variety of tree we get out depends on [c].  If we started with a red root, then we get back a possibly-invalid tree of depth [n].  If we started with a black root, we get back a valid tree of depth [n] with a root node of an arbitrary color.
 
      Here is the definition of [ins].  Again, we do not want to dwell on the functional details. *)
 
@@ -609,7 +609,7 @@ Section insert.
             end (ins b)
     end.
 
-  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisifies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally-bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
+  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisfies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally-bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
 
      Finally, we are in the home stretch of our effort to define [insert].  We just need a few more definitions of non-recursive functions.  First, we need to give the final characterization of [insert]'s return type.  Inserting into a red-rooted tree gives a black-rooted tree where black depth has increased, and inserting into a black-rooted tree gives a tree where black depth has stayed the same and where the root is an arbitrary color. *)
 
@@ -797,7 +797,7 @@ Inductive regexp : (string -> Prop) -> Type :=
 | Star : forall P (r : regexp P),
   regexp (star P).
 
-(** Many theorems about strings are useful for implementing a certified regexp matcher, and few of them are in the [Strings] library.  The book source includes statements, proofs, and hint commands for a handful of such omittted theorems.  Since they are orthogonal to our use of dependent types, we hide them in the rendered versions of this book. *)
+(** Many theorems about strings are useful for implementing a certified regexp matcher, and few of them are in the [Strings] library.  The book source includes statements, proofs, and hint commands for a handful of such omitted theorems.  Since they are orthogonal to our use of dependent types, we hide them in the rendered versions of this book. *)
 
 (* begin hide *)
 Open Scope specif_scope.
