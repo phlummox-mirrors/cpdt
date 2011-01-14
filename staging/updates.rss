@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Updated to work with both Coq 8.3 and Coq 8.2</title>
+        <pubDate>Fri, 14 Jan 2011 15:39:00 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adam@chlipala.net</author>
+</item>
+
+<item>
         <title>A significant revision pass, based on extensive feedback kindly provided by Pierre Castéran</title>
         <pubDate>Wed, 10 Nov 2010 16:33:49 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
