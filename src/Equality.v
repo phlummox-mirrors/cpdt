@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -159,7 +159,9 @@ Section fhlist_map.
 (* begin thide *)
     induction ls; crush.
 
-    (** Part of our single remaining subgoal is:
+    (** In Coq 8.2, one subgoal remains at this point.  Coq 8.3 has added some tactic improvements that enable [crush] to complete all of both inductive cases.  To introduce the basics of reasoning about equality, it will be useful to review what was necessary in Coq 8.2
+
+       Part of our single remaining subgoal is:
 
        [[
   a0 : a = elm
@@ -195,18 +197,22 @@ The term "refl_equal ?98" has type "?98 = ?98"
 
     Is it time to throw in the towel?  Luckily, the answer is %``%#"#no.#"#%''%  In this chapter, we will see several useful patterns for proving obligations like this.
 
-    For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments. *)
+    For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments.
 
+    [[
     case a0.
-    (** [[
+
   ============================
    f a1 = f a1
  
    ]]
 
-    It seems that [destruct] was trying to be too smart for its own good. *)
+    It seems that [destruct] was trying to be too smart for its own good.
 
+    [[
     reflexivity.
+ 
+    ]] *)
   Qed.
 (* end thide *)
 
@@ -605,8 +611,7 @@ Section fhapp'.
   (* EX: Prove [fhapp] associativity using [JMeq]. *)
 
 (* begin thide *)
-  Theorem fhapp_ass' : forall ls1 ls2 ls3
-    (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
+  Theorem fhapp_ass' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
     induction ls1; crush.
 
@@ -614,16 +619,11 @@ Section fhapp'.
 
        [[
   ============================
-   (a0,
-   fhapp (B:=B) (ls1:=ls1) (ls2:=ls2 ++ ls3) b
-     (fhapp (B:=B) (ls1:=ls2) (ls2:=ls3) hls2 hls3)) ==
-   (a0,
-   fhapp (B:=B) (ls1:=ls1 ++ ls2) (ls2:=ls3)
-     (fhapp (B:=B) (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
+   (a0, fhapp b (fhapp hls2 hls3)) == (a0, fhapp (fhapp b hls2) hls3)
  
        ]]
 
-       It looks like one rewrite with the inductive hypothesis should be enough to make the goal trivial.
+       It looks like one rewrite with the inductive hypothesis should be enough to make the goal trivial.  Here is what happens when we try that in Coq 8.2:
 
        [[
     rewrite IHls1.
@@ -632,6 +632,8 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
  "fhlist B (ls1 ++ ?1572 ++ ?1573)"
  
        ]]
+
+       Coq 8.3 currently gives an error message about an uncaught exception.  Perhaps that will be fixed soon.  In any case, it is educational to consider a more explicit approach.
 
        We see that [JMeq] is not a silver bullet.  We can use it to simplify the statements of equality facts, but the Coq type-checker uses non-trivial heterogeneous equality facts no more readily than it uses standard equality facts.  Here, the problem is that the form [(e1, e2)] is syntactic sugar for an explicit application of a constructor of an inductive type.  That application mentions the type of each tuple element explicitly, and our [rewrite] tries to change one of those elements without updating the corresponding type argument.
 

@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -8,9 +8,9 @@
  *)
 
 (* begin hide *)
-Require Import String List.
+Require Import String List FunctionalExtensionality.
 
-Require Import Axioms Tactics.
+Require Import Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -191,7 +191,7 @@ Module STLC.
 (* begin thide *)
   Lemma cfold_correct : forall t (e : exp _ t),
     expDenote (cfold e) = expDenote e.
-    induction e; crush; try (ext_eq; crush);
+    induction e; crush; try (let x := fresh in extensionality x; crush);
       repeat (match goal with
                 | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
               end; crush).
@@ -484,7 +484,7 @@ Module PSLC.
 
   Lemma cfold_correct : forall t (e : exp _ t),
     expDenote (cfold e) = expDenote e.
-    induction e; crush; try (ext_eq; crush);
+    induction e; crush; try (let x := fresh in extensionality x; crush);
       repeat (match goal with
                 | [ |- context[cfold ?E] ] => dep_destruct (cfold E)
                 | [ |- match ?E with inl _ => _ | inr _ => _ end = _ ] => destruct E

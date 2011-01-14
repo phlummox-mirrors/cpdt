@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import String List.
 
-Require Import Axioms Tactics DepList.
+Require Import Tactics DepList.
 
 Set Implicit Arguments.
 (* end hide *)

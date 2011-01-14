@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -226,7 +226,7 @@ let pred_strong3 = function
 
 We have managed to reach a type that is, in a formal sense, the most expressive possible for [pred].  Any other implementation of the same type must have the same input-output behavior.  However, there is still room for improvement in making this kind of code easier to write.  Here is a version that takes advantage of tactic-based theorem proving.  We switch back to passing a separate proof argument instead of using a subset type for the function's input, because this leads to cleaner code. *)
 
-Definition pred_strong4 (n : nat) : n > 0 -> {m : nat | n = S m}.
+Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
   refine (fun n =>
     match n with
       | O => fun _ => False_rec _ _
@@ -296,7 +296,7 @@ Eval compute in pred_strong4 two_gt0.
 Notation "!" := (False_rec _ _).
 Notation "[ e ]" := (exist _ e _).
 
-Definition pred_strong5 (n : nat) : n > 0 -> {m : nat | n = S m}.
+Definition pred_strong5 : forall n : nat, n > 0 -> {m : nat | n = S m}.
   refine (fun n =>
     match n with
       | O => fun _ => !
@@ -356,7 +356,7 @@ Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
 
 Now we can write [eq_nat_dec], which compares two natural numbers, returning either a proof of their equality or a proof of their inequality. *)
 
-Definition eq_nat_dec (n m : nat) : {n = m} + {n <> m}.
+Definition eq_nat_dec : forall n m : nat, {n = m} + {n <> m}.
   refine (fix f (n m : nat) : {n = m} + {n <> m} :=
     match n, m with
       | O, O => Yes
@@ -528,7 +528,7 @@ Notation "[[ x ]]" := (Found _ x _).
 
 (** Now our next version of [pred] is trivial to write. *)
 
-Definition pred_strong7 (n : nat) : {{m | n = S m}}.
+Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
   refine (fun n =>
     match n with
       | O => ??
@@ -567,7 +567,7 @@ Notation "[[[ x ]]]" := (inleft _ [x]).
 
 (** Now we are ready to give the final version of possibly-failing predecessor.  The [sumor]-based type that we use is maximally expressive; any implementation of the type has the same input-output behavior. *)
 
-Definition pred_strong8 (n : nat) : {m : nat | n = S m} + {n = 0}.
+Definition pred_strong8 : forall n : nat, {m : nat | n = S m} + {n = 0}.
   refine (fun n =>
     match n with
       | O => !!
@@ -604,7 +604,7 @@ Notation "x <- e1 ; e2" := (match e1 with
 
    This notation is very helpful for composing richly-typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
 
-Definition doublePred (n1 n2 : nat) : {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
+Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
   refine (fun n1 n2 =>
     m1 <- pred_strong7 n1;
     m2 <- pred_strong7 n2;
@@ -623,8 +623,8 @@ Notation "x <-- e1 ; e2" := (match e1 with
 
 (** printing * $\times$ *)
 
-Definition doublePred' (n1 n2 : nat)
-  : {p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
+Definition doublePred' : forall n1 n2 : nat,
+  {p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
   + {n1 = 0 \/ n2 = 0}.
   refine (fun n1 n2 =>
     m1 <-- pred_strong8 n1;
@@ -676,7 +676,7 @@ Notation "e1 ;; e2" := (if e1 then e2 else ??)
 (** With that notation defined, we can implement a [typeCheck] function, whose code is only more complex than what we would write in ML because it needs to include some extra type annotations.  Every [[[e]]] expression adds a [hasType] proof obligation, and [crush] makes short work of them when we add [hasType]'s constructors as hints. *)
 (* end thide *)
 
-Definition typeCheck (e : exp) : {{t | hasType e t}}.
+Definition typeCheck : forall e : exp, {{t | hasType e t}}.
 (* begin thide *)
   Hint Constructors hasType.
 
@@ -813,7 +813,7 @@ Qed.
 (** Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
 
 (* end thide *)
-Definition typeCheck' (e : exp) : {t : type | hasType e t} + {forall t, ~ hasType e t}.
+Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
 (* begin thide *)
   Hint Constructors hasType.
   (** We register all of the typing rules as hints. *)

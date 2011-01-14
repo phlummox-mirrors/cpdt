@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -988,7 +988,7 @@ Section t7.
     -> P v2 u2
     -> P (f v1 v2) (g u1 u2).
 
-  Theorem t6 : forall v1 v2, Q v1 -> Q v2 -> exists u1, exists u2, P (f v1 v2) (g u1 u2).
+  Theorem t7 : forall v1 v2, Q v1 -> Q v2 -> exists u1, exists u2, P (f v1 v2) (g u1 u2).
     intros; do 2 insterKeep H1;
       repeat match goal with
                | [ H : ex _ |- _ ] => destruct H
