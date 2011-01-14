@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -21,7 +21,7 @@ Set Implicit Arguments.
 
 (** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
-I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.2pl2, though parts may work with other versions.
+I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq versions 8.2pl2 and 8.3pl1, though parts may work with other versions.
 
 To set up your Proof General environment to process the source to this chapter, a few simple steps are required.
 

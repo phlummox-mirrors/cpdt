@@ -156,10 +156,15 @@ Section fhlist_map.
 
   Theorem get_imap : forall ls (mem : fmember elm ls) (hls : fhlist B ls),
     fhget (fhmap hls) mem = f (fhget hls mem).
-(* begin thide *)
+(* begin hide *)
+    induction ls; crush; case a0; reflexivity.
+(* end hide *)
+    (** [[
     induction ls; crush.
+ 
+    ]]
 
-    (** In Coq 8.2, one subgoal remains at this point.  Coq 8.3 has added some tactic improvements that enable [crush] to complete all of both inductive cases.  To introduce the basics of reasoning about equality, it will be useful to review what was necessary in Coq 8.2
+    In Coq 8.2, one subgoal remains at this point.  Coq 8.3 has added some tactic improvements that enable [crush] to complete all of both inductive cases.  To introduce the basics of reasoning about equality, it will be useful to review what was necessary in Coq 8.2.
 
        Part of our single remaining subgoal is:
 
@@ -213,6 +218,7 @@ The term "refl_equal ?98" has type "?98 = ?98"
     reflexivity.
  
     ]] *)
+
   Qed.
 (* end thide *)
 
