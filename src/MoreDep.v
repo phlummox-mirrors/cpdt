@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -875,7 +875,7 @@ Section split.
 
   (** [split'] is the workhorse behind [split].  It searches through the possible ways of splitting [s] into two pieces, checking the two predicates against each such pair.  [split'] progresses right-to-left, from splitting all of [s] into the first piece to splitting all of [s] into the second piece.  It takes an extra argument, [n], which specifies how far along we are in this search process. *)
 
-  Definition split' (n : nat) : n <= length s
+  Definition split' : forall n : nat, n <= length s
     -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
     + {forall s1 s2, length s1 <= n -> s1 ++ s2 = s -> ~ P1 s1 \/ ~ P2 s2}.
     refine (fix F (n : nat) : n <= length s
@@ -1094,8 +1094,8 @@ Section dec_star.
 
     (** Now we come to [dec_star''] itself.  It takes as an input a natural [l] that records how much of the string has been searched so far, as we did for [split'].  The return type expresses that [dec_star''] is looking for an index into [s] that splits [s] into a nonempty prefix and a suffix, such that the prefix satisfies [P] and the suffix satisfies [P']. *)
 
-    Definition dec_star'' (l : nat)
-      : {exists l', S l' <= l
+    Definition dec_star'' : forall l : nat,
+      {exists l', S l' <= l
         /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
       + {forall l', S l' <= l
         -> ~ P (substring n (S l') s)
@@ -1137,7 +1137,7 @@ Section dec_star.
 
   (** The work of [dec_star''] is nested inside another linear search by [dec_star'], which provides the final functionality we need, but for arbitrary suffixes of [s], rather than just for [s] overall. *)
   
-  Definition dec_star' (n n' : nat) : length s - n' <= n
+  Definition dec_star' : forall n n' : nat, length s - n' <= n
     -> {star P (substring n' (length s - n') s)}
     + {~ star P (substring n' (length s - n') s)}.
     refine (fix F (n n' : nat) : length s - n' <= n
@@ -1181,7 +1181,7 @@ Hint Resolve app_cong.
 
 (** With these helper functions completed, the implementation of our [matches] function is refreshingly straightforward.  We only need one small piece of specific tactic work beyond what [crush] does for us. *)
 
-Definition matches P (r : regexp P) s : {P s} + {~ P s}.
+Definition matches : forall P (r : regexp P) s, {P s} + {~ P s}.
   refine (fix F P (r : regexp P) s : {P s} + {~ P s} :=
     match r with
       | Char ch => string_dec s (String ch "")

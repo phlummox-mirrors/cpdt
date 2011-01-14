@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -8,9 +8,9 @@
  *)
 
 (* begin hide *)
-Require Import Eqdep String List.
+Require Import Eqdep String List FunctionalExtensionality.
 
-Require Import Axioms Tactics.
+Require Import Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -727,14 +727,14 @@ Ltac my_crush :=
                   | ?F = ?G =>
                     let ec := equate_conj F G in
                       let var := fresh "var" in
-                        assert ec; [ intuition; unfold Exp; apply ext_eq; intro var;
-                          assert (H' : F var = G var); try congruence;
-                            match type of H' with
-                              | ?X = ?Y =>
-                                let X := eval hnf in X in
-                                  let Y := eval hnf in Y in
-                                    change (X = Y) in H'
-                            end; injection H'; my_crush'; tauto
+                        assert ec; [ intuition; unfold Exp; extensionality var;
+                            assert (H' : F var = G var); try congruence;
+                              match type of H' with
+                                | ?X = ?Y =>
+                                  let X := eval hnf in X in
+                                    let Y := eval hnf in Y in
+                                      change (X = Y) in H'
+                              end; injection H'; my_crush'; tauto
                           | intuition; subst ]
                 end);
               clear H

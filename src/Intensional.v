@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2009, 2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -8,9 +8,9 @@
  *)
 
 (* begin hide *)
-Require Import Arith Eqdep List.
+Require Import Arith Eqdep List FunctionalExtensionality.
 
-Require Import Axioms DepList Tactics.
+Require Import DepList Tactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -178,7 +178,7 @@ Definition Phoasify t (e : DeBruijn.exp nil t) : Phoas.Exp t :=
 
 Theorem phoasify_sound : forall G t (e : DeBruijn.exp G t) s,
   Phoas.expDenote (phoasify e s) = DeBruijn.expDenote e s.
-  induction e; crush; ext_eq; crush.
+  induction e; crush; (let x := fresh in extensionality x); crush.
 Qed.
 
 (** We can prove that any output of [Phoasify] is well-formed, in a sense strong enough to let us avoid asserting last chapter's axiom. *)
@@ -420,7 +420,7 @@ Lemma dbify_sound : forall G t (e1 : Phoas.exp _ t) (e2 : Phoas.exp _ t),
   -> forall ts (w : wf ts e1) s,
     G = makeG' s
     -> DeBruijn.expDenote (dbify e1 w) s = Phoas.expDenote e2.
-  induction 1; crush; ext_eq; crush.
+  induction 1; crush; (let x := fresh in extensionality x); crush.
 Qed.
 
 (** In the usual way, we wrap [dbify_sound] into the final soundness theorem, formally establishing the expressive equivalence of PHOAS and de Bruijn index terms. *)

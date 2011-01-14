@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -126,13 +126,19 @@ Ltac un_done :=
            | [ H : done _ |- _ ] => clear H
          end.
 
+Require Import JMeq.
+
 Ltac crush' lemmas invOne :=
   let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence in
     let rewriter := autorewrite with cpdt in *;
       repeat (match goal with
-                | [ H : _ |- _ ] => (rewrite H; [])
-                  || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
-                    || (rewrite H; [ | solve [ crush' lemmas invOne ] | solve [ crush' lemmas invOne ] ])
+                | [ H : ?P |- _ ] =>
+                  match P with
+                    | context[JMeq] => fail 1
+                    | _ => (rewrite H; [])
+                      || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
+                        || (rewrite H; [ | solve [ crush' lemmas invOne ] | solve [ crush' lemmas invOne ] ])
+                  end
               end; autorewrite with cpdt in *)
     in (sintuition; rewriter;
         match lemmas with

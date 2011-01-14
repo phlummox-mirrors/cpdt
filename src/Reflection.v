@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -68,7 +68,7 @@ Local Open Scope partial_scope.
 (** We bring into scope some notations for the [partial] type.  These overlap with some of the notations we have seen previously for specification types, so they were placed in a separate scope that needs separate opening. *)
 
 (* begin thide *)
-Definition check_even (n : nat) : [isEven n].
+Definition check_even : forall n : nat, [isEven n].
   Hint Constructors isEven.
 
   refine (fix F (n : nat) : [isEven n] :=
@@ -462,9 +462,9 @@ Section my_tauto.
 
   (** Now we can write a function [forward] which implements deconstruction of hypotheses.  It has a dependent type, in the style of Chapter 6, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
 
-  Definition forward (f : formula) (known : set index) (hyp : formula)
-    (cont : forall known', [allTrue known' -> formulaDenote atomics f])
-    : [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f].
+  Definition forward : forall (f : formula) (known : set index) (hyp : formula)
+    (cont : forall known', [allTrue known' -> formulaDenote atomics f]),
+    [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f].
     refine (fix F (f : formula) (known : set index) (hyp : formula)
       (cont : forall known', [allTrue known' -> formulaDenote atomics f])
       : [allTrue known -> formulaDenote atomics hyp -> formulaDenote atomics f] :=
@@ -482,8 +482,8 @@ Section my_tauto.
 
   (** A [backward] function implements analysis of the final goal.  It calls [forward] to handle implications. *)
 
-  Definition backward (known : set index) (f : formula)
-    : [allTrue known -> formulaDenote atomics f].
+  Definition backward : forall (known : set index) (f : formula),
+    [allTrue known -> formulaDenote atomics f].
     refine (fix F (known : set index) (f : formula)
       : [allTrue known -> formulaDenote atomics f] :=
       match f with
@@ -498,7 +498,7 @@ Section my_tauto.
 
   (** A simple wrapper around [backward] gives us the usual type of a partial decision procedure. *)
 
-  Definition my_tauto (f : formula) : [formulaDenote atomics f].
+  Definition my_tauto : forall f : formula, [formulaDenote atomics f].
     intro; refine (Reduce (backward nil f)); crush.
   Defined.
 End my_tauto.
