@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -21,7 +21,7 @@
 
 (**
 
-Copyright Adam Chlipala 2008-2010.
+Copyright Adam Chlipala 2008-2011.
 
 This work is licensed under a
 Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
