@@ -544,7 +544,7 @@ Goal False.
  
    ]]
 
-   We use the [pose] tactic, which extends the proof context with a new variable that is set equal to particular a term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
+   We use the [pose] tactic, which extends the proof context with a new variable that is set equal to a particular term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
 
    [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)
 
