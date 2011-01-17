@@ -150,7 +150,8 @@ Notation            Scope
 "{ x : A  |  P }" := sig (fun x : A => P)
                       : type_scope
                       (default interpretation)
- ]] *)
+ ]]
+ *)
 
 Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
   match s with
@@ -165,7 +166,8 @@ Eval compute in pred_strong2 (exist _ 2 two_gt0).
      = 1
      : nat
  
-     ]] *)
+     ]]
+     *)
 
 Extraction pred_strong2.
 
@@ -200,7 +202,8 @@ Eval compute in pred_strong3 (exist _ 2 two_gt0).
      = exist (fun m : nat => 2 = S m) 1 (refl_equal 2)
      : {m : nat | proj1_sig (exist (lt 0) 2 two_gt0) = S m}
  
-     ]] *)
+     ]]
+     *)
 
 (** The function [proj1_sig] extracts the base value from a subset type.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
 
@@ -330,7 +333,8 @@ Eval compute in pred_strong6 two_gt0.
      = [1]
      : {m : nat | 2 = S m}
  
-     ]] *)
+     ]]
+     *)
 
 
 (** * Decidable Proposition Types *)
@@ -370,14 +374,16 @@ Eval compute in eq_nat_dec 2 2.
      = Yes
      : {2 = 2} + {2 <> 2}
  
-     ]] *)
+     ]]
+     *)
 
 Eval compute in eq_nat_dec 2 3.
 (** %\vspace{-.15in}% [[
      = No
      : {2 = 2} + {2 <> 2}
  
-     ]] *)
+     ]]
+     *)
 
 (** Our definition extracts to reasonable OCaml code. *)
 
@@ -475,14 +481,16 @@ Eval compute in In_dec eq_nat_dec 2 (1 :: 2 :: nil).
      = Yes
      : {In 2 (1 :: 2 :: nil)} + {~ In 2 (1 :: 2 :: nil)}
  
-     ]] *)
+     ]]
+     *)
 
 Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
 (** %\vspace{-.15in}% [[
      = No
      : {In 3 (1 :: 2 :: nil)} + {~ In 3 (1 :: 2 :: nil)}
  
-     ]] *)
+     ]]
+     *)
 
 (** [In_dec] has a reasonable extraction to OCaml. *)
 
@@ -541,7 +549,8 @@ Eval compute in pred_strong7 2.
      = [[1]]
      : {{m | 2 = S m}}
  
-     ]] *)
+     ]]
+     *)
 
 Eval compute in pred_strong7 0.
 (** %\vspace{-.15in}% [[
@@ -558,7 +567,8 @@ Inductive sumor (A : Type) (B : Prop) : Type :=
     inleft : A -> A + {B} | inright : B -> A + {B}
 For inleft: Argument A is implicit
 For inright: Argument B is implicit
-]] *)
+]]
+*)
 
 (** We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
 
@@ -580,14 +590,16 @@ Eval compute in pred_strong8 2.
      = [[[1]]]
      : {m : nat | 2 = S m} + {2 = 0}
  
-     ]] *)
+     ]]
+     *)
 
 Eval compute in pred_strong8 0.
 (** %\vspace{-.15in}% [[
      = !!
      : {m : nat | 0 = S m} + {0 = 0}
  
-     ]] *)
+     ]]
+     *)
 
 
 (** * Monadic Notations *)
@@ -706,19 +718,22 @@ Eval simpl in typeCheck (Nat 0).
 (** %\vspace{-.15in}% [[
      = [[TNat]]
      : {{t | hasType (Nat 0) t}}
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in typeCheck (Plus (Nat 1) (Nat 2)).
 (** %\vspace{-.15in}% [[
      = [[TNat]]
      : {{t | hasType (Plus (Nat 1) (Nat 2)) t}}
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
 (** %\vspace{-.15in}% [[
      = ??
      : {{t | hasType (Plus (Nat 1) (Bool false)) t}}
-     ]] *)
+     ]]
+     *)
 
 (** The type-checker also extracts to some reasonable OCaml code. *)
 
@@ -856,21 +871,24 @@ Eval simpl in typeCheck' (Nat 0).
      = [[[TNat]]]
      : {t : type | hasType (Nat 0) t} +
        {(forall t : type, ~ hasType (Nat 0) t)}
-       ]] *)
+       ]]
+       *)
 
 Eval simpl in typeCheck' (Plus (Nat 1) (Nat 2)).
 (** %\vspace{-.15in}% [[
      = [[[TNat]]]
      : {t : type | hasType (Plus (Nat 1) (Nat 2)) t} +
        {(forall t : type, ~ hasType (Plus (Nat 1) (Nat 2)) t)}
-       ]] *)
+       ]]
+       *)
 
 Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
 (** %\vspace{-.15in}% [[
      = !!
      : {t : type | hasType (Plus (Nat 1) (Bool false)) t} +
        {(forall t : type, ~ hasType (Plus (Nat 1) (Bool false)) t)}
-       ]] *)
+       ]]
+       *)
 
 
 (** * Exercises *)

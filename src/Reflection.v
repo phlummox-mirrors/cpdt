@@ -593,7 +593,8 @@ partialOut
               (And Truth (And Truth (And Truth (And Truth Falsehood))))))
         Falsehood))
      : True /\ True /\ True /\ True /\ True /\ True /\ False --> False
-    ]] *)
+    ]]
+    *)
 
 Theorem mt4' : True /\ True /\ True /\ True /\ True /\ True /\ False -> False.
   tauto.
@@ -616,7 +617,8 @@ and_ind
                and_ind (fun (_ : True) (H11 : False) => False_ind False H11)
                  H9) H7) H5) H3) H1) H
      : True /\ True /\ True /\ True /\ True /\ True /\ False -> False
-    ]] *)
+    ]]
+    *)
 
 
 (** * Exercises *)

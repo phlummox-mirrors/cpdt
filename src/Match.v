@@ -129,7 +129,8 @@ Section autorewrite.
       (** [[
 ============================
  g (g (g x)) = g x
-          ]] *)
+          ]]
+          *)
 
     Abort.
 
@@ -158,7 +159,8 @@ subgoal 3 is:
  P (f x)
 subgoal 4 is:
  P (f x)
-          ]] *)
+          ]]
+          *)
 
     Abort.
 
@@ -414,7 +416,8 @@ Section firstorder.
   H4 : S x
   ============================
    S x
-   ]] *)
+   ]]
+   *)
 
     assumption.
   Qed.
@@ -479,7 +482,8 @@ Theorem t1' : forall x : nat, x = x.
   end.
 
 User error: No matching clauses for match goal
-    ]] *)
+    ]]
+    *)
 
 Abort.
 (* end thide *)
@@ -569,7 +573,8 @@ Goal False.
   n := 3 : nat
   ============================
    False
-   ]] *)
+   ]]
+   *)
 
 Abort.
 (* end thide *)
@@ -601,7 +606,8 @@ Goal False.
   l := (1, 1) :: (2, 2) :: (3, 3) :: nil : list (nat * nat)
   ============================
    False
-   ]] *)
+   ]]
+   *)
 
 Abort.
 (* end thide *)
@@ -850,7 +856,8 @@ and_True_prem
                  (Match (P:=P x) (imp_True (P:=True))))))))
      : forall (P : nat -> Prop) (Q : Prop),
        (exists x : nat, P x /\ Q) --> Q /\ (exists x : nat, P x)
-]] *)
+]]
+*)
 
 
 (** * Creating Unification Variables *)

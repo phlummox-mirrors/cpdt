@@ -152,7 +152,8 @@ hd'
                                   | S _ => A
                                   end
  
-  ]] *)
+  ]]
+  *)
 
 Definition hd n (ls : ilist (S n)) : A := hd' ls.
 (* end thide *)
@@ -420,7 +421,8 @@ Check min_dec.
 min_dec
      : forall n m : nat, {min n m = n} + {min n m = m}
  
-   ]] *)
+   ]]
+   *)
 
 Theorem depth_min : forall c n (t : rbtree c n), depth min t >= n.
   induction t; crush;
@@ -512,13 +514,15 @@ Locate "{ _ : _ & _ }".
 (** [[
 Notation            Scope     
 "{ x : A  & P }" := sigT (fun x : A => P)
-]] *)
+]]
+*)
 
 Print sigT.
 (** [[
 Inductive sigT (A : Type) (P : A -> Type) : Type :=
     existT : forall x : A, P x -> sigT P
-]] *)
+]]
+*)
 
 (** It will be helpful to define a concise notation for the constructor of [sigT]. *)
 

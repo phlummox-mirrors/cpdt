@@ -37,7 +37,7 @@ latex/cpdt.tex: Makefile $(VS)
 		-o ../latex/cpdt.tex
 
 latex/%.tex: src/%.v src/%.glob
-	cd src ; coqdoc --interpolate --latex -s \
+	cd src ; coqdoc --interpolate --latex \
 		-p "\usepackage{url,amsmath,amssymb}" \
 		$*.v -o ../latex/$*.tex
 

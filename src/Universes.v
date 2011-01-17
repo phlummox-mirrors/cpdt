@@ -69,7 +69,8 @@ Check nat.
 (** %\vspace{-.15in}% [[
   nat
      : Set
-     ]] *)
+     ]]
+     *)
 
 (** printing $ %({}*% #(<a/>*# *)
 (** printing ^ %*{})% #*<a/>)# *)
@@ -79,7 +80,8 @@ Check Set.
   Set
      : Type $ (0)+1 ^
 
-     ]] *)
+     ]]
+     *)
 
 Check Type.
 (** %\vspace{-.15in}% [[
@@ -100,13 +102,15 @@ Check forall T : nat, fin T.
 (** %\vspace{-.15in}% [[
   forall T : nat, fin T
      : Set
-     ]] *)
+     ]]
+     *)
 
 Check forall T : Set, T.
 (** %\vspace{-.15in}% [[
   forall T : Set, T
      : Type $ max(0, (0)+1) ^
-     ]] *)
+     ]]
+     *)
 
 Check forall T : Type, T.
 (** %\vspace{-.15in}% [[
@@ -142,19 +146,22 @@ Check id 0.
 (** %\vspace{-.15in}% [[
   id 0
      : nat
-     ]] *)
+     ]]
+     *)
 
 Check id Set.
 (** %\vspace{-.15in}% [[
   id Set
      : Type $ Top.17 ^
-  ]] *)
+  ]]
+  *)
 
 Check id Type.
 (** %\vspace{-.15in}% [[
   id Type $ Top.18 ^
      : Type $ Top.19 ^
-  ]] *)
+  ]]
+  *)
 
 (** So far so good.  As we apply [id] to different [T] values, the inferred index for [T]'s [Type] occurrence automatically moves higher up the type hierarchy.
 
@@ -197,13 +204,15 @@ Check Const 0.
 (** %\vspace{-.15in}% [[
   Const 0
      : exp nat
-     ]] *)
+     ]]
+     *)
 
 Check Pair (Const 0) (Const tt).
 (** %\vspace{-.15in}% [[
   Pair (Const 0) (Const tt)
      : exp (nat * unit)
-     ]] *)
+     ]]
+     *)
 
 Check Eq (Const Set) (Const Type).
 (** %\vspace{-.15in}% [[
@@ -306,13 +315,15 @@ Check foo nat.
 (** %\vspace{-.15in}% [[
   foo nat
      : Set
-     ]] *)
+     ]]
+     *)
 
 Check foo Set.
 (** %\vspace{-.15in}% [[
   foo Set
      : Type
-     ]] *)
+     ]]
+     *)
 
 Check foo True.
 (** %\vspace{-.15in}% [[
@@ -347,7 +358,8 @@ Print sig.
 (** %\vspace{-.15in}% [[
   Inductive sig (A : Type) (P : A -> Prop) : Type :=
     exist : forall x : A, P x -> sig P
-    ]] *)
+    ]]
+    *)
 
 Print ex.
 (** %\vspace{-.15in}% [[
@@ -412,7 +424,7 @@ Extraction sym_ex.
 let sym_ex = __
 >>
 
-In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type %\texttt{%#<tt>#__#</tt>#%}%, whose single constructor is %\texttt{%#<tt>#__#</tt>#%}%.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
+In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type %\texttt{\_\_}%#<tt>__</tt>#, whose single constructor is %\texttt{\_\_}%#<tt>__</tt>#.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
 
 Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADTs, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as you keep all of your proofs within [Prop], extraction is guaranteed to erase them.
 
@@ -442,19 +454,22 @@ Check ConstP 0.
 (** %\vspace{-.15in}% [[
   ConstP 0
      : expP nat
-     ]] *)
+     ]]
+     *)
 
 Check PairP (ConstP 0) (ConstP tt).
 (** %\vspace{-.15in}% [[
   PairP (ConstP 0) (ConstP tt)
      : expP (nat * unit)
-     ]] *)
+     ]]
+     *)
 
 Check EqP (ConstP Set) (ConstP Type).
 (** %\vspace{-.15in}% [[
   EqP (ConstP Set) (ConstP Type)
      : expP bool
-     ]] *)
+     ]]
+     *)
 
 Check ConstP (ConstP O).
 (** %\vspace{-.15in}% [[
@@ -475,19 +490,22 @@ Check (Base 0).
 (** %\vspace{-.15in}% [[
   Base 0
      : eqPlus 0 0
-     ]] *)
+     ]]
+     *)
 
 Check (Func (fun n => n) (fun n => 0 + n) (fun n => Base n)).
 (** %\vspace{-.15in}% [[
   Func (fun n : nat => n) (fun n : nat => 0 + n) (fun n : nat => Base n)
      : eqPlus (fun n : nat => n) (fun n : nat => 0 + n)
-     ]] *)
+     ]]
+     *)
 
 Check (Base (Base 1)).
 (** %\vspace{-.15in}% [[
   Base (Base 1)
      : eqPlus (Base 1) (Base 1)
-     ]] *)
+     ]]
+     *)
 
 
 (** * Axioms *)
@@ -548,7 +566,8 @@ Qed.
 Print Assumptions t1.
 (** %\vspace{-.15in}% [[
   Closed under the global context
-]] *)
+]]
+*)
 
 Theorem t2 : forall P : Prop, ~ ~ P -> P.
   (** [[
@@ -556,7 +575,8 @@ Theorem t2 : forall P : Prop, ~ ~ P -> P.
 
 Error: tauto failed.
 
-]] *)
+]]
+*)
 
   intro P; destruct (classic P); tauto.
 Qed.
@@ -696,7 +716,8 @@ Check constructive_definite_description.
        forall P : A -> Prop,
        (forall x : A, {P x} + {~ P x}) ->
        (exists! x : A, P x) -> {x : A | P x}
-       ]] *)
+       ]]
+       *)
 
 Print Assumptions constructive_definite_description.
 (** %\vspace{-.15in}% [[
@@ -764,7 +785,8 @@ Eval compute in (cast (refl_equal (nat -> nat)) (fun n => S n)) 12.
 (** [[
      = 13
      : nat
-     ]] *)
+     ]]
+     *)
 
 (** Things do not go as smoothly when we use [cast] with proofs that rely on axioms. *)
 
@@ -817,4 +839,5 @@ Eval compute in cast (t4 13) First.
 (** %\vspace{-.15in}% [[
      = First
      : fin (13 + 1)
-     ]] *)
+     ]]
+     *)

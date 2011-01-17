@@ -123,7 +123,8 @@ Theorem eval_times : forall k e,
 
 Error: The reference IHe1 was not found in the current environment.
  
-  ]] *)
+  ]]
+  *)
 
 Abort.
 
@@ -184,7 +185,8 @@ Theorem eval_times : forall k e,
 
 Error: Expects a disjunctive pattern with 3 branches.
 
-  ]] *)
+  ]]
+  *)
 
 Abort.
 
@@ -540,7 +542,8 @@ Section slow.
     Time eauto 6.
     (** [[
 Finished transaction in 0. secs (0.068004u,0.s)
-]] *)
+]]
+*)
 
   Qed.
 
@@ -722,7 +725,8 @@ Check IntTheorems.unique_ident.
 (** %\vspace{-.15in}% [[
   IntTheorems.unique_ident
      : forall e' : Int.G, (forall a : Int.G, Int.f e' a = a) -> e' = Int.e
-     ]] *)
+     ]]
+     *)
 
 Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
   exact IntTheorems.unique_ident.

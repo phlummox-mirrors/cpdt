@@ -116,43 +116,50 @@ Module STLC.
   (** %\vspace{-.15in}% [[
      = 0
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote one.
   (** %\vspace{-.15in}% [[
      = 1
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote zpo.
   (** %\vspace{-.15in}% [[
      = 1
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote ident.
   (** %\vspace{-.15in}% [[
      = fun x : nat => x
      : typeDenote (Nat --> Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote app_ident.
   (** %\vspace{-.15in}% [[
      = 1
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote app.
   (** %\vspace{-.15in}% [[
      = fun (x : nat -> nat) (x0 : nat) => x x0
      : typeDenote ((Nat --> Nat) --> Nat --> Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote app_ident'.
   (** %\vspace{-.15in}% [[
      = 1
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
 
   (* EX: Define a constant-folding function for [Exp]s. *)
@@ -347,19 +354,22 @@ Module PSLC.
   (** %\vspace{-.15in}% [[
      = fun x : nat * nat => (let (_, y) := x in y, let (x0, _) := x in x0)
      : typeDenote (Nat ** Nat --> Nat ** Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote zo.
   (** %\vspace{-.15in}% [[
      = (0, 1)
      : typeDenote (Nat ** Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote swap_zo.
   (** %\vspace{-.15in}% [[
      = (1, 0)
      : typeDenote (Nat ** Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval cbv beta iota delta -[plus] in ExpDenote natOut.
   (** %\vspace{-.15in}% [[
@@ -368,31 +378,36 @@ Module PSLC.
                             | inr v => v + v
                             end
      : typeDenote (Nat ++ Nat --> Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote ns1.
   (** %\vspace{-.15in}% [[
      = inl nat 3
      : typeDenote (Nat ++ Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote ns2.
   (** %\vspace{-.15in}% [[
      = inr nat 5
      : typeDenote (Nat ++ Nat)
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote natOut_ns1.
   (** %\vspace{-.15in}% [[
      = 3
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   Eval compute in ExpDenote natOut_ns2.
   (** %\vspace{-.15in}% [[
      = 10
      : typeDenote Nat
-     ]] *)
+     ]]
+     *)
 
   (** We adapt the [cfold] function using the same basic dependent-types trick that we applied in an earlier chapter to a very similar function for a language without variables. *)
 

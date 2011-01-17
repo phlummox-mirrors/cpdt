@@ -234,43 +234,50 @@ Eval compute in CountVars zero.
 (** %\vspace{-.15in}% [[
      = 0
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars one.
 (** %\vspace{-.15in}% [[
      = 0
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars one_again.
 (** %\vspace{-.15in}% [[
      = 0
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars ident.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars app_ident.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars app.
 (** %\vspace{-.15in}% [[
      = 2
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountVars app_ident'.
 (** %\vspace{-.15in}% [[
      = 3
      : nat
-     ]] *)
+     ]]
+     *)
 
 
 (* EX: Define a function to count the number of occurrences of a single distinguished variable. *)
@@ -306,25 +313,29 @@ Eval compute in CountOne ident1.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountOne add_self.
 (** %\vspace{-.15in}% [[
      = 2
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountOne app_zero.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in CountOne app_ident1.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-     ]] *)
+     ]]
+     *)
 
 
 (* EX: Define a function to pretty-print [Exp]s as strings. *)
@@ -368,43 +379,50 @@ Eval compute in ToString zero.
 (** %\vspace{-.15in}% [[
      = "O"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString one.
 (** %\vspace{-.15in}% [[
      = "S(O)"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString one_again.
 (** %\vspace{-.15in}% [[
      = "(O) + (S(O))"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString ident.
 (** %\vspace{-.15in}% [[
      = "(\x, x)"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString app_ident.
 (** %\vspace{-.15in}% [[
      = "((\x, x)) ((O) + (S(O)))"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString app.
 (** %\vspace{-.15in}% [[
      = "(\x, (\x', (x) (x')))"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ToString app_ident'.
 (** %\vspace{-.15in}% [[
      = "(((\x, (\x', (x) (x')))) ((\x'', x''))) ((O) + (S(O)))"%string
      : string
-   ]] *)
+   ]]
+   *)
 
 
 (* EX: Define a substitution function. *)
@@ -435,27 +453,31 @@ Eval compute in Subst one ident1.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type => Const' 1
      : Exp Nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in Subst one add_self.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type => Plus' (Const' 1) (Const' 1)
      : Exp Nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in Subst ident app_zero.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type =>
        App' (Abs' (fun X : var Nat => Var X)) (Const' 0)
      : Exp Nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in Subst one app_ident1.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type =>
        App' (Abs' (fun x : var Nat => Var x)) (Const' 1)
      : Exp Nat
-   ]] *)
+   ]]
+   *)
 
 
 (** * A Type Soundness Proof *)
