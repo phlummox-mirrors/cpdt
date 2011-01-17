@@ -77,7 +77,8 @@ Eval simpl in approx zeroes 10.
 (** %\vspace{-.15in}% [[
      = 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: 0 :: nil
      : list nat
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in approx trues 10.
 (** %\vspace{-.15in}% [[
@@ -324,7 +325,8 @@ Theorem ones_eq' : stream_eq ones ones'.
   (** [[
   Guarded.
 
-  ]] *)
+  ]]
+  *)
 Abort.
 (* end thide *)
 

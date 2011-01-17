@@ -87,7 +87,8 @@ Theorem reduce_me : pred' 1 = 0.
   ============================
    0 = 0
  
-   ]] *)
+   ]]
+   *)
 
   reflexivity.
 Qed.
@@ -217,7 +218,8 @@ The term "refl_equal ?98" has type "?98 = ?98"
     [[
     reflexivity.
  
-    ]] *)
+    ]]
+    *)
 
   Qed.
 (* end thide *)
@@ -268,7 +270,8 @@ end
 
 User error: Cannot solve a second-order unification problem
  
-      ]] *)
+      ]]
+      *)
   Abort.
 
   (** Nonetheless, we can adapt the last manual proof to handle this theorem. *)
@@ -291,7 +294,8 @@ User error: Cannot solve a second-order unification problem
     simple destruct pf.
 
 User error: Cannot solve a second-order unification problem
-      ]] *)
+      ]]
+      *)
 
   Abort.
 
@@ -429,7 +433,8 @@ User error: Cannot solve a second-order unification problem
    fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3 =
    fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3
  
-        ]] *)
+        ]]
+        *)
 
     reflexivity.
 
@@ -716,7 +721,8 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   ============================
    x = y
  
-      ]] *)
+      ]]
+      *)
 
   destruct H.
   (** [[
@@ -727,7 +733,8 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   ============================
    x = y
  
-      ]] *)
+      ]]
+      *)
 
   rewrite H.
   (** [[
@@ -737,7 +744,8 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
    | refl_equal => y
    end = y
  
-      ]] *)
+      ]]
+      *)
 
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
@@ -801,7 +809,8 @@ subgoal 2 is:
                  | 0 => True
                  | S _ => True
                  end = True
-      ]] *)
+      ]]
+      *)
 
   reflexivity.
 

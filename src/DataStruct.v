@@ -136,26 +136,30 @@ Check Cons 0 (Cons 1 (Cons 2 Nil)).
 (** %\vspace{-.15in}% [[
   Cons 0 (Cons 1 (Cons 2 Nil))
      : ilist nat 3
-]] *)
+]]
+*)
 
 (* begin thide *)
 Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) First.
 (** %\vspace{-.15in}% [[
      = 0
      : nat
-]] *)
+]]
+*)
 
 Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next First).
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-]] *)
+]]
+*)
 
 Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
 (** %\vspace{-.15in}% [[
      = 2
      : nat
-]] *)
+]]
+*)
 (* end thide *)
 
 (** Our [get] function is also quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
@@ -258,13 +262,15 @@ Eval simpl in hget someValues MFirst.
 (** %\vspace{-.15in}% [[
      = 5
      : (fun T : Set => T) nat
-]] *)
+]]
+*)
 
 Eval simpl in hget someValues (MNext MFirst).
 (** %\vspace{-.15in}% [[
      = true
      : (fun T : Set => T) bool
-]] *)
+]]
+*)
 
 (** We can also build indexed lists of pairs in this way. *)
 
@@ -324,32 +330,37 @@ Eval simpl in expDenote Const MNil.
 (** %\vspace{-.15in}% [[
     = tt
      : typeDenote Unit
-]] *)
+]]
+*)
 
 Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
 (** %\vspace{-.15in}% [[
      = fun x : unit => x
      : typeDenote (Arrow Unit Unit)
-]] *)
+]]
+*)
 
 Eval simpl in expDenote (Abs (dom := Unit)
   (Abs (dom := Unit) (Var (MNext MFirst)))) MNil.
 (** %\vspace{-.15in}% [[
      = fun x _ : unit => x
      : typeDenote (Arrow Unit (Arrow Unit Unit))
-]] *)
+]]
+*)
 
 Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) MNil.
 (** %\vspace{-.15in}% [[
      = fun _ x0 : unit => x0
      : typeDenote (Arrow Unit (Arrow Unit Unit))
-]] *)
+]]
+*)
 
 Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 (** %\vspace{-.15in}% [[
      = tt
      : typeDenote Unit
-]] *)
+]]
+*)
 
 (* end thide *)
 

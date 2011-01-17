@@ -318,7 +318,8 @@ Ltac dester := simp;
    [[
           end; simp); eauto.
  
-   ]] *)
+   ]]
+   *)
 
 
 (** * Theorems *)

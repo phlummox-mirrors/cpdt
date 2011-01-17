@@ -172,7 +172,8 @@ Eval compute in size bool_fix.
 (** %\vspace{-.15in}% [[
      = fun b : bool => if b then 1 else 1
      : bool -> nat
-]] *)
+]]
+*)
 
 Definition nat_fix : fixDenote nat nat_dt :=
   fun R cases => fix F (n : nat) : R :=
@@ -190,7 +191,8 @@ Eval cbv beta iota delta -[plus] in size nat_fix.
                                 | S n' => F n' + 1
                                 end
      : nat -> nat
-]] *)
+]]
+*)
 
 Definition list_fix (A : Type) : fixDenote (list A) (list_dt A) :=
   fun R cases => fix F (ls : list A) : R :=
@@ -207,7 +209,8 @@ Eval cbv beta iota delta -[plus] in fun A => size (@list_fix A).
          | _ :: ls' => F ls' + 1
          end
      : forall A : Type, list A -> nat
-]] *)
+]]
+*)
 
 Definition tree_fix (A : Type) : fixDenote (tree A) (tree_dt A) :=
   fun R cases => fix F (t : tree A) : R :=
@@ -224,7 +227,8 @@ Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
          | Node t1 t2 => F t1 + (F t2 + 1)
          end
      : forall A : Type, tree A -> n
-]] *)
+]]
+*)
 (* end thide *)
 
 
@@ -260,7 +264,8 @@ Check hmap.
      : forall (A : Type) (B1 B2 : A -> Type),
        (forall x : A, B1 x -> B2 x) ->
        forall ls : list A, hlist B1 ls -> hlist B2 ls
-]] *)
+]]
+*)
 
 Definition print T dt (pr : print_datatype dt) (fx : fixDenote T dt) : T -> string :=
   fx string (hmap (B1 := print_constructor) (B2 := constructorDenote string)
@@ -275,13 +280,15 @@ Eval compute in print HNil Empty_set_fix.
      = fun emp : Empty_set => match emp return string with
                               end
      : Empty_set -> string
-     ]] *)
+     ]]
+     *)
 
 Eval compute in print (^ "tt" (fun _ => "") ::: HNil) unit_fix.
 (** %\vspace{-.15in}% [[
      = fun _ : unit => "tt()"
      : unit -> string
-   ]] *)
+   ]]
+   *)
 
 Eval compute in print (^ "true" (fun _ => "")
   ::: ^ "false" (fun _ => "")
@@ -289,7 +296,8 @@ Eval compute in print (^ "true" (fun _ => "")
 (** %\vspace{-.15in}% [[
    = fun b : bool => if b then "true()" else "false()"
    : bool -> s
-   ]] *)
+   ]]
+   *)
 
 Definition print_nat := print (^ "O" (fun _ => "")
   ::: ^ "S" (fun _ => "")
@@ -302,25 +310,29 @@ Eval cbv beta iota delta -[append] in print_nat.
          | S n' => "S" ++ "(" ++ "" ++ ", " ++ F n' ++ ")"
          end
      : nat -> string
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in print_nat 0.
 (** %\vspace{-.15in}% [[
      = "O()"
      : string
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in print_nat 1.
 (** %\vspace{-.15in}% [[
      = "S(, O())"
      : string
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in print_nat 2.
 (** %\vspace{-.15in}% [[
      = "S(, S(, O()))"
      : string
-     ]] *)
+     ]]
+     *)
 
 Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
   print (^ "nil" (fun _ => "")
@@ -334,7 +346,8 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
          | x :: ls' => "cons" ++ "(" ++ pr x ++ ", " ++ F ls' ++ ")"
          end
      : forall A : Type, (A -> string) -> list A -> string
-     ]] *)
+     ]]
+     *)
 
 Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
   print (^ "Leaf" pr
@@ -349,7 +362,8 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
              "Node" ++ "(" ++ "" ++ ", " ++ F t1 ++ ", " ++ F t2 ++ ")"
          end
      : forall A : Type, (A -> string) -> tree A -> string
-     ]] *)
+     ]]
+     *)
 
 
 (** ** Mapping *)
@@ -371,19 +385,22 @@ Eval compute in map Empty_set_den Empty_set_fix.
        match emp return Empty_set with
        end
      : (Empty_set -> Empty_set) -> Empty_set -> Empty_set
-     ]] *)
+     ]]
+     *)
 
 Eval compute in map unit_den unit_fix.
 (** %\vspace{-.15in}% [[
      = fun (f : unit -> unit) (_ : unit) => f tt
      : (unit -> unit) -> unit -> unit
-     ]] *)
+     ]]
+     *)
 
 Eval compute in map bool_den bool_fix.
 (** %\vspace{-.15in}% [[
      = fun (f : bool -> bool) (b : bool) => if b then f true else f false
      : (bool -> bool) -> bool -> bool
-     ]] *)
+     ]]
+     *)
 
 Eval compute in map nat_den nat_fix.
 (** %\vspace{-.15in}% [[
@@ -394,7 +411,8 @@ Eval compute in map nat_den nat_fix.
          | S n' => f (S (F n'))
          end
      : (nat -> nat) -> nat -> nat
-     ]] *)
+     ]]
+     *)
 
 Eval compute in fun A => map (list_den A) (@list_fix A).
 (** %\vspace{-.15in}% [[
@@ -405,7 +423,8 @@ Eval compute in fun A => map (list_den A) (@list_fix A).
          | x :: ls' => f (x :: F ls')
          end
      : forall A : Type, (list A -> list A) -> list A -> list A
-     ]] *)
+     ]]
+     *)
 
 Eval compute in fun A => map (tree_den A) (@tree_fix A).
 (** %\vspace{-.15in}% [[
@@ -416,26 +435,30 @@ Eval compute in fun A => map (tree_den A) (@tree_fix A).
          | Node t1 t2 => f (Node (F t1) (F t2))
          end
      : forall A : Type, (tree A -> tree A) -> tree A -> tree A
-     ]] *)
+     ]]
+     *)
 
 Definition map_nat := map nat_den nat_fix.
 Eval simpl in map_nat S 0.
 (** %\vspace{-.15in}% [[
      = 1%nat
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in map_nat S 1.
 (** %\vspace{-.15in}% [[
      = 3%nat
      : nat
-     ]] *)
+     ]]
+     *)
 
 Eval simpl in map_nat S 2.
 (** %\vspace{-.15in}% [[
      = 5%nat
      : nat
-     ]] *)
+     ]]
+     *)
 
 
 (** * Proving Theorems about Recursive Definitions *)
@@ -523,7 +546,8 @@ Error: Impossible to unify "datatypeDenoteOk dd" with
          (fun (x : constructor) (_ : nonrecursive x)
             (r : ilist nat (recursive x)) => foldr plus 1%nat r) dt) t > 0) v
  
-      ]] *)
+      ]]
+      *)
 
   apply dok; crush.
   (** [[

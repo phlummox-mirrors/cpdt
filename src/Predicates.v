@@ -23,12 +23,14 @@ Set Implicit Arguments.
 Print unit.
 (** %\vspace{-.15in}% [[
   Inductive unit : Set :=  tt : unit
-]] *)
+]]
+*)
 
 Print True.
 (** %\vspace{-.15in}% [[
   Inductive True : Prop :=  I : True
-]] *)
+]]
+*)
 
 (** Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].
 
@@ -120,7 +122,8 @@ We have also already seen the definition of [True].  For a demonstration of a lo
     (** [[
   ============================
    2 + 2 = 5 -> False
-   ]] *)
+   ]]
+   *)
 
     crush.
 (* end thide *)
@@ -214,7 +217,8 @@ subgoal 2 is:
   H : Q
   ============================
    Q \/ P
-   ]] *)
+   ]]
+   *)
 
     left; assumption.
 (* end thide *)
@@ -366,7 +370,8 @@ Theorem exist1 : exists x : nat, x + 1 = 2.
      [[
   ============================
    1 + 1 = 2
-   ]] *)
+   ]]
+   *)
 
   reflexivity.
 (* end thide *)
@@ -641,7 +646,8 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
   (** [[
   ============================
    even (S (S (n0 + m)))
-   ]] *)
+   ]]
+   *)
 
   constructor.
   (** [[
@@ -754,7 +760,8 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   SearchRewrite (_ + S _).
   (** %\vspace{-.15in}% [[
   plus_n_Sm : forall n m : nat, S (n + m) = n + S m
-     ]] *)
+     ]]
+     *)
 
   rewrite <- plus_n_Sm in H0.
 
@@ -919,7 +926,8 @@ Qed.
 match goal with
   | [ |- context[eq_nat_dec ?X ?Y] ] => destruct (eq_nat_dec X Y)
 end
-]] #</li>#
+]]
+    #</li>#
     %\item%#<li># You probably do not want to use an inductive definition for compatibility of variable assignments and typings.#</li>#
     %\item%#<li># The [Tactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in %``%#"#forward reasoning#"#%''% style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inversion should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
     %\item%#<li># If you want [crush'] to apply polymorphic lemmas, you may have to do a little extra work, if the type parameter is not a free variable of your proof context (so that [crush'] does not know to try it).  For instance, if you define a polymorphic map insert function [assign] of some type [forall T : Set, ...], and you want particular applications of [assign] added automatically with type parameter [U], you would need to include [assign] in the lemma list as [assign U] (if you have implicit arguments off) or [assign (T := U)] or [@assign U] (if you have implicit arguments on).#</li>#

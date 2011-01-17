@@ -343,19 +343,22 @@ Eval compute in CpsExp zero.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type => x <- ^0; Halt x
      : Prog
-   ]] *)
+   ]]
+   *)
 
 Eval compute in CpsExp one.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type => x <- ^1; Halt x
      : Prog
-   ]] *)
+   ]]
+   *)
 
 Eval compute in CpsExp zpo.
 (** %\vspace{-.15in}% [[
      = fun var : type -> Type => x <- ^0; x0 <- ^1; x1 <- (x +^ x0); Halt x1
      : Prog
-   ]] *)
+   ]]
+   *)
 
 Eval compute in CpsExp app_ident.
 (** %\vspace{-.15in}% [[
@@ -364,7 +367,8 @@ Eval compute in CpsExp app_ident.
        x <- ^0;
        x0 <- ^1; x1 <- (x +^ x0); kf <- (\ r, Halt r); p <- [x1, kf]; f @@ p
      : Prog
-   ]] *)
+   ]]
+   *)
 
 Eval compute in CpsExp app_ident'.
 (** %\vspace{-.15in}% [[
@@ -386,37 +390,43 @@ Eval compute in CpsExp app_ident'.
         x1 <- (x +^ x0); kf <- (\ r0, Halt r0); p <- [x1, kf]; r @@ p);
        p <- [f0, kf]; f @@ p
      : Prog
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ProgDenote (CpsExp zero).
 (** %\vspace{-.15in}% [[
      = 0
      : nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ProgDenote (CpsExp one).
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ProgDenote (CpsExp zpo).
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ProgDenote (CpsExp app_ident).
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-   ]] *)
+   ]]
+   *)
 
 Eval compute in ProgDenote (CpsExp app_ident').
 (** %\vspace{-.15in}% [[
      = 1
      : nat
-   ]] *)
+   ]]
+   *)
 
 
 (** Our main inductive lemma about [cpsExp] needs a notion of compatibility between source-level and CPS-level values.  We express compatibility with a %\textit{%#<i>#logical relation#</i>#%}%; that is, we define a binary relation by recursion on type structure, and the function case of the relation considers functions related if they map related arguments to related results.  In detail, the function case is slightly more complicated, since it must deal with our continuation-based calling convention. *)

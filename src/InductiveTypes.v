@@ -52,7 +52,8 @@ Theorem unit_singleton : forall x : unit, x = tt.
 (** The goal changes to:
 [[
  tt = tt
-]] *)
+]]
+*)
 
   (** ...which we can discharge trivially. *)
 
@@ -370,7 +371,8 @@ Check nat_btree_ind.
        (forall n : nat_btree,
         P n -> forall (n0 : nat) (n1 : nat_btree), P n1 -> P (NNode n n0 n1)) ->
        forall n : nat_btree, P n
-]] *)
+]]
+*)
 
 
 (** * Parameterized Types *)
@@ -895,7 +897,8 @@ Locate "/\".
   Notation            Scope     
   "A /\ B" := and A B  : type_scope
                         (default interpretation)
-]] *)
+]]
+*)
 
 Print and.
 (** %\vspace{-.15in}% [[
@@ -1102,7 +1105,8 @@ We are almost done.  Just how close we are to done is revealed by computational 
   ============================
    True
  
-]] *)
+]]
+*)
 
   trivial.
 Qed.

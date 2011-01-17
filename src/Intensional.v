@@ -189,7 +189,8 @@ Wf =
 fun (t : type) (E : Exp t) =>
 forall var1 var2 : type -> Type, exp_equiv nil (E var1) (E var2)
      : forall t : type, Exp t -> Prop
-     ]] *)
+     ]]
+     *)
 
 Section vars.
   Variables var1 var2 : type -> Type.

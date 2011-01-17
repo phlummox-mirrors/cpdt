@@ -311,9 +311,11 @@ To progress further, we need to use the definitions of some of the functions app
  progDenote ((IConst n :: nil) ++ p) s =
  progDenote p (expDenote (Const n) :: s)
  
-]] *)
+]]
+*)
 
   unfold expDenote.
+
 (** [[
  n : nat
  s : stack
@@ -529,7 +531,8 @@ Check app_nil_end.
 (** [[
 app_nil_end
      : forall (A : Type) (l : list A), l = l ++ nil
-]] *)
+]]
+*)
 
   rewrite (app_nil_end (compile e)).
 
@@ -827,7 +830,8 @@ fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
            (TCons (TIBinop ts b) (TNil (res :: ts))))
   end
      : forall t : type, texp t -> forall ts : tstack, tprog ts (t :: ts)
-]] *)
+]]
+*)
 
 
 (** We can check that the compiler generates programs that behave appropriately on our sample programs from above: *)
