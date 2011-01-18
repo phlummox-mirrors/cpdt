@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Tweaks to recent update to satisfy coqdoc 8.3</title>
+        <pubDate>Tue, 18 Jan 2011 08:15:00 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adam@chlipala.net</author>
+</item>
+
+<item>
         <title>Updated to work with both Coq 8.3 and Coq 8.2</title>
         <pubDate>Fri, 14 Jan 2011 15:39:00 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
