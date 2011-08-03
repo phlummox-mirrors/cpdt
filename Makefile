@@ -12,7 +12,7 @@ TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 .PHONY: coq clean doc dvi html templates install cpdt.tgz
 
 coq: Makefile.coq
-	make -f Makefile.coq
+	$(MAKE) -f Makefile.coq
 
 Makefile.coq: Makefile $(VS)
 	coq_makefile $(VS) \
@@ -21,7 +21,7 @@ Makefile.coq: Makefile $(VS)
 		-o Makefile.coq
 
 clean:: Makefile.coq
-	make -f Makefile.coq clean
+	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq .depend cpdt.tgz \
 		latex/*.sty latex/cpdt.* templates/*.v
 	rm -f *.aux *.dvi *.log
