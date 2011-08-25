@@ -9,7 +9,7 @@ VS            := $(MODULES:%=src/%.v)
 VS_DOC        := $(MODULES_DOC:%=%.v)
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
-.PHONY: coq clean doc dvi html templates install cpdt.tgz
+.PHONY: coq clean doc html templates install cpdt.tgz
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
@@ -24,37 +24,29 @@ clean:: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq .depend cpdt.tgz \
 		latex/*.sty latex/cpdt.* templates/*.v
-	rm -f *.aux *.dvi *.log
+	rm -f *.aux *.log
 
-doc: latex/cpdt.dvi latex/cpdt.pdf html
+doc: latex/cpdt.pdf html
 
-latex/cpdt.tex: Makefile $(VS)
-	cd src ; coqdoc --interpolate --latex -s $(VS_DOC) \
-		-p "\usepackage{url,amsmath,amssymb}" \
-		-p "\title{Certified Programming with Dependent Types}" \
-		-p "\author{Adam Chlipala}" \
+latex/cpdt.tex: Makefile $(VS) src/BackMatter.v latex/cpdt.bib
+	cd src ; coqdoc --interpolate --latex -s $(VS_DOC) BackMatter.v \
+		-p "\usepackage{url}" \
 		-p "\iffalse" \
 		-o ../latex/cpdt.tex
 
 latex/%.tex: src/%.v src/%.glob
 	cd src ; coqdoc --interpolate --latex \
-		-p "\usepackage{url,amsmath,amssymb}" \
+		-p "\usepackage{url}" \
 		$*.v -o ../latex/$*.tex
 
-latex/%.dvi: latex/%.tex
-	cd latex ; latex $* ; latex $*
-
-latex/%.pdf: latex/%.dvi
-	cd latex ; pdflatex $* ; pdflatex $*
+latex/%.pdf: latex/%.tex latex/cpdt.bib
+	cd latex ; pdflatex $* ; pdflatex $* ; bibtex $* ; makeindex $* ; pdflatex $* ; pdflatex $*
 
 html: Makefile $(VS) src/toc.html
 	mkdir -p html
 	cd src ; coqdoc --interpolate $(VS_DOC) \
 		-d ../html
 	cp src/toc.html html/
-
-dvi:
-	xdvi latex/cpdt
 
 templates: $(TEMPLATES)
 
