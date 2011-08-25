@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through Chapter 1</title>
+        <pubDate>Thu, 25 Aug 2011 14:47:30 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+	<description>I've started passes through all chapters, with an eye toward getting ready both for <a href="http://stellar.mit.edu/S/course/6/fa11/6.892/">my fall class</a> and publication by MIT Press.  I'm adding bibliographic references, index entries, and additional exercises, along with the usual tweaks and improvements.  The version I've just put up is the result of a pass through Chapter 1.  Feedback is especially welcome now, as I get the book into final publishable shape!</description>
+</item>
+
+<item>
         <title>Tweaks to recent update to satisfy coqdoc 8.3</title>
         <pubDate>Tue, 18 Jan 2011 08:15:00 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
