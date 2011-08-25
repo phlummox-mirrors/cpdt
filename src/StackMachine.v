@@ -21,32 +21,8 @@ Set Implicit Arguments.
 
 (** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
-I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq versions 8.2pl2 and 8.3pl2, though parts may work with other versions.
-
-To set up your Proof General environment to process the source to this chapter, a few simple steps are required.
-
-%\begin{enumerate}%#<ol>#
-
-%\item %#<li>#Get the book source from
-%\begin{center}\url{http://adam.chlipala.net/cpdt/cpdt.tgz}\end{center}%#<blockquote><tt><a href="http://adam.chlipala.net/cpdt/cpdt.tgz">http://adam.chlipala.net/cpdt/cpdt.tgz</a></tt></blockquote></li>#
-
-%\item %#<li>#Unpack the tarball to some directory %\texttt{%#<tt>#DIR#</tt>#%}%.#</li>#
-
-%\item %#<li>#Run %\texttt{%#<tt>#make#</tt>#%}% in %\texttt{%#<tt>#DIR#</tt>#%}%.#</li>#
-
-%\item %#<li>#There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program, which provides the interactive Coq toplevel.  The best way to add settings that will be shared by many source files is to add a custom variable setting to your %\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
-%\begin{verbatim}%#<pre>#(custom-set-variables
-  ...
-  '(coq-prog-args '("-I" "DIR/src"))
-  ...
-)#</pre>#%\end{verbatim}%
-The extra arguments demonstrated here are the proper choices for working with the code for this book.  The ellipses stand for other Emacs customization settings you may already have.  It can be helpful to save several alternate sets of flags in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, with all but one commented out within the %\texttt{%#<tt>#custom-set-variables#</tt>#%}% block at any given time.#</li>#
-
-#</ol>#%\end{enumerate}%
-
-As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines [Require Import Arith Bool List Tactics.] and [Set Implicit Arguments.] at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit Arguments.], where the latter affects the default behavior of definitions regarding type inference.  Also, be sure to run the Coq binary %\texttt{%#<tt>#coqtop#</tt>#%}% with the command-line argument %\texttt{%#<tt>#-I DIR/src#</tt>#%}%.  If you have installed Proof General properly, it should start automatically when you visit a %\texttt{%#<tt>#.v#</tt>#%}% buffer in Emacs.
-
-With Proof General, the portion of a buffer that Coq has processed is highlighted in some way, like being given a blue background.  You step through Coq source files by positioning the point at the position you want Coq to run to and pressing C-C C-RET.  This can be used both for normal step-by-step coding, by placing the point inside some command past the end of the highlighted region; and for undoing, by placing the point inside the highlighted region. *)
+As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines %\index{Vernacular commands!Require}%[Require Import] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># [Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [Tactics.] and %\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.] at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
+*)
 
 
 (** * Arithmetic Expressions Over Natural Numbers *)
@@ -101,15 +77,15 @@ Definition binopDenote := fun b =>
 
 ]]
 
-Languages like Haskell and ML have a convenient %\textit{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient %\emph{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\textit{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\textit{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\textit{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\textit{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
+This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\emph{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\emph{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\emph{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\emph{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
 
-Coq is actually based on an extension of CIC called %\textit{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
+Coq is actually based on an extension of CIC called %\emph{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
-Commands like [Inductive] and [Definition] are part of %\textit{%#<i>#the vernacular#</i>#%}%, which includes all sorts of useful queries and requests to the Coq system.
+Next, there is %\emph{%#<i>#Ltac#</i>#%}%, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
 
-Finally, there is %\textit{%#<i>#Ltac#</i>#%}%, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
+Finally, commands like [Inductive] and [Definition] are part of %\emph{%#<i>#the vernacular#</i>#%}%, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like %\emph{%#<i>#trees#</i>#%}% of vernacular commands, thanks to various nested scoping constructs.)
 
 %\medskip%
 
@@ -233,13 +209,13 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\textit{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
+(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\emph{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
 *)
 
 Lemma compile_correct' : forall e p s,
   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
-(** After the period in the [Lemma] command, we are in %\textit{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
+(** After the period in the [Lemma] command, we are in %\emph{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
 
 [[
 1 subgoal
@@ -254,7 +230,7 @@ Coq seems to be restating the lemma for us.  What we are seeing is a limited cas
 
 Next in the output, we see our single subgoal described in full detail.  There is a double-dashed line, above which would be our free variables and hypotheses, if we had any.  Below the line is the conclusion, which, in general, is to be proved from the hypotheses.
 
-We manipulate the proof state by running commands called %\textit{%#<i>#tactics#</i>#%}%.  Let us start out by running one of the most important tactics:
+We manipulate the proof state by running commands called %\emph{%#<i>#tactics#</i>#%}%.  Let us start out by running one of the most important tactics:
 *)
 
   induction e.
@@ -582,13 +558,13 @@ Inductive tbinop : type -> type -> type -> Set :=
 | TEq : forall t, tbinop t t Bool
 | TLt : tbinop Nat Nat Bool.
 
-(** The definition of [tbinop] is different from [binop] in an important way.  Where we declared that [binop] has type [Set], here we declare that [tbinop] has type [type -> type -> type -> Set].  We define [tbinop] as an %\textit{%#<i>#indexed type family#</i>#%}%.  Indexed inductive types are at the heart of Coq's expressive power; almost everything else of interest is defined in terms of them.
+(** The definition of [tbinop] is different from [binop] in an important way.  Where we declared that [binop] has type [Set], here we declare that [tbinop] has type [type -> type -> type -> Set].  We define [tbinop] as an %\emph{%#<i>#indexed type family#</i>#%}%.  Indexed inductive types are at the heart of Coq's expressive power; almost everything else of interest is defined in terms of them.
 
 ML and Haskell have indexed algebraic datatypes.  For instance, their list types are indexed by the type of data that the list carries.  However, compared to Coq, ML and Haskell 98 place two important restrictions on datatype definitions.
 
-First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\textit{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
+First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\emph{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\textit{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\emph{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
 (** We can define a similar type family for typed expressions. *)
@@ -631,9 +607,9 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TLt => lessThan
   end.
 
-(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\textit{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, so it is often necessary to write annotations, like we see above on the line with [match].
+(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\emph{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, so it is often necessary to write annotations, like we see above on the line with [match].
 
-The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\textit{%#<i>#binding occurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [res] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
+The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\emph{%#<i>#binding occurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [res] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
 
 In fact, recent Coq versions use some heuristics that can save us the trouble of writing [match] annotations, and those heuristics get the job done in this case.  We can get away with writing just: *)
 
@@ -779,7 +755,7 @@ The term "(n, s)" has type "(nat * vstack ts)%type"
 
 Recall from our earlier discussion of [match] annotations that we write the annotations to express to the type-checker the relationship between the type indices of the case object and the result type of the [match].  Coq chooses to assign to the wildcard [_] after [TINConst] the name [t], and the type error is telling us that the type checker cannot prove that [t] is the same as [ts].  By moving [s] out of the [match], we lose the ability to express, with [in] and [return] clauses, the relationship between the shared index [ts] of [s] and [i].
 
-There %\textit{%#<i>#are#</i>#%}% reasonably general ways of getting around this problem without pushing binders inside [match]es.  However, the alternatives are significantly more involved, and the technique we use here is almost certainly the best choice, whenever it applies.
+There %\emph{%#<i>#are#</i>#%}% reasonably general ways of getting around this problem without pushing binders inside [match]es.  However, the alternatives are significantly more involved, and the technique we use here is almost certainly the best choice, whenever it applies.
 
 *)
 
@@ -812,7 +788,7 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) : tprog ts (t :: ts) :=
       (tconcat (tcompile e1 _) (TCons (TIBinop _ b) (TNil _)))
   end.
 
-(** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitrary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\textit{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
+(** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitrary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\emph{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
 
 The underscores here are being filled in with stack types.  That is, the Coq type inferencer is, in a sense, inferring something about the flow of control in the translated programs.  We can take a look at exactly which values are filled in: *)
 

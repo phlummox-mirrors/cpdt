@@ -9,7 +9,7 @@ VS            := $(MODULES:%=src/%.v)
 VS_DOC        := $(MODULES_DOC:%=%.v)
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
-.PHONY: coq clean doc html templates install cpdt.tgz
+.PHONY: coq clean doc html templates install cpdt.tgz pdf
 
 coq: Makefile.coq
 	$(MAKE) -f Makefile.coq
@@ -60,4 +60,7 @@ install: cpdt.tgz latex/cpdt.pdf html
 	cp cpdt.tgz staging/
 	cp latex/cpdt.pdf staging/
 	cp -R html staging/
-	rsync -az --exclude '*~' staging/* schizomaniac.net:sites/chlipala/adam/cpdt/
+	rsync -az --exclude '*~' staging/* chlipala.net:sites/chlipala/adam/cpdt/
+
+pdf:
+	evince latex/cpdt.pdf&
