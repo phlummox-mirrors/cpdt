@@ -1,0 +1,69 @@
+\documentclass[12pt]{report}
+\usepackage[]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{fullpage}
+\usepackage{coqdoc}
+\usepackage{amsmath,amssymb}
+\usepackage{url}
+\usepackage{makeidx,hyperref}
+
+\title{Certified Programming with Dependent Types}
+\author{Adam Chlipala}
+
+\makeindex
+
+\begin{document}
+
+\maketitle
+
+\thispagestyle{empty}
+\mbox{}\vfill
+\begin{center}
+
+Copyright Adam Chlipala 2008-2011.
+
+
+This work is licensed under a
+Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
+Unported License.
+The license text is available at:
+
+\end{center}
+
+\begin{center} \url{http://creativecommons.org/licenses/by-nc-nd/3.0/} \end{center}
+
+\phantomsection
+\tableofcontents
+
+\include{Intro.v}
+\include{StackMachine.v}
+\include{InductiveTypes.v}
+\include{Predicates.v}
+\include{Coinductive.v}
+\include{Subset.v}
+\include{MoreDep.v}
+\include{DataStruct.v}
+\include{Equality.v}
+\include{Generic.v}
+\include{Universes.v}
+\include{Match.v}
+\include{Reflection.v}
+\include{Large.v}
+\include{Firstorder.v}
+\include{DeBruijn.v}
+\include{Hoas.v}
+\include{Interps.v}
+\include{Extensional.v}
+\include{Intensional.v}
+\include{OpSem.v}
+
+\clearpage
+\addcontentsline{toc}{chapter}{Bibliography}
+\bibliographystyle{plain}
+\bibliography{cpdt}
+
+\clearpage
+\addcontentsline{toc}{chapter}{Index}
+\printindex
+
+\end{document}

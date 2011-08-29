@@ -7,43 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-(** %\fi
-
-\usepackage{makeidx,hyperref}
-
-\title{Certified Programming with Dependent Types}
-\author{Adam Chlipala}
-
-\makeindex
-
-\begin{document}
-
-\maketitle
-
-\thispagestyle{empty}
-\mbox{}\vfill
-\begin{center}% *)
-
-(**
-
-Copyright Adam Chlipala 2008-2011.
-
-This work is licensed under a
-Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
-Unported License.
-The license text is available at:
-%\begin{center} \url{http://creativecommons.org/licenses/by-nc-nd/3.0/} \end{center}%
-#<a href="http://creativecommons.org/licenses/by-nc-nd/3.0/">http://creativecommons.org/licenses/by-nc-nd/3.0/</a>#
-
-*)
-
-(** %\vfill\mbox{}
-\end{center}
-
-\phantomsection
-\tableofcontents
-
-\chapter{Introduction}% *)
+(** %\chapter{Introduction}% *)
 
 
 (** * Whence This Book? *)
@@ -211,7 +175,7 @@ Coq is a very complex system, with many different commands driven more by pragma
 (**
 To make it possible to start from fancy proof automation, rather than working up to it, I have included with the book source a library of %\emph{%#<i>#tactics#</i>#%}%, or programs that find proofs, since the built-in Coq tactics do not support a high enough level of automation.  I use these tactics even from the first chapter with code examples.
 
-Some readers have asked about the pragmatics of using this tactic library in their own developments.  My position there is that this tactic library was designed with the specific examples of the book in mind; I do not recommend using it in other settings.  Part III should impart the necessary skills to reimplement these tactics and beyond.  One generally deals with undecidable problems in interactive theorem proving, so there can be no tactic that solves all goals, though the %\index{Tactics!crush@\texttt{crush}}%[crush] tactic that we will meet soon may sometimes feel like that!  There are still very useful tricks found in the implementations of [crush] and its cousins, so it may be useful to examine the commented source file %\texttt{%#<tt>#Tactics.v#</tt>.#%}.~\footnote{It's not actually commented yet. \texttt{;-)}}%  I implement a new tactic library for each new project, since each project involves a different mix of undecidable theories where a different set of heuristics turns out to work well; and that is what I recommend others do, too.
+Some readers have asked about the pragmatics of using this tactic library in their own developments.  My position there is that this tactic library was designed with the specific examples of the book in mind; I do not recommend using it in other settings.  Part III should impart the necessary skills to reimplement these tactics and beyond.  One generally deals with undecidable problems in interactive theorem proving, so there can be no tactic that solves all goals, though the %\index{tactics!crush}%[crush] tactic that we will meet soon may sometimes feel like that!  There are still very useful tricks found in the implementations of [crush] and its cousins, so it may be useful to examine the commented source file %\texttt{%#<tt>#Tactics.v#</tt>.#%}.~\footnote{It's not actually commented yet. \texttt{;-)}}%  I implement a new tactic library for each new project, since each project involves a different mix of undecidable theories where a different set of heuristics turns out to work well; and that is what I recommend others do, too.
 *)
 
 (** ** Installation and Emacs Set-Up *)

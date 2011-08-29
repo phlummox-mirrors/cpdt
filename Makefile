@@ -6,6 +6,7 @@ MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
+TEX           := $(MODULES:%=latex/%.v.tex)
 VS_DOC        := $(MODULES_DOC:%=%.v)
 TEMPLATES     := $(MODULES_CODE:%=templates/%.v)
 
@@ -22,22 +23,17 @@ Makefile.coq: Makefile $(VS)
 
 clean:: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
-	rm -f Makefile.coq .depend cpdt.tgz \
-		latex/*.sty latex/cpdt.* templates/*.v
-	rm -f *.aux *.log
+	rm -f Makefile.coq .depend cpdt.tgz templates/*.v
+	cd latex; rm -f *.sty *.log *.aux *.dvi *.tex *.toc *.bbl *.blg *.idx *.ilg *.pdf *.ind *.out
 
 doc: latex/cpdt.pdf html
 
-latex/cpdt.tex: Makefile $(VS) src/BackMatter.v latex/cpdt.bib
-	cd src ; coqdoc --interpolate --latex -s $(VS_DOC) BackMatter.v \
-		-p "\usepackage{url}" \
-		-p "\iffalse" \
-		-o ../latex/cpdt.tex
+latex/%.v.tex: Makefile src/%.v src/%.glob
+	cd src ; coqdoc --interpolate --latex --body-only -s \
+		$*.v -o ../latex/$*.v.tex
 
-latex/%.tex: src/%.v src/%.glob
-	cd src ; coqdoc --interpolate --latex \
-		-p "\usepackage{url}" \
-		$*.v -o ../latex/$*.tex
+latex/cpdt.pdf: latex/cpdt.tex $(TEX) latex/cpdt.bib
+	cd latex ; pdflatex cpdt ; pdflatex cpdt ; bibtex cpdt ; makeindex cpdt ; pdflatex cpdt ; pdflatex cpdt
 
 latex/%.pdf: latex/%.tex latex/cpdt.bib
 	cd latex ; pdflatex $* ; pdflatex $* ; bibtex $* ; makeindex $* ; pdflatex $* ; pdflatex $*

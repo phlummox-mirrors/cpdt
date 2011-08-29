@@ -24,7 +24,7 @@ cpdt.tgz
 *.aux
 *.dvi
 *.log
-*.tex
+*.v.tex
 *.toc
 *.bbl
 *.blg
