@@ -31,11 +31,11 @@ As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#<
 
 (** ** Source Language *)
 
-(** We begin with the syntax of the source language. *)
+(** We begin with the syntax of the source language.%\index{Vernacular commands!Inductive}% *)
 
 Inductive binop : Set := Plus | Times.
 
-(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of %\texttt{%#<tt>#data#</tt>#%}%, %\texttt{%#<tt>#datatype#</tt>#%}%, or %\texttt{%#<tt>#type#</tt>#%}%.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the [: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that is useful in higher-order constructions. *)
+(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an %\index{algebraic datatypes}%algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of %\texttt{%#<tt>#data#</tt>#%}%, %\texttt{%#<tt>#datatype#</tt>#%}%, or %\texttt{%#<tt>#type#</tt>#%}%.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the %\index{Gallina terms!Set}%[: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that is useful in higher-order constructions. *)
 
 Inductive exp : Set :=
 | Const : nat -> exp
@@ -43,11 +43,11 @@ Inductive exp : Set :=
 
 (** Now we define the type of arithmetic expressions.  We write that a constant may be built from one argument, a natural number; and a binary operation may be built from a choice of operator and two operand expressions.
 
-A note for readers following along in the PDF version: coqdoc supports pretty-printing of tokens in LaTeX or HTML.  Where you see a right arrow character, the source contains the ASCII text %\texttt{%#<tt>#->#</tt>#%}%.  Other examples of this substitution appearing in this chapter are a double right arrow for %\texttt{%#<tt>#=>#</tt>#%}%, the inverted 'A' symbol for %\texttt{%#<tt>#forall#</tt>#%}%, and the Cartesian product 'X' for %\texttt{%#<tt>#*#</tt>#%}%.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
+A note for readers following along in the PDF version: %\index{coqdoc}%coqdoc supports pretty-printing of tokens in LaTeX or HTML.  Where you see a right arrow character, the source contains the ASCII text %\texttt{%#<tt>#->#</tt>#%}%.  Other examples of this substitution appearing in this chapter are a double right arrow for %\texttt{%#<tt>#=>#</tt>#%}%, the inverted %`%#'#A' symbol for %\texttt{%#<tt>#forall#</tt>#%}%, and the Cartesian product %`%#'#X' for %\texttt{%#<tt>#*#</tt>#%}%.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
 
 %\medskip%
 
-Now we are ready to say what these programs mean.  We will do this by writing an interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to %``%#"#common sense#"#%''% constructions.) *)
+Now we are ready to say what these programs mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to %``%#"#common sense#"#%''% constructions.)%\index{Vernacular commands!Definition}% *)
 
 Definition binopDenote (b : binop) : nat -> nat -> nat :=
   match b with
@@ -77,19 +77,19 @@ Definition binopDenote := fun b =>
 
 ]]
 
-Languages like Haskell and ML have a convenient %\emph{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient %\index{principal typing}\index{type inference}\emph{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\emph{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}%, which is an extension of the older %\emph{%#<i>#Calculus of Constructions (CoC)#</i>#%}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\emph{%#<i>#strong normalization#</i>#%}%, meaning that every program (and, more importantly, every proof term) terminates; and %\emph{%#<i>#relative consistency#</i>#%}% with systems like versions of Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
+This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}\emph{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}~\cite{CIC}%, which is an extension of the older %\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}\emph{%#<i>#Calculus of Constructions (CoC)#</i>#%}~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\index{strong normalization}\emph{%#<i>#strong normalization#</i>#%}~\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and %\index{relative consistency}\emph{%#<i>#relative consistency#</i>#%}~\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
 
-Coq is actually based on an extension of CIC called %\emph{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
+Coq is actually based on an extension of CIC called %\index{Gallina}\emph{%#<i>#Gallina#</i>#%}%.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
-Next, there is %\emph{%#<i>#Ltac#</i>#%}%, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
+Next, there is %\index{Ltac}\emph{%#<i>#Ltac#</i>#%}%, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
 
-Finally, commands like [Inductive] and [Definition] are part of %\emph{%#<i>#the vernacular#</i>#%}%, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like %\emph{%#<i>#trees#</i>#%}% of vernacular commands, thanks to various nested scoping constructs.)
+Finally, commands like [Inductive] and [Definition] are part of %\index{Vernacular commands}\emph{%#<i>#the Vernacular#</i>#%}%, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like %\emph{%#<i>#trees#</i>#%}% of vernacular commands, thanks to various nested scoping constructs.)
 
 %\medskip%
 
-We can give a simple definition of the meaning of an expression: *)
+We can give a simple definition of the meaning of an expression:%\index{Vernacular commands!Fixpoint}% *)
 
 Fixpoint expDenote (e : exp) : nat :=
   match e with
@@ -99,7 +99,9 @@ Fixpoint expDenote (e : exp) : nat :=
 
 (** We declare explicitly that this is a recursive definition, using the keyword [Fixpoint].  The rest should be old hat for functional programmers. *)
 
-(** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses. *)
+(** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses, using the command %\index{Vernacular commands!Eval}%[Eval].  This command takes an argument expressing a %\index{reduction strategy}\emph{%#<i>#reduction strategy#</i>#%}%, or an %``%#"#order of evaluation.#"#%''%  Unlike with ML, which hardcodes an %\emph{%#<i>#eager#</i>#%}% reduction strategy, or Haskell, which hardcodes a %\emph{%#<i>#lazy#</i>#%}% strategy, in Coq we are free to choose between these and many other orders of evaluation, because all Coq programs terminate.  In fact, Coq silently checked %\index{termination checking}%termination of our [Fixpoint] definition above, using a simple heuristic based on monotonically decreasing size of arguments across recursive calls.
+
+To return to our test evaluations, we run the [Eval] command using the [simpl] evaluation strategy, whose definition is best postponed until we have learned more about Coq's foundations, but which usually gets the job done. *)
 
 Eval simpl in expDenote (Const 42).
 (** [= 42 : nat] *)
@@ -115,44 +117,27 @@ Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))
 (** We will compile our source programs onto a simple stack machine, whose syntax is: *)
 
 Inductive instr : Set :=
-| IConst : nat -> instr
-| IBinop : binop -> instr.
+| iConst : nat -> instr
+| iBinop : binop -> instr.
 
 Definition prog := list instr.
 Definition stack := list nat.
 
 (** An instruction either pushes a constant onto the stack or pops two arguments, applies a binary operator to them, and pushes the result onto the stack.  A program is a list of instructions, and a stack is a list of natural numbers.
 
-We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  [::] is the %``%#"#list cons#"#%''% operator from the Coq standard library. *)
+We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  %\index{Gallina operators!::}%The infix operator [::] is %``%#"#list cons#"#%''% from the Coq standard library.%\index{Gallina terms!option}% *)
 
 Definition instrDenote (i : instr) (s : stack) : option stack :=
   match i with
-    | IConst n => Some (n :: s)
-    | IBinop b =>
+    | iConst n => Some (n :: s)
+    | iBinop b =>
       match s with
         | arg1 :: arg2 :: s' => Some ((binopDenote b) arg1 arg2 :: s')
         | _ => None
       end
   end.
 
-(** With [instrDenote] defined, it is easy to define a function [progDenote], which iterates application of [instrDenote] through a whole program.
-
-   [[
-Fixpoint progDenote (p : prog) (s : stack) {struct p} : option stack :=
-  match p with
-    | nil => Some s
-    | i :: p' =>
-      match instrDenote i s with
-        | None => None
-        | Some s' => progDenote p' s'
-      end
-  end.
-
-  ]]
-
-  There is one interesting difference compared to our previous example of a [Fixpoint].  This recursive function takes two arguments, [p] and [s].  It is critical for the soundness of Coq that every program terminate, so a shallow syntactic termination check is imposed on every recursive function definition.  One of the function parameters must be designated to decrease monotonically across recursive calls.  That is, every recursive call must use a version of that argument that has been pulled out of the current argument by some number of [match] expressions.  [expDenote] has only one argument, so we did not need to specify which of its arguments decreases.  For [progDenote], we resolve the ambiguity by writing [{struct p}] to indicate that argument [p] decreases structurally.
-
-   Recent versions of Coq will also infer a termination argument, so that we may write simply: *)
+(** With [instrDenote] defined, it is easy to define a function [progDenote], which iterates application of [instrDenote] through a whole program. *)
 
 Fixpoint progDenote (p : prog) (s : stack) : option stack :=
   match p with
@@ -167,25 +152,25 @@ Fixpoint progDenote (p : prog) (s : stack) : option stack :=
 
 (** ** Translation *)
 
-(** Our compiler itself is now unsurprising.  [++] is the list concatenation operator from the Coq standard library. *)
+(** Our compiler itself is now unsurprising.  The list concatenation operator %\index{Gallina operators!++}%[++] comes from the Coq standard library. *)
 
 Fixpoint compile (e : exp) : prog :=
   match e with
-    | Const n => IConst n :: nil
-    | Binop b e1 e2 => compile e2 ++ compile e1 ++ IBinop b :: nil
+    | Const n => iConst n :: nil
+    | Binop b e1 e2 => compile e2 ++ compile e1 ++ iBinop b :: nil
   end.
 
 
 (** Before we set about proving that this compiler is correct, we can try a few test runs, using our sample programs from earlier. *)
 
 Eval simpl in compile (Const 42).
-(** [= IConst 42 :: nil : prog] *)
+(** [= iConst 42 :: nil : prog] *)
 
 Eval simpl in compile (Binop Plus (Const 2) (Const 2)).
-(** [= IConst 2 :: IConst 2 :: IBinop Plus :: nil : prog] *)
+(** [= iConst 2 :: iConst 2 :: iBinop Plus :: nil : prog] *)
 
 Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
-(** [= IConst 7 :: IConst 2 :: IConst 2 :: IBinop Plus :: IBinop Times :: nil : prog] *)
+(** [= iConst 7 :: iConst 2 :: iConst 2 :: iBinop Plus :: iBinop Times :: nil : prog] *)
 
 (** We can also run our compiled programs and check that they give the right results. *)
 
@@ -195,13 +180,14 @@ Eval simpl in progDenote (compile (Const 42)) nil.
 Eval simpl in progDenote (compile (Binop Plus (Const 2) (Const 2))) nil.
 (** [= Some (4 :: nil) : option stack] *)
 
-Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7))) nil.
+Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2))
+  (Const 7))) nil.
 (** [= Some (28 :: nil) : option stack] *)
 
 
 (** ** Translation Correctness *)
 
-(** We are ready to prove that our compiler is implemented correctly.  We can use a new vernacular command [Theorem] to start a correctness proof, in terms of the semantics we defined earlier: *)
+(** We are ready to prove that our compiler is implemented correctly.  We can use a new vernacular command [Theorem] to start a correctness proof, in terms of the semantics we defined earlier:%\index{Vernacular commands!Theorem}% *)
 
 Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
 (* begin hide *)
@@ -209,13 +195,12 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\emph{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma:
-*)
+(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\index{strengthening the induction hypothesis}\emph{%#<i>#strengthening the induction hypothesis#</i>#%}%.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
 
 Lemma compile_correct' : forall e p s,
   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
-(** After the period in the [Lemma] command, we are in %\emph{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
+(** After the period in the [Lemma] command, we are in %\index{interactive proof-editing mode}\emph{%#<i>#the interactive proof-editing mode#</i>#%}%.  We find ourselves staring at this ominous screen of text:
 
 [[
 1 subgoal
@@ -226,37 +211,37 @@ Lemma compile_correct' : forall e p s,
  
 ]]
 
-Coq seems to be restating the lemma for us.  What we are seeing is a limited case of a more general protocol for describing where we are in a proof.  We are told that we have a single subgoal.  In general, during a proof, we can have many pending subgoals, each of which is a logical proposition to prove.  Subgoals can be proved in any order, but it usually works best to prove them in the order that Coq chooses.
+Coq seems to be restating the lemma for us.  What we are seeing is a limited case of a more general protocol for describing where we are in a proof.  We are told that we have a single subgoal.  In general, during a proof, we can have many pending %\index{subgoals}%subgoals, each of which is a logical proposition to prove.  Subgoals can be proved in any order, but it usually works best to prove them in the order that Coq chooses.
 
-Next in the output, we see our single subgoal described in full detail.  There is a double-dashed line, above which would be our free variables and hypotheses, if we had any.  Below the line is the conclusion, which, in general, is to be proved from the hypotheses.
+Next in the output, we see our single subgoal described in full detail.  There is a double-dashed line, above which would be our free variables and %\index{hypotheses}%hypotheses, if we had any.  Below the line is the %\index{conclusion}%conclusion, which, in general, is to be proved from the hypotheses.
 
-We manipulate the proof state by running commands called %\emph{%#<i>#tactics#</i>#%}%.  Let us start out by running one of the most important tactics:
+We manipulate the proof state by running commands called %\index{tactics}\emph{%#<i>#tactics#</i>#%}%.  Let us start out by running one of the most important tactics:%\index{tactics!induction}%
 *)
 
   induction e.
 
 (** We declare that this proof will proceed by induction on the structure of the expression [e].  This swaps out our initial subgoal for two new subgoals, one for each case of the inductive proof:
 
+%\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
+
 [[
-2 subgoals
-  
  n : nat
  ============================
  forall (s : stack) (p : list instr),
    progDenote (compile (Const n) ++ p) s =
    progDenote p (expDenote (Const n) :: s)
 ]]
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
 [[
- subgoal 2 is:
   forall (s : stack) (p : list instr),
     progDenote (compile (Binop b e1 e2) ++ p) s =
     progDenote p (expDenote (Binop b e1 e2) :: s)
  
 ]]
 
-The first and current subgoal is displayed with the double-dashed line below free variables and hypotheses, while later subgoals are only summarized with their conclusions.  We see an example of a free variable in the first subgoal; [n] is a free variable of type [nat].  The conclusion is the original theorem statement where [e] has been replaced by [Const n].  In a similar manner, the second case has [e] replaced by a generalized invocation of the [Binop] expression constructor.  We can see that proving both cases corresponds to a standard proof by structural induction.
+The first and current subgoal is displayed with the double-dashed line below free variables and hypotheses, while later subgoals are only summarized with their conclusions.  We see an example of a %\index{free variable}%free variable in the first subgoal; [n] is a free variable of type [nat].  The conclusion is the original theorem statement where [e] has been replaced by [Const n].  In a similar manner, the second case has [e] replaced by a generalized invocation of the [Binop] expression constructor.  We can see that proving both cases corresponds to a standard proof by %\index{structural induction}%structural induction.
 
-We begin the first case with another very common tactic.
+We begin the first case with another very common tactic.%\index{tactics!intros}%
 *)
 
   intros.
@@ -275,38 +260,44 @@ We begin the first case with another very common tactic.
 
 We see that [intros] changes [forall]-bound variables at the beginning of a goal into free variables.
 
-To progress further, we need to use the definitions of some of the functions appearing in the goal.  The [unfold] tactic replaces an identifier with its definition.
+To progress further, we need to use the definitions of some of the functions appearing in the goal.  The [unfold] tactic replaces an identifier with its definition.%\index{tactics!unfold}%
 *)
 
+(* begin hide *)
   unfold compile.
+(* end hide *)
+(** %\coqdockw{unfold} \coqdocdefinition{compile}.%#<tt>unfold compile.</tt># *)
 (** [[
  n : nat
  s : stack
  p : list instr
  ============================
- progDenote ((IConst n :: nil) ++ p) s =
+ progDenote ((iConst n :: nil) ++ p) s =
  progDenote p (expDenote (Const n) :: s)
  
 ]]
 *)
 
+(* begin hide *)
   unfold expDenote.
-
+(* end hide *)
+(** %\coqdockw{unfold} \coqdocdefinition{expDenote}.%#<tt>unfold expDenote.</tt># *)
 (** [[
  n : nat
  s : stack
  p : list instr
  ============================
- progDenote ((IConst n :: nil) ++ p) s = progDenote p (n :: s)
+ progDenote ((iConst n :: nil) ++ p) s = progDenote p (n :: s)
  
 ]]
 
-We only need to unfold the first occurrence of [progDenote] to prove the goal: *)
+We only need to unfold the first occurrence of [progDenote] to prove the goal.  An [at] clause used with [unfold] specifies a particular occurrence of an identifier to unfold, where we count occurrences from left to right.%\index{tactics!unfold}% *)
 
+(* begin hide *)
   unfold progDenote at 1.
-
+(* end hide *)
+(** %\coqdockw{unfold} \coqdocdefinition{progDenote} \coqdoctac{at} 1.%#<tt>unfold progDenote at 1.</tt># *)
 (** [[
-
  n : nat
  s : stack
  p : list instr
@@ -320,12 +311,14 @@ We only need to unfold the first occurrence of [progDenote] to prove the goal: *
           | Some s' => progDenote p' s'
           | None => None (A:=stack)
           end
-      end) ((IConst n :: nil) ++ p) s =
+      end) ((iConst n :: nil) ++ p) s =
    progDenote p (n :: s)
  
 ]]
 
-This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Fortunately, in this case, we can eliminate such complications right away, since the structure of the argument [(IConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic:
+This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm %\coqdocconstructor{None} (\coqdocvar{A}:=\coqdocdefinition{stack})%#<tt>None (A:=stack)</tt>#, which has an annotation specifying that the type of the term ought to be [option A].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
+
+Fortunately, in this case, we can eliminate the complications of anonymous recursion right away, since the structure of the argument ([iConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic, which applies the same reduction strategy that we used earlier with [Eval] (and whose details we still postpone).%\index{tactics!simpl}%
 *)
 
   simpl.
@@ -347,13 +340,14 @@ This last [unfold] has left us with an anonymous fixpoint version of [progDenote
  
 ]]
 
-Now we can unexpand the definition of [progDenote]:
+Now we can unexpand the definition of [progDenote]:%\index{tactics!fold}%
 *)
 
+(* begin hide *)
   fold progDenote.
-
+(* end hide *)
+(** %\coqdockw{fold} \coqdocdefinition{progDenote}.%#<tt>fold progDenote.</tt># *)
 (** [[
-
  n : nat
  s : stack
  p : list instr
@@ -362,7 +356,7 @@ Now we can unexpand the definition of [progDenote]:
  
 ]]
 
-It looks like we are at the end of this case, since we have a trivial equality.  Indeed, a single tactic finishes us off:
+It looks like we are at the end of this case, since we have a trivial equality.  Indeed, a single tactic finishes us off:%\index{tactics!reflexivity}%
 *)
 
   reflexivity.
@@ -384,15 +378,22 @@ It looks like we are at the end of this case, since we have a trivial equality. 
  
 ]]
 
-We see our first example of hypotheses above the double-dashed line.  They are the inductive hypotheses [IHe1] and [IHe2] corresponding to the subterms [e1] and [e2], respectively.
+We see our first example of %\index{hypotheses}%hypotheses above the double-dashed line.  They are the inductive hypotheses [IHe1] and [IHe2] corresponding to the subterms [e1] and [e2], respectively.
 
-We start out the same way as before, introducing new free variables and unfolding and folding the appropriate definitions.  The seemingly frivolous [unfold]/[fold] pairs are actually accomplishing useful work, because [unfold] will sometimes perform easy simplifications. *)
+We start out the same way as before, introducing new free variables and unfolding and folding the appropriate definitions.  The seemingly frivolous [unfold]/%\coqdockw{fold}%#<tt>fold</tt># pairs are actually accomplishing useful work, because [unfold] will sometimes perform easy simplifications. %\index{tactics!intros}\index{tactics!unfold}\index{tactics!fold}% *)
 
   intros.
+(* begin hide *)
   unfold compile.
   fold compile.
   unfold expDenote.
   fold expDenote.
+(* end hide *)
+(** %\coqdockw{unfold} \coqdocdefinition{compile}.
+\coqdockw{fold} \coqdocdefinition{compile}.
+\coqdockw{unfold} \coqdocdefinition{expDenote}.
+\coqdockw{fold} \coqdocdefinition{expDenote}.%
+   #<tt>unfold compile. fold compile. unfold expDenote. fold expDenote.</tt># *)
 
 (** Now we arrive at a point where the tactics we have seen so far are insufficient.  No further definition unfoldings get us anywhere, so we will need to try something different.
 
@@ -407,90 +408,102 @@ We start out the same way as before, introducing new free variables and unfoldin
   s : stack
   p : list instr
   ============================
-   progDenote ((compile e2 ++ compile e1 ++ IBinop b :: nil) ++ p) s =
+   progDenote ((compile e2 ++ compile e1 ++ iBinop b :: nil) ++ p) s =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
  
 ]]
 
-What we need is the associative law of list concatenation, which is available as a theorem [app_ass] in the standard library. *)
+What we need is the associative law of list concatenation, which is available as a theorem [app_assoc_reverse] in the standard library.%\index{Vernacular commands!Check}% *)
 
-Check app_ass.
+Check app_assoc.
+
 (** [[
-app_ass
+app_assoc_reverse
      : forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
  
 ]]
 
-If we did not already know the name of the theorem, we could use the [SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
+If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% command to find it, based on a pattern that we would like to rewrite: *)
 
+(* begin hide *)
 SearchRewrite ((_ ++ _) ++ _).
+(* end hide *)
+(** %\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% [((_ ++ _) ++ _).] *)
 (** [[
-app_ass: forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
-ass_app: forall (A : Type) (l m n : list A), l ++ m ++ n = (l ++ m) ++ n
+app_assoc_reverse:
+  forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
+]]
+%\vspace{-.25in}%
+[[
+app_assoc: forall (A : Type) (l m n : list A), l ++ m ++ n = (l ++ m) ++ n
  
 ]]
 
-We use it to perform a rewrite: *)
+We use [app_assoc_reverse] to perform a rewrite: %\index{tactics!rewrite}% *)
 
-  rewrite app_ass.
+  rewrite app_assoc_reverse.
 
 (** changing the conclusion to:
 
 [[
-   progDenote (compile e2 ++ (compile e1 ++ IBinop b :: nil) ++ p) s =
+   progDenote (compile e2 ++ (compile e1 ++ iBinop b :: nil) ++ p) s =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
  
 ]]
 
-Now we can notice that the lefthand side of the equality matches the lefthand side of the second inductive hypothesis, so we can rewrite with that hypothesis, too: *)
+Now we can notice that the lefthand side of the equality matches the lefthand side of the second inductive hypothesis, so we can rewrite with that hypothesis, too.%\index{tactics!rewrite}% *)
 
   rewrite IHe2.
 (** [[
-   progDenote ((compile e1 ++ IBinop b :: nil) ++ p) (expDenote e2 :: s) =
+   progDenote ((compile e1 ++ iBinop b :: nil) ++ p) (expDenote e2 :: s) =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
  
 ]]
 
-The same process lets us apply the remaining hypothesis. *)
+The same process lets us apply the remaining hypothesis.%\index{tactics!rewrite}% *)
 
-  rewrite app_ass.
+  rewrite app_assoc_reverse.
   rewrite IHe1.
 (** [[
-   progDenote ((IBinop b :: nil) ++ p) (expDenote e1 :: expDenote e2 :: s) =
+   progDenote ((iBinop b :: nil) ++ p) (expDenote e1 :: expDenote e2 :: s) =
    progDenote p (binopDenote b (expDenote e1) (expDenote e2) :: s)
  
 ]]
 
-Now we can apply a similar sequence of tactics to that that ended the proof of the first case.
+Now we can apply a similar sequence of tactics to the one that ended the proof of the first case.%\index{tactics!unfold}\index{tactics!simpl}\index{tactics!fold}\index{tactics!reflexivity}%
 *)
 
+(* begin hide *)
   unfold progDenote at 1.
   simpl.
   fold progDenote.
   reflexivity.
+(* end hide *)
+(** %\coqdockw{unfold} \coqdocdefinition{progDenote} \coqdoctac{at} 1. \coqdockw{simpl}. \coqdockw{fold} \coqdocdefinition{progDenote}. \coqdockw{reflexivity}.%#<tt>unfold progDenote at 1. simpl. fold progDenote. reflexivity.</tt># *)
 
-(** And the proof is completed, as indicated by the message:
+(** And the proof is completed, as indicated by the message: *)
 
-[[
-Proof completed.
+(** %\coqdockw{Proof} \coqdockw{completed}.%#<tt>Proof completed.</tt># *)
 
-]]
-
-And there lies our first proof.  Already, even for simple theorems like this, the final proof script is unstructured and not very enlightening to readers.  If we extend this approach to more serious theorems, we arrive at the unreadable proof scripts that are the favorite complaints of opponents of tactic-based proving.  Fortunately, Coq has rich support for scripted automation, and we can take advantage of such a scripted tactic (defined elsewhere) to make short work of this lemma.  We abort the old proof attempt and start again.
+(** And there lies our first proof.  Already, even for simple theorems like this, the final proof script is unstructured and not very enlightening to readers.  If we extend this approach to more serious theorems, we arrive at the unreadable proof scripts that are the favorite complaints of opponents of tactic-based proving.  Fortunately, Coq has rich support for scripted automation, and we can take advantage of such a scripted tactic (defined elsewhere) to make short work of this lemma.  We abort the old proof attempt and start again.%\index{Vernacular commands!Abort}%
 *)
 
 Abort.
+
+(** %\index{tactics!induction}\index{tactics!crush}% *)
 
 Lemma compile_correct' : forall e s p, progDenote (compile e ++ p) s =
   progDenote p (expDenote e :: s).
   induction e; crush.
 Qed.
 
-(** We need only to state the basic inductive proof scheme and call a tactic that automates the tedious reasoning in between.  In contrast to the period tactic terminator from our last proof, the semicolon tactic separator supports structured, compositional proofs.  The tactic [t1; t2] has the effect of running [t1] and then running [t2] on each remaining subgoal.  The semicolon is one of the most fundamental building blocks of effective proof automation.  The period terminator is very useful for exploratory proving, where you need to see intermediate proof states, but final proofs of any serious complexity should have just one period, terminating a single compound tactic that probably uses semicolons.
+(** We need only to state the basic inductive proof scheme and call a tactic that automates the tedious reasoning in between.  In contrast to the period tactic terminator from our last proof, the %\index{tacticals!semicolon}%semicolon tactic separator supports structured, compositional proofs.  The tactic [t1; t2] has the effect of running [t1] and then running [t2] on each remaining subgoal.  The semicolon is one of the most fundamental building blocks of effective proof automation.  The period terminator is very useful for exploratory proving, where you need to see intermediate proof states, but final proofs of any serious complexity should have just one period, terminating a single compound tactic that probably uses semicolons.
 
 The [crush] tactic comes from the library associated with this book and is not part of the Coq standard library.  The book's library contains a number of other tactics that are especially helpful in highly-automated proofs.
 
-The proof of our main theorem is now easy.  We prove it with four period-terminated tactics, though separating them with semicolons would work as well; the version here is easier to step through. *)
+The %\index{Vernacular commands!Qed}%[Qed] command checks that the proof is finished and, if so, saves it.
+
+The proof of our main theorem is now easy.  We prove it with four period-terminated tactics, though separating them with semicolons would work as well; the version here is easier to step through.%\index{tactics!intros}% *)
 
 Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
   intros.
@@ -508,7 +521,7 @@ Check app_nil_end.
 app_nil_end
      : forall (A : Type) (l : list A), l = l ++ nil
 ]]
-*)
+%\index{tactics!rewrite}% *)
 
   rewrite (app_nil_end (compile e)).
 
@@ -521,7 +534,7 @@ app_nil_end
  
 ]]
 
-Now we can apply the lemma. *)
+Now we can apply the lemma.%\index{tactics!rewrite}% *)
 
   rewrite compile_correct'.
 (** [[
@@ -531,11 +544,13 @@ Now we can apply the lemma. *)
  
 ]]
 
-We are almost done.  The lefthand and righthand sides can be seen to match by simple symbolic evaluation.  That means we are in luck, because Coq identifies any pair of terms as equal whenever they normalize to the same result by symbolic evaluation.  By the definition of [progDenote], that is the case here, but we do not need to worry about such details.  A simple invocation of [reflexivity] does the normalization and checks that the two results are syntactically equal. *)
+We are almost done.  The lefthand and righthand sides can be seen to match by simple symbolic evaluation.  That means we are in luck, because Coq identifies any pair of terms as equal whenever they normalize to the same result by symbolic evaluation.  By the definition of [progDenote], that is the case here, but we do not need to worry about such details.  A simple invocation of %\index{tactics!reflexivity}%[reflexivity] does the normalization and checks that the two results are syntactically equal.%\index{tactics!reflexivity}% *)
 
   reflexivity.
 Qed.
 (* end thide *)
+
+(** This proof can be shortened and made automated, but we leave that as an exercise for the reader. *)
 
 
 (** * Typed Expressions *)
@@ -672,7 +687,7 @@ We can define instructions in terms of stack types, where every instruction's ty
 Inductive tinstr : tstack -> tstack -> Set :=
 | TINConst : forall s, nat -> tinstr s (Nat :: s)
 | TIBConst : forall s, bool -> tinstr s (Bool :: s)
-| TIBinop : forall arg1 arg2 res s,
+| TiBinop : forall arg1 arg2 res s,
   tbinop arg1 arg2 res
   -> tinstr (arg1 :: arg2 :: s) (res :: s).
 
@@ -701,7 +716,7 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
   match i with
     | TINConst _ n => fun s => (n, s)
     | TIBConst _ b => fun s => (b, s)
-    | TIBinop _ _ _ _ b => fun s =>
+    | TiBinop _ _ _ _ b => fun s =>
       match s with
         (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
       end
@@ -714,7 +729,7 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' 
   match i with
     | TINConst _ n => (n, s)
     | TIBConst _ b => (b, s)
-    | TIBinop _ _ _ _ b =>
+    | TiBinop _ _ _ _ b =>
       match s with
         (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
       end
@@ -737,7 +752,7 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' 
   match i in tinstr ts ts' return vstack ts' with
     | TINConst _ n => (n, s)
     | TIBConst _ b => (b, s)
-    | TIBinop _ _ _ _ b =>
+    | TiBinop _ _ _ _ b =>
       match s with
         (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
       end
@@ -785,7 +800,7 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) : tprog ts (t :: ts) :=
     | TNConst n => TCons (TINConst _ n) (TNil _)
     | TBConst b => TCons (TIBConst _ b) (TNil _)
     | TBinop _ _ _ b e1 e2 => tconcat (tcompile e2 _)
-      (tconcat (tcompile e1 _) (TCons (TIBinop _ b) (TNil _)))
+      (tconcat (tcompile e1 _) (TCons (TiBinop _ b) (TNil _)))
   end.
 
 (** One interesting feature of the definition is the underscores appearing to the right of [=>] arrows.  Haskell and ML programmers are quite familiar with compilers that infer type parameters to polymorphic values.  In Coq, it is possible to go even further and ask the system to infer arbitrary terms, by writing underscores in place of specific values.  You may have noticed that we have been calling functions without specifying all of their arguments.  For instance, the recursive calls here to [tcompile] omit the [t] argument.  Coq's %\emph{%#<i>#implicit argument#</i>#%}% mechanism automatically inserts underscores for arguments that it will probably be able to infer.  Inference of such values is far from complete, though; generally, it only works in cases similar to those encountered with polymorphic type instantiation in Haskell and ML.
@@ -803,7 +818,7 @@ fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
   | TBinop arg1 arg2 res b e1 e2 =>
       tconcat (tcompile arg2 e2 ts)
         (tconcat (tcompile arg1 e1 (arg2 :: ts))
-           (TCons (TIBinop ts b) (TNil (res :: ts))))
+           (TCons (TiBinop ts b) (TNil (res :: ts))))
   end
      : forall t : type, texp t -> forall ts : tstack, tprog ts (t :: ts)
 ]]
@@ -856,7 +871,7 @@ Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
 tprogDenote
      (tconcat (tcompile e2 ts)
         (tconcat (tcompile e1 (arg2 :: ts))
-           (TCons (TIBinop ts t) (TNil (res :: ts))))) s =
+           (TCons (TiBinop ts t) (TNil (res :: ts))))) s =
    (tbinopDenote t (texpDenote e1) (texpDenote e2), s)
  
 ]]
