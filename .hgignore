@@ -8,7 +8,6 @@ Makefile.coq
 .coq_globals
 
 */coqdoc.sty
-*/cpdt.*
 */*.log
 
 html/coqdoc.css
@@ -27,3 +26,10 @@ cpdt.tgz
 *.log
 *.tex
 *.toc
+*.bbl
+*.blg
+*.idx
+*.ilg
+*.pdf
+*.ind
+*.out
