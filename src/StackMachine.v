@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import Arith Bool List.
+Require Import Bool Arith List.
 
 Require Import Tactics.
 
@@ -21,7 +21,7 @@ Set Implicit Arguments.
 
 (** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
-As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines %\index{Vernacular commands!Require}%[Require Import] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># [Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [Tactics.] and %\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.] at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
+As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines %\index{Vernacular commands!Require}%[Require Import Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [Tactics.] and %\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.] at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
 *)
 
 
@@ -501,7 +501,7 @@ Qed.
 
 The [crush] tactic comes from the library associated with this book and is not part of the Coq standard library.  The book's library contains a number of other tactics that are especially helpful in highly-automated proofs.
 
-The %\index{Vernacular commands!Qed}%[Qed] command checks that the proof is finished and, if so, saves it.
+The %\index{Vernacular commands!Qed}%[Qed] command checks that the proof is finished and, if so, saves it.  The tactic commands we have written above are an example of a %\emph{%#<i>#proof script#</i>#%}%, or a series of Ltac programs; while [Qed] uses the result of the script to generate a %\emph{%#<i>#proof term#</i>#%}%, a well-typed term of Gallina.  To believe that a theorem is true, we only need to trust that the (relatively simple) checker for proof terms is correct; the use of proof scripts is immaterial.  Part I of this book will introduce the principles behind encoding all proofs as terms of Gallina.
 
 The proof of our main theorem is now easy.  We prove it with four period-terminated tactics, though separating them with semicolons would work as well; the version here is easier to step through.%\index{tactics!intros}% *)
 
@@ -575,19 +575,21 @@ Inductive tbinop : type -> type -> type -> Set :=
 
 (** The definition of [tbinop] is different from [binop] in an important way.  Where we declared that [binop] has type [Set], here we declare that [tbinop] has type [type -> type -> type -> Set].  We define [tbinop] as an %\emph{%#<i>#indexed type family#</i>#%}%.  Indexed inductive types are at the heart of Coq's expressive power; almost everything else of interest is defined in terms of them.
 
+The inuitive explanation of [tbinop] is that a [tbinop t1 t2 t] is a binary operator whose operands should have types [t1] and [t2], and whose result has type [t].  For instance, constructor [TLt] (for less-than comparison of numbers) is assigned type [tbinop Nat Nat Bool], meaning the operator's arguments are naturals and its result is boolean.  The type of [TEq] introduces a small bit of additional complication via polymorphism: we want to allow equality comparison of any two values of any type, as long as they have the %\emph{%#<i>#same#</i>#%}% type.
+
 ML and Haskell have indexed algebraic datatypes.  For instance, their list types are indexed by the type of data that the list carries.  However, compared to Coq, ML and Haskell 98 place two important restrictions on datatype definitions.
 
-First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\emph{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}% are a popular feature in GHC Haskell and other languages that removes this first restriction.
+First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}\emph{%#<i>#Generalized algebraic datatypes (GADTs)#</i>#%}~\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\emph{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be %\emph{%#<i>#expressions#</i>#%}%.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
-(** We can define a similar type family for typed expressions. *)
+(** We can define a similar type family for typed expressions, where a term of type [texp t] can be assigned object language type [t].  (It is conventional in the world of interactive theorem proving to call the language of the proof assistant the %\index{meta language}\emph{%#<i>#meta language#</i>#%}% and a language being formalized the %\index{object language}\emph{%#<i>#object language#</i>#%}%.) *)
 
 Inductive texp : type -> Set :=
 | TNConst : nat -> texp Nat
 | TBConst : bool -> texp Bool
-| TBinop : forall arg1 arg2 res, tbinop arg1 arg2 res -> texp arg1 -> texp arg2 -> texp res.
+| TBinop : forall t1 t2 t, tbinop t1 t2 t -> texp t1 -> texp t2 -> texp t.
 
 (** Thanks to our use of dependent types, every well-typed [texp] represents a well-typed source expression, by construction.  This turns out to be very convenient for many things we might want to do with expressions.  For instance, it is easy to adapt our interpreter approach to defining semantics.  We start by defining a function mapping the types of our languages into Coq types: *)
 
@@ -597,40 +599,8 @@ Definition typeDenote (t : type) : Set :=
     | Bool => bool
   end.
 
-(** It can take a few moments to come to terms with the fact that [Set], the type of types of programs, is itself a first-class type, and that we can write functions that return [Set]s.  Past that wrinkle, the definition of [typeDenote] is trivial, relying on the [nat] and [bool] types from the Coq standard library.
+(** It can take a few moments to come to terms with the fact that [Set], the type of types of programs, is itself a first-class type, and that we can write functions that return [Set]s.  Past that wrinkle, the definition of [typeDenote] is trivial, relying on the [nat] and [bool] types from the Coq standard library.  We can interpret binary operators by relying on standard-library equality test functions [eqb] and [beq_nat] for booleans and naturals, respectively, along with a less-than test [leb]: *)
 
-We need to define one auxiliary function, implementing a boolean binary %``%#"#less-than#"#%''% operator, which only appears in the standard library with a type fancier than what we are prepared to deal with here.  The code is entirely standard and ML-like, with the one caveat being that the Coq [nat] type uses a unary representation, where [O] is zero and [S n] is the successor of [n].
-*)
-
-Fixpoint lessThan (n1 n2 : nat) : bool :=
-  match n1, n2 with
-    | O, S _ => true
-    | S n1', S n2' => lessThan n1' n2'
-    | _, _ => false
-  end.
-
-(** Now we can interpret binary operators, relying on standard-library equality test functions [eqb] and [beq_nat] for booleans and naturals, respectively: *)
-
-Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
-  : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
-  match b in (tbinop arg1 arg2 res)
-    return (typeDenote arg1 -> typeDenote arg2 -> typeDenote res) with
-    | TPlus => plus
-    | TTimes => mult
-    | TEq Nat => beq_nat
-    | TEq Bool => eqb
-    | TLt => lessThan
-  end.
-
-(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\emph{%#<i>#dependent pattern match#</i>#%}% to come up with a definition of this function that type-checks.  In each branch of the [match], we need to use branch-specific information about the indices to [tbinop].  General type inference that takes such information into account is undecidable, so it is often necessary to write annotations, like we see above on the line with [match].
-
-The [in] annotation restates the type of the term being case-analyzed.  Though we use the same names for the indices as we use in the type of the original argument binder, these are actually fresh variables, and they are %\emph{%#<i>#binding occurrences#</i>#%}%.  Their scope is the [return] clause.  That is, [arg1], [arg2], and [res] are new bound variables bound only within the return clause [typeDenote arg1 -> typeDenote arg2 -> typeDenote res].  By being explicit about the functional relationship between the type indices and the match result, we regain decidable type inference.
-
-In fact, recent Coq versions use some heuristics that can save us the trouble of writing [match] annotations, and those heuristics get the job done in this case.  We can get away with writing just: *)
-
-(* begin hide *)
-Reset tbinopDenote.
-(* end hide *)
 Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
   : typeDenote arg1 -> typeDenote arg2 -> typeDenote res :=
   match b with
@@ -638,10 +608,11 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TTimes => mult
     | TEq Nat => beq_nat
     | TEq Bool => eqb
-    | TLt => lessThan
+    | TLt => leb
   end.
 
-(**
+(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\index{dependent pattern matching}\emph{%#<i>#dependent pattern match#</i>#%}%, where the necessary %\emph{%#<i>#type#</i>#%}% of each case body depends on the %\emph{%#<i>#value#</i>#%}% that has been matched.  At this early stage, we will not go into detail on the many subtle aspects of Gallina that support dependent pattern-matching, but the subject is central to Part II of the book.
+
 The same tricks suffice to define an expression denotation function in an unsurprising way:
 *)
 
@@ -660,13 +631,16 @@ Eval simpl in texpDenote (TNConst 42).
 Eval simpl in texpDenote (TBConst true).
 (** [= true : typeDenote Bool] *)
 
-Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2))
+  (TNConst 7)).
 (** [= 28 : typeDenote Nat] *)
 
-Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
-(** [= false : typeDenote Bool] *)
+Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2))
+  (TNConst 7)).
+(** [= ] %\coqdocconstructor{%#<tt>#false#</tt>#%}% [ : typeDenote Bool] *)
 
-Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)).
+Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
+  (TNConst 7)).
 (** [= true : typeDenote Bool] *)
 
 
@@ -685,8 +659,8 @@ Definition tstack := list type.
 We can define instructions in terms of stack types, where every instruction's type tells us what initial stack type it expects and what final stack type it will produce. *)
 
 Inductive tinstr : tstack -> tstack -> Set :=
-| TINConst : forall s, nat -> tinstr s (Nat :: s)
-| TIBConst : forall s, bool -> tinstr s (Bool :: s)
+| TiNConst : forall s, nat -> tinstr s (Nat :: s)
+| TiBConst : forall s, bool -> tinstr s (Bool :: s)
 | TiBinop : forall arg1 arg2 res s,
   tbinop arg1 arg2 res
   -> tinstr (arg1 :: arg2 :: s) (res :: s).
@@ -708,70 +682,40 @@ Fixpoint vstack (ts : tstack) : Set :=
     | t :: ts' => typeDenote t * vstack ts'
   end%type.
 
-(** This is another [Set]-valued function.  This time it is recursive, which is perfectly valid, since [Set] is not treated specially in determining which functions may be written.  We say that the value stack of an empty stack type is any value of type [unit], which has just a single value, [tt].  A nonempty stack type leads to a value stack that is a pair, whose first element has the proper type and whose second element follows the representation for the remainder of the stack type.  We write [%type] so that Coq knows to interpret [*] as Cartesian product rather than multiplication.
+(** This is another [Set]-valued function.  This time it is recursive, which is perfectly valid, since [Set] is not treated specially in determining which functions may be written.  We say that the value stack of an empty stack type is any value of type [unit], which has just a single value, [tt].  A nonempty stack type leads to a value stack that is a pair, whose first element has the proper type and whose second element follows the representation for the remainder of the stack type.  We write [%]%\index{notation scopes}\coqdocvar{%#<tt>#type#</tt>#%}% as an instruction to Coq's extensible parser.  In particular, this directive applies to the whole [match] expression, which we ask to be parsed as though it were a type, so that the operator [*] is interpreted as Cartesian product instead of, say, multiplication.  (Note that this use of %\coqdocvar{%#<tt>#type#</tt>#%}% has no connection to the inductive type [type] that we have defined.)
 
-This idea of programming with types can take a while to internalize, but it enables a very simple definition of instruction denotation.  Our definition is like what you might expect from a Lisp-like version of ML that ignored type information.  Nonetheless, the fact that [tinstrDenote] passes the type-checker guarantees that our stack machine programs can never go wrong. *)
+This idea of programming with types can take a while to internalize, but it enables a very simple definition of instruction denotation.  Our definition is like what you might expect from a Lisp-like version of ML that ignored type information.  Nonetheless, the fact that [tinstrDenote] passes the type-checker guarantees that our stack machine programs can never go wrong.  We use a special form of [let] to destructure a multi-level tuple. *)
 
 Definition tinstrDenote ts ts' (i : tinstr ts ts') : vstack ts -> vstack ts' :=
   match i with
-    | TINConst _ n => fun s => (n, s)
-    | TIBConst _ b => fun s => (b, s)
+    | TiNConst _ n => fun s => (n, s)
+    | TiBConst _ b => fun s => (b, s)
     | TiBinop _ _ _ _ b => fun s =>
-      match s with
-        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
-      end
+      let '(arg1, (arg2, s')) := s in
+        ((tbinopDenote b) arg1 arg2, s')
   end.
 
 (** Why do we choose to use an anonymous function to bind the initial stack in every case of the [match]?  Consider this well-intentioned but invalid alternative version:
-
 [[
 Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' :=
   match i with
-    | TINConst _ n => (n, s)
-    | TIBConst _ b => (b, s)
+    | TiNConst _ n => (n, s)
+    | TiBConst _ b => (b, s)
     | TiBinop _ _ _ _ b =>
-      match s with
-        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
-      end
+      let '(arg1, (arg2, s')) := s in
+        ((tbinopDenote b) arg1 arg2, s')
   end.
 
 ]]
 
 The Coq type-checker complains that:
 
-[[
+<<
 The term "(n, s)" has type "(nat * vstack ts)%type"
  while it is expected to have type "vstack ?119".
+>>
 
-]]
-
-The text [?119] stands for a unification variable.  We can try to help Coq figure out the value of this variable with an explicit annotation on our [match] expression.
-
-[[
-Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' :=
-  match i in tinstr ts ts' return vstack ts' with
-    | TINConst _ n => (n, s)
-    | TIBConst _ b => (b, s)
-    | TiBinop _ _ _ _ b =>
-      match s with
-        (arg1, (arg2, s')) => ((tbinopDenote b) arg1 arg2, s')
-      end
-  end.
-
-]]
-
-Now the error message changes.
-
-[[
-The term "(n, s)" has type "(nat * vstack ts)%type"
- while it is expected to have type "vstack (Nat :: t)".
-
-]]
-
-Recall from our earlier discussion of [match] annotations that we write the annotations to express to the type-checker the relationship between the type indices of the case object and the result type of the [match].  Coq chooses to assign to the wildcard [_] after [TINConst] the name [t], and the type error is telling us that the type checker cannot prove that [t] is the same as [ts].  By moving [s] out of the [match], we lose the ability to express, with [in] and [return] clauses, the relationship between the shared index [ts] of [s] and [i].
-
-There %\emph{%#<i>#are#</i>#%}% reasonably general ways of getting around this problem without pushing binders inside [match]es.  However, the alternatives are significantly more involved, and the technique we use here is almost certainly the best choice, whenever it applies.
-
+This and other mysteries of Coq dependent typing we postpone until Part II of the book.  The upshot of our later discussion is that it is often useful to push inside of [match] branches those function parameters whose types depend on the type of the value being matched.  Our later, more complete treatement of Gallina's typing rules will explain why this helps.
 *)
 
 (** We finish the semantics with a straightforward definition of program denotation. *)
@@ -797,8 +741,8 @@ Fixpoint tconcat ts ts' ts'' (p : tprog ts ts') : tprog ts' ts'' -> tprog ts ts'
 
 Fixpoint tcompile t (e : texp t) (ts : tstack) : tprog ts (t :: ts) :=
   match e with
-    | TNConst n => TCons (TINConst _ n) (TNil _)
-    | TBConst b => TCons (TIBConst _ b) (TNil _)
+    | TNConst n => TCons (TiNConst _ n) (TNil _)
+    | TBConst b => TCons (TiBConst _ b) (TNil _)
     | TBinop _ _ _ b e1 e2 => tconcat (tcompile e2 _)
       (tconcat (tcompile e1 _) (TCons (TiBinop _ b) (TNil _)))
   end.
@@ -813,8 +757,8 @@ tcompile =
 fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
   tprog ts (t :: ts) :=
   match e in (texp t0) return (tprog ts (t0 :: ts)) with
-  | TNConst n => TCons (TINConst ts n) (TNil (Nat :: ts))
-  | TBConst b => TCons (TIBConst ts b) (TNil (Bool :: ts))
+  | TNConst n => TCons (TiNConst ts n) (TNil (Nat :: ts))
+  | TBConst b => TCons (TiBConst ts b) (TNil (Bool :: ts))
   | TBinop arg1 arg2 res b e1 e2 =>
       tconcat (tcompile arg2 e2 ts)
         (tconcat (tcompile arg1 e1 (arg2 :: ts))
@@ -828,19 +772,22 @@ fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
 (** We can check that the compiler generates programs that behave appropriately on our sample programs from above: *)
 
 Eval simpl in tprogDenote (tcompile (TNConst 42) nil) tt.
-(** [= (42, tt) : vstack (Nat :: nil)] *)
+(** [= (42, tt) : vstack (][Nat :: nil)] *)
 
 Eval simpl in tprogDenote (tcompile (TBConst true) nil) tt.
-(** [= (true, tt) : vstack (Bool :: nil)] *)
+(** [= (][true][, tt) : vstack (][Bool :: nil)] *)
 
-Eval simpl in tprogDenote (tcompile (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [= (28, tt) : vstack (Nat :: nil)] *)
+Eval simpl in tprogDenote (tcompile (TBinop TTimes (TBinop TPlus (TNConst 2)
+  (TNConst 2)) (TNConst 7)) nil) tt.
+(** [= (28, tt) : vstack (][Nat :: nil)] *)
 
-Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [= (false, tt) : vstack (Bool :: nil)] *)
+Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2)
+  (TNConst 2)) (TNConst 7)) nil) tt.
+(** [= (]%\coqdocconstructor{%#<tt>#false#</tt>#%}%[, tt) : vstack (][Bool :: nil)] *)
 
-Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2)) (TNConst 7)) nil) tt.
-(** [= (true, tt) : vstack (Bool :: nil)] *)
+Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
+  (TNConst 7)) nil) tt.
+(** [= (][true][, tt) : vstack (][Bool :: nil)] *)
 
 
 (** ** Translation Correctness *)
@@ -854,7 +801,7 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
+(** Again, we need to strengthen the theorem statement so that the induction will go through.  This time, to provide an excuse to demonstrate different tactics, I will develop an alternative approach to this kind of proof, stating the key lemma as: *)
 
 Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
   tprogDenote (tcompile e ts) s = (texpDenote e, s).
@@ -876,7 +823,7 @@ tprogDenote
  
 ]]
 
-We need an analogue to the [app_ass] theorem that we used to rewrite the goal in the last section.  We can abort this proof and prove such a lemma about [tconcat].
+We need an analogue to the [app_assoc_reverse] theorem that we used to rewrite the goal in the last section.  We can abort this proof and prove such a lemma about [tconcat].
 *)
 
 Abort.
@@ -890,11 +837,16 @@ Qed.
 
 (** This one goes through completely automatically.
 
-Some code behind the scenes registers [app_ass] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect: *)
+Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect:%\index{Verncular commands!Hint Rewrite}% *)
 
+(* begin hide *)
 Hint Rewrite tconcat_correct : cpdt.
+(* end hide *)
+(** %\noindent%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [tconcat_correct : cpdt.] *)
 
-(** We ask that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  Now we are ready to return to [tcompile_correct'], proving it automatically this time. *)
+(** Here we meet the pervasive concept of a %\emph{%#<i>#hint#</i>#%}%.  Many proofs can be found through exhaustive enumerations of combinations of possible proof steps; hints provide the set of steps to consider.  The tactic [crush] is applying such brute force search for us silently, and it will consider more possibilities as we add more hints.  This particular hint asks that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  In general, segragating hints into different databases is helpful to control the performance of proof search, in cases where domain knowledge allows us to narrow the set of proof steps to be considered in brute force search.  Part III of this book considers such pragmatic aspects of proof search in much more detail.
+
+Now we are ready to return to [tcompile_correct'], proving it automatically this time. *)
 
 Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
   tprogDenote (tcompile e ts) s = (texpDenote e, s).
@@ -903,10 +855,41 @@ Qed.
 
 (** We can register this main lemma as another hint, allowing us to prove the final theorem trivially. *)
 
+(* begin hide *)
 Hint Rewrite tcompile_correct' : cpdt.
+(* end hide *)
+(** %\noindent%[Hint ]%\coqdockw{%#<tt>#Rewrite#</tt>#%}%[ tcompile_correct' : cpdt.] *)
 
 Theorem tcompile_correct : forall t (e : texp t),
   tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
   crush.
 Qed.
 (* end thide *)
+
+(** It is probably worth emphasizing that we are doing more than building mathematical models.  Our compilers are functional programs that can be executed efficiently.  One strategy for doing so is based on %\index{program extraction}\emph{%#<i>#program extraction#</i>#%}%, which generates OCaml code from Coq developments.  For instance, we run a command to output the OCaml version of [tcompile]:%\index{Vernacular commands!Extraction}% *)
+
+(* begin hide *)
+Extraction tcompile.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Extraction#</tt>#%}%[ tcompile.] *)
+
+(** <<
+let rec tcompile t e ts =
+  match e with
+  | TNConst n ->
+    TCons (ts, (Cons (Nat, ts)), (Cons (Nat, ts)), (TiNConst (ts, n)), (TNil
+      (Cons (Nat, ts))))
+  | TBConst b ->
+    TCons (ts, (Cons (Bool, ts)), (Cons (Bool, ts)), (TiBConst (ts, b)),
+      (TNil (Cons (Bool, ts))))
+  | TBinop (t1, t2, t0, b, e1, e2) ->
+    tconcat ts (Cons (t2, ts)) (Cons (t0, ts)) (tcompile t2 e2 ts)
+      (tconcat (Cons (t2, ts)) (Cons (t1, (Cons (t2, ts)))) (Cons (t0, ts))
+        (tcompile t1 e1 (Cons (t2, ts))) (TCons ((Cons (t1, (Cons (t2,
+        ts)))), (Cons (t0, ts)), (Cons (t0, ts)), (TiBinop (t1, t2, t0, ts,
+        b)), (TNil (Cons (t0, ts))))))
+>>
+
+We can compile this code with the usual OCaml compiler and obtain an executable program with halfway decent performance.
+
+This chapter has been a whirlwind tour through two examples of the style of Coq development that I advocate.  Parts II and III of the book focus on the key elements of that style, namely dependent types and scripted proof automation, respectively.  Before we get there, we will spend some time in Part I on more standard foundational material.  Part I may still be of interest to seasoned Coq hackers, since I follow the highly automated proof style even at that early stage. *)
