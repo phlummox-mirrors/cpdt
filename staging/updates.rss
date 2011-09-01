@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through Chapter 2</title>
+        <pubDate>Thu, 1 Sep 2011 11:32:42 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+	<description>I've removed some material on dependent pattern-matching but not yet compensated by adding it back in somewhere else.</description>
+</item>
+
+<item>
         <title>A pass through Chapter 1</title>
         <pubDate>Thu, 25 Aug 2011 14:47:30 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
