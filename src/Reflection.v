@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import List.
 
-Require Import Tactics MoreSpecif.
+Require Import CpdtTactics MoreSpecif.
 
 Set Implicit Arguments.
 (* end hide *)

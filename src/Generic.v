@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import String List.
 
-Require Import Tactics DepList.
+Require Import CpdtTactics DepList.
 
 Set Implicit Arguments.
 (* end hide *)

@@ -12,7 +12,7 @@ Set Implicit Arguments.
 
 Require Import Eqdep.
 
-Require Import DepList Tactics.
+Require Import DepList CpdtTactics.
 (* end hide *)
 
 (** remove printing * *)

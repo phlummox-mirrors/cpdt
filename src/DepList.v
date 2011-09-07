@@ -9,7 +9,7 @@
 
 (* Dependent list types presented in Chapter 8 *)
 
-Require Import Arith List Tactics.
+Require Import Arith List CpdtTactics.
 
 Set Implicit Arguments.
 
