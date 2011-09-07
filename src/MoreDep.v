@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Arith Bool List.
 
-Require Import Tactics MoreSpecif.
+Require Import CpdtTactics MoreSpecif.
 
 Set Implicit Arguments.
 (* end hide *)

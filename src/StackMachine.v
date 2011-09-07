@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Bool Arith List.
 
-Require Import Tactics.
+Require Import CpdtTactics.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -21,7 +21,15 @@ Set Implicit Arguments.
 
 (** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
-As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines %\index{Vernacular commands!Require}%[Require Import Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [Tactics.] and %\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.] at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
+As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines
+
+%\index{Vernacular commands!Require}%[Require Import Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [CpdtTactics.]
+
+%\noindent{}%and
+
+%\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.]
+
+%\noindent{}%at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
 *)
 
 
@@ -77,7 +85,7 @@ Definition binopDenote := fun b =>
 
 ]]
 
-Languages like Haskell and ML have a convenient %\index{principal typing}\index{type inference}\emph{%#<i>#principal typing#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient %\index{principal types}\index{type inference}\emph{%#<i>#principal types#</i>#%}% property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
 This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}\emph{%#<i>#Calculus of Inductive Constructions (CIC)#</i>#%}~\cite{CIC}%, which is an extension of the older %\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}\emph{%#<i>#Calculus of Constructions (CoC)#</i>#%}~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\index{strong normalization}\emph{%#<i>#strong normalization#</i>#%}~\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and %\index{relative consistency}\emph{%#<i>#relative consistency#</i>#%}~\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
 

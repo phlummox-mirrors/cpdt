@@ -1,4 +1,4 @@
-MODULES_NODOC := Tactics MoreSpecif DepList
+MODULES_NODOC := CpdtTactics MoreSpecif DepList
 MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset \
 	MoreDep DataStruct Equality Generic Universes Match Reflection \

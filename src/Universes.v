@@ -8,7 +8,7 @@
  *)
 
 (* begin hide *)
-Require Import DepList Tactics.
+Require Import DepList CpdtTactics.
 
 Set Implicit Arguments.
 (* end hide *)

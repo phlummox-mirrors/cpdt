@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Arith Eqdep List FunctionalExtensionality.
 
-Require Import DepList Tactics.
+Require Import DepList CpdtTactics.
 
 Set Implicit Arguments.
 (* end hide *)

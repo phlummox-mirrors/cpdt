@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import Arith String List.
 
-Require Import Tactics.
+Require Import CpdtTactics.
 
 Set Implicit Arguments.
 (* end hide *)

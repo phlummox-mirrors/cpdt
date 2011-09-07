@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Renamed "Tactics" module to "CpdtTactics"</title>
+        <pubDate>Wed, 7 Sep 2011 13:45:31 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+	<description>This avoids a name clash with a module included with Coq.</description>
+</item>
+
+<item>
         <title>A pass through Chapter 2</title>
         <pubDate>Thu, 1 Sep 2011 11:32:42 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
