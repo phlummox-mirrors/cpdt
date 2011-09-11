@@ -845,7 +845,7 @@ Qed.
 
 (** This one goes through completely automatically.
 
-Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect:%\index{Verncular commands!Hint Rewrite}% *)
+Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect:%\index{Vernacular commands!Hint Rewrite}% *)
 
 (* begin hide *)
 Hint Rewrite tconcat_correct : cpdt.

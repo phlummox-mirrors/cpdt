@@ -166,7 +166,7 @@ Inductive bool : Set :=
 | true
 | false.
 
-(** We can use less vacuous pattern matching to define boolean negation. *)
+(** We can use less vacuous pattern matching to define boolean negation.%\index{Gallina terms!negb}% *)
 
 Definition negb (b : bool) : bool :=
   match b with
@@ -244,7 +244,7 @@ Inductive nat : Set :=
 
 (** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (][S O)], and so on.
 
-Pattern matching works as we demonstrated in the last chapter: *)
+Pattern matching works as we demonstrated in the last chapter:%\index{Gallina terms!pred}% *)
 
 Definition isZero (n : nat) : bool :=
   match n with
@@ -266,7 +266,7 @@ Theorem S_isZero : forall n : nat, isZero (pred (S (S n))) = false.
 Qed.
 (* end thide *)
 
-(** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting. *)
+(** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting.%\index{Gallina terms!plus}% *)
 
 Fixpoint plus (n m : nat) : nat :=
   match n with
@@ -443,7 +443,7 @@ We have the usual two cases, one for each constructor of [nat_btree]. *)
 
 (** * Parameterized Types *)
 
-(** We can also define polymorphic inductive types, as with algebraic datatypes in Haskell and ML. *)
+(** We can also define %\index{polymorphism}%polymorphic inductive types, as with algebraic datatypes in Haskell and ML.%\index{Gallina terms!list}\index{Gallina terms!Nil}\index{Gallina terms!Cons}\index{Gallina terms!length}\index{Gallina terms!app}% *)
 
 Inductive list (T : Set) : Set :=
 | Nil : list T
@@ -468,7 +468,7 @@ Theorem length_app : forall T (ls1 ls2 : list T), length (app ls1 ls2)
 Qed.
 (* end thide *)
 
-(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\textit{%#<i>#section#</i>#%}% mechanism.  The following block of code is equivalent to the above: *)
+(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\index{sections}\index{Vernacular commands!Section}\index{Vernacular commands!Variable}\textit{%#<i>#section#</i>#%}% mechanism.  The following block of code is equivalent to the above: *)
 
 (* begin hide *)
 Reset list.
@@ -510,7 +510,7 @@ Implicit Arguments Nil [T].
 Print list.
 (** %\vspace{-.15in}% [[
   Inductive list (T : Set) : Set :=
-    Nil : list T | Cons : T -> list T -> list Tlist
+    Nil : list T | Cons : T -> list T -> list T
  
 ]]
 
@@ -598,10 +598,12 @@ Check even_list_ind.
  
 ]]
 
-We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the [Scheme] command. *)
+We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the %\index{Vernacular commands!Scheme}%[Scheme] command. *)
 
 Scheme even_list_mut := Induction for even_list Sort Prop
 with odd_list_mut := Induction for odd_list Sort Prop.
+
+(** This invocation of [Scheme] asks for the creation of induction principles [even_list_mut] for the type [even_list] and [odd_list_mut] for the type [odd_list].  The [Induction] keyword says we want standard induction schemes, since [Scheme] supports more exotic choices.  Finally, [Sort Prop] establishes that we really want induction schemes, not recursion schemes, which are the same according to Curry-Howard, save for the [Prop]/[Set] distinction. *)
 
 Check even_list_mut.
 (** %\vspace{-.15in}% [[
@@ -614,7 +616,7 @@ Check even_list_mut.
  
 ]]
 
-This is the principle we wanted in the first place.  There is one more wrinkle left in using it: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types. *)
+This is the principle we wanted in the first place.  There is one more wrinkle left in using it: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types.%\index{tactics!apply}% *)
 
 Theorem n_plus_O' : forall n : nat, plus n O = n.
   apply (nat_ind (fun n => plus n O = n)); crush.
@@ -640,14 +642,30 @@ Qed.
 
 (** * Reflexive Types *)
 
-(** A kind of inductive type called a %\textit{%#<i>#reflexive type#</i>#%}% is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  For instance, here is a type for encoding the syntax of a subset of first-order logic: *)
+(** A kind of inductive type called a %\textit{%#<i>#reflexive type#</i>#%}% is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  Our example will be an encoding of the syntax of first-order logic.  Since the idea of syntactic encodings of logic may require a bit of acclimation, let us first consider a simpler formula type for a subset of propositional logic. *)
+
+Inductive pformula : Set :=
+| Truth : pformula
+| Falsehood : pformula
+| Conjunction : pformula -> pformula -> pformula.
+
+(** A key distinction here is between, for instance, the %\emph{%#<i>#syntax#</i>#%}% [Truth] and its %\emph{%#<i>#semantics#</i>#%}% [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!conj}%[conj] from the standard library.  The family [conj] implements conjunction (i.e., %``%#"#and#"#%''%), the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
+
+Fixpoint pformulaDenote (f : pformula) : Prop :=
+  match f with
+    | Truth => True
+    | Falsehood => False
+    | Conjunction f1 f2 => pformulaDenote f1 /\ pformulaDenote f2
+  end.
+
+(** This is a just a warm-up that does not use reflexive types, the new feature we mean to introduce.  When we set our sights on first-order logic instead, it becomes very handy to give constructors recursive arguments that are functions. *)
 
 Inductive formula : Set :=
 | Eq : nat -> nat -> formula
 | And : formula -> formula -> formula
 | Forall : (nat -> formula) -> formula.
 
-(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of %``%#"#variables#"#%''% in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]: *)
+(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of %``%#"#variables#"#%''% in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]:%\index{Vernacular commands!Example}% *)
 
 Example forall_refl : formula := Forall (fun x => Eq x x).
 
@@ -696,20 +714,20 @@ Focusing on the [Forall] case, which comes third, we see that we are allowed to 
 
 %\medskip%
 
-Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in Haskell and ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
+Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in %\index{Haskell}%Haskell and %\index{ML}%ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
 
-Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of lambda calculus.  Indeed, the function-based representation technique that we just used, called %\textit{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}%, is the representation of choice for lambda calculi in Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
-
+Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called %\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}\textit{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}~\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
 (** [[
 Inductive term : Set :=
 | App : term -> term -> term
 | Abs : (term -> term) -> term.
-
-Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
- 
 ]]
 
-We have run afoul of the %\textit{%#<i>#strict positivity requirement#</i>#%}% for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.
+<<
+Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
+>>
+
+We have run afoul of the %\index{strict positivity requirement}\index{positivity requirement}\textit{%#<i>#strict positivity requirement#</i>#%}% for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.  Our candidate definition above violates the positivity requirement because it involves an argument of type [term -> term], where the type [term] that we are defining appears to the left of an arrow.  The candidate type of [App] is fine, however, since every occurrence of [term] is either a constructor argument or the final result type.
 
 Why must Coq enforce this restriction?  Imagine that our last definition had been accepted, allowing us to write this function:
 
@@ -724,7 +742,7 @@ Definition uhoh (t : term) : term :=
 
 Using an informal idea of Coq's semantics, it is easy to verify that the application [uhoh (Abs uhoh)] will run forever.  This would be a mere curiosity in OCaml and Haskell, where non-termination is commonplace, though the fact that we have a non-terminating program without explicit recursive function definitions is unusual.
 
-For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
+%\index{termination checking}%For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
 
 Nonetheless, the basic insight of HOAS is a very useful one, and there are ways to realize most benefits of HOAS in Coq.  We will study a particular technique of this kind in the later chapters on programming language syntax and semantics. *)
 
