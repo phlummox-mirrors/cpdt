@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -20,14 +20,61 @@ Set Implicit Arguments.
 
 \chapter{Introducing Inductive Types}% *)
 
-(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and we have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment. *)
+(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and we have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment.
+
+The last chapter took a deep dive into some of the more advanced Coq features, to highlight the unusual approach that I advocate in this book.  However, from this point on, we will rewind and go back to basics, presenting the relevant features of Coq in a more bottom-up manner.  A useful first step is a discussion of the differences and relationships between proofs and programs in Coq. *)
+
+
+(** * Proof Terms *)
+
+(** Mainstream presentations of mathematics treat proofs as objects that exist outside of the universe of mathematical objects.  However, for a variety of reasoning, it is convenient to encode proofs, traditional mathematical objects, and programs within a single formal language.  Validity checks on mathematical objects are useful in any setting, to catch typoes and other uninteresting errors.  The benefits of static typing for programs are widely recognized, and Coq brings those benefits to both mathematical objects and programs via a uniform mechanism.  In fact, from this point on, we will not bother to distinguish between programs and mathematical objects.  Many mathematical formalisms are most easily encoded in terms of programs.
+
+Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the %\index{Curry-Howard correspondence}\emph{%#<i>#Curry-Howard correspondence#</i>#%}~\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
+
+The last chapter's example already snuck in an instance of Curry-Howard.  We used the token [->] to stand for both function types and logical implications.  One reasonable conclusion upon seeing this might be that some fancy overloading of notations is at work.  In fact, functions and implications are precisely identical according to Curry-Howard!  That is, they are just two ways of describing the same computational phenomenon.
+
+A short demonstration should explain how this can be.  The identity function over the natural numbers is certainly not a controversial program. *)
+
+Check (fun x : nat => x).
+(** [: nat -> nat] *)
+
+(** Consider this alternate program, which is almost identical to the last one. *)
+
+Check (fun x : True => x).
+(** [: True -> True] *)
+
+(** The identity program is interpreted as a proof that %\index{Gallina terms!True}%[True], the always-true proposition, implies itself!  What we see is that Curry-Howard interprets implications as functions, where an input is a proposition being assumed and an output is a proposition being deduced.  This intuition is not too far from a common one for informal theorem proving, where we might already think of an implication proof as a process for transforming a hypothesis into a conclusion.
+
+There are also more primitive proof forms available.  For instance, the term %\index{Gallina terms!I}%[I] is the single proof of [True], applicable in any context. *)
+
+Check I.
+(** [: True] *)
+
+(** With [I], we can prove another simple propositional theorem. *)
+
+Check (fun _ : False => I).
+(** [: False -> True] *)
+
+(** No proofs of %\index{Gallina terms!False}%[False] exist in the top-level context, but the implication-as-function analogy gives us an easy way to, for example, show that [False] implies itself. *)
+
+Check (fun x : False => x).
+(** [: False -> False] *)
+
+(** In fact, [False] implies anything, and we can take advantage of this fact with an odd looking [match] expression that has no branches.  Since there are no rules for deducing [False], there are no cases to consider! *)
+
+Check (fun x : False => match x with end : True).
+(** [: False -> True] *)
+
+(** Every one of these example programs whose type looks like a logical formula is a %\index{proof term}\emph{%#<i>#proof term#</i>#%}%.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
+
+In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or %\index{proposition}%propositions (i.e., formulas or theorem statements). *)
 
 
 (** * Enumerations *)
 
-(** Coq inductive types generalize the algebraic datatypes found in Haskell and ML.  Confusingly enough, inductive types also generalize generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
+(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
 
-The singleton type [unit] is an inductive type: *)
+The singleton type [unit] is an inductive type:%\index{Gallina terms!unit}\index{Gallina terms!tt}% *)
 
 Inductive unit : Set :=
   | tt.
@@ -44,7 +91,7 @@ Check tt.
 
 Theorem unit_singleton : forall x : unit, x = tt.
 
-(** The important thing about an inductive type is, unsurprisingly, that you can do induction over its values, and induction is the key to proving this theorem.  We ask to proceed by induction on the variable [x]. *)
+(** The important thing about an inductive type is, unsurprisingly, that you can do induction over its values, and induction is the key to proving this theorem.  We ask to proceed by induction on the variable [x].%\index{tactics!induction}% *)
 
 (* begin thide *)
   induction x.
@@ -61,7 +108,7 @@ Theorem unit_singleton : forall x : unit, x = tt.
 Qed.
 (* end thide *)
 
-(** It seems kind of odd to write a proof by induction with no inductive hypotheses.  We could have arrived at the same result by beginning the proof with: [[
+(** It seems kind of odd to write a proof by induction with no inductive hypotheses.  We could have arrived at the same result by beginning the proof with:%\index{tactics!destruct}% [[
 
   destruct x.
 
@@ -69,20 +116,22 @@ Qed.
 
 %\noindent%...which corresponds to %``%#"#proof by case analysis#"#%''% in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
-What exactly %\textit{%#<i>#is#</i>#%}% the induction principle for [unit]?  We can ask Coq: *)
+What exactly %\textit{%#<i>#is#</i>#%}% the %\index{induction principles}%induction principle for [unit]?  We can ask Coq: *)
 
 Check unit_ind.
 (** [unit_ind : forall P : unit -> Prop, P tt -> forall u : unit, P u] *)
 
-(** Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Coq follows the Curry-Howard correspondence and includes the ingredients of programming and proving in the same single syntactic class.  Thus, our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type [Prop], which appears in our induction principle; and the type [Set], which we have seen a few times already.
+(** Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Recall from the last section that our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type %\index{Gallina terms!Prop}%[Prop], which appears in our induction principle; and the type %\index{Gallina terms!Set}%[Set], which we have seen a few times already.
 
-The convention goes like this: [Set] is the type of normal types, and the values of such types are programs.  [Prop] is the type of logical propositions, and the values of such types are proofs.  Thus, an induction principle has a type that shows us that it is a function for building proofs.
+The convention goes like this: [Set] is the type of normal types used in programming, and the values of such types are programs.  [Prop] is the type of logical propositions, and the values of such types are proofs.  Thus, an induction principle has a type that shows us that it is a function for building proofs.
 
-Specifically, [unit_ind] quantifies over a predicate [P] over [unit] values.  If we can present a proof that [P] holds of [tt], then we are rewarded with a proof that [P] holds for any value [u] of type [unit].  In our last proof, the predicate was [(fun u : unit => u = tt)].
+Specifically, [unit_ind] quantifies over a predicate [P] over [unit] values.  If we can present a proof that [P] holds of [tt], then we are rewarded with a proof that [P] holds for any value [u] of type [unit].  In our last proof, the predicate was [(][fun u : unit => u = tt)].
+
+The definition of [unit] places the type in [Set].  By replacing [Set] with [Prop], [unit] with [True], and [tt] with [I], we arrive at precisely the definition of [True] that the Coq standard library employs!  The program type [unit] is the Curry-Howard equivalent of the proposition [True].  We might make the tongue-in-cheek claim that, while philosophers have expended much ink on the nature of truth, we have now determined that truth is the [unit] type of functional programming.
 
 %\medskip%
 
-We can define an inductive type even simpler than [unit]: *)
+We can define an inductive type even simpler than [unit]:%\index{Gallina terms!Empty\_set}% *)
 
 Inductive Empty_set : Set := .
 
@@ -99,19 +148,19 @@ Qed.
 We can see the induction principle that made this proof so easy: *)
 
 Check Empty_set_ind.
-(** [Empty_set_ind : forall (P : Empty_set -> Prop) (e : Empty_set), P e] *)
+(** [Empty_set_ind : forall (][P : Empty_set -> Prop) (e : Empty_set), P e] *)
 
-(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
+(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(][fun _ : Empty_set => 2 + 2 = 5)].
 
 We can also apply this get-out-of-jail-free card programmatically.  Here is a lazy way of converting values of [Empty_set] to values of [unit]: *)
 
 Definition e2u (e : Empty_set) : unit := match e with end.
 
-(** We employ [match] pattern matching as in the last chapter.  Since we match on a value whose type has no constructors, there is no need to provide any branches.
+(** We employ [match] pattern matching as in the last chapter.  Since we match on a value whose type has no constructors, there is no need to provide any branches.  This idiom may look familiar; we employed it with proofs of [False] in the last section.  In fact, [Empty_set] is the Curry-Howard equivalent of [False].  As for why [Empty_set] starts with a capital letter and not a lowercase letter like [unit] does, we must refer the reader to the authors of the Coq standard library, to which we try to be faithful.
 
 %\medskip%
 
-Moving up the ladder of complexity, we can define the booleans: *)
+Moving up the ladder of complexity, we can define the booleans:%\index{Gallina terms!bool}\index{Gallina terms!true}\index{Gallina terms!false}% *)
 
 Inductive bool : Set :=
 | true
@@ -138,15 +187,14 @@ Theorem negb_inverse : forall b : bool, negb (negb b) = b.
 
   (** After we case-analyze on [b], we are left with one subgoal for each constructor of [bool].
 
+  %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
+
 [[
-2 subgoals
-  
   ============================
    negb (negb true) = true
 ]]
-
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
 [[
-subgoal 2 is:
  negb (negb false) = false
  
 ]]
@@ -155,14 +203,18 @@ The first subgoal follows by Coq's rules of computation, so we can dispatch it e
 
   reflexivity.
 
-(** Likewise for the second subgoal, so we can restart the proof and give a very compact justification. *)
+(** Likewise for the second subgoal, so we can restart the proof and give a very compact justification.%\index{Vernacular commands!Restart}% *)
 
+(* begin hide *)
 Restart.
+(* end hide *)
+(** %\noindent \coqdockw{Restart}%#<tt>Restart</tt>#. *)
+
   destruct b; reflexivity.
 Qed.
 (* end thide *)
 
-(** Another theorem about booleans illustrates another useful tactic. *)
+(** Another theorem about booleans illustrates another useful tactic.%\index{tactics!discriminate}% *)
 
 Theorem negb_ineq : forall b : bool, negb b <> b.
 (* begin thide *)
@@ -177,16 +229,20 @@ At this point, it is probably not hard to guess what the underlying induction pr
 Check bool_ind.
 (** [bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b] *)
 
+(** That is, to prove that a property describes all [bool]s, prove that it describes both [true] and [false].
+
+There is no interesting Curry-Howard analogue of [bool].  Of course, we can define such a type by replacing [Set] by [Prop] above, but the proposition we arrive it is not very useful.  It is logically equivalent to [True], but it provides two indistinguishable primitive proofs, [true] and [false].   In the rest of the chapter, we will skip commenting on Curry-Howard versions of inductive definitions where such versions are not interesting. *)
+
 
 (** * Simple Recursive Types *)
 
-(** The natural numbers are the simplest common example of an inductive type that actually deserves the name. *)
+(** The natural numbers are the simplest common example of an inductive type that actually deserves the name.%\index{Gallina terms!nat}\index{Gallina terms!O}\index{Gallina terms!S}% *)
 
 Inductive nat : Set :=
 | O : nat
 | S : nat -> nat.
 
-(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (S O)], and so on.
+(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (][S O)], and so on.
 
 Pattern matching works as we demonstrated in the last chapter: *)
 
@@ -246,11 +302,11 @@ Theorem n_plus_O : forall n : nat, plus n O = n.
  
 ]]
 
-We can start out by using computation to simplify the goal as far as we can. *)
+We can start out by using computation to simplify the goal as far as we can.%\index{tactics!simpl}% *)
 
   simpl.
 
-(** Now the conclusion is [S (plus n O) = S n].  Using our inductive hypothesis: *)
+(** Now the conclusion is [S (][plus n O) = S n].  Using our inductive hypothesis: *)
 
   rewrite IHn.
 
@@ -258,9 +314,13 @@ We can start out by using computation to simplify the goal as far as we can. *)
 
   reflexivity.
 
-(** Not much really went on in this proof, so the [crush] tactic from the [Tactics] module can prove this theorem automatically. *)
+(** Not much really went on in this proof, so the [crush] tactic from the [CpdtTactics] module can prove this theorem automatically. *)
 
+(* begin hide *)
 Restart.
+(* end hide *)
+(** %\noindent \coqdockw{Restart}%#<tt>Restart</tt>#. *)
+
   induction n; crush.
 Qed.
 (* end thide *)
@@ -274,9 +334,9 @@ Check nat_ind.
  
   ]]
 
-Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(][fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(][forall n : nat, P n -> P (][S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
 
-Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective. *)
+Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective.%\index{tactics!injection}\index{tactics!trivial}% *)
 
 Theorem S_inj : forall n m : nat, S n = S m -> n = m.
 (* begin thide *)
@@ -286,7 +346,7 @@ Qed.
 
 (** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
 
-There is also a very useful tactic called [congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types.
+There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\index{theory of equality and uninterpreted functions}\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types.
 
 %\medskip%
 
@@ -357,11 +417,16 @@ Qed.
 Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
   = plus (nsize tr2) (nsize tr1).
 (* begin thide *)
+(* begin hide *)
   Hint Rewrite n_plus_O plus_assoc : cpdt.
+(* end hide *)
+  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [n_plus_O plus_assoc : cpdt.] *)
 
   induction tr1; crush.
 Qed.
 (* end thide *)
+
+(** It is convenient that these proofs go through so easily, but it is useful to check that the tree induction principle works as usual. *)
 
 Check nat_btree_ind.
 (** %\vspace{-.15in}% [[
@@ -372,7 +437,8 @@ Check nat_btree_ind.
         P n -> forall (n0 : nat) (n1 : nat_btree), P n1 -> P (NNode n n0 n1)) ->
        forall n : nat_btree, P n
 ]]
-*)
+
+We have the usual two cases, one for each constructor of [nat_btree]. *)
 
 
 (** * Parameterized Types *)
