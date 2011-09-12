@@ -24,7 +24,7 @@ Makefile.coq: Makefile $(VS)
 clean:: Makefile.coq
 	$(MAKE) -f Makefile.coq clean
 	rm -f Makefile.coq .depend cpdt.tgz templates/*.v
-	cd latex; rm -f *.sty *.log *.aux *.dvi *.tex *.toc *.bbl *.blg *.idx *.ilg *.pdf *.ind *.out
+	cd latex; rm -f *.sty *.log *.aux *.dvi *.v.tex *.toc *.bbl *.blg *.idx *.ilg *.pdf *.ind *.out
 
 doc: latex/cpdt.pdf html
 
