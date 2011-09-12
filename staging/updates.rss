@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through Chapter 3</title>
+        <pubDate>Mon, 12 Sep 2011 16:47:12 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>Renamed "Tactics" module to "CpdtTactics"</title>
         <pubDate>Wed, 7 Sep 2011 13:45:31 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
