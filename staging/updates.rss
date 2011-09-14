@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Added a public Mercurial repository with the book source</title>
+        <pubDate>Wed, 14 Sep 2011 14:01:23 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/repo</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>A pass through Chapter 3</title>
         <pubDate>Mon, 12 Sep 2011 16:47:12 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
