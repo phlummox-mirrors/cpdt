@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -13,30 +13,48 @@ Require Import List.
 Require Import CpdtTactics.
 
 Set Implicit Arguments.
-(* end hide *)
 
+(* Extra definitions to get coqdoc to choose the right fonts. *)
+
+Inductive unit := tt.
+Inductive Empty_set := .
+Inductive bool := true | false.
+Inductive sum := .
+Inductive prod := .
+Inductive and := conj.
+Inductive or := or_introl | or_intror.
+Inductive ex := ex_intro.
+Inductive eq := refl_equal.
+Reset unit.
+(* end hide *)
 
 (** %\chapter{Inductive Predicates}% *)
 
-(** The so-called %``%#"#Curry-Howard Correspondence#"#%''% states a formal connection between functional programs and mathematical proofs.  In the last chapter, we snuck in a first introduction to this subject in Coq.  Witness the close similarity between the types [unit] and [True] from the standard library: *)
+(** The so-called %\index{Curry-Howard correspondence}``%#"#Curry-Howard correspondence#"#%''~\cite{Curry,Howard}% states a formal connection between functional programs and mathematical proofs.  In the last chapter, we snuck in a first introduction to this subject in Coq.  Witness the close similarity between the types [unit] and [True] from the standard library: *)
 
+(* begin hide *)
 Print unit.
-(** %\vspace{-.15in}% [[
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#unit#</tt>#%}%[.] *)
+(** [[
   Inductive unit : Set :=  tt : unit
 ]]
 *)
 
+(* begin hide *)
 Print True.
-(** %\vspace{-.15in}% [[
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#True#</tt>#%}%[.] *)
+(** [[
   Inductive True : Prop :=  I : True
-]]
+  ]]
 *)
 
-(** Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].
+(** Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].  Chapter 11 goes into more detail about the theoretical differences between [Prop] and [Set].  For now, we will simply follow common intuitions about what a proof is.
 
-[unit] has one value, [tt].  [True] has one proof, [I].  Why distinguish between these two types?  Many people who have read about Curry-Howard in an abstract context and not put it to use in proof engineering answer that the two types in fact %\textit{%#<i>#should not#</i>#%}% be distinguished.  There is a certain aesthetic appeal to this point of view, but I want to argue that it is best to treat Curry-Howard very loosely in practical proving.  There are Coq-specific reasons for preferring the distinction, involving efficient compilation and avoidance of paradoxes in the presence of classical math, but I will argue that there is a more general principle that should lead us to avoid conflating programming and proving.
+The type [unit] has one value, [tt].  The type [True] has one proof, [I].  Why distinguish between these two types?  Many people who have read about Curry-Howard in an abstract context and not put it to use in proof engineering answer that the two types in fact %\textit{%#<i>#should not#</i>#%}% be distinguished.  There is a certain aesthetic appeal to this point of view, but I want to argue that it is best to treat Curry-Howard very loosely in practical proving.  There are Coq-specific reasons for preferring the distinction, involving efficient compilation and avoidance of paradoxes in the presence of classical math, but I will argue that there is a more general principle that should lead us to avoid conflating programming and proving.
 
-The essence of the argument is roughly this: to an engineer, not all functions of type [A -> B] are created equal, but all proofs of a proposition [P -> Q] are.  This idea is known as %\textit{%#<i>#proof irrelevance#</i>#%}%, and its formalizations in logics prevent us from distinguishing between alternate proofs of the same proposition.  Proof irrelevance is compatible with, but not derivable in, Gallina.  Apart from this theoretical concern, I will argue that it is most effective to do engineering with Coq by employing different techniques for programs versus proofs.  Most of this book is organized around that distinction, describing how to program, by applying standard functional programming techniques in the presence of dependent types; and how to prove, by writing custom Ltac decision procedures.
+The essence of the argument is roughly this: to an engineer, not all functions of type [A -> B] are created equal, but all proofs of a proposition [P -> Q] are.  This idea is known as %\index{proof irrelevance}\textit{%#<i>#proof irrelevance#</i>#%}%, and its formalizations in logics prevent us from distinguishing between alternate proofs of the same proposition.  Proof irrelevance is compatible with, but not derivable in, Gallina.  Apart from this theoretical concern, I will argue that it is most effective to do engineering with Coq by employing different techniques for programs versus proofs.  Most of this book is organized around that distinction, describing how to program, by applying standard functional programming techniques in the presence of dependent types; and how to prove, by writing custom Ltac decision procedures.
 
 With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus %``%#"#datatypes.#"#%''%  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently-typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
 
@@ -62,15 +80,22 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 
 (* begin thide *)
   Theorem obvious' : True.
+(* begin hide *)
     constructor.
+(* end hide *)
+(** %\hspace{.075in}\coqdockw{%#<tt>#constructor#</tt>#%}%.%\vspace{-.1in}% *)
+
   Qed.
 
 (* end thide *)
 
   (** There is also a predicate [False], which is the Curry-Howard mirror image of [Empty_set] from the last chapter. *)
 
+(* begin hide *)
   Print False.
-  (** %\vspace{-.15in}% [[
+(* end hide *)
+  (** %\noindent%[Print] %\coqdocinductive{%#<tt>#False#</tt>#%}%[.] *)
+  (** [[
   Inductive False : Prop :=
  
   ]]
@@ -89,7 +114,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 (* begin thide *)
     intro.
 
-    (** At this point, we have an inconsistent hypothesis [2 + 2 = 5], so the specific conclusion is not important.  We use the [elimtype] tactic to state a proposition, telling Coq that we wish to construct a proof of the new proposition and then prove the original goal by case analysis on the structure of the new auxiliary proof.  Since [False] has no constructors, [elimtype False] simply leaves us with the obligation to prove [False]. *)
+    (** At this point, we have an inconsistent hypothesis [2 + 2 = 5], so the specific conclusion is not important.  We use the %\index{tactics!elimtype}%[elimtype] tactic to state a proposition, telling Coq that we wish to construct a proof of the new proposition and then prove the original goal by case analysis on the structure of the new auxiliary proof.  Since [False] has no constructors, [elimtype False] simply leaves us with the obligation to prove [False]. *)
 
     elimtype False.
     (** [[
@@ -131,13 +156,16 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 
   (** We also have conjunction, which we introduced in the last chapter. *)
 
+(* begin hide *)
   Print and.
-  (** %\vspace{-.15in}% [[
-  Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#and#</tt>#%}%[.]
+[[
+    Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
  
   ]]
   
-  The interested reader can check that [and] has a Curry-Howard doppelganger called [prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  [/\] is an infix shorthand for [and]. *)
+  The interested reader can check that [and] has a Curry-Howard equivalent called %\index{Gallina terms!prod}%[prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  The operator [/\] is an infix shorthand for [and]. *)
 
   Theorem and_comm : P /\ Q -> Q /\ P.
 
@@ -153,39 +181,43 @@ We have also already seen the definition of [True].  For a demonstration of a lo
    
    ]]
 
-    Every proof of a conjunction provides proofs for both conjuncts, so we get a single subgoal reflecting that.  We can proceed by splitting this subgoal into a case for each conjunct of [Q /\ P]. *)
+    Every proof of a conjunction provides proofs for both conjuncts, so we get a single subgoal reflecting that.  We can proceed by splitting this subgoal into a case for each conjunct of [Q /\ P].%\index{tactics!split}% *)
 
     split.
-    (** [[
-2 subgoals
+(** %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
+[[
   
   H : P
   H0 : Q
   ============================
    Q
-
-subgoal 2 is:
- P
+]]
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
+[[
+   P
  
  ]]
 
- In each case, the conclusion is among our hypotheses, so the [assumption] tactic finishes the process. *)
+ In each case, the conclusion is among our hypotheses, so the %\index{tactics!assumption}%[assumption] tactic finishes the process. *)
 
     assumption.
     assumption.
 (* end thide *)
   Qed.
 
-  (** Coq disjunction is called [or] and abbreviated with the infix operator [\/]. *)
+  (** Coq disjunction is called %\index{Gallina terms!or}%[or] and abbreviated with the infix operator [\/]. *)
 
+(* begin hide *)
   Print or.
-  (** %\vspace{-.15in}% [[
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#or#</tt>#%}%[.]
+[[
   Inductive or (A : Prop) (B : Prop) : Prop :=
     or_introl : A -> A \/ B | or_intror : B -> A \/ B
  
 ]]
 
-We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq [sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
+We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
 
   Theorem or_comm : P \/ Q -> Q \/ P.
 
@@ -193,23 +225,27 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
     (** As in the proof for [and], we begin with case analysis, though this time we are met by two cases instead of one. *)
 
     destruct 1.
-(** [[
-2 subgoals
+(** %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
+[[
   
   H : P
   ============================
    Q \/ P
-
-subgoal 2 is:
+]]
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
+[[
  Q \/ P
  
  ]]
 
- We can see that, in the first subgoal, we want to prove the disjunction by proving its second disjunct.  The [right] tactic telegraphs this intent. *)
-    
-    right; assumption.
+ We can see that, in the first subgoal, we want to prove the disjunction by proving its second disjunct.  The %\index{tactics!right}\coqdockw{%#<tt>#right#</tt>#%}% tactic telegraphs this intent. *)
 
-    (** The second subgoal has a symmetric proof.
+(* begin hide *)    
+    right; assumption.
+(* end hide *)
+(** %\hspace{.075in}\coqdockw{%#<tt>#right#</tt>#%}%[; assumption.] *)
+
+    (** The second subgoal has a symmetric proof.%\index{tactics!left}%
 
        [[
 1 subgoal
@@ -220,7 +256,11 @@ subgoal 2 is:
    ]]
    *)
 
+(* begin hide *)
     left; assumption.
+(* end hide *)
+(** %\hspace{.075in}\coqdockw{%#<tt>#left#</tt>#%}%[; assumption.] *)
+
 (* end thide *)
   Qed.
 
@@ -270,7 +310,7 @@ subgoal 2 is:
 (* end hide *)
 
 
-  (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is [tauto], which is a complete decision procedure for constructive propositional logic.  (More on what %``%#"#constructive#"#%''% means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
+  (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is %\index{tactics!tauto}%[tauto], which is a complete decision procedure for constructive propositional logic.  (More on what %``%#"#constructive#"#%''% means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
 
   Theorem or_comm' : P \/ Q -> Q \/ P.
 (* begin thide *)
@@ -278,7 +318,7 @@ subgoal 2 is:
 (* end thide *)
   Qed.
 
-  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  [intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
+  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  %\index{tactics!intuition}%[intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
 
   Theorem arith_comm : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
@@ -315,13 +355,16 @@ subgoal 2 is:
 (* end thide *)
   Qed.
 
-  (** [intuition] is one of the main bits of glue in the implementation of [crush], so, with a little help, we can get a short automated proof of the theorem. *)
+  (** The [intuition] tactic is one of the main bits of glue in the implementation of [crush], so, with a little help, we can get a short automated proof of the theorem. *)
 
 (* begin thide *)
   Theorem arith_comm' : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
     -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
+(* begin hide *)
     Hint Rewrite app_length : cpdt.
+(* end hide *)
+(** %\hspace{.075in}%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [app_length : cpdt.] *)
 
     crush.
   Qed.
@@ -329,41 +372,49 @@ subgoal 2 is:
 
 End Propositional.
 
+(** Ending the section here has the same effect as always.  Each of our propositional theorems becomes universally quantified over the propositional variables that we used. *)
+
 
 (** * What Does It Mean to Be Constructive? *)
 
 (** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  [bool] is a datatype whose two values are [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth?
 
-The answer comes from the fact that Coq implements %\textit{%#<i>#constructive#</i>#%}% or %\textit{%#<i>#intuitionistic#</i>#%}% logic, in contrast to the %\textit{%#<i>#classical#</i>#%}% logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is %\textit{%#<i>#decidable#</i>#%}%, in the sense of computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, this would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like %``%#"#this particular Turing machine halts.#"#%''%
+The answer comes from the fact that Coq implements %\index{constructive logic}\textit{%#<i>#constructive#</i>#%}% or %\index{intuitionistic logic|see{constructive logic}}\textit{%#<i>#intuitionistic#</i>#%}% logic, in contrast to the %\index{classical logic}\textit{%#<i>#classical#</i>#%}% logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is %\index{decidability}\textit{%#<i>#decidable#</i>#%}%, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like %``%#"#this particular Turing machine halts.#"#%''%
 
 Hence the distinction between [bool] and [Prop].  Programs of type [bool] are computational by construction; we can always run them to determine their results.  Many [Prop]s are undecidable, and so we can write more expressive formulas with [Prop]s than with [bool]s, but the inevitable consequence is that we cannot simply %``%#"#run a [Prop] to determine its truth.#"#%''%
 
-Constructive logic lets us define all of the logical connectives in an aesthetically-appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called %\textit{%#<i>#program extraction#</i>#%}%, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
+Constructive logic lets us define all of the logical connectives in an aesthetically-appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called %\index{program extraction}\textit{%#<i>#program extraction#</i>#%}%, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
 
 We will see more about Coq's program extraction facility in a later chapter.  However, I think it is worth interjecting another warning at this point, following up on the prior warning about taking the Curry-Howard correspondence too literally.  It is possible to write programs by theorem-proving methods in Coq, but hardly anyone does it.  It is almost always most useful to maintain the distinction between programs and proofs.  If you write a program by proving a theorem, you are likely to run into algorithmic inefficiencies that you introduced in your proof to make it easier to prove.  It is a shame to have to worry about such situations while proving tricky theorems, and it is a happy state of affairs that you almost certainly will not need to, with the ideal of extracting programs from proofs being confined mostly to theoretical studies. *)
 
 
 (** * First-Order Logic *)
 
-(** The [forall] connective of first-order logic, which we have seen in many examples so far, is built into Coq.  Getting ahead of ourselves a bit, we can see it as the dependent function type constructor.  In fact, implication and universal quantification are just different syntactic shorthands for the same Coq mechanism.  A formula [P -> Q] is equivalent to [forall x : P, Q], where [x] does not appear in [Q].  That is, the %``%#"#real#"#%''% type of the implication says %``%#"#for every proof of [P], there exists a proof of [Q].#"#%''%
+(** The %\index{Gallina terms!forall}%[forall] connective of first-order logic, which we have seen in many examples so far, is built into Coq.  Getting ahead of ourselves a bit, we can see it as the dependent function type constructor.  In fact, implication and universal quantification are just different syntactic shorthands for the same Coq mechanism.  A formula [P -> Q] is equivalent to [forall x : P, Q], where [x] does not appear in [Q].  That is, the %``%#"#real#"#%''% type of the implication says %``%#"#for every proof of [P], there exists a proof of [Q].#"#%''%
 
-Existential quantification is defined in the standard library. *)
+%\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
-Print ex.
-(** %\vspace{-.15in}% [[
+(* begin hide *)
+  Print ex.
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#ex#</tt>#%}%[.]
+[[
   Inductive ex (A : Type) (P : A -> Prop) : Prop :=
     ex_intro : forall x : A, P x -> ex P
   
     ]]
 
-    [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
+  The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
   (** remove printing exists *)
-  (** We can start this proof with a tactic [exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse 'E' appears instead of the text %``%#"#exists#"#%''% in formulas.) *)
+  (** We can start this proof with a tactic %\index{tactics!exists}\coqdockw{%exists%}%, which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text %``%#"#exists#"#%''% in formulas.) *)
 
+(* begin hide *)
   exists 1.
+(* end hide *)
+  (** %\coqdockw{%#<tt>#exists#</tt>#%}% [1.] *)
 
   (** The conclusion is replaced with a version using the existential witness that we announced.
 
@@ -419,7 +470,7 @@ Admitted.
 (* end hide *)
 
 
-(** The tactic [intuition] has a first-order cousin called [firstorder].  [firstorder] proves many formulas when only first-order reasoning is needed, and it tries to perform first-order simplifications in any case.  First-order reasoning is much harder than propositional reasoning, so [firstorder] is much more likely than [intuition] to get stuck in a way that makes it run for long enough to be useless. *)
+(** The tactic [intuition] has a first-order cousin called %\index{tactics!firstorder}%[firstorder], which proves many formulas when only first-order reasoning is needed, and it tries to perform first-order simplifications in any case.  First-order reasoning is much harder than propositional reasoning, so [firstorder] is much more likely than [intuition] to get stuck in a way that makes it run for long enough to be useless. *)
 
 
 (** * Predicates with Implicit Equality *)
@@ -431,25 +482,32 @@ Inductive isZero : nat -> Prop :=
 
 Theorem isZero_zero : isZero 0.
 (* begin thide *)
+(* begin hide *)
   constructor.
+(* end hide *)
+  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
+
 (* end thide *)
 Qed.
 
-(** We can call [isZero] a %\textit{%#<i>#judgment#</i>#%}%, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of %\textit{%#<i>#natural deduction#</i>#%}%, where we write a number of %\textit{%#<i>#inference rules#</i>#%}% with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
+(** We can call [isZero] a %\index{judgment}\textit{%#<i>#judgment#</i>#%}%, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of %\index{natural deduction}\textit{%#<i>#natural deduction#</i>#%}%, where we write a number of %\index{inference rules}\textit{%#<i>#inference rules#</i>#%}% with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
 
 The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names %\textit{%#<i>#before#</i>#%}% the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to use different arguments to the type for different constructors.
 
-For instance, [isZero] forces its argument to be [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type! *)
+For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
 
+(* begin hide *)
 Print eq.
-(** %\vspace{-.15in}% [[
+(* end hide *)
+(** %\noindent%[Print] %\coqdocinductive{%#<tt>#eq#</tt>#%}%[.]
+[[
   Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
  
   ]]
 
-  [eq] is the type we get behind the scenes when uses of infix [=] are expanded.  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only %\textit{%#<i>#prove#</i>#%}% equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.
+  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only %\textit{%#<i>#prove#</i>#%}% equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
 
-Returning to the example of [isZero], we can see how to make use of hypotheses that use this predicate. *)
+Returning to the example of [isZero], we can see how to work with hypotheses that use this predicate. *)
 
 Theorem isZero_plus : forall n m : nat, isZero m -> n + m = n.
 (* begin thide *)
@@ -484,7 +542,7 @@ Theorem isZero_contra : isZero 1 -> False.
 
    It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0].
 
-     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently-typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of %``%#"#logically complete case analysis#"#%''% is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called [inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
+     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of %``%#"#logically complete case analysis#"#%''% is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
 
   Undo.
   inversion 1.
@@ -516,7 +574,7 @@ isZero_ind
  
    ]]
 
-   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (][S (][S (][S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
 
 
 (* begin hide *)
@@ -553,32 +611,45 @@ Inductive even : nat -> Prop :=
 | EvenO : even O
 | EvenSS : forall n, even n -> even (S (S n)).
 
-(** Think of [even] as another judgment defined by natural deduction rules.  [EvenO] is a rule with nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (S (S n))] below.
+(** Think of [even] as another judgment defined by natural deduction rules.  [EvenO] is a rule with nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (][S (][S n))] below.
 
 The proof techniques of the last section are easily adapted. *)
 
 Theorem even_0 : even 0.
 (* begin thide *)
+(* begin hide *)
   constructor.
+(* end hide *)
+  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
+
 (* end thide *)
 Qed.
 
 Theorem even_4 : even 4.
 (* begin thide *)
+(* begin hide *)
   constructor; constructor; constructor.
+(* end hide *)
+  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
+
 (* end thide *)
 Qed.
 
-(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility. *)
+(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  Note that this sort of hint may be placed in a default database, such that a command has no equivalent to the [: cpdt] from our earlier rewrite hints.%\index{Hint Constructirs}%  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
 
 (* begin thide *)
+(* begin hide *)
 Hint Constructors even.
+(* end hide *)
+(** %\noindent%[Hint] %\coqdockw{%#<tt>#Constructors#</tt>#%}% [even.] *)
 
 Theorem even_4' : even 4.
   auto.
 Qed.
 
 (* end thide *)
+
+(** We may also use [inversion] with [even]. *)
 
 Theorem even_1_contra : even 1 -> False.
 (* begin thide *)
@@ -599,7 +670,7 @@ Theorem even_3_contra : even 3 -> False.
  
    ]]
 
-   [inversion] can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion. *)
+   The [inversion] tactic can be a little overzealous at times, as we can see here with the introduction of the unused variable [n] and an equality hypothesis about it.  For more complicated predicates, though, adding such assumptions is critical to dealing with the undecidability of general inversion.  More complex inductive definitions and theorems can cause [inversion] to generate equalities where neither side is a variable. *)
 
   inversion H1.
 (* end thide *)
@@ -649,8 +720,12 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
    ]]
    *)
 
+(* begin hide *)
   constructor.
-  (** [[
+(* end hide *)
+  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]
+
+[[
   ============================
    even (n0 + m)
  
@@ -659,22 +734,27 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
    At this point, we would like to apply the inductive hypothesis, which is:
 
    [[
-
   IHn : forall m : nat, even n -> even m -> even (n + m)
- 
   ]]
 
-  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct %\textit{%#<i>#on the structure of one of the [even] proofs#</i>#%}%.  This technique is commonly called %\textit{%#<i>#rule induction#</i>#%}% in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with %``%#"#normal#"#%''% induction is apparent. *)
+  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct %\textit{%#<i>#on the structure of one of the [even] proofs#</i>#%}%.  This technique is commonly called %\index{rule induction}\textit{%#<i>#rule induction#</i>#%}% in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with %``%#"#normal#"#%''% induction is apparent.
 
+  Recall that tactics like [induction] and [destruct] may be passed numbers to refer to unnamed lefthand sides of implications in the conclusion, where the argument [n] refers to the [n]th such hypothesis. *)
+
+(* begin hide *)
 Restart.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
   induction 1.
 (** [[
   m : nat
   ============================
    even m -> even (0 + m)
+]]
 
-subgoal 2 is:
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
+[[
  even m -> even (S (S n) + m)
  
  ]]
@@ -686,7 +766,6 @@ subgoal 2 is:
   (** Now we focus on the second case: *)
 
   intro.
-
   (** [[
   m : nat
   n : nat
@@ -700,8 +779,12 @@ subgoal 2 is:
 
    We simplify and apply a constructor, as in our last proof attempt. *)
 
+(* begin hide *)
   simpl; constructor.
-  (** [[
+(* end hide *)
+  (** [simpl; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[.]
+
+[[
   ============================
    even (n + m)
  
@@ -713,7 +796,11 @@ subgoal 2 is:
 
   (** In fact, [crush] can handle all of the details of the proof once we declare the induction strategy. *)
 
+(* begin hide *)
 Restart.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
+
   induction 1; crush.
 (* end thide *)
 Qed.
@@ -727,8 +814,10 @@ Theorem even_contra : forall n, even (S (n + n)) -> False.
   n : nat
   ============================
    False
+]]
 
-subgoal 2 is:
+%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
+[[
  False
  
  ]]
@@ -757,22 +846,33 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
 
   At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
 
+(* begin hide *)
   SearchRewrite (_ + S _).
-  (** %\vspace{-.15in}% [[
+(* end hide *)
+(** %\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% [(_ + S _).]
+
+[[
   plus_n_Sm : forall n m : nat, S (n + m) = n + S m
      ]]
      *)
 
   rewrite <- plus_n_Sm in H0.
 
-  (** The induction hypothesis lets us complete the proof. *)
+  (** The induction hypothesis lets us complete the proof, if we use a variant of [apply] that has a %\index{tactics!with}%[with] clause to give instantiations of quantified variables. *)
 
   apply IHeven with n0; assumption.
 
-  (** As usual, we can rewrite the proof to avoid referencing any locally-generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
+  (** As usual, we can rewrite the proof to avoid referencing any locally generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
 
+(* begin hide *)
   Restart.
+(* end hide *)
+(** %\hspace{-.075in}\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
+
+(* begin hide *)
   Hint Rewrite <- plus_n_Sm : cpdt.
+(* end hide *)
+(** %\hspace{-.075in}%[Hint] %\noindent\coqdockw{%#<tt>#Rewrite#</tt>#%}% [<- plus_n_sm : cpdt.] *)
 
   induction 1; crush;
     match goal with
@@ -780,9 +880,9 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
     end; crush; eauto.
 Qed.
 
-(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the [match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, [eauto].
+(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, %\index{tactics!eauto}%[eauto].
 
-[crush] uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  [auto] attempts Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  [eauto] relaxes this restriction, at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively-automated Coq proofs to see a bag of standard tactics applied to pick off the %``%#"#easy#"#%''% subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the %``%#"#easy#"#%''% subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
 
 The original theorem now follows trivially from our lemma. *)
 
@@ -790,7 +890,7 @@ Theorem even_contra : forall n, even (S (n + n)) -> False.
   intros; eapply even_contra'; eauto.
 Qed.
 
-(** We use a variant [eapply] of [apply] which has the same relationship to [apply] as [eauto] has to [auto].  [apply] only succeeds if all arguments to the rule being used can be determined from the form of the goal, whereas [eapply] will introduce unification variables for undetermined arguments.  [eauto] is able to determine the right values for those unification variables.
+(** We use a variant %\index{tactics!apply}%[eapply] of [apply] which has the same relationship to [apply] as [eauto] has to [auto].  An invocation of [apply] only succeeds if all arguments to the rule being used can be determined from the form of the goal, whereas [eapply] will introduce unification variables for undetermined arguments.  In this case, [eauto] is able to determine the right values for those unification variables.
 
 By considering an alternate attempt at proving the lemma, we can see another common pitfall of inductive proofs in Coq.  Imagine that we had tried to prove [even_contra'] with all of the [forall] quantifiers moved to the front of the lemma statement. *)
 
@@ -811,12 +911,14 @@ Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
  
    ]]
 
-   We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] %\textit{%#<i>#appeared after the thing we are inducting on#</i>#%}% in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses.
-
-     Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
-(* end thide *)
+   We are out of luck here.  The inductive hypothesis is trivially true, since its assumption is false.  In the version of this proof that succeeded, [IHeven] had an explicit quantification over [n].  This is because the quantification of [n] %\textit{%#<i>#appeared after the thing we are inducting on#</i>#%}% in the theorem statement.  In general, quantified variables and hypotheses that appear before the induction object in the theorem statement stay fixed throughout the inductive proof.  Variables and hypotheses that are quantified after the induction object may be varied explicitly in uses of inductive hypotheses. *)
 
 Abort.
+
+(** Why should Coq implement [induction] this way?  One answer is that it avoids burdening this basic tactic with additional heuristic smarts, but that is not the whole picture.  Imagine that [induction] analyzed dependencies among variables and reordered quantifiers to preserve as much freedom as possible in later uses of inductive hypotheses.  This could make the inductive hypotheses more complex, which could in turn cause particular automation machinery to fail when it would have succeeded before.  In general, we want to avoid quantifiers in our proofs whenever we can, and that goal is furthered by the refactoring that the [induction] tactic forces us to do. *)
+(* end thide *)
+
+
 
 
 (* begin hide *)
@@ -889,21 +991,21 @@ Qed.
 
 (** %\begin{enumerate}%#<ol>#
 
-%\item%#<li># Prove these tautologies of propositional logic, using only the tactics [apply], [assumption], [constructor], [destruct], [intro], [intros], [left], [right], [split], and [unfold].
+%\item%#<li># Prove these tautologies of propositional logic, using only the tactics [apply], [assumption], %\coqdockw{%#<tt>#constructor#</tt>#%}%, [destruct], [intro], [intros], %\coqdockw{%#<tt>#left#</tt>#%}%, %\coqdockw{%#<tt>#right#</tt>#%}%, [split], and [unfold].
   %\begin{enumerate}%#<ol>#
-    %\item%#<li># [(True \/ False) /\ (False \/ True)]#</li>#
+    %\item%#<li># [(][True \/ False) /\ (][False \/ True)]#</li>#
     %\item%#<li># [P -> ~ ~ P]#</li>#
-    %\item%#<li># [P /\ (Q \/ R) -> (P /\ Q) \/ (P /\ R)]#</li>#
+    %\item%#<li># [P /\ (][Q \/ R) -> (][P /\ Q) \/ (][P /\ R)]#</li>#
   #</ol> </li>#%\end{enumerate}%
 
-  %\item%#<li># Prove the following tautology of first-order logic, using only the tactics [apply], [assert], [assumption], [destruct], [eapply], [eassumption], and %\textit{%#<tt>#exists#</tt>#%}%.  You will probably find [assert] useful for stating and proving an intermediate lemma, enabling a kind of %``%#"#forward reasoning,#"#%''% in contrast to the %``%#"#backward reasoning#"#%''% that is the default for Coq tactics.  [eassumption] is a version of [assumption] that will do matching of unification variables.  Let some variable [T] of type [Set] be the set of individuals.  [x] is a constant symbol, [p] is a unary predicate symbol, [q] is a binary predicate symbol, and [f] is a unary function symbol.
+  %\item%#<li># Prove the following tautology of first-order logic, using only the tactics [apply], [assert], [assumption], [destruct], [eapply], %\coqdockw{%#<tt>#eassumption#</tt>#%}%, and %\coqdockw{%#<tt>#exists#</tt>#%}%.  You will probably find the [assert] tactic useful for stating and proving an intermediate lemma, enabling a kind of %``%#"#forward reasoning,#"#%''% in contrast to the %``%#"#backward reasoning#"#%''% that is the default for Coq tactics.  The tactic %\coqdockw{%#<tt>#eassumption#</tt>#%}% is a version of [assumption] that will do matching of unification variables.  Let some variable [T] of type [Set] be the set of individuals.  [x] is a constant symbol, [p] is a unary predicate symbol, [q] is a binary predicate symbol, and [f] is a unary function symbol.
 %\begin{enumerate}%#<ol>#
-    %\item%#<li># [p x -> (forall x, p x -> exists y, q x y) -> (forall x y, q x y -> q y (f y)) -> exists z, q z (f z)]#</li>#
+    %\item%#<li># [p x -> (][forall x, p x -> exists y, q x y) -> (][forall x y, q x y -> q y (f y)) -> exists z, q z (f z)]#</li>#
   #</ol> </li>#%\end{enumerate}%
 
 %\item%#<li># Define an inductive predicate capturing when a natural number is an integer multiple of either 6 or 10.  Prove that 13 does not satisfy your predicate, and prove that any number satisfying the predicate is not odd.  It is probably easiest to prove the second theorem by indicating %``%#"#odd-ness#"#%''% as equality to [2 * n + 1] for some [n].#</li>#
 
-%\item%#<li># Define a simple programming language, its semantics, and its typing rules, and then prove that well-typed programs cannot go wrong.  Specifically:
+%\item%#<li># $\star$ Define a simple programming language, its semantics, and its typing rules, and then prove that well-typed programs cannot go wrong.  Specifically:
   %\begin{enumerate}%#<ol>#
     %\item%#<li># Define [var] as a synonym for the natural numbers.#</li>#
     %\item%#<li># Define an inductive type [exp] of expressions, containing natural number constants, natural number addition, pairing of two other expressions, extraction of the first component of a pair, extraction of the second component of a pair, and variables (based on the [var] type you defined).#</li>#
@@ -922,14 +1024,13 @@ Qed.
   %\begin{enumerate}%#<ol>#
     %\item%#<li># One easy way of defining variable assignments and typings is to define both as instances of a polymorphic map type.  The map type at parameter [T] can be defined to be the type of arbitrary functions from variables to [T].  A helpful function for implementing insertion into such a functional map is [eq_nat_dec], which you can make available with [Require Import Arith.].  [eq_nat_dec] has a dependent type that tells you that it makes accurate decisions on whether two natural numbers are equal, but you can use it as if it returned a boolean, e.g., [if eq_nat_dec n m then E1 else E2].#</li>#
     %\item%#<li># If you follow the last hint, you may find yourself writing a proof that involves an expression with [eq_nat_dec] that you would like to simplify.  Running [destruct] on the particular call to [eq_nat_dec] should do the trick.  You can automate this advice with a piece of Ltac: [[
-
 match goal with
   | [ |- context[eq_nat_dec ?X ?Y] ] => destruct (eq_nat_dec X Y)
 end
 ]]
     #</li>#
     %\item%#<li># You probably do not want to use an inductive definition for compatibility of variable assignments and typings.#</li>#
-    %\item%#<li># The [Tactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in %``%#"#forward reasoning#"#%''% style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inversion should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
+    %\item%#<li># The [CpdtTactics] module from this book contains a variant [crush'] of [crush].  [crush'] takes two arguments.  The first argument is a list of lemmas and other functions to be tried automatically in %``%#"#forward reasoning#"#%''% style, where we add new facts without being sure yet that they link into a proof of the conclusion.  The second argument is a list of predicates on which inversion should be attempted automatically.  For instance, running [crush' (lemma1, lemma2) pred] will search for chances to apply [lemma1] and [lemma2] to hypotheses that are already available, adding the new concluded fact if suitable hypotheses can be found.  Inversion will be attempted on any hypothesis using [pred], but only those inversions that narrow the field of possibilities to one possible rule will be kept.  The format of the list arguments to [crush'] is that you can pass an empty list as [tt], a singleton list as the unadorned single element, and a multiple-element list as a tuple of the elements.#</li>#
     %\item%#<li># If you want [crush'] to apply polymorphic lemmas, you may have to do a little extra work, if the type parameter is not a free variable of your proof context (so that [crush'] does not know to try it).  For instance, if you define a polymorphic map insert function [assign] of some type [forall T : Set, ...], and you want particular applications of [assign] added automatically with type parameter [U], you would need to include [assign] in the lemma list as [assign U] (if you have implicit arguments off) or [assign (T := U)] or [@assign U] (if you have implicit arguments on).#</li>#
   #</ol> </li>#%\end{enumerate}%
 
