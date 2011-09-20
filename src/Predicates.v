@@ -16,6 +16,7 @@ Set Implicit Arguments.
 
 (* Extra definitions to get coqdoc to choose the right fonts. *)
 
+(* begin thide *)
 Inductive unit := tt.
 Inductive Empty_set := .
 Inductive bool := true | false.
@@ -26,6 +27,7 @@ Inductive or := or_introl | or_intror.
 Inductive ex := ex_intro.
 Inductive eq := refl_equal.
 Reset unit.
+(* end thide *)
 (* end hide *)
 
 (** %\chapter{Inductive Predicates}% *)
