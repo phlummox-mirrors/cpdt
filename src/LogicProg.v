@@ -604,7 +604,7 @@ End autorewrite.
     %\item%#<li># %\textbf{%#<b>#Right Cancellation#</b>#%}%: [a * x = b * x -> a = b]#</li>#
     %\item%#<li># %\textbf{%#<b>#Left Cancellation#</b>#%}%: [x * a = x * b -> a = b]#</li>#
     %\item%#<li># %\textbf{%#<b>#Distributivity of Inverse#</b>#%}%: [i (a * b) = i b * i a]#</li>#
-    %\item%#<li># %\textbf{%#<b>#Double Inverse#</b>#%}%: [i (i a) = a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Double Inverse#</b>#%}%: [i (][i a) = a]#</li>#
     %\item%#<li># %\textbf{%#<b>#Identity Inverse#</b>#%}%: [i e = e]#</li>#
   #</ul> </li>#%\end{itemize}%
 
