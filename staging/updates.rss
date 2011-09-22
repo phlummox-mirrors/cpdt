@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>New chapter on logic programing</title>
+        <pubDate>Thu, 22 Sep 2011 11:08:30 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>Some new content is missing prose.</description>
+</item>
+
+<item>
         <title>A pass through Chapter 4</title>
         <pubDate>Mon, 19 Sep 2011 14:03:40 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>

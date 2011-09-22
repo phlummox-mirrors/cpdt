@@ -574,3 +574,74 @@ subgoal 4 is:
   Qed.
 
 End autorewrite.
+
+
+(** * Exercises *)
+
+(** printing * $\cdot$ *)
+
+(** %\begin{enumerate}%#<ol>#
+
+%\item%#<li># I did a Google search for group theory and found #<a href="http://dogschool.tripod.com/housekeeping.html">#a page that proves some standard theorems#</a>#%\footnote{\url{http://dogschool.tripod.com/housekeeping.html}}%.  This exercise is about proving all of the theorems on that page automatically.
+
+  For the purposes of this exercise, a group is a set [G], a binary function [f] over [G], an identity element [e] of [G], and a unary inverse function [i] for [G].  The following laws define correct choices of these parameters.  We follow standard practice in algebra, where all variables that we mention are quantified universally implicitly at the start of a fact.  We write infix [*] for [f], and you can set up the same sort of notation in your code with a command like [Infix "*" := f.].
+
+  %\begin{itemize}%#<ul>#
+    %\item%#<li># %\textbf{%#<b>#Associativity#</b>#%}%: [(a * b) * c = a * (b * c)]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Right Identity#</b>#%}%: [a * e = a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Right Inverse#</b>#%}%: [a * i a = e]#</li>#
+  #</ul> </li>#%\end{itemize}%
+
+  The task in this exercise is to prove each of the following theorems for all groups, where we define a group exactly as above.  There is a wrinkle: every theorem or lemma must be proved by either a single call to [crush] or a single call to [eauto]!  It is allowed to pass numeric arguments to [eauto], where appropriate.  Recall that a numeric argument sets the depth of proof search, where 5 is the default.  Lower values can speed up execution when a proof exists within the bound.  Higher values may be necessary to find more involved proofs.
+
+  %\begin{itemize}%#<ul>#
+    %\item%#<li># %\textbf{%#<b>#Characterizing Identity#</b>#%}%: [a * a = a -> a = e]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Left Inverse#</b>#%}%: [i a * a = e]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Left Identity#</b>#%}%: [e * a = a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Uniqueness of Left Identity#</b>#%}%: [p * a = a -> p = e]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Uniqueness of Right Inverse#</b>#%}%: [a * b = e -> b = i a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Uniqueness of Left Inverse#</b>#%}%: [a * b = e -> a = i b]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Right Cancellation#</b>#%}%: [a * x = b * x -> a = b]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Left Cancellation#</b>#%}%: [x * a = x * b -> a = b]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Distributivity of Inverse#</b>#%}%: [i (a * b) = i b * i a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Double Inverse#</b>#%}%: [i (i a) = a]#</li>#
+    %\item%#<li># %\textbf{%#<b>#Identity Inverse#</b>#%}%: [i e = e]#</li>#
+  #</ul> </li>#%\end{itemize}%
+
+  One more use of tactics is allowed in this problem.  The following lemma captures one common pattern of reasoning in algebra proofs: *)
+
+(* begin hide *)
+Variable G : Set.
+Variable f : G -> G -> G.
+Infix "*" := f.
+(* end hide *)
+
+Lemma mult_both : forall a b c d1 d2,
+  a * c = d1
+  -> b * c = d2
+  -> a = b
+  -> d1 = d2.
+  crush.
+Qed.
+
+(** That is, we know some equality [a = b], which is the third hypothesis above.  We derive a further equality by multiplying both sides by [c], to yield [a * c = b * c].  Next, we do algebraic simplification on both sides of this new equality, represented by the first two hypotheses above.  The final result is a new theorem of algebra.
+
+   The next chapter introduces more details of programming in Ltac, but here is a quick teaser that will be useful in this problem.  Include the following hint command before you start proving the main theorems of this exercise: *)
+
+Hint Extern 100 (_ = _) =>
+  match goal with
+    | [ _ : True |- _ ] => fail 1
+    | _ => assert True by constructor; eapply mult_both
+  end.
+
+(** This hint has the effect of applying [mult_both] %\emph{%#<i>#at most once#</i>#%}% during a proof.  After the next chapter, it should be clear why the hint has that effect, but for now treat it as a useful black box.  Simply using [Hint Resolve mult_both] would increase proof search time unacceptably, because there are just too many ways to use [mult_both] repeatedly within a proof.
+
+   The order of the theorems above is itself a meta-level hint, since I found that order to work well for allowing the use of earlier theorems as hints in the proofs of later theorems.
+
+   The key to this problem is coming up with further lemmas like [mult_both] that formalize common patterns of reasoning in algebraic proofs.  These lemmas need to be more than sound: they must also fit well with the way that [eauto] does proof search.  For instance, if we had given [mult_both] a traditional statement, we probably would have avoided %``%#"#pointless#"#%''% equalities like [a = b], which could be avoided simply by replacing all occurrences of [b] with [a].  However, the resulting theorem would not work as well with automated proof search!  Every additional hint you come up with should be registered with [Hint Resolve], so that the lemma statement needs to be in a form that [eauto] understands %``%#"#natively.#"#%''%
+
+   I recommend testing a few simple rules corresponding to common steps in algebraic proofs.  You can apply them manually with any tactics you like (e.g., [apply] or [eapply]) to figure out what approaches work, and then switch to [eauto] once you have the full set of hints.
+
+   I also proved a few hint lemmas tailored to particular theorems, but which do not give common algebraic simplification rules.  You will probably want to use some, too, in cases where [eauto] does not find a proof within a reasonable amount of time.  In total, beside the main theorems to be proved, my sample solution includes 6 lemmas, with a mix of the two kinds of lemmas.  You may use more in your solution, but I suggest trying to minimize the number.
+
+#</ol>#%\end{enumerate}% *)
