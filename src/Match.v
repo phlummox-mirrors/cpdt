@@ -18,20 +18,22 @@ Set Implicit Arguments.
 
 (** %\chapter{Proof Search in Ltac}% *)
 
-(** We have seen many examples of proof automation so far.  This chapter aims to give a principled presentation of the features of Ltac, focusing in particular on the Ltac [match] construct, which supports a novel approach to backtracking search.  First, though, we will run through some useful automation tactics that are built into Coq.  They are described in detail in the manual, so we only outline what is possible. *)
+(** We have seen many examples of proof automation so far, some with tantalizing code snippets from Ltac, Coq's domain-specific language for proof search procedures.  This chapter aims to give a bottom-up presentation of the features of Ltac, focusing in particular on the Ltac %\index{tactics!match}%[match] construct, which supports a novel approach to backtracking search.  First, though, we will run through some useful automation tactics that are built into Coq.  They are described in detail in the manual, so we only outline what is possible. *)
 
 (** * Some Built-In Automation Tactics *)
 
-(** A number of tactics are called repeatedly by [crush].  [intuition] simplifies propositional structure of goals.  [congruence] applies the rules of equality and congruence closure, plus properties of constructors of inductive types.  The [omega] tactic provides a complete decision procedure for a theory that is called quantifier-free linear arithmetic or Presburger arithmetic, depending on whom you ask.  That is, [omega] proves any goal that follows from looking only at parts of that goal that can be interpreted as propositional formulas whose atomic formulas are basic comparison operations on natural numbers or integers.
+(** A number of tactics are called repeatedly by [crush].  The %\index{tactics!intuition}%[intuition] tactic simplifies propositional structure of goals.  The %\index{tactics!congruence}%[congruence] tactic applies the rules of equality and congruence closure, plus properties of constructors of inductive types.  The %\index{tactics!omega}%[omega] tactic provides a complete decision procedure for a theory that is called %\index{linear arithmetic}%quantifier-free linear arithmetic or %\index{Presburger arithmetic}%Presburger arithmetic, depending on whom you ask.  That is, [omega] proves any goal that follows from looking only at parts of that goal that can be interpreted as propositional formulas whose atomic formulas are basic comparison operations on natural numbers or integers.
 
-   The [ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a simlar tactic [field] for simplifying values in fields by conversion to fractions over rings.  Both [ring] and [field] can only solve goals that are equalities.  The [fourier] tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
+   The %\index{tactics!ring}%[ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a similar tactic %\index{tactics!field}\coqdockw{%#<tt>#field#</tt>#%}% for simplifying values in fields by conversion to fractions over rings.  Both [ring] and %\coqdockw{%#<tt>#field#</tt>#%}% can only solve goals that are equalities.  The %\index{tactics!fourier}\coqdockw{%#<tt>#fourier#</tt>#%}% tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
 
-   The %\textit{%#<i>#setoid#</i>#%}% facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''% *)
+   The %\index{setoids}\textit{%#<i>#setoid#</i>#%}% facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''%
+
+   There are several other built-in %``%#"#black box#"#%''% automation tactics, which one can learn about by perusing the Coq manual.  The real promise of Coq, though, is in the coding of problem-specific tactics with Ltac. *)
 
 
 (** * Ltac Programming Basics *)
 
-(** We have already seen many examples of Ltac programs.  In the rest of this chapter, we attempt to give a more principled introduction to the important features and design patterns.
+(** We have already seen many examples of Ltac programs.  In the rest of this chapter, we attempt to give a thorough introduction to the important features and design patterns.
 
    One common use for [match] tactics is identification of subjects for case analysis, as we see in this tactic definition. *)
 
@@ -57,9 +59,9 @@ Theorem hmm : forall (a b c : bool),
 Qed.
 (* end thide *)
 
-(** The [repeat] that we use here is called a %\textit{%#<i>#tactical#</i>#%}%, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on %\textit{%#<i>#their#</i>#%}% generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
+(** The %\index{tactics!repeat}%[repeat] that we use here is called a %\index{tactical}\textit{%#<i>#tactical#</i>#%}%, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on %\textit{%#<i>#their#</i>#%}% generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
 
-   Another very useful Ltac building block is %\textit{%#<i>#context patterns#</i>#%}%. *)
+   Another very useful Ltac building block is %\index{context patterns}\textit{%#<i>#context patterns#</i>#%}%. *)
 
 (* begin thide *)
 Ltac find_if_inside :=
@@ -107,17 +109,15 @@ Ltac my_tauto :=
 	   | [ H : _ /\ _ |- _ ] => destruct H
 	   | [ H : _ \/ _ |- _ ] => destruct H
 
-	   | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] =>
-	     let H := fresh "H" in
-	       generalize (H1 H2); clear H1; intro H
+	   | [ H1 : ?P -> ?Q, H2 : ?P |- _ ] => specialize (H1 H2)
 	 end.
 (* end thide *)
 
-(** Since [match] patterns can share unification variables between hypothesis and conclusion patterns, it is easy to figure out when the conclusion matches a hypothesis.  The [exact] tactic solves a goal completely when given a proof term of the proper type.
+(** Since [match] patterns can share unification variables between hypothesis and conclusion patterns, it is easy to figure out when the conclusion matches a hypothesis.  The %\index{tactics!exact}%[exact] tactic solves a goal completely when given a proof term of the proper type.
 
-   It is also trivial to implement the %``%#"#introduction rules#"#%''% for a few of the connectives.  Implementing elimination rules is only a little more work, since we must give a name for a hypothesis to [destruct].
+   It is also trivial to implement the introduction rules (in the sense of %\index{natural deduction}%natural deduction%~\cite{TAPLNatDed}%) for a few of the connectives.  Implementing elimination rules is only a little more work, since we must give a name for a hypothesis to [destruct].
 
-   The last rule implements modus ponens.  The most interesting part is the use of the Ltac-level [let] with a [fresh] expression.  [fresh] takes in a name base and returns a fresh hypothesis variable based on that name.  We use the new name variable [H] as the name we assign to the result of modus ponens.  The use of [generalize] changes our conclusion to be an implication from [Q].  We clear the original hypothesis and move [Q] into the context with name [H]. *)
+   The last rule implements modus ponens, using a tactic %\index{tactics!specialize}\coqdockw{%#<tt>#specialize#</tt>#%}% which will replace a hypothesis with a version that is specialized to a provided set of arguments (for quantified variables or local hypotheses from implications). *)
 
 Section propositional.
   Variables P Q R : Prop.
@@ -129,11 +129,11 @@ Section propositional.
 (* end thide *)
 End propositional.
 
-(** It was relatively easy to implement modus ponens, because we do not lose information by clearing every implication that we use.  If we want to implement a similarly-complete procedure for quantifier instantiation, we need a way to ensure that a particular proposition is not already included among our hypotheses.  To do that effectively, we first need to learn a bit more about the semantics of [match].
+(** It was relatively easy to implement modus ponens, because we do not lose information by clearing every implication that we use.  If we want to implement a similarly complete procedure for quantifier instantiation, we need a way to ensure that a particular proposition is not already included among our hypotheses.  To do that effectively, we first need to learn a bit more about the semantics of [match].
 
 It is tempting to assume that [match] works like it does in ML.  In fact, there are a few critical differences in its behavior.  One is that we may include arbitrary expressions in patterns, instead of being restricted to variables and constructors.  Another is that the same variable may appear multiple times, inducing an implicit equality constraint.
 
-There is a related pair of two other differences that are much more important than the others.  [match] has a %\textit{%#<i>#backtracking semantics for failure#</i>#%}%.  In ML, pattern matching works by finding the first pattern to match and then executing its body.  If the body raises an exception, then the overall match raises the same exception.  In Coq, failures in case bodies instead trigger continued search through the list of cases.
+There is a related pair of two other differences that are much more important than the others.  The [match] construct has a %\textit{%#<i>#backtracking semantics for failure#</i>#%}%.  In ML, pattern matching works by finding the first pattern to match and then executing its body.  If the body raises an exception, then the overall match raises the same exception.  In Coq, failures in case bodies instead trigger continued search through the list of cases.
 
 For instance, this (unnecessarily verbose) proof script works: *)
 
@@ -155,7 +155,7 @@ Theorem m2 : forall P Q R : Prop, P -> Q -> R -> Q.
             | [ H : _ |- _ ] => idtac H
           end.
 
-  (** Coq prints %``%#"#[H1]#"#%''%.  By applying [idtac] with an argument, a convenient debugging tool for %``%#"#leaking information out of [match]es,#"#%''% we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
+  (** Coq prints %``%#"#[H1]#"#%''%.  By applying %\index{tactics!idtac}%[idtac] with an argument, a convenient debugging tool for %``%#"#leaking information out of [match]es,#"#%''% we see that this [match] first tries binding [H] to [H1], which cannot be used to prove [Q].  Nonetheless, the following variation on the tactic succeeds at proving the goal: *)
 
 (* begin thide *)
   match goal with
@@ -180,11 +180,11 @@ Ltac notHyp P :=
   end.
 (* end thide *)
 
-(** We use the equality checking that is built into pattern-matching to see if there is a hypothesis that matches the proposition exactly.  If so, we use the [fail] tactic.  Without arguments, [fail] signals normal tactic failure, as you might expect.  When [fail] is passed an argument [n], [n] is used to count outwards through the enclosing cases of backtracking search.  In this case, [fail 1] says %``%#"#fail not just in this pattern-matching branch, but for the whole [match].#"#%''%  The second case will never be tried when the [fail 1] is reached.
+(** We use the equality checking that is built into pattern-matching to see if there is a hypothesis that matches the proposition exactly.  If so, we use the %\index{tactics!fail}%[fail] tactic.  Without arguments, [fail] signals normal tactic failure, as you might expect.  When [fail] is passed an argument [n], [n] is used to count outwards through the enclosing cases of backtracking search.  In this case, [fail 1] says %``%#"#fail not just in this pattern-matching branch, but for the whole [match].#"#%''%  The second case will never be tried when the [fail 1] is reached.
 
-This second case, used when [P] matches no hypothesis, checks if [P] is a conjunction.  Other simplifications may have split conjunctions into their component formulas, so we need to check that at least one of those components is also not represented.  To achieve this, we apply the [first] tactical, which takes a list of tactics and continues down the list until one of them does not fail.  The [fail 2] at the end says to [fail] both the [first] and the [match] wrapped around it.
+This second case, used when [P] matches no hypothesis, checks if [P] is a conjunction.  Other simplifications may have split conjunctions into their component formulas, so we need to check that at least one of those components is also not represented.  To achieve this, we apply the %\index{tactics!first}%[first] tactical, which takes a list of tactics and continues down the list until one of them does not fail.  The [fail 2] at the end says to [fail] both the [first] and the [match] wrapped around it.
 
-The body of the [?P1 /\ ?P2] case guarantees that, if it is reached, we either succeed completely or fail completely.  Thus, if we reach the wildcard case, [P] is not a conjunction.  We use [idtac], a tactic that would be silly to apply on its own, since its effect is to succeed at doing nothing.  Nonetheless, [idtac] is a useful placeholder for cases like what we see here.
+The body of the [?P1 /\ ?P2] case guarantees that, if it is reached, we either succeed completely or fail completely.  Thus, if we reach the wildcard case, [P] is not a conjunction.  We use %\index{tactics!idtac}%[idtac], a tactic that would be silly to apply on its own, since its effect is to succeed at doing nothing.  Nonetheless, [idtac] is a useful placeholder for cases like what we see here.
 
 With the non-presence check implemented, it is easy to build a tactic that takes as input a proof term and adds its conclusion as a new hypothesis, only if that conclusion is not already present, failing otherwise. *)
 
@@ -194,7 +194,7 @@ Ltac extend pf :=
     notHyp t; generalize pf; intro.
 (* end thide *)
 
-(** We see the useful [type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].
+(** We see the useful %\index{tactics!type of}%[type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].  The tactic %\index{tactics!generalize}%[generalize] takes as input a term [t] (for instance, a proof of some proposition) and then changes the conclusion from [G] to [T -> G], where [T] is the type of [t] (for instance, the proposition proved by a proof given as argument).
 
    With these tactics defined, we can write a tactic [completer] for adding to the context all consequences of a set of simple first-order formulas. *)
 
@@ -203,12 +203,10 @@ Ltac completer :=
   repeat match goal with
            | [ |- _ /\ _ ] => constructor
 	   | [ H : _ /\ _ |- _ ] => destruct H
-           | [ H : ?P -> ?Q, H' : ?P |- _ ] =>
-             generalize (H H'); clear H; intro H
+           | [ H : ?P -> ?Q, H' : ?P |- _ ] => specialize (H H')
            | [ |- forall x, _ ] => intro
 
-           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
-             extend (H X H')
+           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] => extend (H X H')
          end.
 (* end thide *)
 
@@ -251,16 +249,14 @@ Ltac completer' :=
   repeat match goal with
            | [ |- _ /\ _ ] => constructor
 	   | [ H : _ /\ _ |- _ ] => destruct H
-           | [ H : ?P -> _, H' : ?P |- _ ] =>
-             generalize (H H'); clear H; intro H
+           | [ H : ?P -> _, H' : ?P |- _ ] => specialize (H H')
            | [ |- forall x, _ ] => intro
 
-           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] =>
-             extend (H X H')
+           | [ H : forall x, ?P x -> _, H' : ?P ?X |- _ ] => extend (H X H')
          end.
 (* end thide *)
 
-(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
+(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?][Q] with a wildcard.  Let us try our example again with this version: *)
 
 Section firstorder'.
   Variable A : Set.
@@ -300,15 +296,17 @@ Theorem t1' : forall x : nat, x = x.
   match goal with
     | [ |- forall x, ?P ] => trivial
   end.
+]]
 
+<<
 User error: No matching clauses for match goal
-    ]]
-    *)
+>>
+*)
 
 Abort.
 (* end thide *)
 
-(** The problem is that unification variables may not contain locally-bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
+(** The problem is that unification variables may not contain locally bound variables.  In this case, [?][P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
 
    The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the %``%#"#real#"#%''% value.  In Coq 8.1 and earlier, there is no such workaround.
 
@@ -329,10 +327,11 @@ Ltac length ls :=
     | nil => O
     | _ :: ls' => S (length ls')
   end.
+]]
 
+<<
 Error: The reference ls' was not found in the current environment
- 
-   ]]
+>>
 
    At this point, we hopefully remember that pattern variable names must be prefixed by question marks in Ltac.
 
@@ -342,12 +341,13 @@ Ltac length ls :=
     | nil => O
     | _ :: ?ls' => S (length ls')
   end.
-
-Error: The reference S was not found in the current environment
- 
 ]]
 
-   The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to %``%#"#escape into#"#%''% the Gallina parsing nonterminal. *)
+<<
+Error: The reference S was not found in the current environment
+>>
+
+   The problem is that Ltac treats the expression [S (][length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to %``%#"#escape into#"#%''% the Gallina parsing nonterminal.%\index{tactics!constr}% *)
 
 (* begin thide *)
 Ltac length ls :=
@@ -368,13 +368,16 @@ Goal False.
  
    ]]
 
-   We use the [pose] tactic, which extends the proof context with a new variable that is set equal to a particular term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
+   We use the %\index{tactics!pose}%[pose] tactic, which extends the proof context with a new variable that is set equal to a particular term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
 
-   [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)
+   The value of [n] only has the length calculation unrolled one step.  What has happened here is that, by escaping into the [constr] nonterminal, we referred to the [length] function of Gallina, rather than the [length] Ltac function that we are defining. *)
 
 Abort.
 
+(* begin hide *)
 Reset length.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
 
 (** The thing to remember is that Gallina terms built by tactics must be bound explicitly via [let] or a similar technique, rather than inserting Ltac calls directly in other Gallina terms. *)
 
@@ -415,7 +418,7 @@ Ltac map T f :=
     end in
   map'.
 
-(** Ltac functions can have no implicit arguments.  It may seem surprising that we need to pass [T], the carried type of the output list, explicitly.  We cannot just use [type of f], because [f] is an Ltac term, not a Gallina term, and Ltac programs are dynamically typed.  [f] could use very syntactic methods to decide to return differently typed terms for different inputs.  We also could not replace [constr:( @nil T)] with [constr: nil], because we have no strongly-typed context to use to infer the parameter to [nil].  Luckily, we do have sufficient context within [constr:( x' :: ls'')].
+(** Ltac functions can have no implicit arguments.  It may seem surprising that we need to pass [T], the carried type of the output list, explicitly.  We cannot just use [type of f], because [f] is an Ltac term, not a Gallina term, and Ltac programs are dynamically typed.  The function [f] could use very syntactic methods to decide to return differently typed terms for different inputs.  We also could not replace [constr:( @][nil T)] with [constr: nil], because we have no strongly typed context to use to infer the parameter to [nil].  Luckily, we do have sufficient context within [constr:( x' :: ls'')].
 
 Sometimes we need to employ the opposite direction of %``%#"#nonterminal escape,#"#%''% when we want to pass a complicated tactic expression as an argument to another tactic, as we might want to do in invoking [map]. *)
 
@@ -431,6 +434,68 @@ Goal False.
 
 Abort.
 (* end thide *)
+
+(** One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
+
+(* begin hide *)
+Reset length.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
+
+Ltac length ls :=
+  idtac ls;
+  match ls with
+    | nil => O
+    | _ :: ?ls' =>
+      let ls'' := length ls' in
+        constr:(S ls'')
+  end.
+
+(** Coq accepts the tactic definition, but the code is fatally flawed and will always lead to dynamic type errors. *)
+
+Goal False.
+(** %\vspace{-.15in}%[[
+  let n := length (1 :: 2 :: 3 :: nil) in
+    pose n.
+]]
+
+<<
+Error: variable n should be bound to a term.
+>> *)
+Abort.
+
+(** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one %``%#"#datatype#"#%''% that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monads}\index{Haskell}%monadic programming in Haskell%~\cite{monads,IO}% may recognize a similarity.  Side-effecting Haskell programs can be thought of as pure programs that return %\emph{%#<i>#the code of programs in an imperative language#</i>#%}%, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
+
+   Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
+
+   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}\emph{%#<i>#continuation-passing style#</i>#%}%, a program structuring idea popular in functional programming. *)
+
+(* begin hide *)
+Reset length.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
+
+Ltac length ls k :=
+  idtac ls;
+  match ls with
+    | nil => k O
+    | _ :: ?ls' => length ls' ltac:(fun n => k (S n))
+  end.
+
+(** The new [length] takes a new input: a %\emph{%#<i>#continuation#</i>#%}% [k], which is a function to be called to continue whatever proving process we were in the middle of when we called [length].  The argument passed to [k] may be thought of as the return value of [length]. *)
+
+Goal False.
+  length (1 :: 2 :: 3 :: nil) ltac:(fun n => pose n).
+(** [[
+(1 :: 2 :: 3 :: nil)
+(2 :: 3 :: nil)
+(3 :: nil)
+nil
+]]
+*)
+Abort.
+
+(** We see exactly the trace of function arguments that we expected initially, and an examination of the proof state afterward would show that variable [n] has been added with value [3]. *)
 
 
 (** * Recursive Proof Search *)
@@ -450,7 +515,7 @@ Ltac inster n :=
     end.
 (* end thide *)
 
-(** [inster] begins by applying propositional simplification.  Next, it checks if any chain length remains.  If so, it tries all possible ways of instantiating quantified hypotheses with properly-typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
+(** The tactic begins by applying propositional simplification.  Next, it checks if any chain length remains.  If so, it tries all possible ways of instantiating quantified hypotheses with properly typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
 
    We can verify the efficacy of [inster] with two short examples.  The built-in [firstorder] tactic (with no extra arguments) is able to prove the first but not the second. *)
 
@@ -462,7 +527,7 @@ Section test_inster.
 
   Hypothesis H1 : forall x y, P (g x y) -> Q (f x).
 
-  Theorem test_inster : forall x y, P (g x y) -> Q (f x).
+  Theorem test_inster : forall x, P (g x x) -> Q (f x).
     inster 2.
   Qed.
 
@@ -474,11 +539,11 @@ Section test_inster.
   Qed.
 End test_inster.
 
-(** The style employed in the definition of [inster] can seem very counterintuitive to functional programmers.  Usually, functional programs accumulate state changes in explicit arguments to recursive functions.  In Ltac, the state of the current subgoal is always implicit.  Nonetheless, in contrast to general imperative programming, it is easy to undo any changes to this state, and indeed such %``%#"#undoing#"#%''% happens automatically at failures within [match]es.  In this way, Ltac programming is similar to programming in Haskell with a stateful failure monad that supports a composition operator along the lines of the [first] tactical.
+(** The style employed in the definition of [inster] can seem very counterintuitive to functional programmers.  Usually, functional programs accumulate state changes in explicit arguments to recursive functions.  In Ltac, the state of the current subgoal is always implicit.  Nonetheless, in contrast to general imperative programming, it is easy to undo any changes to this state, and indeed such %``%#"#undoing#"#%''% happens automatically at failures within [match]es.  In this way, Ltac programming is similar to programming in Haskell with a stateful failure monad that supports a composition operator along the lines of the [first] tactical.  The key pieces of state include not only the form of the goal, but also decisions about the values of unification variables.  These decisions are rolled back with all the other state after failure.
 
    Functional programming purists may react indignantly to the suggestion of programming this way.  Nonetheless, as with other kinds of %``%#"#monadic programming,#"#%''% many problems are much simpler to solve with Ltac than they would be with explicit, pure proof manipulation in ML or Haskell.  To demonstrate, we will write a basic simplification procedure for logical implications.
 
-   This procedure is inspired by one for separation logic, where conjuncts in formulas are thought of as %``%#"#resources,#"#%''% such that we lose no completeness by %``%#"#crossing out#"#%''% equal conjuncts on the two sides of an implication.  This process is complicated by the fact that, for reasons of modularity, our formulas can have arbitrary nested tree structure (branching at conjunctions) and may include existential quantifiers.  It is helpful for the matching process to %``%#"#go under#"#%''% quantifiers and in fact decide how to instantiate existential quantifiers in the conclusion.
+   This procedure is inspired by one for separation logic%~\cite{separation}%, where conjuncts in formulas are thought of as %``%#"#resources,#"#%''% such that we lose no completeness by %``%#"#crossing out#"#%''% equal conjuncts on the two sides of an implication.  This process is complicated by the fact that, for reasons of modularity, our formulas can have arbitrary nested tree structure (branching at conjunctions) and may include existential quantifiers.  It is helpful for the matching process to %``%#"#go under#"#%''% quantifiers and in fact decide how to instantiate existential quantifiers in the conclusion.
 
    To distinguish the implications that our tactic handles from the implications that will show up as %``%#"#plumbing#"#%''% in various lemmas, we define a wrapper definition, a notation, and a tactic. *)
 
@@ -538,7 +603,6 @@ Qed.
 
 (** The first order of business in crafting our [matcher] tactic will be auxiliary support for searching through formula trees.  The [search_prem] tactic implements running its tactic argument [tac] on every subformula of an [imp] premise.  As it traverses a tree, [search_prem] applies some of the above lemmas to rewrite the goal to bring different subformulas to the head of the goal.  That is, for every subformula [P] of the implication premise, we want [P] to %``%#"#have a turn,#"#%''% where the premise is rearranged into the form [P /\ Q] for some [Q].  The tactic [tac] should expect to see a goal in this form and focus its attention on the first conjunct of the premise. *)
 
-(* begin thide *)
 Ltac search_prem tac :=
   let rec search P :=
     tac
@@ -554,9 +618,9 @@ Ltac search_prem tac :=
        | [ |- _ --> _ ] => progress (tac || (apply and_True_prem; tac))
      end.
 
-(** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.
+(** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  The call [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.
 
-   [search] itself tries the same tricks as in the last case of the final [match].  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
+   The [search] function itself tries the same tricks as in the last case of the final [match].  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
 
    We will also want a dual function [search_conc], which does tree search through an [imp] conclusion. *)
 
@@ -577,6 +641,7 @@ Ltac search_conc tac :=
 
 (** Now we can prove a number of lemmas that are suitable for application by our search tactics.  A lemma that is meant to handle a premise should have the form [P /\ Q --> R] for some interesting [P], and a lemma that is meant to handle a conclusion should have the form [P --> Q /\ R] for some interesting [Q]. *)
 
+(* begin thide *)
 Theorem False_prem : forall P Q,
   False /\ P --> Q.
   imp.
@@ -652,11 +717,11 @@ Theorem t3 : forall P Q R : Prop,
  
    ]]
 
-   [matcher] canceled those conjuncts that it was able to cancel, leaving a simplified subgoal for us, much as [intuition] does. *)
+   Our tactic canceled those conjuncts that it was able to cancel, leaving a simplified subgoal for us, much as [intuition] does. *)
 
 Abort.
 
-(** [matcher] even succeeds at guessing quantifier instantiations.  It is the unification that occurs in uses of the [Match] lemma that does the real work here. *)
+(** The [matcher] tactic even succeeds at guessing quantifier instantiations.  It is the unification that occurs in uses of the [Match] lemma that does the real work here. *)
 
 Theorem t4 : forall (P : nat -> Prop) Q, (exists x, P x /\ Q) --> Q /\ (exists x, P x).
   matcher.
@@ -684,7 +749,7 @@ and_True_prem
 
 (** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variable internally to support flexible proof search.  While [eauto] and its relatives do %\textit{%#<i>#backward#</i>#%}% reasoning, we often want to do similar %\textit{%#<i>#forward#</i>#%}% reasoning, where unification variables can be useful for similar reasons.
 
-   For example, we can write a tactic that instantiates the quantifiers of a universally-quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
+   For example, we can write a tactic that instantiates the quantifiers of a universally quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
 
    Before we are ready to write a tactic, we can try out its ingredients one at a time. *)
 
@@ -698,7 +763,7 @@ Theorem t5 : (forall x : nat, S x > x) -> 2 > 1.
  
    ]]
 
-   To instantiate [H] generically, we first need to name the value to be used for [x]. *)
+   To instantiate [H] generically, we first need to name the value to be used for [x].%\index{tactics!evar}% *)
 
   evar (y : nat).
 
@@ -710,9 +775,9 @@ Theorem t5 : (forall x : nat, S x > x) -> 2 > 1.
  
    ]]
 
-   The proof context is extended with a new variable [y], which has been assigned to be equal to a fresh unification variable [?279].  We want to instantiate [H] with [?279].  To get ahold of the new unification variable, rather than just its alias [y], we perform a trivial call-by-value reduction in the expression [y].  In particular, we only request the use of one reduction rule, [delta], which deals with definition unfolding.  We pass a flag further stipulating that only the definition of [y] be unfolded.  This is a simple trick for getting at the value of a synonym variable. *)
+   The proof context is extended with a new variable [y], which has been assigned to be equal to a fresh unification variable [?279].  We want to instantiate [H] with [?279].  To get ahold of the new unification variable, rather than just its alias [y], we perform a trivial unfolding in the expression [y], using the %\index{tactics!eval}%[eval] Ltac construct, which works with the same reduction strategies that we have seen in tactics (e.g., [simpl], [compute], etc.).  *)
 
-  let y' := eval cbv delta [y] in y in
+  let y' := eval unfold y in y in
     clear y; generalize (H y').
 
   (** [[
@@ -745,15 +810,15 @@ Ltac insterU H :=
            | forall x : ?T, _ =>
              let x := fresh "x" in
                evar (x : T);
-               let x' := eval cbv delta [x] in x in
-                 clear x; generalize (H x'); clear H; intro H
+               let x' := eval unfold x in x in
+                 clear x; specialize (H x')
          end.
 
 Theorem t5' : (forall x : nat, S x > x) -> 2 > 1.
   intro H; insterU H; apply H.
 Qed.
 
-(** This particular example is somewhat silly, since [apply] by itself would have solved the goal originally.  Separate forward reasoning is more useful on hypotheses that end in existential quantifications.  Before we go through an example, it is useful to define a variant of [insterU] that does not clear the base hypothesis we pass to it. *)
+(** This particular example is somewhat silly, since [apply] by itself would have solved the goal originally.  Separate forward reasoning is more useful on hypotheses that end in existential quantifications.  Before we go through an example, it is useful to define a variant of [insterU] that does not clear the base hypothesis we pass to it.  We use the Ltac construct %\index{tactics!fresh}%[fresh] to generate a hypothesis name that is not already used, based on a string suggesting a good name. *)
 
 Ltac insterKeep H :=
   let H' := fresh "H'" in
@@ -774,7 +839,7 @@ Section t6.
   Theorem t6 : forall v1 v2, exists u1, exists u2, P (f v1 v2) (g u1 u2).
     intros.
 
-    (** Neither [eauto] nor [firstorder] is clever enough to prove this goal.  We can help out by doing some of the work with quantifiers ourselves. *)
+    (** Neither [eauto] nor [firstorder] is clever enough to prove this goal.  We can help out by doing some of the work with quantifiers ourselves, abbreviating the proof with the %\index{tactics!do}%[do] tactical for repetition of a tactic a set number of times. *)
 
     do 2 insterKeep H1.
 
@@ -788,7 +853,7 @@ Section t6.
  
    ]]
 
-   [eauto] still cannot prove the goal, so we eliminate the two new existential quantifiers. *)
+   [eauto] still cannot prove the goal, so we eliminate the two new existential quantifiers.  (Recall that [ex] is the underlying type family to which uses of the [exists] syntax are compiled.) *)
 
     repeat match goal with
              | [ H : ex _ |- _ ] => destruct H
@@ -823,9 +888,11 @@ Section t7.
 
     (** This proof script does not hit any errors until the very end, when an error message like this one is displayed.
 
-       [[
+<<
 No more subgoals but non-instantiated existential variables :
 Existential 1 =
+>>
+       [[
 ?4384 : [A : Type
          B : Type
          Q : A -> Prop
@@ -850,9 +917,12 @@ Existential 1 =
   Abort.
 End t7.
 
+(* begin hide *)
 Reset insterU.
+(* end hide *)
+(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [insterU.] *)
 
-(** We can redefine [insterU] to treat implications differently.  In particular, we pattern-match on the type of the type [T] in [forall x : ?T, ...].  If [T] has type [Prop], then [x]'s instantiation should be thought of as a proof.  Thus, instead of picking a new unification variable for it, we instead apply a user-supplied tactic [tac].  It is important that we end this special [Prop] case with [|| fail 1], so that, if [tac] fails to prove [T], we abort the instantiation, rather than continuing on to the default quantifier handling. *)
+(** We can redefine [insterU] to treat implications differently.  In particular, we pattern-match on the type of the type [T] in [forall x : ?T, ...].  If [T] has type [Prop], then [x]'s instantiation should be thought of as a proof.  Thus, instead of picking a new unification variable for it, we instead apply a user-supplied tactic [tac].  It is important that we end this special [Prop] case with [|| fail 1], so that, if [tac] fails to prove [T], we abort the instantiation, rather than continuing on to the default quantifier handling.  Also recall that the tactic form %\index{tactics!solve}%[solve [ t ]] fails if [t] does not completely solve the goal. *)
 
 Ltac insterU tac H :=
   repeat match type of H with
@@ -860,15 +930,14 @@ Ltac insterU tac H :=
              match type of T with
                | Prop =>
                  (let H' := fresh "H'" in
-                   assert (H' : T); [
-                     solve [ tac ]
-                     | generalize (H H'); clear H H'; intro H ])
+                   assert (H' : T) by solve [ tac ];
+                     specialize (H H'); clear H')
                  || fail 1
                | _ =>
                  let x := fresh "x" in
                    evar (x : T);
-                   let x' := eval cbv delta [x] in x in
-                     clear x; generalize (H x'); clear H; intro H
+                   let x' := eval unfold x in x in
+                     clear x; specialize (H x')
              end
          end.
 
@@ -914,13 +983,13 @@ Qed.
 
 (** The [1] above is identifying an existential variable appearing in the current goal, with the last existential appearing assigned number 1, the second last assigned number 2, and so on.  The named existential is replaced everywhere by the term to the right of the [:=].
 
-   The [instantiate] tactic can be convenient for exploratory proving, but it leads to very brittle proof scripts that are unlikely to adapt to changing theorem statements.  It is often more helpful to have a tactic that can be used to assign a value to a term that is known to be an existential.  By employing a roundabout implementation technique, we can build a tactic that generalizes this functionality.  In particular, our tactic [equate] will assert that two terms are equal.  If one of the terms happens to be an existential, then it will be replaced everywhere with the other term. *)
+   The %\index{tactics!instantiate}%[instantiate] tactic can be convenient for exploratory proving, but it leads to very brittle proof scripts that are unlikely to adapt to changing theorem statements.  It is often more helpful to have a tactic that can be used to assign a value to a term that is known to be an existential.  By employing a roundabout implementation technique, we can build a tactic that generalizes this functionality.  In particular, our tactic [equate] will assert that two terms are equal.  If one of the terms happens to be an existential, then it will be replaced everywhere with the other term. *)
 
 Ltac equate x y :=
   let H := fresh "H" in
-    assert (H : x = y); [ reflexivity | clear H ].
+    assert (H : x = y) by reflexivity; clear H.
 
-(** [equate] fails if it is not possible to prove [x = y] by [reflexivity].  We perform the proof only for its unification side effects, clearing the fact [x = y] afterward.  With [equate], we can build a less brittle version of the prior example. *)
+(** This tactic fails if it is not possible to prove [x = y] by [reflexivity].  We perform the proof only for its unification side effects, clearing the fact [x = y] afterward.  With [equate], we can build a less brittle version of the prior example. *)
 
 Theorem t9 : exists p : nat * nat, fst p = 3.
   econstructor; match goal with
