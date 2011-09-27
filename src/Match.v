@@ -996,3 +996,112 @@ Theorem t9 : exists p : nat * nat, fst p = 3.
                   | [ |- fst ?x = 3 ] => equate x (3, 2)
                 end; reflexivity.
 Qed.
+
+
+(** * Exercises *)
+
+(** %\begin{enumerate}%#<ol>#
+
+   %\item%#<li># An anonymous Coq fan from the Internet was excited to come up with this tactic definition shortly after getting started learning Ltac: *)
+
+Ltac deSome :=
+  match goal with
+    | [ H : Some _ = Some _ |- _ ] => injection H; clear H; intros; subst; deSome
+    | _ => reflexivity
+  end.
+
+(** Without lifting a finger, exciting theorems can be proved: *)
+
+Theorem test : forall (a b c d e f g : nat),
+  Some a = Some b
+  -> Some b = Some c
+  -> Some e = Some c
+  -> Some f = Some g
+  -> c = a.
+  intros; deSome.
+Qed.
+
+(** Unfortunately, this tactic exhibits some degenerate behavior.  Consider the following example: *)
+
+Theorem test2 : forall (a x1 y1 x2 y2 x3 y3 x4 y4 x5 y5 x6 y6 : nat),
+  Some x1 = Some y1
+  -> Some x2 = Some y2
+  -> Some x3 = Some y3
+  -> Some x4 = Some y4
+  -> Some x5 = Some y5
+  -> Some x6 = Some y6
+  -> Some a = Some a
+  -> x1 = x2.
+  intros.
+  Time try deSome.
+Abort.
+
+(* begin hide *)
+Reset test.
+(* end hide *)
+
+(** This (failed) proof already takes about one second on my workstation.  I hope a pattern in the theorem statement is clear; this is a representative of a class of theorems, where we may add more matched pairs of [x] and [y] variables, with equality hypotheses between them.  The running time of [deSome] is exponential in the number of such hypotheses.
+
+   The task in this exercise is twofold.  First, figure out why [deSome] exhibits exponential behavior for this class of examples and record your explanation in a comment.  Second, write an improved version of [deSome] that runs in polynomial time.#</li>#
+
+   %\item%#<li># Some theorems involving existential quantifiers are easy to prove with [eauto]. *)
+
+Theorem test1 : exists x, x = 0.
+  eauto.
+Qed.
+
+(** Others are harder.  The problem with the next theorem is that the existentially quantified variable does not appear in the rest of the theorem, so [eauto] has no way to deduce its value.  However, we know that we had might as well instantiate that variable to [tt], the only value of type [unit]. *)
+
+Theorem test2 : exists x : unit, 0 = 0.
+(* begin hide *)
+  eauto.
+Abort.
+(* end hide *)
+
+(** We also run into trouble in the next theorem, because [eauto] does not understand the [fst] and [snd] projection functions for pairs. *)
+
+Theorem test3 : exists x : nat * nat, fst x = 7 /\ snd x = 2 + fst x.
+(* begin hide *)
+  eauto.
+Abort.
+(* end hide *)
+
+(** Both problems show up in this monster example. *)
+
+Theorem test4 : exists x : (unit * nat) * (nat * bool),
+  snd (fst x) = 7 /\ fst (snd x) = 2 + snd (fst x) /\ snd (snd x) = true.
+(* begin hide *)
+  eauto.
+Abort.
+(* end hide *)
+
+(** The task in this problem is to write a tactic that preprocesses such goals so that [eauto] can finish them.  Your tactic should serve as a complete proof of each of the above examples, along with the wide class of similar examples.  The key smarts that your tactic will bring are: first, it introduces separate unification variables for all the %``%#"#leaf types#"#%''% of compound types built out of pairs; and second, leaf unification variables of type [unit] are simply replaced by [tt].
+
+   A few hints: The following tactic is more convenient than direct use of the built-in tactic [evar], for generation of new unification variables: *)
+
+Ltac makeEvar T k := let x := fresh in
+  evar (x : T); let y := eval unfold x in x in clear x; k y.
+
+(** remove printing exists *)
+
+(** This is a continuation-passing style tactic.  For instance, when the goal begins with existential quantification over a type [T], the following tactic invocation will create a new unification variable to use as the quantifier instantiation:
+
+[makeEvar T ltac:(][fun x => exists x)] *)
+
+(** printing exists $\exists$ *)
+
+(** Recall that [exists] formulas are desugared to uses of the [ex] inductive family.  In particular, a pattern like the following can be used to extract the domain of an [exists] quantifier into variable [T]:
+
+[| [ |- ex ( A := ?T) _ ] => ...]
+
+    The [equate] tactic used as an example in this chapter will probably be useful, to unify two terms, for instance if the first is a unification variable whose value you want to set.
+[[
+  Ltac equate E1 E2 := let H := fresh in
+    assert (H : E1 = E2) by reflexivity; clear H.
+]]
+
+    Finally, there are some minor complications surrounding overloading of the [*] operator for both numeric multiplication and Cartesian product for sets (i.e., pair types).  To ensure that an Ltac pattern is using the type version, write it like this:
+
+[| (?T1 * ?T2)%type => ...]
+
+#</ol>#%\end{enumerate}% *)
