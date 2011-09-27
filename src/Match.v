@@ -1096,12 +1096,45 @@ Ltac makeEvar T k := let x := fresh in
 
     The [equate] tactic used as an example in this chapter will probably be useful, to unify two terms, for instance if the first is a unification variable whose value you want to set.
 [[
-  Ltac equate E1 E2 := let H := fresh in
-    assert (H : E1 = E2) by reflexivity; clear H.
+Ltac equate E1 E2 := let H := fresh in
+  assert (H : E1 = E2) by reflexivity; clear H.
 ]]
 
     Finally, there are some minor complications surrounding overloading of the [*] operator for both numeric multiplication and Cartesian product for sets (i.e., pair types).  To ensure that an Ltac pattern is using the type version, write it like this:
 
-[| (?T1 * ?T2)%type => ...]
+[| (?T1 * ?T2)%type => ...]#</li>#
+
+%\item%#<li># An exercise in the last chapter dealt with automating proofs about rings using [eauto], where we must prove some odd-looking theorems to push proof search in a direction where unification does all the work.  Algebraic proofs consist mostly of rewriting in equations, so we might hope that the [autorewrite] tactic would yield more natural automated proofs.  Indeed, consider this example within the same formulation of ring theory that we dealt with last chapter, where each of the three axioms has been added to the rewrite hint database [cpdt] using [Hint Rewrite]:
+[[
+Theorem test1 : forall a b, a * b * i b = a.
+  intros; autorewrite with cpdt; reflexivity.
+Qed.
+]]
+
+So far so good.  However, consider this further example:
+[[
+Theorem test2 : forall a, a * e * i a * i e = e.
+  intros; autorewrite with cpdt.
+]]
+
+The goal is merely reduced to [a * (i a * i e) = e], which of course [reflexivity] cannot prove.  The essential problem is that [autorewrite] does not do backtracking search.  Instead, it follows a %``%#"#greedy#"#%''% approach, at each stage choosing a rewrite to perform and then never allowing that rewrite to be undone.  An early mistake can doom the whole process.
+
+The task in this problem is to use Ltac to implement a backtracking version of [autorewrite] that works much like [eauto], in that its inputs are a database of hint lemmas and a bound on search depth.  Here our search trees will have uses of [rewrite] at their nodes, rather than uses of [eapply] as in the case of [eauto], and proofs must be finished by [reflexivity].
+
+An invocation to the tactic to prove [test2] might look like this:
+[[
+  rewriter (right_identity, (right_inverse, tt)) 3.
+]]
+
+The first argument gives the set of lemmas to consider, as a kind of list encoded with pair types.  Such a format cannot be analyzed directly by Gallina programs, but Ltac allows us much more freedom to deconstruct syntax.  For example, to case analyze such a list found in a variable [x], we need only write:
+[[
+  match x with
+    | (?lemma, ?more) => ...
+  end
+]]
+
+In the body of the case analysis, [lemma] will be bound to the first lemma, and [more] will be bound to the remaining lemmas.  There is no need to consider a case for [tt], our stand-in for [nil].  This is because lack of any matching pattern will trigger failure, which is exactly the outcome we would like upon reaching the end of the lemma list without finding one that applies.  The tactic will fail, triggering backtracking to some previous [match].
+
+There are different kinds of backtracking, corresponding to different sorts of decisions to be made.  The examples considered above can be handled with backtracking that only reconsiders decisions about the order in which to apply rewriting lemmas.  A full-credit solution need only handle that kind of backtracking, considering all rewriting sequences up to the length bound passed to your tactic.  A good test of this level of applicability is to prove both [test1] and [test2] above.  However, some theorems could only be proved using a smarter tactic that considers not only order of rewriting lemma uses, but also choice of arguments to the lemmas.  That is, at some points in a proof, the same lemma may apply at multiple places within the goal formula, and some choices may lead to stuck proof states while others lead to success.  For an extra challenge (without any impact on the grade for the problem), you might try beefing up your tactic to do backtracking on argument choice, too.#</li>#
 
 #</ol>#%\end{enumerate}% *)
