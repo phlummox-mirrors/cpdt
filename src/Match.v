@@ -1044,6 +1044,33 @@ Reset test.
 
    The task in this exercise is twofold.  First, figure out why [deSome] exhibits exponential behavior for this class of examples and record your explanation in a comment.  Second, write an improved version of [deSome] that runs in polynomial time.#</li>#
 
+   %\item%#<li># Sometimes it can be convenient to know that a proof attempt is doomed because the theorem is false.  For instance, here are three non-theorems about lists: *)
+
+Theorem test1 : forall A (ls1 ls2 : list A), ls1 ++ ls2 = ls2 ++ ls1.
+(* begin hide *)
+Abort.
+(* end hide *)
+
+Theorem test2 : forall A (ls1 ls2 : list A), length (ls1 ++ ls2) = length ls1 - length ls2.
+(* begin hide *)
+Abort.
+(* end hide *)
+
+Theorem test3 : forall A (ls : list A), length (rev ls) - 3 = 0.
+(* begin hide *)
+Abort.
+(* end hide *)
+
+(** The task in this exercise is to write a tactic that disproves these and many other related %``%#"#theorems#"#%''% about lists.  Your tactic should follow a simple brute-force enumeration strategy, considering all [list bool] values with length up to some bound given by the user, as a [nat] argument to the tactic.  A successful invocation should add a new hypothesis of the negation of the theorem (guaranteeing that the tactic has made a sound decision about falsehood).
+
+   A few hints: A good starting point is to pattern-match the conclusion formula and use the [assert] tactic on its negation.  An [assert] invocation may include a [by] clause to specify a tactic to use to prove the assertion.
+
+   The idea in this exercise is to disprove a quantified formula by finding instantiations for the quantifiers that make it manifestly false.  Recall the [specialize] tactic for specializing a hypothesis to particular quantifier instantiations.  When you have instantiated quantifiers fully, [discriminate] is a good choice to derive a contradiction.  (It at least works for the three examples above and is smart enough for this exercise's purposes.)  The [type of] Ltac construct may be useful to analyze the type of a hypothesis to choose how to instantiate its quantifiers.
+
+   To enumerate all boolean lists up to a certain length, it will be helpful to write a recursive tactic in continuation-passing style, where the continuation is meant to be called on each candidate list.
+
+   Remember that arguments to Ltac functions may not be type-checked in contexts large enough to allow usual implicit argument inference, so instead of [nil] it will be useful to write [@][nil bool], which specifies the usually implicit argument explicitly.
+
    %\item%#<li># Some theorems involving existential quantifiers are easy to prove with [eauto]. *)
 
 Theorem test1 : exists x, x = 0.
