@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>New Match exercises; remove Part IV</title>
+        <pubDate>Mon, 3 Oct 2011 11:18:27 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>The old Part IV is still present in old versions available through the public Mercurial repository.</description>
+</item>
+
+<item>
         <title>New chapter on logic programing</title>
         <pubDate>Thu, 22 Sep 2011 11:08:30 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
