@@ -137,7 +137,7 @@ If I do that job well, then this book should be of interest even to people who h
 (**
 I try to keep the required background knowledge to a minimum in this book.  I will assume familiarity with the material from usual discrete math and logic courses taken by undergraduate computer science majors, and I will assume that readers have significant experience programming in one of the ML dialects, in Haskell, or in some other, closely related language.  Experience with only dynamically typed functional languages might lead to befuddlement in some places, but a reader who has come to understand Scheme deeply will probably be fine.
 
-Part IV of this manuscript is about formalizing programming languages and compilers.  That part certainly depends on basic knowledge of formal type systems, operational semantics, and the theorems usually proved about such systems.  As a reference on these topics, I recommend %\emph{%#<i>#Types and Programming Languages#</i>#%}~\cite{TAPL}%, by Benjamin C. Pierce.  However, my current plan is to break Part IV into a separate, online-only document, since I expect the formalization interests of many readers of the book to lie outside of programming languages.  I do often use examples from programming languages in the earlier parts of the book, but I have tried to design them to be comprehensible on the basis of ML or Haskell experience alone.
+My background is in programming languages, formal semantics, and program verification.  I sometimes use examples from that domain,   As a reference on these topics, I recommend %\emph{%#<i>#Types and Programming Languages#</i>#%}~\cite{TAPL}%, by Benjamin C. Pierce; however, I have tried to choose examples so that they may be understood without background in semantics.
 *)
 
 
@@ -244,20 +244,6 @@ Proof Search in Ltac & \texttt{Match.v} \\
 Proof by Reflection & \texttt{Reflection.v} \\
 \hline
 Proving in the Large & \texttt{Large.v} \\
-\hline
-First-Order Abstract Syntax & \texttt{Firstorder.v} \\
-\hline
-Dependent De Bruijn Indices & \texttt{DeBruijn.v} \\
-\hline
-Higher-Order Abstract Syntax & \texttt{Hoas.v} \\
-\hline
-Type-Theoretic Interpreters & \texttt{Interps.v} \\
-\hline
-Extensional Transformations & \texttt{Extensional.v} \\
-\hline
-Intensional Transformations & \texttt{Intensional.v} \\
-\hline
-Higher-Order Operational Semantics & \texttt{OpSem.v} \\
 \hline
 \end{tabular} \end{center}
 
