@@ -437,6 +437,7 @@ Abort.
 
 (** One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
 
+(* begin thide *)
 (* begin hide *)
 Reset length.
 (* end hide *)
@@ -481,9 +482,11 @@ Ltac length ls k :=
     | nil => k O
     | _ :: ?ls' => length ls' ltac:(fun n => k (S n))
   end.
+(* end thide *)
 
 (** The new [length] takes a new input: a %\emph{%#<i>#continuation#</i>#%}% [k], which is a function to be called to continue whatever proving process we were in the middle of when we called [length].  The argument passed to [k] may be thought of as the return value of [length]. *)
 
+(* begin thide *)
 Goal False.
   length (1 :: 2 :: 3 :: nil) ltac:(fun n => pose n).
 (** [[
@@ -494,6 +497,7 @@ nil
 ]]
 *)
 Abort.
+(* end thide *)
 
 (** We see exactly the trace of function arguments that we expected initially, and an examination of the proof state afterward would show that variable [n] has been added with value [3]. *)
 
@@ -998,6 +1002,7 @@ Theorem t9 : exists p : nat * nat, fst p = 3.
 Qed.
 
 
+(* begin thide *)
 (** * Exercises *)
 
 (** %\begin{enumerate}%#<ol>#
@@ -1165,3 +1170,4 @@ In the body of the case analysis, [lemma] will be bound to the first lemma, and 
 There are different kinds of backtracking, corresponding to different sorts of decisions to be made.  The examples considered above can be handled with backtracking that only reconsiders decisions about the order in which to apply rewriting lemmas.  A full-credit solution need only handle that kind of backtracking, considering all rewriting sequences up to the length bound passed to your tactic.  A good test of this level of applicability is to prove both [test1] and [test2] above.  However, some theorems could only be proved using a smarter tactic that considers not only order of rewriting lemma uses, but also choice of arguments to the lemmas.  That is, at some points in a proof, the same lemma may apply at multiple places within the goal formula, and some choices may lead to stuck proof states while others lead to success.  For an extra challenge (without any impact on the grade for the problem), you might try beefing up your tactic to do backtracking on argument choice, too.#</li>#
 
 #</ol>#%\end{enumerate}% *)
+(* end thide *)

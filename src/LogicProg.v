@@ -576,6 +576,7 @@ subgoal 4 is:
 End autorewrite.
 
 
+(* begin thide *)
 (** * Exercises *)
 
 (** printing * $\cdot$ *)
@@ -645,3 +646,4 @@ Hint Extern 100 (_ = _) =>
    I also proved a few hint lemmas tailored to particular theorems, but which do not give common algebraic simplification rules.  You will probably want to use some, too, in cases where [eauto] does not find a proof within a reasonable amount of time.  In total, beside the main theorems to be proved, my sample solution includes 6 lemmas, with a mix of the two kinds of lemmas.  You may use more in your solution, but I suggest trying to minimize the number.
 
 #</ol>#%\end{enumerate}% *)
+(* end thide *)
