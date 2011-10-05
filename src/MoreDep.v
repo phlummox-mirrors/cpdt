@@ -993,7 +993,7 @@ Lemma substring_suffix_emp : forall s n m,
   substring n m s = ""
   -> m > 0
   -> n >= length s.
-  destruct m as [| m]; [crush | intros; apply substring_suffix_emp' with m; assumption].
+  destruct m as [ | m]; [crush | intros; apply substring_suffix_emp' with m; assumption].
 Qed.
 
 Hint Rewrite substring_stack substring_stack' substring_suffix

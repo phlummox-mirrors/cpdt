@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, Adam Chlipala
+(* Copyright (c) 2008, 2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -51,7 +51,7 @@ Inductive maybe (A : Set) (P : A -> Prop) : Set :=
 
 Notation "{{ x | P }}" := (maybe (fun x => P)) : specif_scope.
 Notation "??" := (Unknown _) : specif_scope.
-Notation "[[ x ]]" := (Found _ x _) : specif_scope.
+Notation "[| x |]" := (Found _ x _) : specif_scope.
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -60,7 +60,7 @@ Notation "x <- e1 ; e2" := (match e1 with
 (right associativity, at level 60) : specif_scope.
 
 Notation "!!" := (inright _ _) : specif_scope.
-Notation "[[[ x ]]]" := (inleft _ [x]) : specif_scope.
+Notation "[|| x ||]" := (inleft _ [x]) : specif_scope.
 
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
