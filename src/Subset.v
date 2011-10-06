@@ -484,6 +484,8 @@ let rec eq_nat_dec' n m0 =
 
 We can build %``%#"#smart#"#%''% versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean %``%#"#or.#"#%''% *)
 
+(* EX: Write a function that decides if an element belongs to a list. *)
+
 (* begin thide *)
 Notation "x || y" := (if x then Yes else Reduce y).
 
@@ -638,12 +640,16 @@ Notation "x <- e1 ; e2" := (match e1 with
 
    This notation is very helpful for composing richly typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
 
+(* EX: Write a function that tries to compute predecessors of two [nat]s at once. *)
+
+(* begin thide *)
 Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd p)}}.
   refine (fun n1 n2 =>
     m1 <- pred_strong7 n1;
     m2 <- pred_strong7 n2;
     [|(m1, m2)|]); tauto.
 Defined.
+(* end thide *)
 
 (** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function. *)
 
@@ -657,6 +663,9 @@ Notation "x <-- e1 ; e2" := (match e1 with
 
 (** printing * $\times$ *)
 
+(* EX: Write a more expressively typed version of the last exercise. *)
+
+(* begin thide *)
 Definition doublePred' : forall n1 n2 : nat,
   {p : nat * nat | n1 = S (fst p) /\ n2 = S (snd p)}
   + {n1 = 0 \/ n2 = 0}.
@@ -665,6 +674,7 @@ Definition doublePred' : forall n1 n2 : nat,
     m2 <-- pred_strong8 n2;
     [||(m1, m2)||]); tauto.
 Defined.
+(* end thide *)
 
 
 (** * A Type-Checking Example *)
