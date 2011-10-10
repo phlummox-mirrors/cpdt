@@ -930,7 +930,7 @@ The results of simplifying calls to [typeCheck'] look deceptively similar to the
 (** All of the notations defined in this chapter, plus some extras, are available for import from the module [MoreSpecif] of the book source.
 
 %\begin{enumerate}%#<ol>#
-%\item%#<li># Write a function of type [forall n m : nat, {n <= m} + {n > m}].  That is, this function decides whether one natural is less than another, and its dependent type guarantees that its results are accurate.#</li>#
+%\item%#<li># Write a function of type [forall n m : nat, {][n <= m} + {][n > m}].  That is, this function decides whether one natural is less than another, and its dependent type guarantees that its results are accurate.#</li>#
 
 %\item%#<li># %\begin{enumerate}%#<ol>#
   %\item%#<li># Define [var], a type of propositional variables, as a synonym for [nat].#</li>#
@@ -941,7 +941,7 @@ The results of simplifying calls to [typeCheck'] look deceptively similar to the
   %\item%#<li># Define a function [negate] that returns a simplified version of the negation of a [prop].  That is, the function should have type [forall p : prop, {p' : prop | forall truth, propDenote truth p <-> ~ propDenote truth p'}].  To simplify a variable, just negate it.  Simplify a negation by returning its argument.  Simplify conjunctions and disjunctions using De Morgan's laws, negating the arguments recursively and switching the kind of connective.  Your [decide] function may be useful in some of the proof obligations, even if you do not use it in the computational part of [negate]'s definition.  Lemmas like [decide] allow us to compensate for the lack of a general Law of the Excluded Middle in CIC.#</li>#
 #</ol>#%\end{enumerate}% #</li>#
 
-%\item%#<li># Implement the DPLL satisfiability decision procedure for boolean formulas in conjunctive normal form, with a dependent type that guarantees its correctness.  An example of a reasonable type for this function would be [forall f : formula, {truth : tvals | formulaTrue truth f} + {forall truth, ~ formulaTrue truth f}].  Implement at least %``%#"#the basic backtracking algorithm#"#%''% as defined here:
+%\item%#<li># Implement the DPLL satisfiability decision procedure for boolean formulas in conjunctive normal form, with a dependent type that guarantees its correctness.  An example of a reasonable type for this function would be [forall f : formula, {truth : tvals | formulaTrue truth f} + {][forall truth, ~ formulaTrue truth f}].  Implement at least %``%#"#the basic backtracking algorithm#"#%''% as defined here:
   %\begin{center}\url{http://en.wikipedia.org/wiki/DPLL_algorithm}\end{center}%
   #<blockquote><a href="http://en.wikipedia.org/wiki/DPLL_algorithm">http://en.wikipedia.org/wiki/DPLL_algorithm</a></blockquote>#
 It might also be instructive to implement the unit propagation and pure literal elimination optimizations described there or some other optimizations that have been used in modern SAT solvers.#</li>#
