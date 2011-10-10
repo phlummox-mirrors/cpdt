@@ -20,12 +20,12 @@ Set Implicit Arguments.
 
 (** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up %``%#"#free theorems#"#%''% to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
 
-   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes (that is, dependent inductive types outside [Prop]), a possibility which sets Coq apart from all of the competition not based on type theory. *)
+   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes (that is, dependent inductive types outside [Prop]), a possibility that sets Coq apart from all of the competition not based on type theory. *)
 
 
 (** * Length-Indexed Lists *)
 
-(** Many introductions to dependent types start out by showing how to use them to eliminate array bounds checks.  When the type of an array tells you how many elements it has, your compiler can detect out-of-bounds dereferences statically.  Since we are working in a pure functional language, the next best thing is length-indexed lists, which the following code defines. *)
+(** Many introductions to dependent types start out by showing how to use them to eliminate array bounds checks%\index{array bounds checks}%.  When the type of an array tells you how many elements it has, your compiler can detect out-of-bounds dereferences statically.  Since we are working in a pure functional language, the next best thing is length-indexed lists%\index{length-indexed lists}%, which the following code defines. *)
 
 Section ilist.
   Variable A : Set.
@@ -36,7 +36,7 @@ Section ilist.
 
 (** We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.
 
-   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its sublist.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\textit{%#<i>#phase distinction#</i>#%}% that characterizes [ilist] as %\textit{%#<i>#dependently typed#</i>#%}%.
+   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\index{phase distinction}\textit{%#<i>#phase distinction#</i>#%}% that characterizes [ilist] as %\textit{%#<i>#dependently typed#</i>#%}%.
 
    In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
 
@@ -46,33 +46,21 @@ Section ilist.
       | Cons _ x ls1' => Cons x (app ls1' ls2)
     end.
 
-  (** In Coq version 8.1 and earlier, this definition leads to an error message:
-
-[[
-The term "ls2" has type "ilist n2" while it is expected to have type
- "ilist (?14 + n2)"
- 
-]]
-
-  In Coq's core language, without explicit annotations, Coq does not enrich our typing assumptions in the branches of a [match] expression.  It is clear that the unification variable [?14] should be resolved to 0 in this context, so that we have [0 + n2] reducing to [n2], but Coq does not realize that.  We cannot fix the problem using just the simple [return] clauses we applied in the last chapter.  We need to combine a [return] clause with a new kind of annotation, an [in] clause.  This is exactly what the inference heuristics do in Coq 8.2 and later.
-
-  Specifically, Coq infers the following definition from the simpler one. *)
-
-(* EX: Implement concatenation *)
+  (** Past Coq versions signalled an error for this definition.  The code is still invalid within Coq's core language, but current Coq versions automatically add annotations to the original program, producing a valid core program.  These are the annotations on [match] discriminees that we began to study in the previous chapter.  We can rewrite [app] to give the annotations explicitly. *)
 
 (* begin thide *)
-Fixpoint app' n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
-  match ls1 in (ilist n1) return (ilist (n1 + n2)) with
-    | Nil => ls2
-    | Cons _ x ls1' => Cons x (app' ls1' ls2)
-  end.
+  Fixpoint app' n1 (ls1 : ilist n1) n2 (ls2 : ilist n2) : ilist (n1 + n2) :=
+    match ls1 in (ilist n1) return (ilist (n1 + n2)) with
+      | Nil => ls2
+      | Cons _ x ls1' => Cons x (app' ls1' ls2)
+    end.
 (* end thide *)
 
-(** Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What [in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
+(** Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What %\index{Gallina terms!in}%[in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for %\textit{%#<i>#parameters#</i>#%}% to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called %\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called %\index{stratified type systems}\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -96,7 +84,7 @@ Theorem inject_inverse : forall ls, unject (inject ls) = ls.
 Qed.
 (* end thide *)
 
-(* EX: Implement statically-checked "car"/"hd" *)
+(* EX: Implement statically checked "car"/"hd" *)
 
 (** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced in the previous chapter.
 
@@ -116,10 +104,11 @@ Definition hd n (ls : ilist (S n)) : A :=
   match ls with
     | Cons _ h _ => h
   end.
-
-Error: Non exhaustive pattern-matching: no clause found for pattern Nil
- 
 ]]
+
+<<
+Error: Non exhaustive pattern-matching: no clause found for pattern Nil
+>>
 
 Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  In fact, recent versions of Coq %\textit{%#<i>#do#</i>#%}% allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
 
@@ -128,12 +117,13 @@ Definition hd n (ls : ilist (S n)) : A :=
   match ls in (ilist (S n)) with
     | Cons _ h _ => h
   end.
-
-Error: The reference n was not found in the current environment
- 
 ]]
 
-In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification, which is undecidable.  There %\textit{%#<i>#are#</i>#%}% useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
+<<
+Error: The reference n was not found in the current environment
+>>
+
+In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification%~\cite{HOU}%, which is undecidable.  There %\textit{%#<i>#are#</i>#%}% useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
 
 Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
 
@@ -158,14 +148,14 @@ hd'
 Definition hd n (ls : ilist (S n)) : A := hd' ls.
 (* end thide *)
 
-(** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
-
 End ilist.
+
+(** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
 
 
 (** * A Tagless Interpreter *)
 
-(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
+(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\index{tagless interpreters}\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
 
 Inductive type : Set :=
 | Nat : type
@@ -196,7 +186,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => typeDenote t1 * typeDenote t2
   end%type.
 
-(** [typeDenote] compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  We will deal more explicitly with notations and notation scopes in later chapters.
+(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%][type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
@@ -225,9 +215,11 @@ Definition pairOut t1 t2 (e : exp (Prod t1 t2)) : option (exp t1 * exp t2) :=
     | Pair _ _ e1 e2 => Some (e1, e2)
     | _ => None
   end.
+]]
 
+<<
 Error: The reference t2 was not found in the current environment
- ]]
+>>
 
 We run again into the problem of not being able to specify non-variable arguments in [in] clauses.  The problem would just be hopeless without a use of an [in] clause, though, since the result type of the [match] depends on an argument to [exp].  Our solution will be to use a more general type, as we did for [hd].  First, we define a type-valued function to use in assigning a type to [pairOut]. *)
 
@@ -257,7 +249,7 @@ Definition pairOut t (e : exp t) :=
   end.
 (* end thide *)
 
-(** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages, but is similar to what goes on with Haskell type classes.
+(** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages%\index{Hindley-Milner}%, but is similar to what goes on with Haskell type classes%\index{type classes}%.
 
 With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off by writing [return _]. *)
 
@@ -350,14 +342,15 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
 
      [[
   destruct (cfold e1).
-
-User error: e1 is used in hypothesis e
- 
 ]]
+
+<<
+User error: e1 is used in hypothesis e
+>>
 
     Coq gives us another cryptic error message.  Like so many others, this one basically means that Coq is not able to build some proof about dependent types.  It is hard to generate helpful and specific error messages for problems like this, since that would require some kind of understanding of the dependency structure of a piece of code.  We will encounter many examples of case-specific tricks for recovering from errors like this one.
 
-    For our current proof, we can use a tactic [dep_destruct] defined in the book [Tactics] module.  General elimination/inversion of dependently-typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive [dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box. *)
+    For our current proof, we can use a tactic [dep_destruct]%\index{tactics!dep\_destruct}% defined in the book [CpdtTactics] module.  General elimination/inversion of dependently typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  The tactic [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive %\index{tactics!dependent destruction}%[dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box.  (In Chapter 11, we will also see how [dependent destruction] forces us to make a larger philosophical commitment about our logic than we might like, and we will see some workarounds.) *)
   
   dep_destruct (cfold e1).
 
@@ -383,9 +376,9 @@ Qed.
 (* end thide *)
 
 
-(** * Dependently-Typed Red-Black Trees *)
+(** * Dependently Typed Red-Black Trees *)
 
-(** Red-black trees are a favorite purely-functional data structure with an interesting invariant.  We can use dependent types to enforce that operations on red-black trees preserve the invariant.  For simplicity, we specialize our red-black trees to represent sets of [nat]s. *)
+(** Red-black trees are a favorite purely functional data structure with an interesting invariant.  We can use dependent types to enforce that operations on red-black trees preserve the invariant.  For simplicity, we specialize our red-black trees to represent sets of [nat]s. *)
 
 Inductive color : Set := Red | Black.
 
@@ -414,13 +407,12 @@ Section depth.
     end.
 End depth.
 
-(** Our proof of balanced-ness decomposes naturally into a lower bound and an upper bound.  We prove the lower bound first.  Unsurprisingly, a tree's black depth provides such a bound on the minimum path length.  We use the richly-typed procedure [min_dec] to do case analysis on whether [min X Y] equals [X] or [Y]. *)
+(** Our proof of balanced-ness decomposes naturally into a lower bound and an upper bound.  We prove the lower bound first.  Unsurprisingly, a tree's black depth provides such a bound on the minimum path length.  We use the richly typed procedure [min_dec] to do case analysis on whether [min X Y] equals [X] or [Y]. *)
 
 Check min_dec.
 (** %\vspace{-.15in}% [[
 min_dec
      : forall n m : nat, {min n m = n} + {min n m = m}
- 
    ]]
    *)
 
@@ -472,7 +464,7 @@ Lemma depth_max' : forall c n (t : rbtree c n), match c with
             end; crush).
 Qed.
 
-(** The original theorem follows easily from the lemma.  We use the tactic [generalize pf], which, when [pf] proves the proposition [P], changes the goal from [Q] to [P -> Q].  It is useful to do this because it makes the truth of [P] manifest syntactically, so that automation machinery can rely on [P], even if that machinery is not smart enough to establish [P] on its own. *)
+(** The original theorem follows easily from the lemma.  We use the tactic %\index{tactics!generalize}%[generalize pf], which, when [pf] proves the proposition [P], changes the goal from [Q] to [P -> Q].  This transformation is useful because it makes the truth of [P] manifest syntactically, so that automation machinery can rely on [P], even if that machinery is not smart enough to establish [P] on its own. *)
 
 Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
   intros; generalize (depth_max' t); destruct c; crush.
@@ -490,7 +482,7 @@ Qed.
 Inductive rtree : nat -> Set :=
 | RedNode' : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rtree n.
 
-(** Before starting to define [insert], we define predicates capturing when a data value is in the set represented by a normal or possibly-invalid tree. *)
+(** Before starting to define [insert], we define predicates capturing when a data value is in the set represented by a normal or possibly invalid tree. *)
 
 Section present.
   Variable x : nat.
@@ -508,7 +500,7 @@ Section present.
     end.
 End present.
 
-(** Insertion relies on two balancing operations.  It will be useful to give types to these operations using a relative of the subset types from last chapter.  While subset types let us pair a value with a proof about that value, here we want to pair a value with another non-proof dependently-typed value.  The [sigT] type fills this role. *)
+(** Insertion relies on two balancing operations.  It will be useful to give types to these operations using a relative of the subset types from last chapter.  While subset types let us pair a value with a proof about that value, here we want to pair a value with another non-proof dependently typed value.  The %\index{Gallina terms!sigT}%[sigT] type fills this role. *)
 
 Locate "{ _ : _ & _ }".
 (** [[
@@ -530,7 +522,9 @@ Notation "{< x >}" := (existT _ _ x).
 
 (** Each balance function is used to construct a new tree whose keys include the keys of two input trees, as well as a new key.  One of the two input trees may violate the red-black alternation invariant (that is, it has an [rtree] type), while the other tree is known to be valid.  Crucially, the two input trees have the same black depth.
 
-   A balance operation may return a tree whose root is of either color.  Thus, we use a [sigT] type to package the result tree with the color of its root.  Here is the definition of the first balance operation, which applies when the possibly-invalid [rtree] belongs to the left of the valid [rbtree]. *)
+   A balance operation may return a tree whose root is of either color.  Thus, we use a [sigT] type to package the result tree with the color of its root.  Here is the definition of the first balance operation, which applies when the possibly invalid [rtree] belongs to the left of the valid [rbtree].
+
+   A quick word of encouragement: After writing this code, even I do not understand the precise details of how balancing works!  I consulted Chris Okasaki's paper %``%#"#Red-Black Trees in a Functional Setting#"#%''~\cite{Okasaki}% and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.*)
 
 Definition balance1 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n
@@ -550,13 +544,11 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
       end t2
   end.
 
-(** We apply a trick that I call the %\textit{%#<i>#convoy pattern#</i>#%}%.  Recall that [match] annotations only make it possible to describe a dependence of a [match] %\textit{%#<i>#result type#</i>#%}% on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
+(** We apply a trick that I call the %\index{convoy pattern}\textit{%#<i>#convoy pattern#</i>#%}%.  Recall that [match] annotations only make it possible to describe a dependence of a [match] %\textit{%#<i>#result type#</i>#%}% on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
 
    In particular, we can extend the [match] to return %\textit{%#<i>#functions over the free variables whose types we want to refine#</i>#%}%.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
 
-   After writing this code, even I do not understand the precise details of how balancing works.  I consulted Chris Okasaki's paper %``%#"#Red-Black Trees in a Functional Setting#"#%''% and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.
-
-   Here is the symmetric function [balance2], for cases where the possibly-invalid tree appears on the right rather than on the left. *)
+   Here is the symmetric function [balance2], for cases where the possibly invalid tree appears on the right rather than on the left. *)
 
 Definition balance2 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n -> { c : color & rbtree c (S n) } with
@@ -588,7 +580,7 @@ Section insert.
       | Black => { c' : color & rbtree c' n }
     end.
 
-  (** That is, inserting into a tree with root color [c] and black depth [n], the variety of tree we get out depends on [c].  If we started with a red root, then we get back a possibly-invalid tree of depth [n].  If we started with a black root, we get back a valid tree of depth [n] with a root node of an arbitrary color.
+  (** That is, inserting into a tree with root color [c] and black depth [n], the variety of tree we get out depends on [c].  If we started with a red root, then we get back a possibly invalid tree of depth [n].  If we started with a black root, we get back a valid tree of depth [n] with a root node of an arbitrary color.
 
      Here is the definition of [ins].  Again, we do not want to dwell on the functional details. *)
 
@@ -613,7 +605,7 @@ Section insert.
             end (ins b)
     end.
 
-  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisfies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally-bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
+  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisfies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
 
      Finally, we are in the home stretch of our effort to define [insert].  We just need a few more definitions of non-recursive functions.  First, we need to give the final characterization of [insert]'s return type.  Inserting into a red-rooted tree gives a black-rooted tree where black depth has increased, and inserting into a black-rooted tree gives a tree where black depth has stayed the same and where the root is an arbitrary color. *)
 
@@ -650,12 +642,12 @@ Section insert.
 
     (** The variable [z] stands for an arbitrary key.  We will reason about [z]'s presence in particular trees.  As usual, outside the section the theorems we prove will quantify over all possible keys, giving us the facts we wanted.
 
-       We start by proving the correctness of the balance operations.  It is useful to define a custom tactic [present_balance] that encapsulates the reasoning common to the two proofs.  We use the keyword [Ltac] to assign a name to a proof script.  This particular script just iterates between [crush] and identification of a tree that is being pattern-matched on and should be destructed. *)
+       We start by proving the correctness of the balance operations.  It is useful to define a custom tactic [present_balance] that encapsulates the reasoning common to the two proofs.  We use the keyword %\index{Verncular commands!Ltac}%[Ltac] to assign a name to a proof script.  This particular script just iterates between [crush] and identification of a tree that is being pattern-matched on and should be destructed. *)
 
     Ltac present_balance :=
       crush;
       repeat (match goal with
-                | [ H : context[match ?T with
+                | [ _ : context[match ?T with
                                   | Leaf => _
                                   | RedNode _ _ _ _ => _
                                   | BlackNode _ _ _ _ _ _ => _
@@ -697,17 +689,17 @@ Section insert.
       present_insResult t (ins t).
       induction t; crush;
         repeat (match goal with
-                  | [ H : context[if ?E then _ else _] |- _ ] => destruct E
+                  | [ _ : context[if ?E then _ else _] |- _ ] => destruct E
                   | [ |- context[if ?E then _ else _] ] => destruct E
-                  | [ H : context[match ?C with Red => _ | Black => _ end]
+                  | [ _ : context[match ?C with Red => _ | Black => _ end]
                       |- _ ] => destruct C
                 end; crush);
         try match goal with
-              | [ H : context[balance1 ?A ?B ?C] |- _ ] =>
+              | [ _ : context[balance1 ?A ?B ?C] |- _ ] =>
                 generalize (present_balance1 A B C)
             end;
         try match goal with
-              | [ H : context[balance2 ?A ?B ?C] |- _ ] =>
+              | [ _ : context[balance2 ?A ?B ?C] |- _ ] =>
                 generalize (present_balance2 A B C)
             end;
         try match goal with
@@ -751,14 +743,18 @@ Section insert.
   End present.
 End insert.
 
-(** We can generate executable OCaml code with the command [Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the %\textit{%#<i>#value#</i>#%}% of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the %\textit{%#<i>#value#</i>#%}% of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+
+(* begin hide *)
+Recursive Extraction insert.
+(* end hide *)
 
 
 (** * A Certified Regular Expression Matcher *)
 
 (** Another interesting example is regular expressions with dependent types that express which predicates over strings particular regexps implement.  We can then assign a dependent type to a regular expression matching function, guaranteeing that it always decides the string property that we expect it to decide.
 
-   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  That is, a string [s] matches regular expression [star e] if and only if [s] can be decomposed into a sequence of substrings that all match [e].  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts. *)
+   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  That is, a string [s] matches regular expression [star e] if and only if [s] can be decomposed into a sequence of substrings that all match [e].  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts.%\index{Vernacular commands!Open Scope}% *)
 
 Require Import Ascii String.
 Open Scope string_scope.
@@ -775,19 +771,19 @@ Section star.
 End star.
 
 (** Now we can make our first attempt at defining a [regexp] type that is indexed by predicates on strings.  Here is a reasonable-looking definition that is restricted to constant characters and concatenation.  We use the constructor [String], which is the analogue of list cons for the type [string], where [""] is like list nil.
-
 [[
 Inductive regexp : (string -> Prop) -> Set :=
 | Char : forall ch : ascii,
   regexp (fun s => s = String ch "")
 | Concat : forall (P1 P2 : string -> Prop) (r1 : regexp P1) (r2 : regexp P2),
   regexp (fun s => exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2).
-
-User error: Large non-propositional inductive types must be in Type
- 
 ]]
 
-What is a large inductive type?  In Coq, it is an inductive type that has a constructor which quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
+<<
+User error: Large non-propositional inductive types must be in Type
+>>
+
+What is a %\index{large inductive types}%large inductive type?  In Coq, it is an inductive type that has a constructor which quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
 
 It turns out that allowing large inductive types in [Set] leads to contradictions when combined with certain kinds of classical logic reasoning.  Thus, by default, such types are ruled out.  There is a simple fix for our [regexp] definition, which is to place our new type in [Type].  While fixing the problem, we also expand the list of constructors to cover the remaining regular expression operators. *)
 
@@ -877,7 +873,7 @@ Section split.
   Variable s : string.
   (** Our computation will take place relative to a single fixed string, so it is easiest to make it a [Variable], rather than an explicit argument to our functions. *)
 
-  (** [split'] is the workhorse behind [split].  It searches through the possible ways of splitting [s] into two pieces, checking the two predicates against each such pair.  [split'] progresses right-to-left, from splitting all of [s] into the first piece to splitting all of [s] into the second piece.  It takes an extra argument, [n], which specifies how far along we are in this search process. *)
+  (** The function [split'] is the workhorse behind [split].  It searches through the possible ways of splitting [s] into two pieces, checking the two predicates against each such pair.  The execution of [split'] progresses right-to-left, from splitting all of [s] into the first piece to splitting all of [s] into the second piece.  It takes an extra argument, [n], which specifies how far along we are in this search process. *)
 
   Definition split' : forall n : nat, n <= length s
     -> {exists s1, exists s2, length s1 <= n /\ s1 ++ s2 = s /\ P1 s1 /\ P2 s2}
@@ -893,13 +889,11 @@ Section split.
       end); clear F; crush; eauto 7;
     match goal with
       | [ _ : length ?S <= 0 |- _ ] => destruct S
-      | [ _ : length ?S' <= S ?N |- _ ] =>
-        generalize (eq_nat_dec (length S') (S N)); destruct 1
+      | [ _ : length ?S' <= S ?N |- _ ] => destruct (eq_nat_dec (length S') (S N))
     end; crush.
   Defined.
 
-  (** There is one subtle point in the [split'] code that is worth mentioning.  The main body of the function is a [match] on [n].  In the case where [n] is known to be [S n'], we write [S n'] in several places where we might be tempted to write [n].  However, without further work to craft proper [match] annotations, the type-checker does not use the equality between [n] and [S n'].  Thus, it is common to see patterns repeated in [match] case bodies in dependently-typed Coq code.  We can at least use a [let] expression to avoid copying the pattern more than once, replacing the first case body with:
-
+  (** There is one subtle point in the [split'] code that is worth mentioning.  The main body of the function is a [match] on [n].  In the case where [n] is known to be [S n'], we write [S n'] in several places where we might be tempted to write [n].  However, without further work to craft proper [match] annotations, the type-checker does not use the equality between [n] and [S n'].  Thus, it is common to see patterns repeated in [match] case bodies in dependently typed Coq code.  We can at least use a [let] expression to avoid copying the pattern more than once, replacing the first case body with:
      [[
         | S n' => fun _ => let n := S n' in
           (P1_dec (substring 0 n s)
@@ -908,7 +902,7 @@ Section split.
  
      ]]
 
-     [split] itself is trivial to implement in terms of [split'].  We just ask [split'] to begin its search with [n = length s]. *)
+     The [split] function itself is trivial to implement in terms of [split'].  We just ask [split'] to begin its search with [n = length s]. *)
 
   Definition split : {exists s1, exists s2, s = s1 ++ s2 /\ P1 s1 /\ P2 s2}
     + {forall s1 s2, s = s1 ++ s2 -> ~ P1 s1 \/ ~ P2 s2}.
@@ -1018,7 +1012,7 @@ Section dec_star.
   Variable P : string -> Prop.
   Variable P_dec : forall s, {P s} + {~ P s}.
 
-  (** Some new lemmas and hints about the [star] type family are useful here.  We omit them here; they are included in the book source at this point. *)
+  (** Some new lemmas and hints about the [star] type family are useful.  We omit them here; they are included in the book source at this point. *)
 
   (* begin hide *)
   Hint Constructors star.
@@ -1151,7 +1145,8 @@ Section dec_star.
         | O => fun _ => Yes
         | S n'' => fun _ =>
           le_gt_dec (length s) n'
-          || dec_star'' (n := n') (star P) (fun n0 _ => Reduce (F n'' n0 _)) (length s - n')
+          || dec_star'' (n := n') (star P)
+            (fun n0 _ => Reduce (F n'' n0 _)) (length s - n')
       end); clear F; crush; eauto;
     match goal with
       | [ H : star _ _ |- _ ] => apply star_substring_inv in H; crush; eauto
@@ -1227,14 +1222,14 @@ Eval simpl in matches a_star "aa".
 
 (** %\begin{enumerate}%#<ol>#
 
-%\item%#<li># Define a kind of dependently-typed lists, where a list's type index gives a lower bound on how many of its elements satisfy a particular predicate.  In particular, for an arbitrary set [A] and a predicate [P] over it:
+%\item%#<li># Define a kind of dependently typed lists, where a list's type index gives a lower bound on how many of its elements satisfy a particular predicate.  In particular, for an arbitrary set [A] and a predicate [P] over it:
 %\begin{enumerate}%#<ol>#
   %\item%#<li># Define a type [plist : nat -> Set].  Each [plist n] should be a list of [A]s, where it is guaranteed that at least [n] distinct elements satisfy [P].  There is wide latitude in choosing how to encode this.  You should try to avoid using subset types or any other mechanism based on annotating non-dependent types with propositions after-the-fact.#</li>#
   %\item%#<li># Define a version of list concatenation that works on [plist]s.  The type of this new function should express as much information as possible about the output [plist].#</li>#
   %\item%#<li># Define a function [plistOut] for translating [plist]s to normal [list]s.#</li>#
-  %\item%#<li># Define a function [plistIn] for translating [list]s to [plist]s.  The type of [plistIn] should make it clear that the best bound on [P]-matching elements is chosen.  You may assume that you are given a dependently-typed function for deciding instances of [P].#</li>#
+  %\item%#<li># Define a function [plistIn] for translating [list]s to [plist]s.  The type of [plistIn] should make it clear that the best bound on [P]-matching elements is chosen.  You may assume that you are given a dependently typed function for deciding instances of [P].#</li>#
   %\item%#<li># Prove that, for any list [ls], [plistOut (plistIn ls) = ls].  This should be the only part of the exercise where you use tactic-based proving.#</li>#
-  %\item%#<li># Define a function [grab : forall n (ls : plist (S n)), sig P].  That is, when given a [plist] guaranteed to contain at least one element satisfying [P], [grab] produces such an element.  [sig] is the type family of sigma types, and [sig P] is extensionally equivalent to [{x : A | P x}], though the latter form uses an eta-expansion of [P] instead of [P] itself as the predicate.#</li>#
+  %\item%#<li># Define a function [grab : forall n (ls : plist (][S n)), sig P].  That is, when given a [plist] guaranteed to contain at least one element satisfying [P], [grab] produces such an element.  The type family [sig] is the one we met earlier for sigma types (i.e., dependent pairs of programs and proofs), and [sig P] is extensionally equivalent to [{][x : A | P x}], though the latter form uses an eta-expansion of [P] instead of [P] itself as the predicate.#</li>#
 #</ol>#%\end{enumerate}% #</li>#
    
 #</ol>#%\end{enumerate}% *)

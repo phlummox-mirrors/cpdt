@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "More Dependent Types"</title>
+        <pubDate>Mon, 10 Oct 2011 15:59:55 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>A pass through "Subset Types and Variations"</title>
         <pubDate>Wed, 5 Oct 2011 11:32:54 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>

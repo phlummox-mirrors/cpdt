@@ -326,7 +326,7 @@ end
      : forall n : nat, n > 0 -> {m : nat | n = S m}
 ]]
 
-We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment. *)
+We are almost done with the ideal implementation of dependent predecessor.  We can use Coq's syntax extension facility to arrive at code with almost no complexity beyond a Haskell or ML program with a complete specification in a comment.  In this book, we will not dwell on the details of syntax extensions; the Coq manual gives a straightforward introduction to them. *)
 
 Notation "!" := (False_rec _ _).
 Notation "[ e ]" := (exist _ e _).
