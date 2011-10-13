@@ -1124,7 +1124,7 @@ Ltac makeEvar T k := let x := fresh in
 
 (** Recall that [exists] formulas are desugared to uses of the [ex] inductive family.  In particular, a pattern like the following can be used to extract the domain of an [exists] quantifier into variable [T]:
 
-[| [ |- ex ( A := ?T) _ ] => ...]
+[| ]#[#%[%[ |- ex (][A := ?][T) _ ]#]#%]%[ => ...]
 
     The [equate] tactic used as an example in this chapter will probably be useful, to unify two terms, for instance if the first is a unification variable whose value you want to set.
 [[
@@ -1134,7 +1134,7 @@ Ltac equate E1 E2 := let H := fresh in
 
     Finally, there are some minor complications surrounding overloading of the [*] operator for both numeric multiplication and Cartesian product for sets (i.e., pair types).  To ensure that an Ltac pattern is using the type version, write it like this:
 
-[| (?T1 * ?T2)%type => ...]#</li>#
+[| (?T1 * ?T2)%][type => ...]#</li>#
 
 %\item%#<li># An exercise in the last chapter dealt with automating proofs about rings using [eauto], where we must prove some odd-looking theorems to push proof search in a direction where unification does all the work.  Algebraic proofs consist mostly of rewriting in equations, so we might hope that the [autorewrite] tactic would yield more natural automated proofs.  Indeed, consider this example within the same formulation of ring theory that we dealt with last chapter, where each of the three axioms has been added to the rewrite hint database [cpdt] using [Hint Rewrite]:
 [[
@@ -1149,7 +1149,7 @@ Theorem test2 : forall a, a * e * i a * i e = e.
   intros; autorewrite with cpdt.
 ]]
 
-The goal is merely reduced to [a * (i a * i e) = e], which of course [reflexivity] cannot prove.  The essential problem is that [autorewrite] does not do backtracking search.  Instead, it follows a %``%#"#greedy#"#%''% approach, at each stage choosing a rewrite to perform and then never allowing that rewrite to be undone.  An early mistake can doom the whole process.
+The goal is merely reduced to [a * (][i a * i e) = e], which of course [reflexivity] cannot prove.  The essential problem is that [autorewrite] does not do backtracking search.  Instead, it follows a %``%#"#greedy#"#%''% approach, at each stage choosing a rewrite to perform and then never allowing that rewrite to be undone.  An early mistake can doom the whole process.
 
 The task in this problem is to use Ltac to implement a backtracking version of [autorewrite] that works much like [eauto], in that its inputs are a database of hint lemmas and a bound on search depth.  Here our search trees will have uses of [rewrite] at their nodes, rather than uses of [eapply] as in the case of [eauto], and proofs must be finished by [reflexivity].
 
