@@ -407,7 +407,7 @@ Eval compute in eq_nat_dec 2 2.
 Eval compute in eq_nat_dec 2 3.
 (** %\vspace{-.15in}% [[
      = No
-     : {2 = 2} + {2 <> 2}
+     : {2 = 3} + {2 <> 3}
      ]]
      *)
 
