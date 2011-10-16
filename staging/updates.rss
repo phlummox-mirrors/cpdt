@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "Dependent Data Structures"</title>
+        <pubDate>Sun, 16 Oct 2011 10:45:48 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>A pass through "More Dependent Types"</title>
         <pubDate>Mon, 10 Oct 2011 15:59:55 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
