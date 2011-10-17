@@ -839,3 +839,164 @@ Eval compute in cast (t4 13) First.
 
    This simple computational reduction hides the use of a recursive function to produce a suitable [refl_equal] proof term.  The recursion originates in our use of [induction] in [t4]'s proof. *)
 
+
+(** ** Methods for Avoiding Axioms *)
+
+(** The last section demonstrated one reason to avoid axioms: they interfere with computational behavior of terms.  A further reason is to reduce the philosophical commitment of a theorem.  The more axioms one assumes, the harder it becomes to convince oneself that the formal system corresponds appropriately to one's intuitions.  A refinement of this last point, in applications like %\index{proof-carrying code}%proof-carrying code%~\cite{PCC}% in computer security, has to do with minimizing the size of a %\index{trusted code base}\emph{%#<i>#trusted code base#</i>#%}%.  To convince ourselves that a theorem is true, we must convince ourselves of the correctness of the program that checks the theorem.  Axioms effectively become new source code for the checking program, increasing the effort required to perform a correctness audit.
+
+   An earlier section gave one example of avoiding an axiom.  We proved that [pred_strong1] is agnostic to details of the proofs passed to it as arguments, by unfolding the definition of the function.  A %``%#"#simpler#"#%''% proof keeps the function definition opaque and instead applies a proof irrelevance axiom.  By accepting a more complex proof, we reduce our philosophical commitment and trusted base.  (By the way, the less-than relation that the proofs in question here prove turns out to admit proof irrelevance as a theorem provable within normal Gallina!)
+
+   One dark secret of the [dep_destruct] tactic that we have used several times is reliance on an axiom.  Consider this simple case analysis principle for [fin] values: *)
+
+Theorem fin_cases : forall n (f : fin (S n)), f = First \/ exists f', f = Next f'.
+  intros; dep_destruct f; eauto.
+Qed.
+
+Print Assumptions fin_cases.
+(** %\vspace{-.15in}%[[
+Axioms:
+JMeq.JMeq_eq : forall (A : Type) (x y : A), JMeq.JMeq x y -> x = y
+]]
+
+  The proof depends on the [JMeq_eq] axiom that we met in the chapter on equality proofs.  However, a smarter tactic could have avoided an axiom dependence.  Here is an alternate proof via a slightly strange looking lemma. *)
+
+(* begin thide *)
+Lemma fin_cases_again' : forall n (f : fin n),
+  match n return fin n -> Prop with
+    | O => fun _ => False
+    | S n' => fun f => f = First \/ exists f', f = Next f'
+  end f.
+  destruct f; eauto.
+Qed.
+
+(** We apply a variant of the %\index{convoy pattern}%convoy pattern, which we are used to seeing in function implementations.  Here, the pattern helps us state a lemma in a form where the argument to [fin] is a variable.  Recall that, thanks to basic typing rules for pattern-matching, [destruct] will only work effectively on types whose non-parameter arguments are variables.  The %\index{tactics!exact}%[exact] tactic, which takes as argument a literal proof term, now gives us an easy way of proving the original theorem. *)
+
+Theorem fin_cases_again : forall n (f : fin (S n)), f = First \/ exists f', f = Next f'.
+  intros; exact (fin_cases_again' f).
+Qed.
+(* end thide *)
+
+Print Assumptions fin_cases_again.
+(** %\vspace{-.15in}%
+<<
+Closed under the global context
+>>
+
+As another example, consider the following type of formulas in first-order logic.  The intent of the type definition will not be important in what follows, but we give a quick intuition for the curious reader.  Our formulas may include [forall] quantification over arbitrary [Type]s, and we index formulas by environments telling which variables are in scope and what their types are; such an environment is a [list Type].  A constructor [Inject] lets us include any Coq [Prop] as a formula, and [VarEq] and [Lift] can be used for variable references, in what is essentially the de Bruijn index convention.  (Again, the detail in this paragraph is not important to understand the discussion that follows!) *)
+
+Inductive formula : list Type -> Type :=
+| Inject : forall Ts, Prop -> formula Ts
+| VarEq : forall T Ts, T -> formula (T :: Ts)
+| Lift : forall T Ts, formula Ts -> formula (T :: Ts)
+| Forall : forall T Ts, formula (T :: Ts) -> formula Ts
+| And : forall Ts, formula Ts -> formula Ts -> formula Ts.
+
+(** This example is based on my own experiences implementing variants of a program logic called XCAP%~\cite{XCAP}%, which also includes an inductive predicate for characterizing which formulas are provable.  Here I include a pared-down version of such a predicate, with only two constructors, which is sufficient to illustrate certain tricky issues. *)
+
+Inductive proof : formula nil -> Prop :=
+| PInject : forall (P : Prop), P -> proof (Inject nil P)
+| PAnd : forall p q, proof p -> proof q -> proof (And p q).
+
+(** Let us prove a lemma showing that a %``%#"#[P /\ Q -> P]#"#%''% rule is derivable within the rules of [proof]. *)
+
+Theorem proj1 : forall p q, proof (And p q) -> proof p.
+  destruct 1.
+(** %\vspace{-.15in}%[[
+  p : formula nil
+  q : formula nil
+  P : Prop
+  H : P
+  ============================
+   proof p
+]]
+*)
+
+(** We are reminded that [induction] and [destruct] do not work effectively on types with non-variable arguments.  The first subgoal, shown above, is clearly unprovable.  (Consider the case where [p = Inject nil False].)
+
+   An application of the %\index{tactics!dependent destruction}%[dependent destruction] tactic (the basis for [dep_destruct]) solves the problem handily.  We use a shorthand with the %\index{tactics!intros}%[intros] tactic that lets us use question marks for variable names that do not matter. *)
+
+  Restart.
+  Require Import Program.
+  intros ? ? H; dependent destruction H; auto.
+Qed.
+
+Print Assumptions proj1.
+(** %\vspace{-.15in}%[[
+Axioms:
+eq_rect_eq : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+             x = eq_rect p Q x p h
+]]
+
+Unfortunately, that built-in tactic appeals to an axiom.  It is still possible to avoid axioms by giving the proof via another odd-looking lemma.  Here is a first attempt that fails at remaining axiom-free, using a common equality-based trick for supporting induction on non-variable arguments to type families.  The trick works fine without axioms for datatypes more traditional than [formula], but we run into trouble with our current type. *)
+
+Lemma proj1_again' : forall r, proof r
+  -> forall p q, r = And p q -> proof p.
+  destruct 1; crush.
+(** %\vspace{-.15in}%[[
+  H0 : Inject [] P = And p q
+  ============================
+   proof p
+]]
+
+  The first goal looks reasonable.  Hypothesis [H0] is clearly contradictory, as [discriminate] can show. *)
+
+  discriminate.
+(** %\vspace{-.15in}%[[
+  H : proof p
+  H1 : And p q = And p0 q0
+  ============================
+   proof p0
+]]
+
+  It looks like we are almost done.  Hypothesis [H1] gives [p = p0] by injectivity of constructors, and then [H] finishes the case. *)
+
+  injection H1; intros.
+
+(** Unfortunately, the %``%#"#equality#"#%''% that we expected between [p] and [p0] comes in a strange form:
+
+[[
+  H3 : existT (fun Ts : list Type => formula Ts) []%list p =
+       existT (fun Ts : list Type => formula Ts) []%list p0
+  ============================
+   proof p0
+]]
+
+It may take a bit of tinkering, but, reviewing Chapter 3's discussion of writing injection principles manually, it makes sense that an [existT] type is the most direct way to express the output of [inversion] on a dependently typed constructor.  The constructor [And] is dependently typed, since it takes a parameter [Ts] upon which the types of [p] and [q] depend.  Let us not dwell further here on why this goal appears; the reader may like to attempt the (impossible) exercise of building a better injection lemma for [And], without using axioms.
+
+How exactly does an axiom come into the picture here?  Let us ask [crush] to finish the proof. *)
+
+  crush.
+Qed.
+
+Print Assumptions proj1_again'.
+(** %\vspace{-.15in}%[[
+Axioms:
+eq_rect_eq : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+             x = eq_rect p Q x p h
+]]
+
+It turns out that this familiar axiom about equality (or some other axiom) is required to deduce [p = p0] from the hypothesis [H3] above.  The soundness of that proof step is neither provable nor disprovable in Gallina.
+
+Hope is not lost, however.  We can produce an even stranger looking lemma, which gives us the theorem without axioms. *)
+
+Lemma proj1_again'' : forall r, proof r
+  -> match r with
+       | And Ps p _ => match Ps return formula Ps -> Prop with
+                         | nil => fun p => proof p
+                         | _ => fun _ => True
+                       end p
+       | _ => True
+     end.
+  destruct 1; auto.
+Qed.
+
+Theorem proj1_again : forall p q, proof (And p q) -> proof p.
+  intros ? ? H; exact (proj1_again'' H).
+Qed.
+
+Print Assumptions proj1_again.
+(** <<
+Closed under the global context
+>>
+
+This example illustrates again how some of the same design patterns we learned for dependently typed programming can be used fruitfully in theorem statements. *)
