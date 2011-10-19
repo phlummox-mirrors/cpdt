@@ -882,7 +882,24 @@ Print Assumptions fin_cases_again.
 Closed under the global context
 >>
 
-As another example, consider the following type of formulas in first-order logic.  The intent of the type definition will not be important in what follows, but we give a quick intuition for the curious reader.  Our formulas may include [forall] quantification over arbitrary [Type]s, and we index formulas by environments telling which variables are in scope and what their types are; such an environment is a [list Type].  A constructor [Inject] lets us include any Coq [Prop] as a formula, and [VarEq] and [Lift] can be used for variable references, in what is essentially the de Bruijn index convention.  (Again, the detail in this paragraph is not important to understand the discussion that follows!) *)
+*)
+
+(* begin thide *)
+(** As the Curry-Howard correspondence might lead us to expect, the same pattern may be applied in programming as in proving.  Axioms are relevant in programming, too, because, while Coq includes useful extensions like [Program] that make dependently typed programming more straightforward, in general these extensions generate code that relies on axioms about equality.  We can use clever pattern matching to write our code axiom-free.
+
+As an example, consider a [Set] version of [fin_cases].  We use [Set] types instead of [Prop] types, so that return values have computational content and may be used to guide the behavior of algorithms.  Beside that, we are essentially writing the same %``%#"#proof#"#%''% in a more explicit way. *)
+
+Definition finOut n (f : fin n) : match n return fin n -> Type with
+                                    | O => fun _ => Empty_set
+                                    | _ => fun f => {f' : _ | f = Next f'} + {f = First}
+                                  end f :=
+  match f with
+    | First _ => inright _ (refl_equal _)
+    | Next _ f' => inleft _ (exist _ f' (refl_equal _))
+  end.
+(* end thide *)
+
+(** As another example, consider the following type of formulas in first-order logic.  The intent of the type definition will not be important in what follows, but we give a quick intuition for the curious reader.  Our formulas may include [forall] quantification over arbitrary [Type]s, and we index formulas by environments telling which variables are in scope and what their types are; such an environment is a [list Type].  A constructor [Inject] lets us include any Coq [Prop] as a formula, and [VarEq] and [Lift] can be used for variable references, in what is essentially the de Bruijn index convention.  (Again, the detail in this paragraph is not important to understand the discussion that follows!) *)
 
 Inductive formula : list Type -> Type :=
 | Inject : forall Ts, Prop -> formula Ts
@@ -961,7 +978,7 @@ Lemma proj1_again' : forall r, proof r
    proof p0
 ]]
 
-It may take a bit of tinkering, but, reviewing Chapter 3's discussion of writing injection principles manually, it makes sense that an [existT] type is the most direct way to express the output of [inversion] on a dependently typed constructor.  The constructor [And] is dependently typed, since it takes a parameter [Ts] upon which the types of [p] and [q] depend.  Let us not dwell further here on why this goal appears; the reader may like to attempt the (impossible) exercise of building a better injection lemma for [And], without using axioms.
+It may take a bit of tinkering, but, reviewing Chapter 3's discussion of writing injection principles manually, it makes sense that an [existT] type is the most direct way to express the output of [injection] on a dependently typed constructor.  The constructor [And] is dependently typed, since it takes a parameter [Ts] upon which the types of [p] and [q] depend.  Let us not dwell further here on why this goal appears; the reader may like to attempt the (impossible) exercise of building a better injection lemma for [And], without using axioms.
 
 How exactly does an axiom come into the picture here?  Let us ask [crush] to finish the proof. *)
 

@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "Universes and Axioms"</title>
+        <pubDate>Wed, 19 Oct 2011 09:58:57 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+	<description>I've added a new section on avoiding axioms.</description>
+</item>
+
+<item>
         <title>A pass through "Dependent Data Structures"</title>
         <pubDate>Sun, 16 Oct 2011 10:45:48 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
