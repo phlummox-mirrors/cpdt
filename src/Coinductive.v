@@ -257,7 +257,7 @@ unguarded recursive call in "ones_eq"
 
 Via the Curry-Howard correspondence, the same guardedness condition applies to our co-inductive proofs as to our co-inductive data structures.  We should be grateful that this proof is rejected, because, if it were not, the same proof structure could be used to prove any co-inductive theorem vacuously, by direct appeal to itself!
 
-Thinking about how Coq would generate a proof term from the proof script above, we see that the problem is that we are violating the guardedness condition.  During our proofs, Coq can help us check whether we have yet gone wrong in this way.  We can run the command [Guarded] in any context to see if it is possible to finish the proof in a way that will yield a properly guarded proof term.%\index{Vernacular command!Guarded}%
+Thinking about how Coq would generate a proof term from the proof script above, we see that the problem is that we are violating the guardedness condition.  During our proofs, Coq can help us check whether we have yet gone wrong in this way.  We can run the command [Guarded] in any context to see if it is possible to finish the proof in a way that will yield a properly guarded proof term.%\index{Vernacular commands!Guarded}%
      [[
 Guarded.
 ]]
@@ -517,73 +517,127 @@ Qed.
 
 (** * Simple Modeling of Non-Terminating Programs *)
 
-(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple assembly language and use that semantics to prove that assembly programs always run forever.  This basic technique can be combined with typing judgments for more advanced languages, where some ill-typed programs can go wrong, but no well-typed programs go wrong.
+(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of %\index{co-inductive big-step operational semantics}\emph{%#<i>#co-inductive big-step operational semantics#</i>#%}~\cite{BigStep}%.
 
-   We define suggestive synonyms for [nat], for cases where we use natural numbers as registers or program labels.  That is, we consider our idealized machine to have infinitely many registers and infinitely many code addresses. *)
+   We define a suggestive synonym for [nat], as we will consider programs with infinitely many variables, represented as [nat]s. *)
 
-Definition reg := nat.
-Definition label := nat.
+Definition var := nat.
 
-(** Our instructions are loading of a constant into a register, copying from one register to another, unconditional jump, and conditional jump based on whether the value in a register is not zero. *)
+(** We define a type [vars] of maps from variables to values.  To define a function [set] for setting a variable's value in a map, we import the [Arith] module from Coq's standard library, and we use its function [beq_nat] for comparing natural numbers. *)
 
-Inductive instr : Set :=
-| Imm : reg -> nat -> instr
-| Copy : reg -> reg -> instr
-| Jmp : label -> instr
-| Jnz : reg -> label -> instr.
-
-(** We define a type [regs] of maps from registers to values.  To define a function [set] for setting a register's value in a map, we import the [Arith] module from Coq's standard library, and we use its function [beq_nat] for comparing natural numbers. *)
-
-Definition regs := reg -> nat.
+Definition vars := var -> nat.
 Require Import Arith.
-Definition set (rs : regs) (r : reg) (v : nat) : regs :=
-  fun r' => if beq_nat r r' then v else rs r'.
+Definition set (vs : vars) (v : var) (n : nat) : vars :=
+  fun v' => if beq_nat v v' then n else vs v'.
 
-(** An inductive [exec] judgment captures the effect of an instruction on the program counter and register bank. *)
+(** We define a simple arithmetic expression language with variables, and we give it a semantics via an interpreter. *)
 
-Inductive exec : label -> regs -> instr -> label -> regs -> Prop :=
-| E_Imm : forall pc rs r n, exec pc rs (Imm r n) (S pc) (set rs r n)
-| E_Copy : forall pc rs r1 r2, exec pc rs (Copy r1 r2) (S pc) (set rs r1 (rs r2))
-| E_Jmp : forall pc rs pc', exec pc rs (Jmp pc') pc' rs
-| E_JnzF : forall pc rs r pc', rs r = 0 -> exec pc rs (Jnz r pc') (S pc) rs
-| E_JnzT : forall pc rs r pc' n, rs r = S n -> exec pc rs (Jnz r pc') pc' rs.
+Inductive exp : Set :=
+| Const : nat -> exp
+| Var : var -> exp
+| Plus : exp -> exp -> exp.
 
-(** We prove that [exec] represents a total function.  In our proof script, we use a [match] tactic with a [context] pattern.  This particular example finds an occurrence of a pattern [Jnz ?r _] anywhere in the current subgoal's conclusion.  We use a Coq library tactic [case_eq] to do case analysis on whether the current value [rs r] of the register [r] is zero or not.  [case_eq] differs from [destruct] in saving an equality relating the old variable to the new form we deduce for it. *)
+Fixpoint evalExp (vs : vars) (e : exp) : nat :=
+  match e with
+    | Const n => n
+    | Var v => vs v
+    | Plus e1 e2 => evalExp vs e1 + evalExp vs e2
+  end.
 
-Lemma exec_total : forall pc rs i,
-  exists pc', exists rs', exec pc rs i pc' rs'.
-  Hint Constructors exec.
+(** Finally, we define a language of commands.  It includes variable assignment, sequencing, and a %\texttt{%#<tt>#while#</tt>#%}% form that repeats as long as its test expression evaluates to a nonzero value. *)
 
-  destruct i; crush; eauto;
-    match goal with
-      | [ |- context[Jnz ?r _] ] => case_eq (rs r)
-    end; eauto.
+Inductive cmd : Set :=
+| Assign : var -> exp -> cmd
+| Seq : cmd -> cmd -> cmd
+| While : exp -> cmd -> cmd.
+
+(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture %\emph{%#<i>#nonterminating#</i>#%}% executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to %\emph{%#<i>#any#</i>#%}% final state. *)
+
+CoInductive evalCmd : vars -> cmd -> vars -> Prop :=
+| EvalAssign : forall vs v e, evalCmd vs (Assign v e) (set vs v (evalExp vs e))
+| EvalSeq : forall vs1 vs2 vs3 c1 c2, evalCmd vs1 c1 vs2
+  -> evalCmd vs2 c2 vs3
+  -> evalCmd vs1 (Seq c1 c2) vs3
+| EvalWhileFalse : forall vs e c, evalExp vs e = 0
+  -> evalCmd vs (While e c) vs
+| EvalWhileTrue : forall vs1 vs2 vs3 e c, evalExp vs1 e <> 0
+  -> evalCmd vs1 c vs2
+  -> evalCmd vs2 (While e c) vs3
+  -> evalCmd vs1 (While e c) vs3.
+
+(** Having learned our lesson in the last section, before proceeding, we build a co-induction principle for [evalCmd]. *)
+
+Section evalCmd_coind.
+  Variable R : vars -> cmd -> vars -> Prop.
+
+  Hypothesis AssignCase : forall vs1 vs2 v e, R vs1 (Assign v e) vs2
+    -> vs2 = set vs1 v (evalExp vs1 e).
+
+  Hypothesis SeqCase : forall vs1 vs3 c1 c2, R vs1 (Seq c1 c2) vs3
+    -> exists vs2, R vs1 c1 vs2 /\ R vs2 c2 vs3.
+
+  Hypothesis WhileCase : forall vs1 vs3 e c, R vs1 (While e c) vs3
+    -> (evalExp vs1 e = 0 /\ vs3 = vs1)
+    \/ exists vs2, evalExp vs1 e <> 0 /\ R vs1 c vs2 /\ R vs2 (While e c) vs3.
+
+  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an %\index{intro pattern}\emph{%#<i>#intro pattern#</i>#%}% in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
+
+  Theorem evalCmd_coind : forall vs1 c vs2, R vs1 c vs2 -> evalCmd vs1 c vs2.
+    cofix; intros; destruct c.
+    rewrite (AssignCase H); constructor.
+    destruct (SeqCase H) as [? [? ?]]; econstructor; eauto.
+    destruct (WhileCase H) as [[? ?] | [? [? [? ?]]]]; subst;
+      [ econstructor | econstructor 4 ]; eauto.
+  Qed.
+End evalCmd_coind.
+
+(** Now that we have a co-induction principle, we should use it to prove something!  Our example is a trivial program optimizer that finds places to replace [0 + e] with [e]. *)
+
+Fixpoint optExp (e : exp) : exp :=
+  match e with
+    | Plus (Const 0) e => optExp e
+    | Plus e1 e2 => Plus (optExp e1) (optExp e2)
+    | _ => e
+  end.
+
+Fixpoint optCmd (c : cmd) : cmd :=
+  match c with
+    | Assign v e => Assign v (optExp e)
+    | Seq c1 c2 => Seq (optCmd c1) (optCmd c2)
+    | While e c => While (optExp e) (optCmd c)
+  end.
+
+(** Before proving correctness of [optCmd], we prove a lemma about [optExp].  This is where we have to do the most work, choosing pattern match opportunities automatically. *)
+
+(* begin thide *)
+Lemma optExp_correct : forall vs e, evalExp vs (optExp e) = evalExp vs e.
+  induction e; crush;
+    repeat (match goal with
+              | [ |- context[match ?E with Const _ => _ | Var _ => _
+                               | Plus _ _ => _ end] ] => destruct E
+              | [ |- context[match ?E with O => _ | S _ => _ end] ] => destruct E
+            end; crush).
 Qed.
 
-(** We are ready to define a co-inductive judgment capturing the idea that a program runs forever.  We define the judgment in terms of a program [prog], represented as a function mapping each label to the instruction found there.  That is, to simplify the proof, we consider only infinitely long programs. *)
+Hint Rewrite optExp_correct : cpdt.
 
-Section safe.
-  Variable prog : label -> instr.
+(** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation. *)
 
-  CoInductive safe : label -> regs -> Prop :=
-  | Step : forall pc r pc' r',
-    exec pc r (prog pc) pc' r'
-    -> safe pc' r'
-    -> safe pc r.
+Theorem optCmd_correct : forall vs1 c vs2, evalCmd vs1 c vs2
+  -> evalCmd vs1 (optCmd c) vs2.
+  intros; apply (evalCmd_coind (fun vs1 c' vs2 => exists c, evalCmd vs1 c vs2
+    /\ c' = optCmd c)); eauto; crush;
+    match goal with
+      | [ H : _ = optCmd ?E |- _ ] => destruct E; simpl in *; discriminate
+        || injection H; intros; subst
+    end; match goal with
+           | [ H : evalCmd _ _ _ |- _ ] => ((inversion H; [])
+             || (inversion H; [|])); subst
+         end; crush; eauto 10.
+Qed.
+(* end thide *)
 
-  (** Now we can prove that any starting address and register bank lead to safe infinite execution.  Recall that proofs of existentially quantified formulas are all built with a single constructor of the inductive type [ex].  This means that we can use [destruct] to %``%#"#open up#"#%''% such proofs.  In the proof below, we want to perform this opening up on an appropriate use of the [exec_total] lemma.  This lemma's conclusion begins with two existential quantifiers, so we want to tell [destruct] that it should not stop at the first quantifier.  We accomplish our goal by using an %\textit{%#<i>#intro pattern#</i>#%}% with [destruct].  Consult the Coq manual for the details of intro patterns; the specific pattern [[? [? ?]]] that we use here accomplishes our goal of destructing both quantifiers at once. *)
-  
-  Theorem always_safe : forall pc rs,
-    safe pc rs.
-    cofix; intros;
-      destruct (exec_total pc rs (prog pc)) as [? [? ?]];
-        econstructor; eauto.
-  Qed.
-End safe.
-
-(** If we print the proof term that was generated, we can verify that the proof is structured as a [cofix], with each co-recursive call properly guarded. *)
-
-Print always_safe.
+(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like %\texttt{%#<tt>#if#</tt>#%}%; the same proof should continue working, after the co-induction principle is extended to the new evaluation rules. *)
 
 
 (** * Exercises *)
