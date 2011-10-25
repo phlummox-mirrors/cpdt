@@ -66,7 +66,7 @@ with falses_trues : stream bool := Cons false trues_falses.
 
 (** Co-inductive values are fair game as arguments to recursive functions, and we can use that fact to write a function to take a finite approximation of a stream. *)
 
-(* EX: Defint a function to calculate a finite approximation of a stream, to a particular length. *)
+(* EX: Define a function to calculate a finite approximation of a stream, to a particular length. *)
 (* begin thide *)
 
 Fixpoint approx A (s : stream A) (n : nat) : list A :=
