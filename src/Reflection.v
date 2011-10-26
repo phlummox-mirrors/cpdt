@@ -460,7 +460,7 @@ Section my_tauto.
 
   Local Open Scope partial_scope.
 
-  (** Now we can write a function [forward] which implements deconstruction of hypotheses.  It has a dependent type, in the style of Chapter 6, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
+  (** Now we can write a function [forward] which implements deconstruction of hypotheses.  It has a dependent type, in the style of Chapter 7, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
 
   Definition forward : forall (f : formula) (known : set index) (hyp : formula)
     (cont : forall known', [allTrue known' -> formulaDenote atomics f]),

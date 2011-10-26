@@ -7,7 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-(* Dependent list types presented in Chapter 8 *)
+(* Dependent list types presented in Chapter 9 *)
 
 Require Import Arith List CpdtTactics.
 

@@ -77,7 +77,7 @@ Section denote.
 
   Definition constructorDenote (c : constructor) :=
     nonrecursive c -> ilist T (recursive c) -> T.
-  (** We write that a constructor is represented as a function returning a [T].  Such a function takes two arguments, which pack together the non-recursive and recursive arguments of the constructor.  We represent a tuple of all recursive arguments using the length-indexed list type [ilist] that we met in Chapter 7. *)
+  (** We write that a constructor is represented as a function returning a [T].  Such a function takes two arguments, which pack together the non-recursive and recursive arguments of the constructor.  We represent a tuple of all recursive arguments using the length-indexed list type [ilist] that we met in Chapter 8. *)
 
   Definition datatypeDenote := hlist constructorDenote.
   (** Finally, the evidence for type [T] is a heterogeneous list, including a constructor denotation for every constructor encoding in a datatype encoding.  Recall that, since we are inside a section binding [T] as a variable, [constructorDenote] is automatically parameterized by [T]. *)

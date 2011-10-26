@@ -612,7 +612,7 @@ Print proof_irrelevance.
   *** [ proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2 ]
   ]]
 
-  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 6. *)
+  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 7. *)
 
 (* begin hide *)
 Lemma zgtz : 0 > 0 -> False.
