@@ -31,7 +31,7 @@ This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 
-One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
+One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs; several such approaches are surveyed in Chapter 7.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
 
 Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism, %\index{co-inductive types}\textit{%#<i>#co-inductive types#</i>#%}%, is the subject of this chapter. *)
 

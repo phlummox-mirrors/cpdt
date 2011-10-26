@@ -277,7 +277,7 @@ well_founded_induction
   Some more recent Coq features provide more convenient syntax for defining recursive functions.  Interested readers can consult the Coq manual about the commands %\index{Function}%[Function] and %\index{Program Fixpoint}%[Program Fixpoint]. *)
 
 
-(** * A Non-Termination Monad *)
+(** * A Non-Termination Monad Inspired by Domain Theory *)
 
 Section computation.
   Variable A : Type.
@@ -575,5 +575,267 @@ Definition looper : bool -> computation unit.
 Defined.
 
 Lemma test_looper : run (looper true) tt.
+  exists 1; reflexivity.
+Qed.
+
+
+(** * Co-Inductive Non-Termination Monads *)
+
+CoInductive thunk (A : Type) : Type :=
+| Answer : A -> thunk A
+| Think : thunk A -> thunk A.
+
+CoFixpoint TBind (A B : Type) (m1 : thunk A) (m2 : A -> thunk B) : thunk B :=
+  match m1 with
+    | Answer x => m2 x
+    | Think m1' => Think (TBind m1' m2)
+  end.
+
+CoInductive thunk_eq A : thunk A -> thunk A -> Prop :=
+| EqAnswer : forall x, thunk_eq (Answer x) (Answer x)
+| EqThinkL : forall m1 m2, thunk_eq m1 m2 -> thunk_eq (Think m1) m2
+| EqThinkR : forall m1 m2, thunk_eq m1 m2 -> thunk_eq m1 (Think m2).
+
+Section thunk_eq_coind.
+  Variable A : Type.
+  Variable P : thunk A -> thunk A -> Prop.
+
+  Hypothesis H : forall m1 m2, P m1 m2
+    -> match m1, m2 with
+         | Answer x1, Answer x2 => x1 = x2
+         | Think m1', Think m2' => P m1' m2'
+         | Think m1', _ => P m1' m2
+         | _, Think m2' => P m1 m2'
+       end.
+
+  Theorem thunk_eq_coind : forall m1 m2, P m1 m2 -> thunk_eq m1 m2.
+    cofix; intros;
+      match goal with
+        | [ H' : P _ _ |- _ ] => specialize (H H'); clear H'
+      end; destruct m1; destruct m2; subst; repeat constructor; auto.
+  Qed.
+End thunk_eq_coind.
+
+Definition frob A (m : thunk A) : thunk A :=
+  match m with
+    | Answer x => Answer x
+    | Think m' => Think m'
+  end.
+
+Theorem frob_eq : forall A (m : thunk A), frob m = m.
+  destruct m; reflexivity.
+Qed.
+
+Theorem thunk_eq_frob : forall A (m1 m2 : thunk A),
+  thunk_eq (frob m1) (frob m2)
+  -> thunk_eq m1 m2.
+  intros; repeat rewrite frob_eq in *; auto.
+Qed.
+
+Ltac findDestr := match goal with
+                    | [ |- context[match ?E with Answer _ => _ | Think _ => _ end] ] =>
+                      match E with
+                        | context[match _ with Answer _ => _ | Think _ => _ end] => fail 1
+                        | _ => destruct E
+                      end
+                  end.
+
+Theorem thunk_eq_refl : forall A (m : thunk A), thunk_eq m m.
+  intros; apply (thunk_eq_coind (fun m1 m2 => m1 = m2)); crush; findDestr; reflexivity.
+Qed.
+
+Hint Resolve thunk_eq_refl.
+
+Theorem tleft_identity : forall A B (a : A) (f : A -> thunk B),
+  thunk_eq (TBind (Answer a) f) (f a).
+  intros; apply thunk_eq_frob; crush.
+Qed.
+
+Theorem tright_identity : forall A (m : thunk A),
+  thunk_eq (TBind m (@Answer _)) m.
+  intros; apply (thunk_eq_coind (fun m1 m2 => m1 = TBind m2 (@Answer _))); crush;
+    findDestr; reflexivity.
+Qed.
+
+Lemma TBind_Answer : forall (A B : Type) (v : A) (m2 : A -> thunk B),
+  TBind (Answer v) m2 = m2 v.
+  intros; rewrite <- (frob_eq (TBind (Answer v) m2));
+    simpl; findDestr; reflexivity.
+Qed.
+
+Hint Rewrite TBind_Answer : cpdt.
+
+Theorem tassociativity : forall A B C (m : thunk A) (f : A -> thunk B) (g : B -> thunk C),
+  thunk_eq (TBind (TBind m f) g) (TBind m (fun x => TBind (f x) g)).
+  intros; apply (thunk_eq_coind (fun m1 m2 => (exists m,
+    m1 = TBind (TBind m f) g
+    /\ m2 = TBind m (fun x => TBind (f x) g))
+  \/ m1 = m2)); crush; eauto; repeat (findDestr; crush; eauto).
+Qed.
+
+CoFixpoint fact (n acc : nat) : thunk nat :=
+  match n with
+    | O => Answer acc
+    | S n' => Think (fact n' (S n' * acc))
+  end.
+
+Inductive eval A : thunk A -> A -> Prop :=
+| EvalAnswer : forall x, eval (Answer x) x
+| EvalThink : forall m x, eval m x -> eval (Think m) x.
+
+Hint Rewrite frob_eq : cpdt.
+
+Lemma eval_frob : forall A (c : thunk A) x,
+  eval (frob c) x
+  -> eval c x.
+  crush.
+Qed.
+
+Theorem eval_fact : eval (fact 5 1) 120.
+  repeat (apply eval_frob; simpl; constructor).
+Qed.
+
+(** [[
+CoFixpoint fib (n : nat) : thunk nat :=
+  match n with
+    | 0 => Answer 1
+    | 1 => Answer 1
+    | _ => TBind (fib (pred n)) (fun n1 =>
+      TBind (fib (pred (pred n))) (fun n2 =>
+        Answer (n1 + n2)))
+  end.
+]]
+*)
+
+
+CoInductive comp (A : Type) : Type :=
+| Ret : A -> comp A
+| Bnd : forall B, comp B -> (B -> comp A) -> comp A.
+
+Inductive exec A : comp A -> A -> Prop :=
+| ExecRet : forall x, exec (Ret x) x
+| ExecBnd : forall B (c : comp B) (f : B -> comp A) x1 x2, exec (A := B) c x1
+  -> exec (f x1) x2
+  -> exec (Bnd c f) x2.
+
+Hint Constructors exec.
+
+Definition comp_eq A (c1 c2 : comp A) := forall r, exec c1 r <-> exec c2 r.
+
+Ltac inverter := repeat match goal with
+                          | [ H : exec _ _ |- _ ] => inversion H; []; crush
+                        end.
+
+Theorem cleft_identity : forall A B (a : A) (f : A -> comp B),
+  comp_eq (Bnd (Ret a) f) (f a).
+  red; crush; inverter; eauto.
+Qed.
+
+Theorem cright_identity : forall A (m : comp A),
+  comp_eq (Bnd m (@Ret _)) m.
+  red; crush; inverter; eauto.
+Qed.
+
+Lemma cassociativity1 : forall A B C (f : A -> comp B) (g : B -> comp C) r c,
+  exec c r
+  -> forall m, c = Bnd (Bnd m f) g
+   -> exec (Bnd m (fun x => Bnd (f x) g)) r.
+  induction 1; crush.
+  match goal with
+    | [ H : Bnd _ _ = Bnd _ _ |- _ ] => injection H; clear H; intros; try subst
+  end.
+  move H3 after A.
+  generalize dependent B0.
+  do 2 intro.
+  subst.
+  crush.
+  inversion H; clear H; crush.
+  eauto.
+Qed.
+
+Lemma cassociativity2 : forall A B C (f : A -> comp B) (g : B -> comp C) r c,
+  exec c r
+  -> forall m, c = Bnd m (fun x => Bnd (f x) g)
+   -> exec (Bnd (Bnd m f) g) r.
+  induction 1; crush.
+  match goal with
+    | [ H : Bnd _ _ = Bnd _ _ |- _ ] => injection H; clear H; intros; try subst
+  end.
+  move H3 after B.
+  generalize dependent B0.
+  do 2 intro.
+  subst.
+  crush.
+  inversion H0; clear H0; crush.
+  eauto.
+Qed.
+
+Hint Resolve cassociativity1 cassociativity2.
+
+Theorem cassociativity : forall A B C (m : comp A) (f : A -> comp B) (g : B -> comp C),
+  comp_eq (Bnd (Bnd m f) g) (Bnd m (fun x => Bnd (f x) g)).
+  red; crush; eauto.
+Qed.
+
+CoFixpoint mergeSort'' A (le : A -> A -> bool) (ls : list A) : comp (list A) :=
+  if le_lt_dec 2 (length ls)
+    then let lss := partition ls in
+      Bnd (mergeSort'' le (fst lss)) (fun ls1 =>
+        Bnd (mergeSort'' le (snd lss)) (fun ls2 =>
+          Ret (merge le ls1 ls2)))
+    else Ret ls.
+
+Definition frob' A (c : comp A) :=
+  match c with
+    | Ret x => Ret x
+    | Bnd _ c' f => Bnd c' f
+  end.
+
+Lemma frob'_eq : forall A (c : comp A), frob' c = c.
+  destruct c; reflexivity.
+Qed.
+
+Hint Rewrite frob'_eq : cpdt.
+
+Lemma exec_frob : forall A (c : comp A) x,
+  exec (frob' c) x
+  -> exec c x.
+  crush.
+Qed.
+
+Lemma test_mergeSort'' : exec (mergeSort'' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
+  (1 :: 2 :: 8 :: 19 :: 36 :: nil).
+  repeat (apply exec_frob; simpl; econstructor).
+Qed.
+
+Definition curriedAdd (n : nat) := Ret (fun m : nat => Ret (n + m)).
+
+(** [[
+Definition testCurriedAdd :=
+  Bnd (curriedAdd 2) (fun f => f 3).
+]]
+
+<<
+Error: Universe inconsistency.
+>>
+*)
+
+
+(** * Comparing the Options *)
+
+Definition curriedAdd' (n : nat) := Return (fun m : nat => Return (n + m)).
+
+Definition testCurriedAdd :=
+  Bind (curriedAdd' 2) (fun f => f 3).
+
+Fixpoint map A B (f : A -> computation B) (ls : list A) : computation (list B) :=
+  match ls with
+    | nil => Return nil
+    | x :: ls' => Bind (f x) (fun x' =>
+      Bind (map f ls') (fun ls'' =>
+        Return (x' :: ls'')))
+  end.
+
+Theorem test_map : run (map (fun x => Return (S x)) (1 :: 2 :: 3 :: nil)) (2 :: 3 :: 4 :: nil).
   exists 1; reflexivity.
 Qed.
