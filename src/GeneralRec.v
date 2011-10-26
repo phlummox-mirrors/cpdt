@@ -275,3 +275,305 @@ well_founded_induction
 ]]
 
   Some more recent Coq features provide more convenient syntax for defining recursive functions.  Interested readers can consult the Coq manual about the commands %\index{Function}%[Function] and %\index{Program Fixpoint}%[Program Fixpoint]. *)
+
+
+(** * A Non-Termination Monad *)
+
+Section computation.
+  Variable A : Type.
+
+  Definition computation :=
+    {f : nat -> option A
+      | forall (n : nat) (v : A),
+	f n = Some v
+	-> forall (n' : nat), n' >= n
+	  -> f n' = Some v}.
+
+  Definition runTo (m : computation) (n : nat) (v : A) :=
+    proj1_sig m n = Some v.
+
+  Definition run (m : computation) (v : A) :=
+    exists n, runTo m n v.
+End computation.
+
+Hint Unfold runTo.
+
+Ltac run' := unfold run, runTo in *; try red; crush;
+  repeat (match goal with
+            | [ _ : proj1_sig ?E _ = _ |- _ ] =>
+              match goal with
+                | [ x : _ |- _ ] =>
+                  match x with
+                    | E => destruct E
+                  end
+              end
+            | [ |- context[match ?M with exist _ _ => _ end] ] => let Heq := fresh "Heq" in
+              case_eq M; intros ? ? Heq; try rewrite Heq in *; try subst
+            | [ _ : context[match ?M with exist _ _ => _ end] |- _ ] => let Heq := fresh "Heq" in
+              case_eq M; intros ? ? Heq; try rewrite Heq in *; subst
+            | [ H : forall n v, ?E n = Some v -> _,
+                _ : context[match ?E ?N with Some _ => _ | None => _ end] |- _ ] =>
+              specialize (H N); destruct (E N); try rewrite (H _ (refl_equal _)) by auto; try discriminate
+            | [ H : forall n v, ?E n = Some v -> _, H' : ?E _ = Some _ |- _ ] => rewrite (H _ _ H') by auto
+          end; simpl in *); eauto 7.
+
+Ltac run := run'; repeat (match goal with
+                            | [ H : forall n v, ?E n = Some v -> _
+                                |- context[match ?E ?N with Some _ => _ | None => _ end] ] =>
+                              specialize (H N); destruct (E N); try rewrite (H _ (refl_equal _)) by auto; try discriminate
+                          end; run').
+
+Lemma ex_irrelevant : forall P : Prop, P -> exists n : nat, P.
+  exists 0; auto.
+Qed.
+
+Hint Resolve ex_irrelevant.
+
+Require Import Max.
+
+Ltac max := intros n m; generalize (max_spec_le n m); crush.
+
+Lemma max_1 : forall n m, max n m >= n.
+  max.
+Qed.
+
+Lemma max_2 : forall n m, max n m >= m.
+  max.
+Qed.
+
+Hint Resolve max_1 max_2.
+
+Lemma ge_refl : forall n, n >= n.
+  crush.
+Qed.
+
+Hint Resolve ge_refl.
+
+Hint Extern 1 => match goal with
+                   | [ H : _ = exist _ _ _ |- _ ] => rewrite H
+                 end.
+
+Section Bottom.
+  Variable A : Type.
+
+  Definition Bottom : computation A.
+    exists (fun _ : nat => @None A); abstract run.
+  Defined.
+
+  Theorem run_Bottom : forall v, ~run Bottom v.
+    run.
+  Qed.
+End Bottom.
+
+Section Return.
+  Variable A : Type.
+  Variable v : A.
+
+  Definition Return : computation A.
+    intros; exists (fun _ : nat => Some v); abstract run.
+  Defined.
+
+  Theorem run_Return : run Return v.
+    run.
+  Qed.
+
+  Theorem run_Return_inv : forall x, run Return x -> x = v.
+    run.
+  Qed.
+End Return.
+
+Hint Resolve run_Return.
+
+Section Bind.
+  Variables A B : Type.
+  Variable m1 : computation A.
+  Variable m2 : A -> computation B.
+
+  Definition Bind : computation B.
+    exists (fun n =>
+      let (f1, Hf1) := m1 in
+      match f1 n with
+	| None => None
+	| Some v =>
+	  let (f2, Hf2) := m2 v in
+	    f2 n
+      end); abstract run.
+  Defined.
+
+  Require Import Max.
+
+  Theorem run_Bind : forall (v1 : A) (v2 : B),
+    run m1 v1
+    -> run (m2 v1) v2
+    -> run Bind v2.
+    run; match goal with
+           | [ x : nat, y : nat |- _ ] => exists (max x y)
+         end; run.
+  Qed.
+
+  Theorem run_Bind_inv : forall (v2 : B),
+    run Bind v2
+    -> exists v1 : A,
+      run m1 v1
+      /\ run (m2 v1) v2.
+    run.
+  Qed.
+End Bind.
+
+Hint Resolve run_Bind.
+
+Notation "x <- m1 ; m2" :=
+  (Bind m1 (fun x => m2)) (right associativity, at level 70).
+
+Definition meq A (m1 m2 : computation A) := forall n, proj1_sig m1 n = proj1_sig m2 n.
+
+Theorem left_identity : forall A B (a : A) (f : A -> computation B),
+  meq (Bind (Return a) f) (f a).
+  run.
+Qed.
+
+Theorem right_identity : forall A (m : computation A),
+  meq (Bind m (@Return _)) m.
+  run.
+Qed.
+
+Theorem associativity : forall A B C (m : computation A) (f : A -> computation B) (g : B -> computation C),
+  meq (Bind (Bind m f) g) (Bind m (fun x => Bind (f x) g)).
+  run.
+Qed.
+
+Section monotone_runTo.
+  Variable A : Type.
+  Variable c : computation A.
+  Variable v : A.
+
+  Theorem monotone_runTo : forall (n1 : nat),
+    runTo c n1 v
+    -> forall n2, n2 >= n1
+      -> runTo c n2 v.
+    run.
+  Qed.
+End monotone_runTo.
+
+Hint Resolve monotone_runTo.
+
+Section lattice.
+  Variable A : Type.
+
+  Definition leq (x y : option A) :=
+    forall v, x = Some v -> y = Some v.
+End lattice.
+
+Hint Unfold leq.
+
+Section Fix.
+  Variables A B : Type.
+  Variable f : (A -> computation B) -> (A -> computation B).
+
+  Hypothesis f_continuous : forall n v v1 x,
+    runTo (f v1 x) n v
+    -> forall (v2 : A -> computation B),
+      (forall x, leq (proj1_sig (v1 x) n) (proj1_sig (v2 x) n))
+      -> runTo (f v2 x) n v.
+
+  Fixpoint Fix' (n : nat) (x : A) : computation B :=
+    match n with
+      | O => Bottom _
+      | S n' => f (Fix' n') x
+    end.
+
+  Hint Extern 1 (_ >= _) => omega.
+  Hint Unfold leq.
+
+  Lemma Fix'_ok : forall steps n x v, proj1_sig (Fix' n x) steps = Some v
+    -> forall n', n' >= n
+      -> proj1_sig (Fix' n' x) steps = Some v.
+    unfold runTo in *; induction n; crush;
+      match goal with
+        | [ H : _ >= _ |- _ ] => inversion H; crush; eauto
+      end.
+  Qed.
+
+  Hint Resolve Fix'_ok.
+
+  Hint Extern 1 (proj1_sig _ _ = _) => simpl;
+    match goal with
+      | [ |- proj1_sig ?E _ = _ ] => eapply (proj2_sig E)
+    end.
+
+  Definition Fix : A -> computation B.
+    intro x; exists (fun n => proj1_sig (Fix' n x) n); abstract run.
+  Defined.
+
+  Definition extensional (f : (A -> computation B) -> (A -> computation B)) := 
+    forall g1 g2 n,
+      (forall x, proj1_sig (g1 x) n = proj1_sig (g2 x) n)
+      -> forall x, proj1_sig (f g1 x) n = proj1_sig (f g2 x) n.
+
+  Hypothesis f_extensional : extensional f.
+
+  Theorem run_Fix : forall x v,
+    run (f Fix x) v
+    -> run (Fix x) v.
+    run; match goal with
+           | [ n : nat |- _ ] => exists (S n); eauto
+         end.
+  Qed.
+End Fix.
+
+Hint Resolve run_Fix.
+
+Lemma leq_Some : forall A (x y : A), leq (Some x) (Some y)
+  -> x = y.
+  intros ? ? ? H; generalize (H _ (refl_equal _)); crush.
+Qed.
+
+Lemma leq_None : forall A (x y : A), leq (Some x) None
+  -> False.
+  intros ? ? ? H; generalize (H _ (refl_equal _)); crush.
+Qed.
+
+Definition mergeSort' : forall A, (A -> A -> bool) -> list A -> computation (list A).
+  refine (fun A le => Fix
+    (fun (mergeSort : list A -> computation (list A))
+      (ls : list A) =>
+      if le_lt_dec 2 (length ls)
+	then let lss := partition ls in
+          ls1 <- mergeSort (fst lss);
+          ls2 <- mergeSort (snd lss);
+          Return (merge le ls1 ls2)
+	else Return ls) _); abstract (run;
+          repeat (match goal with
+                    | [ |- context[match ?E with O => _ | S _ => _ end] ] => destruct E
+                  end; run);
+          repeat match goal with
+                   | [ H : forall x, leq (proj1_sig (?f x) _) (proj1_sig (?g x) _) |- _ ] =>
+                     match goal with
+                       | [ H1 : f ?arg = _, H2 : g ?arg = _ |- _ ] =>
+                         generalize (H arg); rewrite H1; rewrite H2; clear H1 H2; simpl; intro
+                     end
+                 end; run; repeat match goal with
+                                    | [ H : _ |- _ ] => (apply leq_None in H; tauto) || (apply leq_Some in H; subst)
+                                  end; auto).
+Defined.
+
+Print mergeSort'.
+
+Lemma test_mergeSort' : run (mergeSort' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
+  (1 :: 2 :: 8 :: 19 :: 36 :: nil).
+  exists 4; reflexivity.
+Qed.
+
+Definition looper : bool -> computation unit.
+  refine (Fix (fun looper (b : bool) =>
+    if b then Return tt else looper b) _);
+  abstract (unfold leq in *; run;
+    repeat match goal with
+             | [ x : unit |- _ ] => destruct x
+             | [ x : bool |- _ ] => destruct x
+           end; auto).
+Defined.
+
+Lemma test_looper : run (looper true) tt.
+  exists 1; reflexivity.
+Qed.
