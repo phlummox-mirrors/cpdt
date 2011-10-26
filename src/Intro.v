@@ -225,9 +225,9 @@ Inductive Predicates & \texttt{Predicates.v} \\
 \hline
 Infinite Data and Proofs & \texttt{Coinductive.v} \\
 \hline
-General Recursion & \texttt{GeneralRec.v} \\
-\hline
 Subset Types and Variations & \texttt{Subset.v} \\
+\hline
+General Recursion & \texttt{GeneralRec.v} \\
 \hline
 More Dependent Types & \texttt{MoreDep.v} \\
 \hline

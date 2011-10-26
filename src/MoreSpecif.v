@@ -7,7 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-(* Types and notations presented in Chapter 7 *)
+(* Types and notations presented in Chapter 6 *)
 
 Set Implicit Arguments.
 
