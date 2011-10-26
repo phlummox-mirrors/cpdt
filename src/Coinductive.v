@@ -41,9 +41,9 @@ Luckily, Coq has special support for a class of lazy data structures that happen
 (** Let us begin with the most basic type of infinite data, %\textit{%#<i>#streams#</i>#%}%, or lazy lists.%\index{Vernacular commands!CoInductive}% *)
 
 Section stream.
-  Variable A : Set.
+  Variable A : Type.
 
-  CoInductive stream : Set :=
+  CoInductive stream : Type :=
   | Cons : A -> stream -> stream.
 End stream.
 
@@ -119,7 +119,7 @@ The rule we have run afoul of here is that %\textit{%#<i>#every co-recursive cal
 Some familiar functions are easy to write in co-recursive fashion. *)
 
 Section map.
-  Variables A B : Set.
+  Variables A B : Type.
   Variable f : A -> B.
 
   CoFixpoint map (s : stream A) : stream B :=
@@ -133,7 +133,7 @@ End map.
    The implications of the condition can be subtle.  To illustrate how, we start off with another co-recursive function definition that %\textit{%#<i>#is#</i>#%}% legal.  The function [interleave] takes two streams and produces a new stream that alternates between their elements. *)
 
 Section interleave.
-  Variable A : Set.
+  Variable A : Type.
 
   CoFixpoint interleave (s1 s2 : stream A) : stream A :=
     match s1, s2 with
@@ -144,7 +144,7 @@ End interleave.
 (** Now say we want to write a weird stuttering version of [map] that repeats elements in a particular way, based on interleaving. *)
 
 Section map'.
-  Variables A B : Set.
+  Variables A B : Type.
   Variable f : A -> B.
 (* begin thide *)
   (** [[
@@ -210,7 +210,7 @@ Abort.
 We are ready for our first %\index{co-inductive predicates}%co-inductive predicate. *)
 
 Section stream_eq.
-  Variable A : Set.
+  Variable A : Type.
 
   CoInductive stream_eq : stream A -> stream A -> Prop :=
   | Stream_eq : forall h t1 t2,
@@ -376,7 +376,7 @@ Definition hd A (s : stream A) : A :=
 (** Now we enter a section for the co-induction principle, based on %\index{Park's principle}%Park's principle as introduced in a tutorial by Gim%\'%enez%~\cite{IT}%. *)
 
 Section stream_eq_coind.
-  Variable A : Set.
+  Variable A : Type.
   Variable R : stream A -> stream A -> Prop.
   (** This relation generalizes the theorem we want to prove, characterizinge exactly which two arguments to [stream_eq] we want to consider. *)
 
@@ -408,7 +408,7 @@ Qed.
    Compared to the inductive proofs that we are used to, it still seems unsatisfactory that we had to write out a choice of [R] in the last proof.  An alternate is to capture a common pattern of co-recursion in a more specialized co-induction principle.  For the current example, that pattern is: prove [stream_eq s1 s2] where [s1] and [s2] are defined as their own tails. *)
 
 Section stream_eq_loop.
-  Variable A : Set.
+  Variable A : Type.
   Variables s1 s2 : stream A.
 
   Hypothesis Cons_case_hd : hd s1 = hd s2.
@@ -492,7 +492,7 @@ Qed.
 (** As in the case of [ones_eq'], we may be unsatisfied that we needed to write down a choice of [R] that seems to duplicate information already present in a lemma statement.  We can facilitate a simpler proof by defining a co-induction principle specialized to goals that begin with single universal quantifiers, and the strategy can be extended in a straightforward way to principles for other counts of quantifiers.  (Our [stream_eq_loop] principle is effectively the instantiation of this technique to zero quantifiers.) *)
 
 Section stream_eq_onequant.
-  Variables A B : Set.
+  Variables A B : Type.
   (** We have the types [A], the domain of the one quantifier; and [B], the type of data found in the streams. *)
 
   Variables f g : A -> stream B.
