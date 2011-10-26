@@ -75,7 +75,7 @@ A language with %\textit{%#<i>#dependent types#</i>#%}% may include references t
 
 %\index{ACL2}%ACL2 and %\index{HOL}%HOL lack dependent types outright.  %\index{PVS}%PVS and %\index{Twelf}%Twelf each supports a different strict subset of Coq's dependent type language.  Twelf's type language is restricted to a bare-bones, monomorphic lambda calculus, which places serious restrictions on how complicated %\textit{%#<i>#computations inside types#</i>#%}% can be.  This restriction is important for the soundness argument behind Twelf's approach to representing and checking proofs.
 
-In contrast, %\index{PVS}%PVS's dependent types are much more general, but they are squeezed inside the single mechanism of %\textit{%#<i>#subset types#</i>#%}%, where a normal type is refined by attaching a predicate over its elements.  Each member of the subset type is an element of the base type that satisfies the predicate.  Chapter 6 of this book introduces that style of programming in Coq, while the remaining chapters of Part II deal with features of dependent typing in Coq that go beyond what PVS supports.
+In contrast, %\index{PVS}%PVS's dependent types are much more general, but they are squeezed inside the single mechanism of %\textit{%#<i>#subset types#</i>#%}%, where a normal type is refined by attaching a predicate over its elements.  Each member of the subset type is an element of the base type that satisfies the predicate.  Chapter 7 of this book introduces that style of programming in Coq, while the remaining chapters of Part II deal with features of dependent typing in Coq that go beyond what PVS supports.
 
 Dependent types are not just useful because they help you express correctness properties in types.  Dependent types also often let you write certified programs %\textit{%#<i>#without writing anything that looks like a proof#</i>#%}%.  Even with subset types, which for many contexts can be used to express any relevant property with enough acrobatics, the human driving the proof assistant usually has to build some proofs explicitly.  Writing formal proofs is hard, so we want to avoid it as far as possible, so dependent types are invaluable.
 
@@ -224,6 +224,8 @@ Introducing Inductive Types & \texttt{InductiveTypes.v} \\
 Inductive Predicates & \texttt{Predicates.v} \\
 \hline
 Infinite Data and Proofs & \texttt{Coinductive.v} \\
+\hline
+General Recursion & \texttt{GeneralRec.v} \\
 \hline
 Subset Types and Variations & \texttt{Subset.v} \\
 \hline

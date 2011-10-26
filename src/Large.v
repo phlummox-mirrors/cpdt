@@ -284,7 +284,7 @@ Qed.
 
    Before we are ready to update our proofs, we need to write them in the first place.  While fully-automated scripts are most robust to changes of specification, it is hard to write every new proof directly in that form.  Instead, it is useful to begin a theorem with exploratory proving and then gradually refine it into a suitable automated form.
 
-   Consider this theorem from Chapter 7, which we begin by proving in a mostly manual way, invoking [crush] after each steop to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
+   Consider this theorem from Chapter 8, which we begin by proving in a mostly manual way, invoking [crush] after each steop to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
 
 (* begin hide *)
 Require Import MoreDep.
