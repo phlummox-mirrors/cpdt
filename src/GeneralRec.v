@@ -18,13 +18,13 @@ Set Implicit Arguments.
 
 (** %\chapter{General Recursion}% *)
 
-(** Termination of all programs is a crucial property of Gallina.  Nonterminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions.
+(** Termination of all programs is a crucial property of Gallina.  Non-terminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions.
 
-   What exactly are the conservative criteria that we run up against?  For %\emph{%#<i>#recursive#</i>#%}% definitions, recursive calls are only allowed on %\emph{%#<i>#syntactic subterms#</i>#%}% of the original primary argument, a restriction known as %\index{primitive recursion}\emph{%#<i>#primitive recursion#</i>#%}%.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In the previous chapter, we saw how %\emph{%#<i>#co-recursive#</i>#%}% definitions are checked against a syntactic guardness condition that guarantees productivity.
+   What exactly are the conservative criteria that we run up against?  For %\emph{%#<i>#recursive#</i>#%}% definitions, recursive calls are only allowed on %\emph{%#<i>#syntactic subterms#</i>#%}% of the original primary argument, a restriction known as %\index{primitive recursion}\emph{%#<i>#primitive recursion#</i>#%}%.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how %\emph{%#<i>#co-recursive#</i>#%}% definitions are checked against a syntactic guardness condition that guarantees productivity.
 
-   Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs.
+   Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs, without any up-front characterization of which inputs those may be.
 
-   Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of the previous chapter demonstrated what is called a %\index{deep embedding}\emph{%#<i>#deep embedding#</i>#%}% of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a %\index{shallow embedding}\emph{%#<i>#shallow embedding#</i>#%}%, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
+   Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of Chapter 5 demonstrated what is called a %\index{deep embedding}\emph{%#<i>#deep embedding#</i>#%}% of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a %\index{shallow embedding}\emph{%#<i>#shallow embedding#</i>#%}%, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
 
 
 (** * Well-Founded Recursion *)
@@ -98,7 +98,7 @@ Inductive Acc (A : Type) (R : A -> A -> Prop) (x : A) : Prop :=
     Acc_intro : (forall y : A, R y x -> Acc R y) -> Acc R x
 ]]
 
-In prose, an element [x] is accessible for a relation [R] if every element %``%#"#less than#"#%''% [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense which we can make formal.  Building on last chapter's examples, let us define a co-inductive relation that is closer to the usual informal notion of %``%#"#absence of infinite decreasing chains.#"#%''% *)
+In prose, an element [x] is accessible for a relation [R] if every element %``%#"#less than#"#%''% [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense which we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of %``%#"#absence of infinite decreasing chains.#"#%''% *)
 
   CoInductive isChain A (R : A -> A -> Prop) : stream A -> Prop :=
   | ChainCons : forall x y s, isChain R (Cons y s)
@@ -144,14 +144,14 @@ A call to %\index{Gallina terms!Fix}%[Fix] must present a relation [R] and a pro
 
 This is an encoding of the function body.  The input [x] stands for the function argument, and the next input stands for the function we are defining.  Recursive calls are encoded as calls to the second argument, whose type tells us it expects a value [y] and a proof that [y] is %``%#"#less than#"#%''% [x], according to [R].  In this way, we enforce the well-foundedness restriction on recursive calls.
 
-The rest of [Fix]'s type tells us that it returns a function of exactly the type we expect, so we are now ready to use it to implement [mergeSort].  Careful readers may have noticed something unusual going on in the type of [Fix], where a program function takes a proof as an argument.  Chapter 7 will include much more detail on that style of programming; here we will merely give a taste of what is to come.
+The rest of [Fix]'s type tells us that it returns a function of exactly the type we expect, so we are now ready to use it to implement [mergeSort].  Careful readers may have noticed that [Fix] has a dependent type of the sort we met in the previous chapter.
 
 Before writing [mergeSort], we need to settle on a well-founded relation.  The right one for this example is based on lengths of lists. *)
 
   Definition lengthOrder (ls1 ls2 : list A) :=
     length ls1 < length ls2.
 
-  (** We must prove that the relation is truly well-founded.  To save some space here, we skip right to nice, automated proof scripts, though we postpone introducing the principles behind such scripts into Part III of the book.  Curious readers may still replace semicolons with periods and newlines to step through these scripts interactively. *)
+  (** We must prove that the relation is truly well-founded.  To save some space in the rest of this chapter, we skip right to nice, automated proof scripts, though we postpone introducing the principles behind such scripts to Part III of the book.  Curious readers may still replace semicolons with periods and newlines to step through these scripts interactively. *)
 
   Hint Constructors Acc.
 
@@ -163,7 +163,7 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
     red; intro; eapply lengthOrder_wf'; eauto.
   Defined.
 
-  (** Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  The alternate command marks the theorems as %\emph{transparent}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as %\emph{%#<i>#recursive in the structure of [Acc] proofs#</i>#%}%.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.
+  (** Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  Recall that [Defined] marks the theorems as %\emph{transparent}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as %\emph{%#<i>#recursive in the structure of [Acc] proofs#</i>#%}%.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.
 
      To justify our two recursive [mergeSort] calls, we will also need to prove that [partition] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation. *)
 
@@ -195,7 +195,7 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 
   Hint Resolve partition_wf1 partition_wf2.
 
-  (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type.  Again, more detail on these points will come in Chapter 7. *)
+  (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type. *)
 
   Definition mergeSort : list A -> list A.
 (* begin thide *)
@@ -260,7 +260,7 @@ let rec mergeSort le x =
   | Right -> x
 >>
 
-  We see almost precisely the same definition we would have written manually in OCaml!  Chapter 7 shows how we can clean up a few of the remaining warts, like use of the mysterious constructors [Left] and [Right].
+  We see almost precisely the same definition we would have written manually in OCaml!  It might be a good exercise for the reader to use the commands we saw in the previous chapter to clean up some remaining differences from idiomatic OCaml.
 
   One more piece of the full picture is missing.  To go on and prove correctness of [mergeSort], we would need more than a way of unfolding its definition.  We also need an appropriate induction principle matched to the well-founded relation.  Such a principle is available in the standard library, though we will say no more about its details here. *)
 

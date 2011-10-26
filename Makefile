@@ -1,6 +1,6 @@
 MODULES_NODOC := CpdtTactics MoreSpecif DepList
 MODULES_PROSE := Intro
-MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive GeneralRec Subset \
+MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset GeneralRec \
 	MoreDep DataStruct Equality Generic Universes LogicProg Match Reflection \
 	Large
 MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
