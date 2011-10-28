@@ -98,7 +98,7 @@ Inductive Acc (A : Type) (R : A -> A -> Prop) (x : A) : Prop :=
     Acc_intro : (forall y : A, R y x -> Acc R y) -> Acc R x
 ]]
 
-In prose, an element [x] is accessible for a relation [R] if every element %``%#"#less than#"#%''% [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense which we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of %``%#"#absence of infinite decreasing chains.#"#%''% *)
+In prose, an element [x] is accessible for a relation [R] if every element %``%#"#less than#"#%''% [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of %``%#"#absence of infinite decreasing chains.#"#%''% *)
 
   CoInductive isChain A (R : A -> A -> Prop) : stream A -> Prop :=
   | ChainCons : forall x y s, isChain R (Cons y s)
@@ -137,7 +137,6 @@ Fix
 ]]
 
 A call to %\index{Gallina terms!Fix}%[Fix] must present a relation [R] and a proof of its well-foundedness.  The next argument, [P], is the possibly dependent range type of the function we build; the domain [A] of [R] is the function's domain.  The following argument has this type:
-
 [[
        forall x : A, (forall y : A, R y x -> P y) -> P x
 ]]
@@ -279,7 +278,7 @@ well_founded_induction
 
 (** * A Non-Termination Monad Inspired by Domain Theory *)
 
-(** The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on %\emph{%#<i>#information orders#</i>#%}% that relate values representing computatiion results, according to how much information these values convey.  For instance, a simple domain might include values %``%#"#the program does not terminate#"#%''% and %``%#"#the program terminates with the answer 5.#"#%''%  The former is considered to be an %\emph{%#<i>#approximation#</i>#%}% of the latter, while the latter is %\emph{%#<i>#not#</i>#%}% an approximation of %``%#"#the program terminates with the answer 6.#"#%''%  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.
+(** The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on %\emph{%#<i>#information orders#</i>#%}% that relate values representing computation results, according to how much information these values convey.  For instance, a simple domain might include values %``%#"#the program does not terminate#"#%''% and %``%#"#the program terminates with the answer 5.#"#%''%  The former is considered to be an %\emph{%#<i>#approximation#</i>#%}% of the latter, while the latter is %\emph{%#<i>#not#</i>#%}% an approximation of %``%#"#the program terminates with the answer 6.#"#%''%  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.
 
    Consider this definition of a type of computations. *)
 
@@ -371,7 +370,7 @@ Hint Extern 1 => match goal with
 (* end hide *)
 (** remove printing exists *)
 
-(** Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the [run] tactic.  In contrast to the previous section, opauqe proofs are fine here, since the proof components of computations do not influence evaluation behavior. *)
+(** Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the [run] tactic.  In contrast to the previous section, opaque proofs are fine here, since the proof components of computations do not influence evaluation behavior. *)
 
 Section Bottom.
   Variable A : Type.
@@ -409,11 +408,11 @@ Section Bind.
 
   Definition Bind : computation B.
     exists (fun n =>
-      let (f1, Hf1) := m1 in
+      let (f1, _) := m1 in
       match f1 n with
 	| None => None
 	| Some v =>
-	  let (f2, Hf2) := m2 v in
+	  let (f2, _) := m2 v in
 	    f2 n
       end); abstract run.
   Defined.
@@ -447,7 +446,8 @@ Theorem right_identity : forall A (m : computation A),
   run.
 Qed.
 
-Theorem associativity : forall A B C (m : computation A) (f : A -> computation B) (g : B -> computation C),
+Theorem associativity : forall A B C (m : computation A)
+  (f : A -> computation B) (g : B -> computation C),
   meq (Bind (Bind m f) g) (Bind m (fun x => Bind (f x) g)).
   run.
 Qed.
@@ -737,15 +737,19 @@ Qed.
 
 (** We need to apply constructors of [eval] explicitly, but the process is easy to automate completely for concrete input programs.
 
-   Now consider another very similar definition, this time of a Fibonacci number funtion.
-[[
+   Now consider another very similar definition, this time of a Fibonacci number funtion. *)
+
+Notation "x <- m1 ; m2" :=
+  (TBind m1 (fun x => m2)) (right associativity, at level 70).
+
+(** %\vspace{-.15in}%[[
 CoFixpoint fib (n : nat) : thunk nat :=
   match n with
     | 0 => Answer 1
     | 1 => Answer 1
-    | _ => TBind (fib (pred n)) (fun n1 =>
-      TBind (fib (pred (pred n))) (fun n2 =>
-        Answer (n1 + n2)))
+    | _ => n1 <- fib (pred n);
+      n2 <- fib (pred (pred n));
+      Answer (n1 + n2)
   end.
 ]]
 
@@ -881,7 +885,7 @@ Error: Universe inconsistency.
 The problem has to do with rules for inductive definitions that we still study in more detail in Chapter 12.  Briefly, recall that the type of the constructor [Bnd] quantifies over a type [B].  To make [testCurriedAdd] work, we would need to instantiate [B] as [nat -> comp nat].  However, Coq enforces a %\emph{predicativity restriction}% that (roughly) no quantifier in an inductive or co-inductive type's definition may ever be instantiated with a term that contains the type being defined.  Chapter 12 presents the exact mechanism by which this restriction is enforced, but for now our conclusion is that [comp] is fatally flawed as a way of encoding interesting higher-order functional programs that use general recursion. *)
 
 
-(** * Comparing the Options *)
+(** * Comparing the Alternatives *)
 
 (** We have seen four different approaches to encoding general recursive definitions in Coq.  Among them there is no clear champion that dominates the others in every important way.  Instead, we close the chapter by comparing the techniques along a number of dimensions.  Every technique allows recursive definitions with terminaton arguments that go beyond Coq's built-in termination checking, so we must turn to subtler points to highlight differences.
 
@@ -901,7 +905,7 @@ Definition curriedAdd' (n : nat) := Return (fun m : nat => Return (n + m)).
 
 Definition testCurriedAdd := Bind (curriedAdd' 2) (fun f => f 3).
 
-(** The same techniques also apply to more interesting higher-order functions like list map, and, as in all four techniques, we can mix regular and general recursion, preferring the former when possible to avoid proof obligations. *)
+(** The same techniques also apply to more interesting higher-order functions like list map, and, as in all four techniques, we can mix primitive and general recursion, preferring the former when possible to avoid proof obligations. *)
 
 Fixpoint map A B (f : A -> computation B) (ls : list A) : computation (list B) :=
   match ls with
@@ -919,4 +923,4 @@ Qed.
 
 (** One further disadvantage of [comp] is that we cannot prove an inversion lemma for executions of [Bind] without appealing to an %\emph{axiom}%, a logical complication that we discuss at more length in Chapter 12.  The other three techniques allow proof of all the important theorems within the normal logic of Coq.
 
-Perhaps one theme of our comparison is that one must trade off between on one hand, functional programming expressiveness and compatibility with normal Coq types and computation; and, on the other hand, the level of proof obligations one is willing to handle at function definition time. *)
+Perhaps one theme of our comparison is that one must trade off between, on one hand, functional programming expressiveness and compatibility with normal Coq types and computation; and, on the other hand, the level of proof obligations one is willing to handle at function definition time. *)
