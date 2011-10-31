@@ -18,15 +18,15 @@ Set Implicit Arguments.
 
 (** %\chapter{Generic Programming}% *)
 
-(** %\textit{%#<i>#Generic programming#</i>#%}% makes it possible to write functions that operate over different types of data.  Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style module systems and Haskell type classes are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a [deriving] clause, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do datatype-generic programming much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
+(** %\index{generic programming}\textit{%#<i>#Generic programming#</i>#%}% makes it possible to write functions that operate over different types of data.  %\index{parametric polymorphism}%Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style %\index{module systems}%module systems%~\cite{modules}% and Haskell %\index{type classes}%type classes%~\cite{typeclasses}% are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a %\index{deriving clauses}%[deriving] clause, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do %\index{datatype-generic programming}\emph{%#<i>#datatype-generic programming#</i>#%}% much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
 
    Generic programming can often be very useful in Coq developments, so we devote this chapter to studying it.  In a proof assistant, there is the new possibility of generic proofs about generic programs, which we also devote some space to. *)
 
 (** * Reflecting Datatype Definitions *)
 
-(** The key to generic programming with dependent types is %\textit{%#<i>#universe types#</i>#%}%.  This concept should not be confused with the idea of %\textit{%#<i>#universes#</i>#%}% from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide %\textit{%#<i>#syntactic representations#</i>#%}% of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we %\textit{%#<i>#can#</i>#%}% case analyze on reflected syntactic versions of those types.
+(** The key to generic programming with dependent types is %\index{universe types}\textit{%#<i>#universe types#</i>#%}%.  This concept should not be confused with the idea of %\textit{%#<i>#universes#</i>#%}% from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide %\textit{%#<i>#syntactic representations#</i>#%}% of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we %\textit{%#<i>#can#</i>#%}% case analyze on reflected syntactic versions of those types.
 
-   Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually-recursive definitions.
+   Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
    The first step is to define a representation for constructors of our datatypes. *)
 
@@ -52,7 +52,7 @@ Definition bool_dt : datatype := Con unit 0 :: Con unit 0 :: nil.
 Definition nat_dt : datatype := Con unit 0 :: Con unit 1 :: nil.
 Definition list_dt (A : Type) : datatype := Con unit 0 :: Con A 1 :: nil.
 
-(** [Empty_set] has no constructors, so its representation is the empty list.  [unit] has one constructor with no arguments, so its one reflected constructor indicates no non-recursive data and [0] recursive arguments.  The representation for [bool] just duplicates this single argumentless constructor.    We get from [bool] to [nat] by changing one of the constructors to indicate 1 recursive argument.  We get from [nat] to [list] by adding a non-recursive argument of a parameter type [A].
+(** The type [Empty_set] has no constructors, so its representation is the empty list.  The type [unit] has one constructor with no arguments, so its one reflected constructor indicates no non-recursive data and [0] recursive arguments.  The representation for [bool] just duplicates this single argumentless constructor.    We get from [bool] to [nat] by changing one of the constructors to indicate 1 recursive argument.  We get from [nat] to [list] by adding a non-recursive argument of a parameter type [A].
 
    As a further example, we can do the same encoding for a generic binary tree type. *)
 
@@ -77,10 +77,10 @@ Section denote.
 
   Definition constructorDenote (c : constructor) :=
     nonrecursive c -> ilist T (recursive c) -> T.
-  (** We write that a constructor is represented as a function returning a [T].  Such a function takes two arguments, which pack together the non-recursive and recursive arguments of the constructor.  We represent a tuple of all recursive arguments using the length-indexed list type [ilist] that we met in Chapter 8. *)
+  (** We write that a constructor is represented as a function returning a [T].  Such a function takes two arguments, which pack together the non-recursive and recursive arguments of the constructor.  We represent a tuple of all recursive arguments using the length-indexed list type %\index{Gallina terms!ilist}%[ilist] that we met in Chapter 8. *)
 
   Definition datatypeDenote := hlist constructorDenote.
-  (** Finally, the evidence for type [T] is a heterogeneous list, including a constructor denotation for every constructor encoding in a datatype encoding.  Recall that, since we are inside a section binding [T] as a variable, [constructorDenote] is automatically parameterized by [T]. *)
+  (** Finally, the evidence for type [T] is a %\index{Gallina terms!hlist}%heterogeneous list, including a constructor denotation for every constructor encoding in a datatype encoding.  Recall that, since we are inside a section binding [T] as a variable, [constructorDenote] is automatically parameterized by [T]. *)
 
 End denote.
 (* end thide *)
@@ -109,12 +109,14 @@ Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
   [v, ! ~> Leaf v] ::: [!, r ~> Node (hd r) (hd (tl r))] ::: HNil.
 (* end thide *)
 
+(** Recall that the [hd] and [tl] calls above operate on richly typed lists, where type indices tell us the lengths of lists, guaranteeing the safety of operations like [hd].  The type annotation attached to each definition provides enough information for Coq to infer list lengths at appropriate points. *)
+
 
 (** * Recursive Definitions *)
 
 (* EX: Define a generic [size] function. *)
 
-(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a %\textit{%#<i>#recursion scheme#</i>#%}% for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
+(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a %\index{recursion schemes}\textit{%#<i>#recursion scheme#</i>#%}% for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
 
 (* begin thide *)
 Definition fixDenote (T : Type) (dt : datatype) :=
@@ -128,11 +130,10 @@ Check hmake.
 (** %\vspace{-.15in}% [[
   hmake
      : forall (A : Type) (B : A -> Type),
-       (forall x : A, B x) -> forall ls : list A, hlist B l
- 
+       (forall x : A, B x) -> forall ls : list A, hlist B ls
        ]]
 
-  [hmake] is a kind of [map] alternative that goes from a regular [list] to an [hlist].  We can use it to define a generic size function which counts the number of constructors used to build a value in a datatype. *)
+  The function [hmake] is a kind of [map] alternative that goes from a regular [list] to an [hlist].  We can use it to define a generic size function that counts the number of constructors used to build a value in a datatype. *)
 
 Definition size T dt (fx : fixDenote T dt) : T -> nat :=
   fx nat (hmake (B := constructorDenote nat) (fun _ _ r => foldr plus 1 r) dt).
@@ -148,7 +149,6 @@ Eval compute in size Empty_set_fix.
      = fun emp : Empty_set => match emp return nat with
                               end
      : Empty_set -> nat
- 
 ]]
 
 Despite all the fanciness of the generic [size] function, CIC's standard computation rules suffice to normalize the generic function specialization to exactly what we would have written manually. *)
@@ -159,7 +159,6 @@ Eval compute in size unit_fix.
 (** %\vspace{-.15in}% [[
      = fun _ : unit => 1
      : unit -> nat
- 
 ]]
 
 Again normalization gives us the natural function definition.  We see this pattern repeated for our other example types. *)
@@ -365,6 +364,8 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
      ]]
      *)
 
+(** Some of these simplified terms seem overly complex because we have turned off simplification of calls to [append], which is what uses of the [++] operator desugar to.  Selective [++] simplification would combine adjacent string literals, yielding more or less the code we would write manually to implement this printing scheme. *)
+
 
 (** ** Mapping *)
 
@@ -438,6 +439,8 @@ Eval compute in fun A => map (tree_den A) (@tree_fix A).
      ]]
      *)
 
+(** These [map] functions are just as easy to use as those we write by hand.  Can you figure out the input-output pattern that [map_nat S] displays in these examples? *)
+
 Definition map_nat := map nat_den nat_fix.
 Eval simpl in map_nat S 0.
 (** %\vspace{-.15in}% [[
@@ -459,6 +462,8 @@ Eval simpl in map_nat S 2.
      : nat
      ]]
      *)
+
+(** We get [map_nat S n] = [2 * n + 1], because the mapping process adds an extra [S] at every level of the inductive tree that defines a natural, including at the last level, the [O] constructor. *)
 
 
 (** * Proving Theorems about Recursive Definitions *)
@@ -482,7 +487,7 @@ Section ok.
         -> P ((hget dd m) x r))
       -> forall v, P v.
 
-  (** This definition can take a while to digest.  The quantifier over [m : member c dt] is considering each constructor in turn; like in normal induction principles, each constructor has an associated proof case.  The expression [hget dd m] then names the constructor we have selected.  After binding [m], we quantify over all possible arguments (encoded with [x] and [r]) to the constructor that [m] selects.  Within each specific case, we quantify further over [i : fin (recursive c)] to consider all of our induction hypotheses, one for each recursive argument of the current constructor.
+  (** This definition can take a while to digest.  The quantifier over [m : member c dt] is considering each constructor in turn; like in normal induction principles, each constructor has an associated proof case.  The expression [hget dd m] then names the constructor we have selected.  After binding [m], we quantify over all possible arguments (encoded with [x] and [r]) to the constructor that [m] selects.  Within each specific case, we quantify further over [i : fin (][recursive c)] to consider all of our induction hypotheses, one for each recursive argument of the current constructor.
 
      We have completed half the burden of defining side conditions.  The other half comes in characterizing when a recursion scheme [fx] is valid.  The natural condition is that [fx] behaves appropriately when applied to any constructor application. *)
 
@@ -518,39 +523,36 @@ Theorem size_positive : forall T dt
      (hmake
         (fun (x : constructor) (_ : nonrecursive x)
            (r : ilist nat (recursive x)) => foldr plus 1%nat r) dt) v > 0
- 
     ]]
       
     Our goal is an inequality over a particular call to [size], with its definition expanded.  How can we proceed here?  We cannot use [induction] directly, because there is no way for Coq to know that [T] is an inductive type.  Instead, we need to use the induction principle encoded in our hypothesis [dok] of type [datatypeDenoteOk dd].  Let us try applying it directly.
-
     [[
   apply dok.
-
+    ]]
+%\vspace{-.3in}%
+<<
 Error: Impossible to unify "datatypeDenoteOk dd" with
  "fx nat
     (hmake
        (fun (x : constructor) (_ : nonrecursive x)
           (r : ilist nat (recursive x)) => foldr plus 1%nat r) dt) v > 0".
- 
-    ]]
+>>
 
     Matching the type of [dok] with the type of our conclusion requires more than simple first-order unification, so [apply] is not up to the challenge.  We can use the [pattern] tactic to get our goal into a form that makes it apparent exactly what the induction hypothesis is. *)
 
   pattern v.
-
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    (fun t : T =>
     fx nat
       (hmake
          (fun (x : constructor) (_ : nonrecursive x)
             (r : ilist nat (recursive x)) => foldr plus 1%nat r) dt) t > 0) v
- 
       ]]
       *)
 
   apply dok; crush.
-  (** [[
+  (** %\vspace{-.15in}%[[
   H : forall i : fin (recursive c),
       fx nat
         (hmake
@@ -568,13 +570,12 @@ Error: Impossible to unify "datatypeDenoteOk dd" with
               (fun (x0 : constructor) (_ : nonrecursive x0)
                  (r0 : ilist nat (recursive x0)) => 
                foldr plus 1%nat r0) dt)) r) > 0
- 
     ]]
 
     An induction hypothesis [H] is generated, but we turn out not to need it for this example.  We can simplify the goal using a library theorem about the composition of [hget] and [hmake]. *)
 
   rewrite hget_hmake.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    foldr plus 1%nat
      (imap
@@ -583,7 +584,6 @@ Error: Impossible to unify "datatypeDenoteOk dd" with
               (fun (x0 : constructor) (_ : nonrecursive x0)
                  (r0 : ilist nat (recursive x0)) => 
                foldr plus 1%nat r0) dt)) r) > 0
- 
     ]]
 
     The lemma we proved earlier finishes the proof. *)
@@ -616,7 +616,7 @@ Theorem map_id : forall T dt
   Hint Rewrite hget_hmap : cpdt.
 
   unfold map; intros; pattern v; apply dok; crush.
-  (** [[
+  (** %\vspace{-.15in}%[[
   H : forall i : fin (recursive c),
       fx T
         (hmap
@@ -631,13 +631,12 @@ Theorem map_id : forall T dt
               (fun (x0 : constructor) (c0 : constructorDenote T x0)
                  (x1 : nonrecursive x0) (r0 : ilist T (recursive x0)) =>
                c0 x1 r0) dd)) r) = hget dd m x r
- 
     ]]
 
     Our goal is an equality whose two sides begin with the same function call and initial arguments.  We believe that the remaining arguments are in fact equal as well, and the [f_equal] tactic applies this reasoning step for us formally. *)
 
   f_equal.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    imap
      (fx T
@@ -645,7 +644,6 @@ Theorem map_id : forall T dt
            (fun (x0 : constructor) (c0 : constructorDenote T x0)
               (x1 : nonrecursive x0) (r0 : ilist T (recursive x0)) =>
             c0 x1 r0) dd)) r = r
- 
     ]]
 
     At this point, it is helpful to proceed by an inner induction on the heterogeneous list [r] of recursive call results.  We could arrive at a cleaner proof by breaking this step out into an explicit lemma, but here we will do the induction inline to save space.*)
@@ -653,7 +651,6 @@ Theorem map_id : forall T dt
   induction r; crush.
 
   (** The base case is discharged automatically, and the inductive case looks like this, where [H] is the outer IH (for induction over [T] values) and [IHn] is the inner IH (for induction over the recursive arguments).
-
      [[
   H : forall i : fin (S n),
       fx T
@@ -694,14 +691,13 @@ Theorem map_id : forall T dt
               (fun (x0 : constructor) (c0 : constructorDenote T x0)
                  (x1 : nonrecursive x0) (r0 : ilist T (recursive x0)) =>
                c0 x1 r0) dd)) r) = ICons a r
- 
     ]]
 
     We see another opportunity to apply [f_equal], this time to split our goal into two different equalities over corresponding arguments.  After that, the form of the first goal matches our outer induction hypothesis [H], when we give type inference some help by specifying the right quantifier instantiation. *)
 
   f_equal.
   apply (H First).
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    imap
      (fx T
@@ -709,14 +705,12 @@ Theorem map_id : forall T dt
            (fun (x0 : constructor) (c0 : constructorDenote T x0)
               (x1 : nonrecursive x0) (r0 : ilist T (recursive x0)) => 
             c0 x1 r0) dd)) r = r
- 
     ]]
 
     Now the goal matches the inner IH [IHr]. *)
 
   apply IHr; crush.
-
-  (** [[
+  (** %\vspace{-.15in}%[[
   i : fin n
   ============================
    fx T
@@ -724,7 +718,6 @@ Theorem map_id : forall T dt
         (fun (x0 : constructor) (c0 : constructorDenote T x0)
            (x1 : nonrecursive x0) (r0 : ilist T (recursive x0)) => 
          c0 x1 r0) dd) (get r i) = get r i
- 
     ]]
 
     We can finish the proof by applying the outer IH again, specialized to a different [fin] value. *)
@@ -732,3 +725,5 @@ Theorem map_id : forall T dt
   apply (H (Next i)).
 Qed.
 (* end thide *)
+
+(** The proof involves complex subgoals, but, still, few steps are required, and then we may reuse our work across a variety of datatypes. *)

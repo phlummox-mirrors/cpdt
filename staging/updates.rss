@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "Generic Programming"</title>
+        <pubDate>Mon, 31 Oct 2011 14:23:29 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>New chapter: "General Recursion"</title>
         <pubDate>Fri, 28 Oct 2011 18:25:46 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
