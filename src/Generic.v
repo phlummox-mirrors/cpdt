@@ -233,11 +233,8 @@ Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
 
 (** ** Pretty-Printing *)
 
-(* EX: Define a generic pretty-printing function. *)
-
 (** It is also useful to do generic pretty-printing of datatype values, rendering them as human-readable strings.  To do so, we will need a bit of metadata for each constructor.  Specifically, we need the name to print for the constructor and the function to use to render its non-recursive arguments.  Everything else can be done generically. *)
 
-(* begin thide *)
 Record print_constructor (c : constructor) : Type := PI {
   printName : string;
   printNonrec : nonrecursive c -> string
@@ -270,7 +267,6 @@ Definition print T dt (pr : print_datatype dt) (fx : fixDenote T dt) : T -> stri
   fx string (hmap (B1 := print_constructor) (B2 := constructorDenote string)
     (fun _ pc x r => printName pc ++ "(" ++ printNonrec pc x
       ++ foldr (fun s acc => ", " ++ s ++ acc) ")" r) pr).
-(* end thide *)
 
 (** Some simple tests establish that [print] gets the job done. *)
 
@@ -369,16 +365,12 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
 
 (** ** Mapping *)
 
-(* EX: Define a generic [map] function. *)
-
 (** By this point, we have developed enough machinery that it is old hat to define a generic function similar to the list [map] function. *)
 
-(* begin thide *)
 Definition map T dt (dd : datatypeDenote T dt) (fx : fixDenote T dt) (f : T -> T)
   : T -> T :=
   fx T (hmap (B1 := constructorDenote T) (B2 := constructorDenote T)
     (fun _ c x r => f (c x r)) dd).
-(* end thide *)
 
 Eval compute in map Empty_set_den Empty_set_fix.
 (** %\vspace{-.15in}% [[
@@ -470,7 +462,6 @@ Eval simpl in map_nat S 2.
 
 (** We would like to be able to prove theorems about our generic functions.  To do so, we need to establish additional well-formedness properties that must hold of pieces of evidence. *)
 
-(* begin thide *)
 Section ok.
   Variable T : Type.
   Variable dt : datatype.
@@ -504,6 +495,7 @@ End ok.
 
 (** We are now ready to prove that the [size] function we defined earlier always returns positive results.  First, we establish a simple lemma. *)
 
+(* begin thide *)
 Lemma foldr_plus : forall n (ils : ilist nat n),
   foldr plus 1 ils > 0.
   induction ils; crush.
