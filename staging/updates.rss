@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "Proof by Reflection"</title>
+        <pubDate>Wed, 2 Nov 2011 16:22:00 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+	<description>I've added a new subsection on reification of term syntax with Ltac, in a way that preserves equality between uninterpreted subterms.</description>
+</item>
+
+<item>
         <title>A pass through "Generic Programming"</title>
         <pubDate>Mon, 31 Oct 2011 14:23:29 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
