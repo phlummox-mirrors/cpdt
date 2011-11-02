@@ -625,6 +625,114 @@ and_ind
 
 The traditional [tauto] tactic introduces a quadratic blow-up in the size of the proof term, whereas proofs produced by [my_tauto] always have linear size. *)
 
+(** ** Manual Reification of Terms with Variables *)
+
+(** The action of the [quote] tactic above may seem like magic.  Somehow it performs equality comparison between subterms of arbitrary types, so that these subterms may be represented with the same reified variable.  While [quote] is implemented in OCaml, we can code the reification process completely in Ltac, as well.  To make our job simpler, we will represent variables as [nat]s, indexing into a simple list of variable values that may be referenced.
+
+   Step one of the process is to crawl over a term, building a duplicate-free list of all values that appear in positions we will encode as variables.  A useful helper function adds an element to a list, maintaining lack of duplicates.  Note how we use Ltac pattern matching to implement an equality test on Gallina terms; this is simple syntactic equality, not even the richer definitional equality.  We also represent lists as nested tuples, to allow different list elements to have different Gallina types. *)
+
+Ltac inList x xs :=
+  match xs with
+    | tt => false
+    | (x, _) => true
+    | (_, ?xs') => inList x xs'
+  end.
+
+Ltac addToList x xs :=
+  let b := inList x xs in
+    match b with
+      | true => xs
+      | false => constr:(x, xs)
+    end.
+
+(** Now we can write our recursive function to calculate the list of variable values we will want to use to represent a term. *)
+
+Ltac allVars xs e :=
+  match e with
+    | True => xs
+    | False => xs
+    | ?e1 /\ ?e2 =>
+      let xs := allVars xs e1 in
+        allVars xs e2
+    | ?e1 \/ ?e2 =>
+      let xs := allVars xs e1 in
+        allVars xs e2
+    | ?e1 -> ?e2 =>
+      let xs := allVars xs e1 in
+        allVars xs e2
+    | _ => addToList e xs
+  end.
+
+(** We will also need a way to map a value to its position in a list. *)
+
+Ltac lookup x xs :=
+  match xs with
+    | (x, _) => O
+    | (_, ?xs') =>
+      let n := lookup x xs' in
+        constr:(S n)
+  end.
+
+(** The next building block is a procedure for reifying a term, given a list of all allowed variable values.  We are free to make this procedure partial, where tactic failure may be triggered upon attempting to reflect a term containing subterms not included in the list of variables.  The output type of the term is a copy of [formula] where [index] is replaced by [nat], in the type of the constructor for atomic formulas. *)
+
+Inductive formula' : Set :=
+| Atomic' : nat -> formula'
+| Truth' : formula'
+| Falsehood' : formula'
+| And' : formula' -> formula' -> formula'
+| Or' : formula' -> formula' -> formula'
+| Imp' : formula' -> formula' -> formula'.
+
+(** Note that, when we write our own Ltac procedure, we can work directly with the normal [->] operator, rather than needing to introduce a wrapper for it. *)
+
+Ltac reifyTerm xs e :=
+  match e with
+    | True => Truth'
+    | False => Falsehood'
+    | ?e1 /\ ?e2 =>
+      let p1 := reifyTerm xs e1 in
+      let p2 := reifyTerm xs e2 in
+        constr:(And' p1 p2)
+    | ?e1 \/ ?e2 =>
+      let p1 := reifyTerm xs e1 in
+      let p2 := reifyTerm xs e2 in
+        constr:(Or' p1 p2)
+    | ?e1 -> ?e2 =>
+      let p1 := reifyTerm xs e1 in
+      let p2 := reifyTerm xs e2 in
+        constr:(Imp' p1 p2)
+    | _ =>
+      let n := lookup e xs in
+        constr:(Atomic' n)
+  end.
+
+(** Finally, we bring all the pieces together. *)
+
+Ltac reify :=
+  match goal with
+    | [ |- ?G ] => let xs := allVars tt G in
+      let p := reifyTerm xs G in
+        pose p
+  end.
+
+(** A quick test verifies that we are doing reification correctly. *)
+
+Theorem mt3' : forall x y z,
+  (x < y /\ y > z) \/ (y > z /\ x < S y)
+  -> y > z /\ (x < y \/ x < S y).
+  do 3 intro; reify.
+
+(** Our simple tactic adds the translated term as a new variable:
+[[
+f := Imp'
+         (Or' (And' (Atomic' 2) (Atomic' 1)) (And' (Atomic' 1) (Atomic' 0)))
+         (And' (Atomic' 1) (Or' (Atomic' 2) (Atomic' 0))) : formula'
+]]
+*)
+Abort.
+
+(** More work would be needed to complete the reflective tactic, as we must connect our new syntax type with the real meanings of formulas, but the details are the same as in our prior implementation with [quote]. *)
+
 
 (** * Exercises *)
 
