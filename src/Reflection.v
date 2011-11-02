@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Proof by Reflection}% *)
 
-(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique, %\textit{%#<i>#proof by reflection#</i>#%}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term %\textit{%#<i>#reflection#</i>#%}% applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them. *)
+(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique, %\index{proof by reflection}\textit{%#<i>#proof by reflection#</i>#%}~\cite{reflection}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term %\textit{%#<i>#reflection#</i>#%}% applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them. *)
 
 
 (** * Proving Evenness *)
@@ -47,7 +47,9 @@ Even_SS
  
     ]]
 
-    %\noindent%...and so on.  This procedure always works (at least on machines with infinite resources), but it has a serious drawback, which we see when we print the proof it generates that 256 is even.  The final proof term has length super-linear in the input value.  (Coq's implicit arguments mechanism is hiding the values given for parameter [n] of [Even_SS], which is why the proof term only appears linear here.)  This seems like a shame, since we could write a trivial and trustworthy program to verify evenness of constants.  The proof checker could simply call our program where needed.
+    %\noindent%...and so on.  This procedure always works (at least on machines with infinite resources), but it has a serious drawback, which we see when we print the proof it generates that 256 is even.  The final proof term has length super-linear in the input value.  Coq's implicit arguments mechanism is hiding the values given for parameter [n] of [Even_SS], which is why the proof term only appears linear here.  Also, proof terms are represented internally as syntax trees, with opportunity for sharing of node representations, but in this chapter we will measure proof term size as simple textual length or as the number of nodes in the term's syntax tree, two measures that are approximately equivalent.  Sometimes apparently large proof terms have enough internal sharing that they take up less memory than we expect, but one avoids having to reason about such sharing by ensuring that the size of a sharing-free version of a term is low enough.
+
+    Superlinear evenness proof terms seem like a shame, since we could write a trivial and trustworthy program to verify evenness of constants.  The proof checker could simply call our program where needed.
 
     It is also unfortunate not to have static typing guarantees that our tactic always behaves appropriately.  Other invocations of similar tactics might fail with dynamic type errors, and we would not know about the bugs behind these errors until we happened to attempt to prove complex enough goals.
 
@@ -79,7 +81,9 @@ Definition check_even : forall n : nat, [isEven n].
     end); auto.
 Defined.
 
-(** We can use dependent pattern-matching to write a function that performs a surprising feat.  When given a [partial P], this function [partialOut] returns a proof of [P] if the [partial] value contains a proof, and it returns a (useless) proof of [True] otherwise.  From the standpoint of ML and Haskell programming, it seems impossible to write such a type, but it is trivial with a [return] annotation. *)
+(** The function [check_even] may be viewed as a %\emph{%#<i>#verified decision procedure#</i>#%}%, because its type guarantees that it never returns [Yes] for inputs that are not even.
+
+   Now we can use dependent pattern-matching to write a function that performs a surprising feat.  When given a [partial P], this function [partialOut] returns a proof of [P] if the [partial] value contains a proof, and it returns a (useless) proof of [True] otherwise.  From the standpoint of ML and Haskell programming, it seems impossible to write such a type, but it is trivial with a [return] annotation. *)
 
 Definition partialOut (P : Prop) (x : [P]) :=
   match x return (match x with
@@ -98,7 +102,7 @@ Ltac prove_even_reflective :=
   end.
 (* end thide *)
 
-(** We identify which natural number we are considering, and we %``%#"#prove#"#%''% its evenness by pulling the proof out of the appropriate [check_even] call. *)
+(** We identify which natural number we are considering, and we %``%#"#prove#"#%''% its evenness by pulling the proof out of the appropriate [check_even] call.  Recall that the %\index{tactics!exact}%[exact] tactic proves a proposition [P] when given a proof term of precisely type [P]. *)
 
 Theorem even_256' : isEven 256.
   prove_even_reflective.
@@ -108,7 +112,6 @@ Print even_256'.
 (** %\vspace{-.15in}% [[
 even_256' = partialOut (check_even 256)
      : isEven 256
- 
     ]]
 
     We can see a constant wrapper around the object of the proof.  For any even number, this form of proof will suffice.  The size of the proof term is now linear in the number being checked, containing two repetitions of the unary form of that number, one of which is hidden above within the implicit argument to [partialOut].
@@ -116,32 +119,36 @@ even_256' = partialOut (check_even 256)
     What happens if we try the tactic with an odd number? *)
 
 Theorem even_255 : isEven 255.
-  (** [[
+  (** %\vspace{-.275in}%[[
   prove_even_reflective.
+]]
 
+<<
 User error: No matching clauses for match goal
- 
-  ]]
+>>
 
   Thankfully, the tactic fails.  To see more precisely what goes wrong, we can run manually the body of the [match].
 
-  [[
+  %\vspace{-.15in}%[[
   exact (partialOut (check_even 255)).
+]]
 
+<<
   Error: The term "partialOut (check_even 255)" has type
  "match check_even 255 with
   | Yes => isEven 255
   | No => True
   end" while it is expected to have type "isEven 255"
- 
-  ]]
+>>
 
-  As usual, the type-checker performs no reductions to simplify error messages.  If we reduced the first term ourselves, we would see that [check_even 255] reduces to a [No], so that the first term is equivalent to [True], which certainly does not unify with [isEven 255]. *)
+  As usual, the type checker performs no reductions to simplify error messages.  If we reduced the first term ourselves, we would see that [check_even 255] reduces to a [No], so that the first term is equivalent to [True], which certainly does not unify with [isEven 255]. *)
 
 Abort.
 
+(** Our tactic [prove_even_reflective] is reflective because it performs a proof search process (a trivial one, in this case) wholly within Gallina, where the only use of Ltac is to translate a goal into an appropriate use of [check_even]. *) 
 
-(** * Reflecting the Syntax of a Trivial Tautology Language *)
+
+(** * Reifying the Syntax of a Trivial Tautology Language *)
 
 (** We might also like to have reflective proofs of trivial tautologies like this one: *)
 
@@ -160,7 +167,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
 
-   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\textit{%#<i>#reflect#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
+   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\index{reification}\textit{%#<i>#reify#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
 
 (* begin thide *)
 Inductive taut : Set :=
@@ -169,7 +176,7 @@ Inductive taut : Set :=
 | TautOr : taut -> taut -> taut
 | TautImp : taut -> taut -> taut.
 
-(** We write a recursive function to %``%#"#unreflect#"#%''% this syntax back to [Prop]. *)
+(** We write a recursive function to %\emph{%#<i>#reflect#</i>#%}% this syntax back to [Prop].  Such functions are also called %\index{interpretation function}\emph{%#<i>#interpretation functions#</i>#%}%, and have used them in previous examples to give semantics to small programming languages. *)
 
 Fixpoint tautDenote (t : taut) : Prop :=
   match t with
@@ -185,31 +192,31 @@ Theorem tautTrue : forall t, tautDenote t.
   induction t; crush.
 Qed.
 
-(** To use [tautTrue] to prove particular formulas, we need to implement the syntax reflection process.  A recursive Ltac function does the job. *)
+(** To use [tautTrue] to prove particular formulas, we need to implement the syntax reification process.  A recursive Ltac function does the job. *)
 
-Ltac tautReflect P :=
+Ltac tautReify P :=
   match P with
     | True => TautTrue
     | ?P1 /\ ?P2 =>
-      let t1 := tautReflect P1 in
-      let t2 := tautReflect P2 in
+      let t1 := tautReify P1 in
+      let t2 := tautReify P2 in
         constr:(TautAnd t1 t2)
     | ?P1 \/ ?P2 =>
-      let t1 := tautReflect P1 in
-      let t2 := tautReflect P2 in
+      let t1 := tautReify P1 in
+      let t2 := tautReify P2 in
         constr:(TautOr t1 t2)
     | ?P1 -> ?P2 =>
-      let t1 := tautReflect P1 in
-      let t2 := tautReflect P2 in
+      let t1 := tautReify P1 in
+      let t2 := tautReify P2 in
         constr:(TautImp t1 t2)
   end.
 
-(** With [tautReflect] available, it is easy to finish our reflective tactic.  We look at the goal formula, reflect it, and apply [tautTrue] to the reflected formula. *)
+(** With [tautReify] available, it is easy to finish our reflective tactic.  We look at the goal formula, reflect it, and apply [tautTrue] to the reflected formula. *)
 
 Ltac obvious :=
   match goal with
     | [ |- ?P ] =>
-      let t := tautReflect P in
+      let t := tautReify P in
         exact (tautTrue t)
   end.
 
@@ -228,10 +235,11 @@ tautTrue
   (TautImp (TautAnd TautTrue TautTrue)
      (TautOr TautTrue (TautAnd TautTrue (TautImp TautTrue TautTrue))))
      : True /\ True -> True \/ True /\ (True -> True)
- 
     ]]
 
-    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reflection process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen. *)
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
+
+    It may also be worth pointing out that our previous example of evenness testing used a function [partialOut] for sound handling of input goals that the verified decision procedure fails to prove.  Here, we prove that our procedure [tautTrue] (recall that an inductive proof may be viewed as a recursive procedure) is able to prove any goal representable in [taut], so no extra step is necessary. *)
 
 
 (** * A Monoid Expression Simplifier *)
@@ -259,7 +267,7 @@ Section monoid.
   | Var : A -> mexp
   | Op : mexp -> mexp -> mexp.
 
-  (** Next, we write an %``%#"#un-reflect#"#%''% function. *)
+  (** Next, we write an interpretation function. *)
 
   Fixpoint mdenote (me : mexp) : A :=
     match me with
@@ -306,27 +314,27 @@ Section monoid.
     intros; repeat rewrite flatten_correct; assumption.
   Qed.
 
-  (** We implement reflection into the [mexp] type. *)
+  (** We implement reification into the [mexp] type. *)
 
-  Ltac reflect me :=
+  Ltac reify me :=
     match me with
       | e => Ident
       | ?me1 + ?me2 =>
-        let r1 := reflect me1 in
-        let r2 := reflect me2 in
+        let r1 := reify me1 in
+        let r2 := reify me2 in
           constr:(Op r1 r2)
       | _ => constr:(Var me)
     end.
 
-  (** The final [monoid] tactic works on goals that equate two monoid terms.  We reflect each and change the goal to refer to the reflected versions, finishing off by applying [monoid_reflect] and simplifying uses of [mldenote]. *)
+  (** The final [monoid] tactic works on goals that equate two monoid terms.  We reify each and change the goal to refer to the reified versions, finishing off by applying [monoid_reflect] and simplifying uses of [mldenote].  Recall that the %\index{tactics!change}%[change] tactic replaces a conclusion formula with another that is definitionally equal to it. *)
 
   Ltac monoid :=
     match goal with
       | [ |- ?me1 = ?me2 ] =>
-        let r1 := reflect me1 in
-        let r2 := reflect me2 in
+        let r1 := reify me1 in
+        let r2 := reify me2 in
           change (mdenote r1 = mdenote r2);
-            apply monoid_reflect; simpl mldenote
+            apply monoid_reflect; simpl
     end.
 
   (** We can make short work of theorems like this one: *)
@@ -341,7 +349,7 @@ Section monoid.
  
         ]]
 
-        [monoid] has canonicalized both sides of the equality, such that we can finish the proof by reflexivity. *)
+        Our tactic has canonicalized both sides of the equality, such that we can finish the proof by reflexivity. *)
 
     reflexivity.
   Qed.
@@ -356,21 +364,20 @@ monoid_reflect (Op (Op (Op (Var a) (Var b)) (Var c)) (Var d))
   (Op (Op (Var a) (Op (Var b) (Var c))) (Var d))
   (refl_equal (a + (b + (c + (d + e)))))
      : forall a b c d : A, a + b + c + d = a + (b + c) + d
- 
       ]]
 
-      The proof term contains only restatements of the equality operands in reflected form, followed by a use of reflexivity on the shared canonical form. *)
+      The proof term contains only restatements of the equality operands in reified form, followed by a use of reflexivity on the shared canonical form. *)
 
 End monoid.
 
-(** Extensions of this basic approach are used in the implementations of the [ring] and [field] tactics that come packaged with Coq. *)
+(** Extensions of this basic approach are used in the implementations of the %\index{tactics!ring}%[ring] and %\index{tactics!field}%[field] tactics that come packaged with Coq. *)
 
 
 (** * A Smarter Tautology Solver *)
 
-(** Now we are ready to revisit our earlier tautology solver example.  We want to broaden the scope of the tactic to include formulas whose truth is not syntactically apparent.  We will want to allow injection of arbitrary formulas, like we allowed arbitrary monoid expressions in the last example.  Since we are working in a richer theory, it is important to be able to use equalities between different injected formulas.  For instance, we cannot prove [P -> P] by translating the formula into a value like [Imp (Var P) (Var P)], because a Gallina function has no way of comparing the two [P]s for equality.
+(** Now we are ready to revisit our earlier tautology solver example.  We want to broaden the scope of the tactic to include formulas whose truth is not syntactically apparent.  We will want to allow injection of arbitrary formulas, like we allowed arbitrary monoid expressions in the last example.  Since we are working in a richer theory, it is important to be able to use equalities between different injected formulas.  For instance, we cannot prove [P -> P] by translating the formula into a value like [Imp (][Var P) (][Var P)], because a Gallina function has no way of comparing the two [P]s for equality.
 
-   To arrive at a nice implementation satisfying these criteria, we introduce the [quote] tactic and its associated library. *)
+   To arrive at a nice implementation satisfying these criteria, we introduce the %\index{tactics!quote}%[quote] tactic and its associated library. *)
 
 Require Import Quote.
 
@@ -383,7 +390,7 @@ Inductive formula : Set :=
 | Or : formula -> formula -> formula
 | Imp : formula -> formula -> formula.
 
-(** The type [index] comes from the [Quote] library and represents a countable variable type.  The rest of [formula]'s definition should be old hat by now.
+(** The type %\index{Gallina terms!index}%[index] comes from the [Quote] library and represents a countable variable type.  The rest of [formula]'s definition should be old hat by now.
 
    The [quote] tactic will implement injection from [Prop] into [formula] for us, but it is not quite as smart as we might like.  In particular, it interprets implications incorrectly, so we will need to declare a wrapper definition for implication, as we did in the last chapter. *)
 
@@ -404,7 +411,7 @@ Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
     | Imp f1 f2 => formulaDenote atomics f1 --> formulaDenote atomics f2
   end.
 
-(** The [varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
+(** The %\index{Gallina terms!varmap}%[varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  Our reifier [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
 
 Section my_tauto.
   Variable atomics : asgn.
@@ -503,7 +510,7 @@ Section my_tauto.
   Defined.
 End my_tauto.
 
-(** Our final tactic implementation is now fairly straightforward.  First, we [intro] all quantifiers that do not bind [Prop]s.  Then we call the [quote] tactic, which implements the reflection for us.  Finally, we are able to construct an exact proof via [partialOut] and the [my_tauto] Gallina function. *)
+(** Our final tactic implementation is now fairly straightforward.  First, we [intro] all quantifiers that do not bind [Prop]s.  Then we call the [quote] tactic, which implements the reification for us.  Finally, we are able to construct an exact proof via [partialOut] and the [my_tauto] Gallina function. *)
 
 Ltac my_tauto :=
   repeat match goal with
@@ -529,7 +536,6 @@ Print mt1.
 (** %\vspace{-.15in}% [[
 mt1 = partialOut (my_tauto (Empty_vm Prop) Truth)
      : True
- 
     ]]
 
     We see [my_tauto] applied with an empty [varmap], since every subformula is handled by [formulaDenote]. *)
@@ -546,7 +552,6 @@ partialOut
   (my_tauto (Node_vm (x = y) (Empty_vm Prop) (Empty_vm Prop))
      (Imp (Atomic End_idx) (Atomic End_idx)))
      : forall x y : nat, x = y --> x = y
- 
     ]]
 
     Crucially, both instances of [x = y] are represented with the same index, [End_idx].  The value of this index only needs to appear once in the [varmap], whose form reveals that [varmap]s are represented as binary trees, where [index] values denote paths from tree roots to leaves. *)
@@ -571,7 +576,6 @@ partialOut
            (Or (Atomic (Left_idx End_idx)) (Atomic End_idx)))))
      : forall x y z : nat,
        x < y /\ y > z \/ y > z /\ x < S y --> y > z /\ (x < y \/ x < S y)
- 
     ]]
 
     Our goal contained three distinct atomic formulas, and we see that a three-element [varmap] is generated.
@@ -618,7 +622,8 @@ and_ind
                  H9) H7) H5) H3) H1) H
      : True /\ True /\ True /\ True /\ True /\ True /\ False -> False
     ]]
-    *)
+
+The traditional [tauto] tactic introduces a quadratic blow-up in the size of the proof term, whereas proofs produced by [my_tauto] always have linear size. *)
 
 
 (** * Exercises *)
@@ -630,17 +635,15 @@ and_ind
 %\item%#<li># Implement a reflective procedure for normalizing systems of linear equations over rational numbers.  In particular, the tactic should identify all hypotheses that are linear equations over rationals where the equation righthand sides are constants.  It should normalize each hypothesis to have a lefthand side that is a sum of products of constants and variables, with no variable appearing multiple times.  Then, your tactic should add together all of these equations to form a single new equation, possibly clearing the original equations.  Some coefficients may cancel in the addition, reducing the number of variables that appear.
 
 To work with rational numbers, import module [QArith] and use [Local Open Scope Q_scope].  All of the usual arithmetic operator notations will then work with rationals, and there are shorthands for constants 0 and 1.  Other rationals must be written as [num # den] for numerator [num] and denominator [den].  Use the infix operator [==] in place of [=], to deal with different ways of expressing the same number as a fraction.  For instance, a theorem and proof like this one should work with your tactic:
-
 [[
   Theorem t2 : forall x y z, (2 # 1) * (x - (3 # 2) * y) == 15 # 1
     -> z + (8 # 1) * x == 20 # 1
     -> (-6 # 2) * y + (10 # 1) * x + z == 35 # 1.
-    intros; reflectContext; assumption.
+    intros; reifyContext; assumption.
   Qed.
- 
 ]]
 
-  Your solution can work in any way that involves reflecting syntax and doing most calculation with a Gallina function.  These hints outline a particular possible solution.  Throughout, the [ring] tactic will be helpful for proving many simple facts about rationals, and tactics like [rewrite] are correctly overloaded to work with rational equality [==].
+  Your solution can work in any way that involves reifying syntax and doing most calculation with a Gallina function.  These hints outline a particular possible solution.  Throughout, the [ring] tactic will be helpful for proving many simple facts about rationals, and tactics like [rewrite] are correctly overloaded to work with rational equality [==].
 
 %\begin{enumerate}%#<ol>#
   %\item%#<li># Define an inductive type [exp] of expressions over rationals (which inhabit the Coq type [Q]).  Include variables (represented as natural numbers), constants, addition, subtraction, and multiplication.#</li>#
@@ -654,21 +657,20 @@ To work with rational numbers, import module [QArith] and use [Local Open Scope 
   %\item%#<li># Prove that, when [exp] linearization succeeds on constant [k] and expression [e], the linearized version has the same meaning as [k * e].#</li>#
   %\item%#<li># Prove that, when [linearizeEqs] succeeds on an equation list [eqs], then the final summed-up equation is true whenever the original equation list is true.#</li>#
   %\item%#<li># Write a tactic [findVarsHyps] to search through all equalities on rationals in the context, recursing through addition, subtraction, and multiplication to find the list of expressions that should be treated as variables.  This list should be suitable as an argument to [expDenote] and [eqsDenote], associating a [Q] value to each natural number that stands for a variable.#</li>#
-  %\item%#<li># Write a tactic [reflect] to reflect a [Q] expression into [exp], with respect to a given list of variable values.#</li>#
-  %\item%#<li># Write a tactic [reflectEqs] to reflect a formula that begins with a sequence of implications from linear equalities whose lefthand sides are expressed with [expDenote].  This tactic should build a [list (exp * Q)] representing the equations.  Remember to give an explicit type annotation when returning a nil list, as in [constr:(@nil (exp * Q))].#</li>#
+  %\item%#<li># Write a tactic [reify] to reify a [Q] expression into [exp], with respect to a given list of variable values.#</li>#
+  %\item%#<li># Write a tactic [reifyEqs] to reify a formula that begins with a sequence of implications from linear equalities whose lefthand sides are expressed with [expDenote].  This tactic should build a [list (exp * Q)] representing the equations.  Remember to give an explicit type annotation when returning a nil list, as in [constr:(][@][nil (exp * Q))].#</li>#
   %\item%#<li># Now this final tactic should do the job:
-
 [[
-  Ltac reflectContext :=
+  Ltac reifyContext :=
     let ls := findVarsHyps in
       repeat match goal with
                | [ H : ?e == ?num # ?den |- _ ] =>
-                 let r := reflect ls e in
+                 let r := reify ls e in
                    change (expDenote ls r == num # den) in H;
                    generalize H
              end;
       match goal with
-        | [ |- ?g ] => let re := reflectEqs g in
+        | [ |- ?g ] => let re := reifyEqs g in
             intros;
               let H := fresh "H" in
               assert (H : eqsDenote ls re); [ simpl in *; tauto
@@ -681,7 +683,6 @@ To work with rational numbers, import module [QArith] and use [Local Open Scope 
                       ring_simplify X Y; intro
                   end ]
       end.
-
 ]]
 
 #</ol>#%\end{enumerate}%

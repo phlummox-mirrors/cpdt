@@ -530,7 +530,7 @@ Error: Impossible to unify "datatypeDenoteOk dd" with
           (r : ilist nat (recursive x)) => foldr plus 1%nat r) dt) v > 0".
 >>
 
-    Matching the type of [dok] with the type of our conclusion requires more than simple first-order unification, so [apply] is not up to the challenge.  We can use the [pattern] tactic to get our goal into a form that makes it apparent exactly what the induction hypothesis is. *)
+    Matching the type of [dok] with the type of our conclusion requires more than simple first-order unification, so [apply] is not up to the challenge.  We can use the %\index{tactics!pattern}%[pattern] tactic to get our goal into a form that makes it apparent exactly what the induction hypothesis is. *)
 
   pattern v.
   (** %\vspace{-.15in}%[[
