@@ -145,7 +145,7 @@ User error: No matching clauses for match goal
 
 Abort.
 
-(** Our tactic [prove_even_reflective] is reflective because it performs a proof search process (a trivial one, in this case) wholly within Gallina, where the only use of Ltac is to translate a goal into an appropriate use of [check_even]. *) 
+(** Our tactic [prove_even_reflective] is reflective because it performs a proof search process (a trivial one, in this case) wholly within Gallina, where the only use of Ltac is to translate a goal into an appropriate use of [check_even]. *)
 
 
 (** * Reifying the Syntax of a Trivial Tautology Language *)
@@ -389,6 +389,7 @@ Inductive formula : Set :=
 | And : formula -> formula -> formula
 | Or : formula -> formula -> formula
 | Imp : formula -> formula -> formula.
+(* end thide *)
 
 (** The type %\index{Gallina terms!index}%[index] comes from the [Quote] library and represents a countable variable type.  The rest of [formula]'s definition should be old hat by now.
 
@@ -401,6 +402,7 @@ Infix "-->" := imp (no associativity, at level 95).
 
 Definition asgn := varmap Prop.
 
+(* begin thide *)
 Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
   match f with
     | Atomic v => varmap_find False v atomics
@@ -410,6 +412,7 @@ Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
     | Or f1 f2 => formulaDenote atomics f1 \/ formulaDenote atomics f2
     | Imp f1 f2 => formulaDenote atomics f1 --> formulaDenote atomics f2
   end.
+(* end thide *)
 
 (** The %\index{Gallina terms!varmap}%[varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  Our reifier [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
 
@@ -489,6 +492,7 @@ Section my_tauto.
 
   (** A [backward] function implements analysis of the final goal.  It calls [forward] to handle implications. *)
 
+(* begin thide *)
   Definition backward : forall (known : set index) (f : formula),
     [allTrue known -> formulaDenote atomics f].
     refine (fix F (known : set index) (f : formula)
@@ -502,12 +506,15 @@ Section my_tauto.
         | Imp f1 f2 => forward f2 known f1 (fun known' => F known' f2)
       end); crush; eauto.
   Defined.
+(* end thide *)
 
   (** A simple wrapper around [backward] gives us the usual type of a partial decision procedure. *)
 
   Definition my_tauto : forall f : formula, [formulaDenote atomics f].
+(* begin thide *)
     intro; refine (Reduce (backward nil f)); crush.
   Defined.
+(* end thide *)
 End my_tauto.
 
 (** Our final tactic implementation is now fairly straightforward.  First, we [intro] all quantifiers that do not bind [Prop]s.  Then we call the [quote] tactic, which implements the reification for us.  Finally, we are able to construct an exact proof via [partialOut] and the [my_tauto] Gallina function. *)
@@ -627,6 +634,7 @@ The traditional [tauto] tactic introduces a quadratic blow-up in the size of the
 
 (** ** Manual Reification of Terms with Variables *)
 
+(* begin thide *)
 (** The action of the [quote] tactic above may seem like magic.  Somehow it performs equality comparison between subterms of arbitrary types, so that these subterms may be represented with the same reified variable.  While [quote] is implemented in OCaml, we can code the reification process completely in Ltac, as well.  To make our job simpler, we will represent variables as [nat]s, indexing into a simple list of variable values that may be referenced.
 
    Step one of the process is to crawl over a term, building a duplicate-free list of all values that appear in positions we will encode as variables.  A useful helper function adds an element to a list, maintaining lack of duplicates.  Note how we use Ltac pattern matching to implement an equality test on Gallina terms; this is simple syntactic equality, not even the richer definitional equality.  We also represent lists as nested tuples, to allow different list elements to have different Gallina types. *)
@@ -732,6 +740,7 @@ f := Imp'
 Abort.
 
 (** More work would be needed to complete the reflective tactic, as we must connect our new syntax type with the real meanings of formulas, but the details are the same as in our prior implementation with [quote]. *)
+(* end thide *)
 
 
 (** * Exercises *)
