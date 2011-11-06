@@ -23,9 +23,9 @@ Set Implicit Arguments.
 
 (** * The Definitional Equality *)
 
-(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\textit{%#<i>#definitional equality#</i>#%}%.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\index{definitional equality}\textit{%#<i>#definitional equality#</i>#%}%.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
 
-   The [cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
+   The %\index{tactics!cbv}%[cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
 
 Definition pred' (x : nat) :=
   match x with
@@ -36,57 +36,52 @@ Definition pred' (x : nat) :=
 Theorem reduce_me : pred' 1 = 0.
 
 (* begin thide *)
-  (** CIC follows the traditions of lambda calculus in associating reduction rules with Greek letters.  Coq can certainly be said to support the familiar alpha reduction rule, which allows capture-avoiding renaming of bound variables, but we never need to apply alpha explicitly, since Coq uses a de Bruijn representation that encodes terms canonically.
+  (** CIC follows the traditions of lambda calculus in associating reduction rules with Greek letters.  Coq can certainly be said to support the familiar alpha reduction rule, which allows capture-avoiding renaming of bound variables, but we never need to apply alpha explicitly, since Coq uses a de Bruijn representation%~\cite{DeBruijn}% that encodes terms canonically.
 
-     The delta rule is for unfolding global definitions.  We can use it here to unfold the definition of [pred'].  We do this with the [cbv] tactic, which takes a list of reduction rules and makes as many call-by-value reduction steps as possible, using only those rules.  There is an analogous tactic [lazy] for call-by-need reduction. *)
+     The %\index{delta reduction}%delta rule is for unfolding global definitions.  We can use it here to unfold the definition of [pred'].  We do this with the [cbv] tactic, which takes a list of reduction rules and makes as many call-by-value reduction steps as possible, using only those rules.  There is an analogous tactic %\index{tactics!lazy}%[lazy] for call-by-need reduction. *)
 
   cbv delta.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    (fun x : nat => match x with
                    | 0 => 0
                    | S n' => let y := n' in y
                    end) 1 = 0
- 
       ]]
 
-      At this point, we want to apply the famous beta reduction of lambda calculus, to simplify the application of a known function abstraction. *)
+      At this point, we want to apply the famous %\index{beta reduction}%beta reduction of lambda calculus, to simplify the application of a known function abstraction. *)
 
   cbv beta.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    match 1 with
    | 0 => 0
    | S n' => let y := n' in y
    end = 0
- 
    ]]
 
-   Next on the list is the iota reduction, which simplifies a single [match] term by determining which pattern matches. *)
+   Next on the list is the %\index{iota reduction}%iota reduction, which simplifies a single [match] term by determining which pattern matches. *)
 
   cbv iota.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    (fun n' : nat => let y := n' in y) 0 = 0
- 
       ]]
 
    Now we need another beta reduction. *)
 
   cbv beta.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    (let y := 0 in y) = 0
- 
       ]]
    
-      The final reduction rule is zeta, which replaces a [let] expression by its body with the appropriate term substituted. *)
+      The final reduction rule is %\index{zeta reduction}%zeta, which replaces a [let] expression by its body with the appropriate term substituted. *)
 
   cbv zeta.
-  (** [[
+  (** %\vspace{-.15in}%[[
   ============================
    0 = 0
- 
    ]]
    *)
 
@@ -94,7 +89,7 @@ Theorem reduce_me : pred' 1 = 0.
 Qed.
 (* end thide *)
 
-(** The standard [eq] relation is critically dependent on the definitional equality.  [eq] is often called a %\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
+(** The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a %\index{propositional equality}\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
    This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
 
@@ -160,15 +155,13 @@ Section fhlist_map.
 (* begin hide *)
     induction ls; crush; case a0; reflexivity.
 (* end hide *)
-    (** [[
+    (** %\vspace{-.2in}%[[
     induction ls; crush.
- 
     ]]
 
-    In Coq 8.2, one subgoal remains at this point.  Coq 8.3 has added some tactic improvements that enable [crush] to complete all of both inductive cases.  To introduce the basics of reasoning about equality, it will be useful to review what was necessary in Coq 8.2.
+    %\vspace{-.15in}%In Coq 8.2, one subgoal remains at this point.  Coq 8.3 has added some tactic improvements that enable [crush] to complete all of both inductive cases.  To introduce the basics of reasoning about equality, it will be useful to review what was necessary in Coq 8.2.
 
        Part of our single remaining subgoal is:
-
        [[
   a0 : a = elm
   ============================
@@ -177,50 +170,44 @@ Section fhlist_map.
    end = f match a0 in (_ = a2) return (B a2) with
            | refl_equal => a1
            end
- 
        ]]
 
    This seems like a trivial enough obligation.  The equality proof [a0] must be [refl_equal], since that is the only constructor of [eq].  Therefore, both the [match]es reduce to the point where the conclusion follows by reflexivity.
-
     [[
     destruct a0.
-
-User error: Cannot solve a second-order unification problem
- 
 ]]
 
-    This is one of Coq's standard error messages for informing us that its heuristics for attempting an instance of an undecidable problem about dependent typing have failed.  We might try to nudge things in the right direction by stating the lemma that we believe makes the conclusion trivial.
+<<
+User error: Cannot solve a second-order unification problem
+>>
 
+    This is one of Coq's standard error messages for informing us that its heuristics for attempting an instance of an undecidable problem about dependent typing have failed.  We might try to nudge things in the right direction by stating the lemma that we believe makes the conclusion trivial.
     [[
     assert (a0 = refl_equal _).
+]]
 
+<<
 The term "refl_equal ?98" has type "?98 = ?98"
  while it is expected to have type "a = elm"
- 
-    ]]
+>>
 
     In retrospect, the problem is not so hard to see.  Reflexivity proofs only show [x = x] for particular values of [x], whereas here we are thinking in terms of a proof of [a = elm], where the two sides of the equality are not equal syntactically.  Thus, the essential lemma we need does not even type-check!
 
     Is it time to throw in the towel?  Luckily, the answer is %``%#"#no.#"#%''%  In this chapter, we will see several useful patterns for proving obligations like this.
 
     For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments.
-
     [[
     case a0.
 
   ============================
    f a1 = f a1
- 
    ]]
 
     It seems that [destruct] was trying to be too smart for its own good.
-
     [[
     reflexivity.
- 
     ]]
-    *)
-
+    %\vspace{-.2in}% *)
   Qed.
 (* end thide *)
 
@@ -232,7 +219,7 @@ The term "refl_equal ?98" has type "?98 = ?98"
   Qed.
 (* end thide *)
 
-  (** [simple destruct pf] is a convenient form for applying [case].  It runs [intro] to bring into scope all quantified variables up to its argument. *)
+  (** The tactic %\index{tactics!simple destruct}%[simple destruct pf] is a convenient form for applying [case].  It runs [intro] to bring into scope all quantified variables up to its argument. *)
 
   Print lemma1.
   (** %\vspace{-.15in}% [[
@@ -265,12 +252,13 @@ end
 
   Lemma lemma2 : forall (x : A) (pf : x = x), O = match pf with refl_equal => O end.
 (* begin thide *)
-    (** [[
+    (** %\vspace{-.25in}%[[
     simple destruct pf.
+]]
 
+<<
 User error: Cannot solve a second-order unification problem
- 
-      ]]
+>>
       *)
   Abort.
 
@@ -290,28 +278,30 @@ User error: Cannot solve a second-order unification problem
 
   Lemma lemma3 : forall (x : A) (pf : x = x), pf = refl_equal x.
 (* begin thide *)
-    (** [[
+    (** %\vspace{-.25in}%[[
     simple destruct pf.
+]]
 
+<<
 User error: Cannot solve a second-order unification problem
-      ]]
-      *)
+>>
+      %\vspace{-.15in}%*)
 
   Abort.
 
   (** This time, even our manual attempt fails.
-
      [[
   Definition lemma3' :=
     fun (x : A) (pf : x = x) =>
       match pf as pf' in (_ = x') return (pf' = refl_equal x') with
         | refl_equal => refl_equal _
       end.
+]]
 
+<<
 The term "refl_equal x'" has type "x' = x'" while it is expected to have type
  "x = x'"
- 
-     ]]
+>>
 
      The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], referring to the [in]-bound variable [x'].  To do a dependent [match], we %\textit{%#<i>#must#</i>#%}% choose a fresh name for the second argument of [eq].  We are just as constrained to use the %``%#"#real#"#%''% value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on %\textit{%#<i>#must#</i>#%}% equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
 
@@ -325,10 +315,9 @@ The term "refl_equal x'" has type "x' = x'" while it is expected to have type
   (** %\vspace{-.15in}% [[
 UIP_refl
      : forall (U : Type) (x : U) (p : x = x), p = refl_equal x
- 
      ]]
 
-     [UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an %\textit{%#<i>#axiom#</i>#%}%. *)
+     The theorem %\index{Gallina terms!UIF\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an %\textit{%#<i>#axiom#</i>#%}%. *)
 
   Print eq_rect_eq.
   (** %\vspace{-.15in}% [[
@@ -336,12 +325,20 @@ eq_rect_eq =
 fun U : Type => Eq_rect_eq.eq_rect_eq U
      : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
        x = eq_rect p Q x p h
- 
       ]]
 
-      [eq_rect_eq] states a %``%#"#fact#"#%''% that seems like common sense, once the notation is deciphered.  [eq_rect] is the automatically-generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.
+      The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a %``%#"#fact#"#%''% that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
 
-      Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory.
+  Eval compute in (forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+    x = eq_rect p Q x p h).
+  (** %\vspace{-.15in}%[[
+     = forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+       x = match h in (_ = y) return (Q y) with
+           | eq_refl => x
+           end
+     ]]
+
+     Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an %\index{axiom}%axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory%~\cite{AxiomK}%, in a study that also established unprovability of the axiom in CIC.
 
       This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
 
@@ -352,12 +349,13 @@ Streicher_K =
 fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
      : forall (U : Type) (x : U) (P : x = x -> Prop),
        P (refl_equal x) -> forall p : x = x, P p
- 
   ]]
 
-  This is the unfortunately-named %``%#"#Streicher's axiom K,#"#%''% which says that a predicate on properly-typed equality proofs holds of all such proofs if it holds of reflexivity. *)
+  This is the unfortunately named %\index{axiom K}``%#"#Streicher's axiom K,#"#%''% which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
 
 End fhlist_map.
+
+(** It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases.  To simplify presentation, we will stick with the axiom version in the rest of this chapter. *)
 
 
 (** * Type-Casts in Theorem Statements *)
@@ -381,20 +379,20 @@ Section fhapp.
 (* begin thide *)
 
   (** We might like to prove that [fhapp] is associative.
-
      [[
   Theorem fhapp_ass : forall ls1 ls2 ls3
     (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) = fhapp (fhapp hls1 hls2) hls3.
+]]
 
+<<
 The term
  "fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3) (fhapp (ls1:=ls1) (ls2:=ls2) hls1 hls2)
     hls3" has type "fhlist B ((ls1 ++ ls2) ++ ls3)"
  while it is expected to have type "fhlist B (ls1 ++ ls2 ++ ls3)"
- 
-     ]]
+>>
 
-     This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is %\textit{%#<i>#intensional#</i>#%}%, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
+     This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is %\index{intensional type theory}\textit{%#<i>#intensional#</i>#%}%, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
 
   Theorem fhapp_ass : forall ls1 ls2 ls3
     (pf : (ls1 ++ ls2) ++ ls3 = ls1 ++ (ls2 ++ ls3))
@@ -406,24 +404,22 @@ The term
     induction ls1; crush.
 
     (** The first remaining subgoal looks trivial enough:
-
        [[
   ============================
    fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3 =
    match pf in (_ = ls) return (fhlist B ls) with
    | refl_equal => fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3
    end
- 
        ]]
 
        We can try what worked in previous examples.
-
        [[
     case pf.
+]]
 
+<<
 User error: Cannot solve a second-order unification problem
- 
-         ]]
+>>
 
         It seems we have reached another case where it is unclear how to use a dependent [match] to implement case analysis on our proof.  The [UIP_refl] theorem can come to our rescue again. *)
 
@@ -432,14 +428,12 @@ User error: Cannot solve a second-order unification problem
   ============================
    fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3 =
    fhapp (ls1:=ls2) (ls2:=ls3) hls2 hls3
- 
         ]]
         *)
 
     reflexivity.
 
     (** Our second subgoal is trickier.
-
        [[
   pf : a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3
   ============================
@@ -454,11 +448,12 @@ User error: Cannot solve a second-order unification problem
    end
 
     rewrite (UIP_refl _ _ pf).
+]]
 
+<<
 The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
  while it is expected to have type "?556 = ?556"
- 
-       ]]
+>>
 
        We can only apply [UIP_refl] on proofs of equality with syntactically equal operands, which is not the case of [pf] here.  We will need to manipulate the form of this subgoal to get us to a point where we may use [UIP_refl].  A first step is obtaining a proof suitable to use in applying the induction hypothesis.  Inversion on the structure of [pf] is sufficient for that. *)
 
@@ -476,7 +471,6 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
        fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
          (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
    end
- 
    ]]
 
    Now we can rewrite using the inductive hypothesis. *)
@@ -496,10 +490,9 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
        fhapp (ls1:=ls1 ++ ls2) (ls2:=ls3)
          (fhapp (ls1:=ls1) (ls2:=ls2) b hls2) hls3)
    end
- 
         ]]
 
-        We have made an important bit of progress, as now only a single call to [fhapp] appears in the conclusion, repeated twice.  Trying case analysis on our proofs still will not work, but there is a move we can make to enable it.  Not only does just one call to [fhapp] matter to us now, but it also %\textit{%#<i>#does not matter what the result of the call is#</i>#%}%.  In other words, the subgoal should remain true if we replace this [fhapp] call with a fresh variable.  The [generalize] tactic helps us do exactly that. *)
+        We have made an important bit of progress, as now only a single call to [fhapp] appears in the conclusion, repeated twice.  Trying case analysis on our proofs still will not work, but there is a move we can make to enable it.  Not only does just one call to [fhapp] matter to us now, but it also %\textit{%#<i>#does not matter what the result of the call is#</i>#%}%.  In other words, the subgoal should remain true if we replace this [fhapp] call with a fresh variable.  The %\index{tactics!generalize}%[generalize] tactic helps us do exactly that. *)
 
     generalize (fhapp (fhapp b hls2) hls3).
     (** [[
@@ -511,7 +504,6 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    match pf in (_ = ls) return (fhlist B ls) with
    | refl_equal => (a0, f)
    end
- 
         ]]
 
         The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but that is exactly the case here and for many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations only support variables in certain positions.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
@@ -530,7 +522,6 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    match pf0 in (_ = ls) return (fhlist B ls) with
    | refl_equal => (a0, f)
    end
- 
         ]]
 
         To an experienced dependent types hacker, the appearance of this goal term calls for a celebration.  The formula has a critical property that indicates that our problems are over.  To get our proofs into the right form to apply [UIP_refl], we need to use associativity of list append to rewrite their types.  We could not do that before because other parts of the goal require the proofs to retain their original types.  In particular, the call to [fhapp] that we generalized must have type [(ls1 ++ ls2) ++ ls3], for some values of the list variables.  If we rewrite the type of the proof used to type-cast this value to something like [ls1 ++ ls2 ++ ls3 = ls1 ++ ls2 ++ ls3], then the lefthand side of the equality would no longer match the type of the term we are trying to cast.
@@ -550,7 +541,6 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    match pf0 in (_ = ls) return (fhlist B ls) with
    | refl_equal => (a0, f)
    end
- 
         ]]
 
         We can see that we have achieved the crucial property: the type of each generalized equality proof has syntactically equal operands.  This makes it easy to finish the proof with [UIP_refl]. *)
@@ -565,19 +555,20 @@ End fhapp.
 
 Implicit Arguments fhapp [A B ls1 ls2].
 
+(** This proof strategy was cumbersome and unorthodox, from the perspective of mainstream mathematics.  The next section explores an alternative that leads to simpler developments in some cases. *)
+
 
 (** * Heterogeneous Equality *)
 
-(** There is another equality predicate, defined in the [JMeq] module of the standard library, implementing %\textit{%#<i>#heterogeneous equality#</i>#%}%. *)
+(** There is another equality predicate, defined in the %\index{Gallina terms!JMeq}%[JMeq] module of the standard library, implementing %\index{heterogeneous equality}\textit{%#<i>#heterogeneous equality#</i>#%}%. *)
 
 Print JMeq.
 (** %\vspace{-.15in}% [[
 Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
     JMeq_refl : JMeq x x
- 
     ]]
 
-[JMeq] stands for %``%#"#John Major equality,#"#%''% a name coined by Conor McBride as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] %\textit{%#<i>#on arguments of different types#</i>#%}%.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+The identity [JMeq] stands for %\index{John Major equality}``%#"#John Major equality,#"#%''% a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] %\textit{%#<i>#on arguments of different types#</i>#%}%.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -606,7 +597,6 @@ Check JMeq_eq.
 (** %\vspace{-.15in}% [[
 JMeq_eq
      : forall (A : Type) (x y : A), x == y -> x = y
- 
     ]]
 
     It may be surprising that we cannot prove that heterogeneous equality implies normal equality.  The difficulties are the same kind we have seen so far, based on limitations of [match] annotations.
@@ -622,27 +612,26 @@ Section fhapp'.
   (* EX: Prove [fhapp] associativity using [JMeq]. *)
 
 (* begin thide *)
-  Theorem fhapp_ass' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
+  Theorem fhapp_ass' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
+    (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
     induction ls1; crush.
 
     (** Even better, [crush] discharges the first subgoal automatically.  The second subgoal is:
-
        [[
   ============================
    (a0, fhapp b (fhapp hls2 hls3)) == (a0, fhapp (fhapp b hls2) hls3)
- 
        ]]
 
        It looks like one rewrite with the inductive hypothesis should be enough to make the goal trivial.  Here is what happens when we try that in Coq 8.2:
-
        [[
     rewrite IHls1.
+]]
 
+<<
 Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
  "fhlist B (ls1 ++ ?1572 ++ ?1573)"
- 
-       ]]
+>>
 
        Coq 8.3 currently gives an error message about an uncaught exception.  Perhaps that will be fixed soon.  In any case, it is educational to consider a more explicit approach.
 
@@ -653,20 +642,18 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
     generalize (fhapp b (fhapp hls2 hls3))
       (fhapp (fhapp b hls2) hls3)
       (IHls1 _ _ b hls2 hls3).
-    (** [[
+    (** %\vspace{-.15in}%[[
   ============================
    forall (f : fhlist B (ls1 ++ ls2 ++ ls3))
      (f0 : fhlist B ((ls1 ++ ls2) ++ ls3)), f == f0 -> (a0, f) == (a0, f0)
- 
         ]]
 
         Now we can rewrite with append associativity, as before. *)
 
     rewrite app_ass.
-    (** [[
+    (** %\vspace{-.15in}%[[
   ============================
    forall f f0 : fhlist B (ls1 ++ ls2 ++ ls3), f == f0 -> (a0, f) == (a0, f0)
- 
        ]]
 
        From this point, the goal is trivial. *)
@@ -675,6 +662,8 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
   Qed.
 (* end thide *)
 End fhapp'.
+
+(** This example illustrates a general pattern: heterogeneous equality often simplifies theorem statements, but we still need to do some work to line up some dependent pattern matches that tactics will generate for us. *)
 
 
 (** * Equivalence of Equality Axioms *)
@@ -720,7 +709,6 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
             end
   ============================
    x = y
- 
       ]]
       *)
 
@@ -732,7 +720,6 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
           end
   ============================
    x = y
- 
       ]]
       *)
 
@@ -743,16 +730,14 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
    match x0 in (_ = T) return T with
    | refl_equal => y
    end = y
- 
       ]]
       *)
 
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
 
-(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those %``%#"#simple#"#%''% proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements.
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those %``%#"#simple#"#%''% proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements. *)
 
-   It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases. *)
 (* end thide *)
 
 
@@ -760,10 +745,9 @@ Qed.
 
 (** The following seems like a reasonable theorem to want to hold, and it does hold in set theory. [[
    Theorem S_eta : S = (fun n => S n).
- 
    ]]
 
-   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be %\textit{%#<i>#extensional#</i>#%}%.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We %\textit{%#<i>#can#</i>#%}% assert function extensionality as an axiom. *)
+   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be %\index{extensionality of function equality}\textit{%#<i>#extensional#</i>#%}%.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We %\textit{%#<i>#can#</i>#%}% assert function extensionality as an axiom. *)
 
 (* begin thide *)
 Axiom ext_eq : forall A B (f g : A -> B),
@@ -787,7 +771,7 @@ Theorem forall_eq : (forall x : nat, match x with
                                     end)
   = (forall _ : nat, True).
 
-  (** There are no immediate opportunities to apply [ext_eq], but we can use [change] to fix that. *)
+  (** There are no immediate opportunities to apply [ext_eq], but we can use %\index{tactics!change}%[change] to fix that. *)
 
 (* begin thide *)
   change ((forall x : nat, (fun x => match x with
@@ -818,12 +802,14 @@ subgoal 2 is:
 Qed.
 (* end thide *)
 
+(** Unlike in the case of [eq_rect_eq], we have no way of deriving this axiom of %\index{functional extensionality}\emph{%#<i>#functional extensionality#</i>#%}% for types with decidable equality.  To allow equality reasoning without axioms, it may be worth rewriting a development to replace functions with alternate representations, such as finite map types for which extensionality is derivable in CIC. *)
+
 
 (** * Exercises *)
 
 (** %\begin{enumerate}%#<ol>#
 
-%\item%#<li># Implement and prove correct a substitution function for simply-typed lambda calculus.  In particular:
+%\item%#<li># Implement and prove correct a substitution function for simply typed lambda calculus.  In particular:
 %\begin{enumerate}%#<ol>#
   %\item%#<li># Define a datatype [type] of lambda types, including just booleans and function types.#</li>#
   %\item%#<li># Define a type family [exp : list type -> type -> Type] of lambda expressions, including boolean constants, variables, and function application and abstraction.#</li>#
@@ -833,7 +819,6 @@ Qed.
   [[
 forall t' ts t (e : exp (t' :: ts) t) (e' : exp ts t') (s : hlist typeDenote ts),
   expDenote (subst e e') s = expDenote e (expDenote e' s ::: s)
- 
   ]]
   where [:::] is an infix operator for heterogeneous %``%#"#cons#"#%''% that is defined in the book's [DepList] module.#</li>#
 #</ol>#%\end{enumerate}%
@@ -848,7 +833,7 @@ forall t' ts t (e : exp (t' :: ts) t) (e' : exp ts t') (s : hlist typeDenote ts)
   %\item%#<li># Now [subst] should be a one-liner, defined in terms of [subst'].#</li>#
   %\item%#<li># Prove a correctness theorem for each auxiliary function, leading up to the proof of [subst] correctness.#</li>#
   %\item%#<li># All of the reasoning about equality proofs in these theorems follows a regular pattern.  If you have an equality proof that you want to replace with [refl_equal] somehow, run [generalize] on that proof variable.  Your goal is to get to the point where you can [rewrite] with the original proof to change the type of the generalized version.  To avoid type errors (the infamous %``%#"#second-order unification#"#%''% failure messages), it will be helpful to run [generalize] on other pieces of the proof context that mention the equality's lefthand side.  You might also want to use [generalize dependent], which generalizes not just one variable but also all variables whose types depend on it.  [generalize dependent] has the sometimes-helpful property of removing from the context all variables that it generalizes.  Once you do manage the mind-bending trick of using the equality proof to rewrite its own type, you will be able to rewrite with [UIP_refl].#</li>#
-  %\item%#<li># A variant of the [ext_eq] axiom from the end of this chapter is available in the book module [Axioms], and you will probably want to use it in the [lift'] and [subst'] correctness proofs.#</li>#
+  %\item%#<li># The [ext_eq] axiom from the end of this chapter is available in the Coq standard library as [functional_extensionality] in module [FunctionalExtensionality], and you will probably want to use it in the [lift'] and [subst'] correctness proofs.#</li>#
   %\item%#<li># The [change] tactic should come in handy in the proofs about [lift] and [subst], where you want to introduce %``%#"#extraneous#"#%''% list concatenations with [nil] to match the forms of earlier theorems.#</li>#
   %\item%#<li># Be careful about [destruct]ing a term %``%#"#too early.#"#%''%  You can use [generalize] on proof terms to bring into the proof context any important propositions about the term.  Then, when you [destruct] the term, it is updated in the extra propositions, too.  The [case_eq] tactic is another alternative to this approach, based on saving an equality between the original term and its new form.#</li>#
 #</ol>#%\end{enumerate}%
