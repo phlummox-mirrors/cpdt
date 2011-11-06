@@ -89,7 +89,85 @@ Theorem reduce_me : pred' 1 = 0.
 Qed.
 (* end thide *)
 
-(** The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a %\index{propositional equality}\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
+(** The [beta] reduction rule applies to recursive functions as well, and its behavior may be surprising in some instances.  For instance, we can run some simple tests using the reduction strategy [compute], which applies all applicable rules of the definitional equality. *)
+
+Definition id (n : nat) := n.
+
+Eval compute in fun x => id x.
+(** %\vspace{-.15in}%[[
+     = fun x : nat => x
+]]
+*)
+
+Fixpoint id' (n : nat) := n.
+
+Eval compute in fun x => id' x.
+(** %\vspace{-.15in}%[[
+     = fun x : nat => (fix id' (n : nat) : nat := n) x
+]]
+
+By running [compute], we ask Coq to run reduction steps until no more apply, so why do we see an application of a known function, where clearly no beta reduction has been performed?  The answer has to do with ensuring termination of all Gallina programs.  One candidate rule would say that we apply recursive definitions wherever possible.  However, this would clearly lead to nonterminating reduction sequences, since the function may appear fully applied within its own definition, and we would naively %``%#"#simplify#"#%''% such applications immediately.  Instead, Coq only applies the beta rule for a recursive function when %\emph{%#<i>#the top-level structure of the recursive argument is known#</i>#%}%.  For [id'] above, we have only one argument [n], so clearly it is the recursive argument, and the top-level structure of [n] is known when the function is applied to [O] or to some [S e] term.  The variable [x] is neither, so reduction is blocked.
+
+What are recursive arguments in general?  Every recursive function is compiled by Coq to a %\index{Gallina terms!fix}%[fix] expression, for anonymous definition of recursive functions.  Further, every [fix] with multiple arguments has one designated as the recursive argument via a [struct] annotation.  The recursive argument is the one that must decrease across recursive calls, to appease Coq's termination checker.  Coq will generally infer which argument is recursive, though we may also specify it manually, if we want to tweak reduction behavior.  For instance, consider this definition of a function to add two lists of [nat]s elementwise: *)
+
+Fixpoint addLists (ls1 ls2 : list nat) : list nat :=
+  match ls1, ls2 with
+    | n1 :: ls1' , n2 :: ls2' => n1 + n2 :: addLists ls1' ls2'
+    | _, _ => nil
+  end.
+
+(** By default, Coq chooses [ls1] as the recursive argument.  We can see that [ls2] would have been another valid choice.  The choice has a critical effect on reduction behavior, as these two examples illustrate: *)
+
+Eval compute in fun ls => addLists nil ls.
+(** %\vspace{-.15in}%[[
+     = fun _ : list nat => nil
+]]
+*)
+
+Eval compute in fun ls => addLists ls nil.
+(** %\vspace{-.15in}%[[
+     = fun ls : list nat =>
+       (fix addLists (ls1 ls2 : list nat) : list nat :=
+          match ls1 with
+          | nil => nil
+          | n1 :: ls1' =>
+              match ls2 with
+              | nil => nil
+              | n2 :: ls2' =>
+                  (fix plus (n m : nat) : nat :=
+                     match n with
+                     | 0 => m
+                     | S p => S (plus p m)
+                     end) n1 n2 :: addLists ls1' ls2'
+              end
+          end) ls nil
+]]
+
+The outer application of the [fix] expression for [addList] was only simplified in the first case, because in the second case the recursive argument is [ls], whose top-level structure is not known.
+
+The opposite behavior pertains to a version of [addList] with [ls2] marked as recursive. *)
+
+Fixpoint addLists' (ls1 ls2 : list nat) {struct ls2} : list nat :=
+  match ls1, ls2 with
+    | n1 :: ls1' , n2 :: ls2' => n1 + n2 :: addLists' ls1' ls2'
+    | _, _ => nil
+  end.
+
+Eval compute in fun ls => addLists' ls nil.
+(** %\vspace{-.15in}%[[
+     = fun ls : list nat => match ls with
+                            | nil => nil
+                            | _ :: _ => nil
+                            end
+]]
+
+We see that all use of recursive functions has been eliminated, though the term has not quite simplified to [nil].  We could get it to do so by switching the order of the [match] discriminees in the definition of [addLists'].
+
+Recall that co-recursive definitions have a dual rule: a co-recursive call only simplifies when it is the discriminee of a [match].  This condition is built into the beta rule for %\index{Gallina terms!cofix}%[cofix], the anonymous form of [CoFixpoint].
+
+%\medskip%
+
+   The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a %\index{propositional equality}\textit{%#<i>#propositional equality#</i>#%}%, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
    This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
 
