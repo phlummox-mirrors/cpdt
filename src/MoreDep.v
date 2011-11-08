@@ -642,7 +642,7 @@ Section insert.
 
     (** The variable [z] stands for an arbitrary key.  We will reason about [z]'s presence in particular trees.  As usual, outside the section the theorems we prove will quantify over all possible keys, giving us the facts we wanted.
 
-       We start by proving the correctness of the balance operations.  It is useful to define a custom tactic [present_balance] that encapsulates the reasoning common to the two proofs.  We use the keyword %\index{Verncular commands!Ltac}%[Ltac] to assign a name to a proof script.  This particular script just iterates between [crush] and identification of a tree that is being pattern-matched on and should be destructed. *)
+       We start by proving the correctness of the balance operations.  It is useful to define a custom tactic [present_balance] that encapsulates the reasoning common to the two proofs.  We use the keyword %\index{Vernacular commands!Ltac}%[Ltac] to assign a name to a proof script.  This particular script just iterates between [crush] and identification of a tree that is being pattern-matched on and should be destructed. *)
 
     Ltac present_balance :=
       crush;

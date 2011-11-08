@@ -1,4 +1,4 @@
-(* Copyright (c) 2009-2010, Adam Chlipala
+(* Copyright (c) 2009-2011, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -18,14 +18,14 @@ Set Implicit Arguments.
 
 (** %\chapter{Proving in the Large}% *)
 
-(** It is somewhat unfortunate that the term %``%#"#theorem-proving#"#%''% looks so much like the word %``%#"#theory.#"#%''%  Most researchers and practitioners in software assume that mechanized theorem-proving is profoundly impractical.  Indeed, until recently, most advances in theorem-proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
+(** It is somewhat unfortunate that the term %``%#"#theorem proving#"#%''% looks so much like the word %``%#"#theory.#"#%''%  Most researchers and practitioners in software assume that mechanized theorem proving is profoundly impractical.  Indeed, until recently, most advances in theorem proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
 
    Thus, this chapter gives some tips for structuring and maintaining large Coq developments. *)
 
 
 (** * Ltac Anti-Patterns *)
 
-(** In this book, I have been following an unusual style, where proofs are not considered finished until they are %``%#"#fully automated,#"#%''% in a certain sense.  Each such theorem is proved by a single tactic.  Since Ltac is a Turing-complete programming language, it is not hard to squeeze arbitrary heuristics into single tactics, using operators like the semicolon to combine steps.  In contrast, most Ltac proofs %``%#"#in the wild#"#%''% consist of many steps, performed by individual tactics followed by periods.  Is it really worth drawing a distinction between proof steps terminated by semicolons and steps terminated by periods?
+(** In this book, I have been following an unusual style, where proofs are not considered finished until they are %\index{fully automated proofs}``%#"#fully automated,#"#%''% in a certain sense.  Each such theorem is proved by a single tactic.  Since Ltac is a Turing-complete programming language, it is not hard to squeeze arbitrary heuristics into single tactics, using operators like the semicolon to combine steps.  In contrast, most Ltac proofs %``%#"#in the wild#"#%''% consist of many steps, performed by individual tactics followed by periods.  Is it really worth drawing a distinction between proof steps terminated by semicolons and steps terminated by periods?
 
    I argue that this is, in fact, a very important distinction, with serious consequences for a majority of important verification domains.  The more uninteresting drudge work a proof domain involves, the more important it is to work to prove theorems with single tactics.  From an automation standpoint, single-tactic proofs can be extremely effective, and automation becomes more and more critical as proofs are populated by more uninteresting detail.  In this section, I will give some examples of the consequences of more common proof styles.
 
@@ -62,7 +62,7 @@ Theorem eval_times : forall k e,
   trivial.
 Qed.
 
-(** We use spaces to separate the two inductive cases.  The second case mentions automatically-generated hypothesis names explicitly.  As a result, innocuous changes to the theorem statement can invalidate the proof. *)
+(** We use spaces to separate the two inductive cases, but note that these spaces have no real semantic content; Coq does not enforce that our spacing matches the real case structure of a proof.  The second case mentions automatically generated hypothesis names explicitly.  As a result, innocuous changes to the theorem statement can invalidate the proof. *)
 
 Reset eval_times.
 
@@ -73,12 +73,13 @@ Theorem eval_double : forall k x,
   trivial.
 
   simpl.
-(** [[
+(** %\vspace{-.15in}%[[
   rewrite IHe1.
+]]
 
+<<
 Error: The reference IHe1 was not found in the current environment.
- 
-  ]]
+>>
 
   The inductive hypotheses are named [IHx1] and [IHx2] now, not [IHe1] and [IHe2]. *)
 
@@ -99,7 +100,7 @@ Theorem eval_times : forall k e,
   trivial.
 Qed.
 
-(** We pass [induction] an %\textit{%#<i>#intro pattern#</i>#%}%, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
+(** We pass %\index{tactics!induction}%[induction] an %\index{intro pattern}\textit{%#<i>#intro pattern#</i>#%}%, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
 
    That category of complaint has to do with understanding proofs as static artifacts.  As with programming in general, with serious projects, it tends to be much more important to be able to support evolution of proofs as specifications change.  Unstructured proofs like the above examples can be very hard to update in concert with theorem statements.  For instance, consider how the last proof script plays out when we modify [times] to introduce a bug. *)
 
@@ -118,19 +119,20 @@ Theorem eval_times : forall k e,
   trivial.
 
   simpl.
-(** [[
+(** %\vspace{-.15in}%[[
   rewrite IHe1.
+]]
 
+<<
 Error: The reference IHe1 was not found in the current environment.
- 
-  ]]
+>>
   *)
 
 Abort.
 
-(** Can you spot what went wrong, without stepping through the script step-by-step?  The problem is that [trivial] never fails.  Originally, [trivial] had been succeeding in proving an equality that follows by reflexivity.  Our change to [times] leads to a case where that equality is no longer true.  [trivial] happily leaves the false equality in place, and we continue on to the span of tactics intended for the second inductive case.  Unfortunately, those tactics end up being applied to the %\textit{%#<i>#first#</i>#%}% case instead.
+(** Can you spot what went wrong, without stepping through the script step-by-step?  The problem is that [trivial] never fails.  Originally, [trivial] had been succeeding in proving an equality that follows by reflexivity.  Our change to [times] leads to a case where that equality is no longer true.  The invocation [trivial] happily leaves the false equality in place, and we continue on to the span of tactics intended for the second inductive case.  Unfortunately, those tactics end up being applied to the %\textit{%#<i>#first#</i>#%}% case instead.
 
-   The problem with [trivial] could be %``%#"#solved#"#%''% by writing [solve [trivial]] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will general more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
+   The problem with [trivial] could be %``%#"#solved#"#%''% by writing, e.g., [trivial; fail] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will general more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
 
 Reset times.
 
@@ -178,14 +180,15 @@ Fixpoint times (k : nat) (e : exp) : exp :=
 
 Theorem eval_times : forall k e,
   eval (times k e) = k * eval e.
-(** [[
+(** %\vspace{-.25in}%[[
   induction e as [ | ? IHe1 ? IHe2 ]; [
     trivial
     | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
+]]
 
+<<
 Error: Expects a disjunctive pattern with 3 branches.
-
-  ]]
+>>
   *)
 
 Abort.
@@ -248,7 +251,6 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   IHe2 : eval e3 * eval e4 = eval e2
   ============================
    eval e1 * eval e3 * eval e4 = eval e1 * eval e2
- 
    ]]
 
    [crush] does not know how to finish this goal.  We could finish the proof manually. *)
@@ -280,9 +282,9 @@ Qed.
 
 (** * Debugging and Maintaining Automation *)
 
-(** Fully-automated proofs are desirable because they open up possibilities for automatic adaptation to changes of specification.  A well-engineered script within a narrow domain can survive many changes to the formulation of the problem it solves.  Still, as we are working with higher-order logic, most theorems fall within no obvious decidable theories.  It is inevitable that most long-lived automated proofs will need updating.
+(** Fully automated proofs are desirable because they open up possibilities for automatic adaptation to changes of specification.  A well-engineered script within a narrow domain can survive many changes to the formulation of the problem it solves.  Still, as we are working with higher-order logic, most theorems fall within no obvious decidable theories.  It is inevitable that most long-lived automated proofs will need updating.
 
-   Before we are ready to update our proofs, we need to write them in the first place.  While fully-automated scripts are most robust to changes of specification, it is hard to write every new proof directly in that form.  Instead, it is useful to begin a theorem with exploratory proving and then gradually refine it into a suitable automated form.
+   Before we are ready to update our proofs, we need to write them in the first place.  While fully automated scripts are most robust to changes of specification, it is hard to write every new proof directly in that form.  Instead, it is useful to begin a theorem with exploratory proving and then gradually refine it into a suitable automated form.
 
    Consider this theorem from Chapter 8, which we begin by proving in a mostly manual way, invoking [crush] after each steop to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
 
@@ -343,7 +345,6 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
     ============================
    (if expDenote e1 then expDenote (cfold e2) else expDenote (cfold e3)) =
    expDenote (if expDenote e1 then cfold e2 else cfold e3)
- 
    ]]
 
    We need to expand our [t] tactic to handle this case. *)
@@ -384,7 +385,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
   t''.
 Qed.
 
-(** We can take the final tactic and move it into the initial part of the proof script, arriving at a nicely-automated proof. *)
+(** We can take the final tactic and move it into the initial part of the proof script, arriving at a nicely automated proof. *)
 
 Reset t.
 
@@ -403,7 +404,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
             end; crush).
 Qed.
 
-(** Even after we put together nice automated proofs, we must deal with specification changes that can invalidate them.  It is not generally possible to step through single-tactic proofs interactively.  There is a command [Debug On] that lets us step through points in tactic execution, but the debugger tends to make counterintuitive choices of which points we would like to stop at, and per-point output is quite verbose, so most Coq users do not find this debugging mode very helpful.  How are we to understand what has broken in a script that used to work?
+(** Even after we put together nice automated proofs, we must deal with specification changes that can invalidate them.  It is not generally possible to step through single-tactic proofs interactively.  There is a command %\index{Vernacular commands!Debug On}%[Debug On] that lets us step through points in tactic execution, but the debugger tends to make counterintuitive choices of which points we would like to stop at, and per-point output is quite verbose, so most Coq users do not find this debugging mode very helpful.  How are we to understand what has broken in a script that used to work?
 
    An example helps demonstrate a useful approach.  Consider what would have happened in our proof of [reassoc_correct] if we had first added an unfortunate rewriting hint. *)
 
@@ -428,10 +429,9 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
      [[
   ============================
    eval e1 * (eval e3 + 1 - 1) * eval e4 = eval e1 * eval e2
- 
    ]]
 
-   The poorly-chosen rewrite rule fired, changing the goal to a form where another hint no longer applies.  Imagine that we are in the middle of a large development with many hints.  How would we diagnose the problem?  First, we might not be sure which case of the inductive proof has gone wrong.  It is useful to separate out our automation procedure and apply it manually. *)
+   The poorly chosen rewrite rule fired, changing the goal to a form where another hint no longer applies.  Imagine that we are in the middle of a large development with many hints.  How would we diagnose the problem?  First, we might not be sure which case of the inductive proof has gone wrong.  It is useful to separate out our automation procedure and apply it manually. *)
 
   Restart.
 
@@ -455,12 +455,12 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   t.
 
-  (** What is [t] doing to get us to this point?  The [info] command can help us answer this kind of question. *)
+  (** What is [t] doing to get us to this point?  The %\index{tactics!info}%[info] command can help us answer this kind of question. *)
 
   (** remove printing * *)
   Undo.
   info t.
-  (** [[
+  (** %\vspace{-.15in}%[[
  == simpl in *; intuition; subst; autorewrite with cpdt in *; 
     simpl in *; intuition; subst; autorewrite with cpdt in *; 
     simpl in *; intuition; subst; destruct (reassoc e2).
@@ -508,10 +508,9 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   Undo.
 
   info autorewrite with cpdt in *.
-  (** [[
+  (** %\vspace{-.15in}%[[
  == refine (eq_ind_r (fun n : nat => n = eval e1 * eval e2) _
               (confounder (reassoc e1) e3 e4)).
- 
       ]]
 
       The way a rewrite is displayed is somewhat baroque, but we can see that theorem [confounder] is the final culprit.  At this point, we could remove that hint, prove an alternate version of the key lemma [rewr], or come up with some other remedy.  Fixing this kind of problem tends to be relatively easy once the problem is revealed. *)
@@ -536,11 +535,11 @@ Section slow.
   Hypothesis H1 : forall x y, P x y -> Q x y -> R x y -> f x = f y.
   Hypothesis H2 : forall x y, S x y -> R x y.
 
-  (** We prove a simple lemma very quickly, using the [Time] command to measure exactly how quickly. *)
+  (** We prove a simple lemma very quickly, using the %\index{Vernacular commands!Time}%[Time] command to measure exactly how quickly. *)
 
   Lemma slow : forall x y, P x y -> Q x y -> S x y -> f x = f y.
     Time eauto 6.
-    (** [[
+    (** %\vspace{-.2in}%[[
 Finished transaction in 0. secs (0.068004u,0.s)
 ]]
 *)
@@ -553,16 +552,15 @@ Finished transaction in 0. secs (0.068004u,0.s)
 
   Lemma slow' : forall x y, P x y -> Q x y -> S x y -> f x = f y.
     Time eauto 6.
-    (** [[
+    (** %\vspace{-.2in}%[[
 Finished transaction in 2. secs (1.264079u,0.s)
- 
       ]]
 
       Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
 
     Restart.
     info eauto 6.
-    (** [[
+    (** %\vspace{-.15in}%[[
  == intro x; intro y; intro H; intro H0; intro H4;
        simple eapply trans_eq.
     simple apply refl_equal.
@@ -579,16 +577,14 @@ Finished transaction in 2. secs (1.264079u,0.s)
     eexact H0.
     
     simple apply H2; eexact H4.
- 
     ]]
 
-    This output does not tell us why proof search takes so long, but it does provide a clue that would be useful if we had forgotten that we added transitivity as a hint.  The [eauto] tactic is applying depth-first search, and the proof script where the real action is ends up buried inside a chain of pointless invocations of transitivity, where each invocation uses reflexivity to discharge one subgoal.  Each increment to the depth argument to [eauto] adds another silly use of transitivity.  This wasted proof effort only adds linear time overhead, as long as proof search never makes false steps.  No false steps were made before we added the new hypothesis, but somehow the addition made possible a new faulty path.  To understand which paths we enabled, we can use the [debug] command. *)
+    This output does not tell us why proof search takes so long, but it does provide a clue that would be useful if we had forgotten that we added transitivity as a hint.  The [eauto] tactic is applying depth-first search, and the proof script where the real action is ends up buried inside a chain of pointless invocations of transitivity, where each invocation uses reflexivity to discharge one subgoal.  Each increment to the depth argument to [eauto] adds another silly use of transitivity.  This wasted proof effort only adds linear time overhead, as long as proof search never makes false steps.  No false steps were made before we added the new hypothesis, but somehow the addition made possible a new faulty path.  To understand which paths we enabled, we can use the %\index{tactics!debug}%[debug] command. *)
 
     Restart.
     debug eauto 6.
 
     (** The output is a large proof tree.  The beginning of the tree is enough to reveal what is happening:
-
        [[
 1 depth=6 
 1.1 depth=6 intro
@@ -616,26 +612,25 @@ Finished transaction in 2. secs (1.264079u,0.s)
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.2 depth=1 apply sym_eq ; trivial
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.2.1 depth=0 eapply trans_eq
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.3 depth=0 eapply trans_eq
- 
        ]]
 
-       The first choice [eauto] makes is to apply [H3], since [H3] has the fewest hypotheses of all of the hypotheses and hints that match.  However, it turns out that the single hypothesis generated is unprovable.  That does not stop [eauto] from trying to prove it with an exponentially-sized tree of applications of transitivity, reflexivity, and symmetry of equality.  It is the children of the initial [apply H3] that account for all of the noticeable time in proof execution.  In a more realistic development, we might use this output of [info] to realize that adding transitivity as a hint was a bad idea. *)
+       The first choice [eauto] makes is to apply [H3], since [H3] has the fewest hypotheses of all of the hypotheses and hints that match.  However, it turns out that the single hypothesis generated is unprovable.  That does not stop [eauto] from trying to prove it with an exponentially sized tree of applications of transitivity, reflexivity, and symmetry of equality.  It is the children of the initial [apply H3] that account for all of the noticeable time in proof execution.  In a more realistic development, we might use this output of [debug] to realize that adding transitivity as a hint was a bad idea. *)
 
   Qed.
 End slow.
 
-(** It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to built proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run [Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
+(** It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\index{thunks}\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run [Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
 
-   The [abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
+   The %\index{tactics!abstract}%[abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
 
 
 (** * Modules *)
 
-(** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's %\textit{%#<i>#module system#</i>#%}% provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML and Objective Caml, and the discussion that follows assumes familiarity with the basics of one of those systems.
+(** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's %\textit{%#<i>#module system#</i>#%}% provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML%~\cite{modules}% and Objective Caml, and the discussion that follows assumes familiarity with the basics of one of those systems.
 
-   ML modules facilitate the grouping of abstract types with operations over those types.  Moreover, there is support for %\textit{%#<i>#functors#</i>#%}%, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
+   ML modules facilitate the grouping of %\index{abstract type}%abstract types with operations over those types.  Moreover, there is support for %\index{functor}\textit{%#<i>#functors#</i>#%}%, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
 
-   When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, this module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [e] for [f], and an operation [i] that is a left inverse for [f]. *)
+   When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, this module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [e] for [f], and an operation [i] that is a left inverse for [f].%\index{Vernacular commands!Module Type}% *)
 
 Module Type GROUP.
   Parameter G : Set.
@@ -648,7 +643,7 @@ Module Type GROUP.
   Axiom inverse : forall a, f (i a) a = e.
 End GROUP.
 
-(** Many useful theorems hold of arbitrary groups.  We capture some such theorem statements in another module signature. *)
+(** Many useful theorems hold of arbitrary groups.  We capture some such theorem statements in another module signature.%\index{Vernacular commands!Declare Module}% *)
 
 Module Type GROUP_THEOREMS.
   Declare Module M : GROUP.
@@ -660,7 +655,7 @@ Module Type GROUP_THEOREMS.
   Axiom unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
 End GROUP_THEOREMS.
 
-(** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M].  The proofs are completely manual, since it would take some effort to build suitable generic automation; rather, these theorems can serve as a basis for an automated procedure for simplifying group expressions, along the lines of the procedure for monoids from the last chapter.  We take the proofs from the Wikipedia page on elementary group theory. *)
+(** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M].  The proofs are completely manual, since it would take some effort to build suitable generic automation; rather, these theorems can serve as a basis for an automated procedure for simplifying group expressions, along the lines of the procedure for monoids from the last chapter.  We take the proofs from the Wikipedia page on elementary group theory.%\index{Vernacular commands!Module}% *)
 
 Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
   Module M := M.
@@ -726,20 +721,21 @@ Check IntTheorems.unique_ident.
   IntTheorems.unique_ident
      : forall e' : Int.G, (forall a : Int.G, Int.f e' a = a) -> e' = Int.e
      ]]
-     *)
+
+Projections like [Int.G] are known to be definitionally equal to the concrete values we have assigned to them, so the above theorem yields as a trivial corollary the following more natural restatement: *)
 
 Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
   exact IntTheorems.unique_ident.
 Qed.
 
-(** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module. *)
+(** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module.  On the other hand, all module values must be determined statically, so modules may not be computed, e.g., within the defintions of normal functions, based on particular function parameters. *)
 
 
 (** * Build Processes *)
 
 (** As in software development, large Coq projects are much more manageable when split across multiple files and when decomposed into libraries.  Coq and Proof General provide very good support for these activities.
 
-   Consider a library that we will name [Lib], housed in directory %\texttt{%#<tt>#LIB#</tt>#%}% and split between files %\texttt{%#<tt>#A.v#</tt>#%}%, %\texttt{%#<tt>#B.v#</tt>#%}%, and %\texttt{%#<tt>#C.v#</tt>#%}%.  A simple Makefile will compile the library, relying on the standard Coq tool %\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
+   Consider a library that we will name [Lib], housed in directory %\texttt{%#<tt>#LIB#</tt>#%}% and split between files %\texttt{%#<tt>#A.v#</tt>#%}%, %\texttt{%#<tt>#B.v#</tt>#%}%, and %\texttt{%#<tt>#C.v#</tt>#%}%.  A simple %\index{Makefile}%Makefile will compile the library, relying on the standard Coq tool %\index{coq\_makefile}\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
 
 <<
 MODULES := A B C
@@ -761,15 +757,12 @@ clean:: Makefile.coq
    The Makefile begins by defining a variable %\texttt{%#<tt>#VS#</tt>#%}% holding the list of filenames to be included in the project.  The primary target is %\texttt{%#<tt>#coq#</tt>#%}%, which depends on the construction of an auxiliary Makefile called %\texttt{%#<tt>#Makefile.coq#</tt>#%}%.  Another rule explains how to build that file.  We call %\texttt{%#<tt>#coq_makefile#</tt>#%}%, using the %\texttt{%#<tt>#-R#</tt>#%}% flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that %\texttt{%#<tt>#X.v#</tt>#%}% is compiled into %\texttt{%#<tt>#X.vo#</tt>#%}%.
 
    Now code in %\texttt{%#<tt>#B.v#</tt>#%}% may refer to definitions in %\texttt{%#<tt>#A.v#</tt>#%}% after running
-
    [[
 Require Import Lib.A.
-
    ]]
+   %\vspace{-.15in}%Library [Lib] is presented as a module, containing a submodule [A], which contains the definitions from %\texttt{%#<tt>#A.v#</tt>#%}%.  These are genuine modules in the sense of Coq's module system, and they may be passed to functors and so on.
 
-   Library [Lib] is presented as a module, containing a submodule [A], which contains the definitions from %\texttt{%#<tt>#A.v#</tt>#%}%.  These are genuine modules in the sense of Coq's module system, and they may be passed to functors and so on.
-
-   [Require Import] is a convenient combination of two more primitive commands.  [Require] finds the %\texttt{%#<tt>#.vo#</tt>#%}% file containing the named module, ensuring that the module is loaded into memory.  [Import] loads all top-level definitions of the named module into the current namespace, and it may be used with local modules that do not have corresponding %\texttt{%#<tt>#.vo#</tt>#%}% files.  Another command, [Load], is for inserting the contents of a named file verbatim.  It is generally better to use the module-based commands, since they avoid rerunning proof scripts, and they facilitate reorganization of directory structure without the need to change code.
+   The command [Require Import] is a convenient combination of two more primitive commands.  The %\index{Vernacular commands!Require}%[Require] command finds the %\texttt{%#<tt>#.vo#</tt>#%}% file containing the named module, ensuring that the module is loaded into memory.  The %\index{Vernacular commands!Import}%[Import] command loads all top-level definitions of the named module into the current namespace, and it may be used with local modules that do not have corresponding %\texttt{%#<tt>#.vo#</tt>#%}% files.  Another command, %\index{Vernacular commands!Load}%[Load], is for inserting the contents of a named file verbatim.  It is generally better to use the module-based commands, since they avoid rerunning proof scripts, and they facilitate reorganization of directory structure without the need to change code.
 
    Now we would like to use our library from a different development, called [Client] and found in directory %\texttt{%#<tt>#CLIENT#</tt>#%}%, which has its own Makefile.
 
@@ -791,34 +784,22 @@ clean:: Makefile.coq
 >>
 
    We change the %\texttt{%#<tt>#coq_makefile#</tt>#%}% call to indicate where the library [Lib] is found.  Now %\texttt{%#<tt>#D.v#</tt>#%}% and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from [Lib] module [A] after running
-
    [[
 Require Import Lib.A.
-
    ]]
-
-   and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from %\texttt{%#<tt>#D.v#</tt>#%}% by running
-
+   %\vspace{-.15in}\noindent{}%and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from %\texttt{%#<tt>#D.v#</tt>#%}% by running
    [[
 Require Import Client.D.
-
    ]]
-
-   It can be useful to split a library into several files, but it is also inconvenient for client code to import library modules individually.  We can get the best of both worlds by, for example, adding an extra source file %\texttt{%#<tt>#Lib.v#</tt>#%}% to [Lib]'s directory and Makefile.
-
+   %\vspace{-.15in}%It can be useful to split a library into several files, but it is also inconvenient for client code to import library modules individually.  We can get the best of both worlds by, for example, adding an extra source file %\texttt{%#<tt>#Lib.v#</tt>#%}% to [Lib]'s directory and Makefile, where that file contains just this line:%\index{Vernacular commands!Require Export}%
    [[
 Require Export Lib.A Lib.B Lib.C.
-
    ]]
-
-   Now client code can import all definitions from all of [Lib]'s modules simply by running
-
+   %\vspace{-.15in}%Now client code can import all definitions from all of [Lib]'s modules simply by running
    [[
 Require Import Lib.
-
    ]]
-
-   The two Makefiles above share a lot of code, so, in practice, it is useful to define a common Makefile that is included by multiple library-specific Makefiles.
+   %\vspace{-.15in}%The two Makefiles above share a lot of code, so, in practice, it is useful to define a common Makefile that is included by multiple library-specific Makefiles.
 
    %\medskip%
 

@@ -395,7 +395,7 @@ UIP_refl
      : forall (U : Type) (x : U) (p : x = x), p = refl_equal x
      ]]
 
-     The theorem %\index{Gallina terms!UIF\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an %\textit{%#<i>#axiom#</i>#%}%. *)
+     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an %\textit{%#<i>#axiom#</i>#%}%. *)
 
   Print eq_rect_eq.
   (** %\vspace{-.15in}% [[
@@ -416,7 +416,7 @@ fun U : Type => Eq_rect_eq.eq_rect_eq U
            end
      ]]
 
-     Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an %\index{axiom}%axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory%~\cite{AxiomK}%, in a study that also established unprovability of the axiom in CIC.
+     Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an %\index{axioms}%axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert %\textit{%#<i>#inconsistent#</i>#%}% sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory%~\cite{AxiomK}%, in a study that also established unprovability of the axiom in CIC.
 
       This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
 
