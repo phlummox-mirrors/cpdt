@@ -62,11 +62,12 @@ Theorem eval_times : forall k e,
   trivial.
 Qed.
 
+(* begin thide *)
 (** We use spaces to separate the two inductive cases, but note that these spaces have no real semantic content; Coq does not enforce that our spacing matches the real case structure of a proof.  The second case mentions automatically generated hypothesis names explicitly.  As a result, innocuous changes to the theorem statement can invalidate the proof. *)
 
 Reset eval_times.
 
-Theorem eval_double : forall k x,
+Theorem eval_times : forall k x,
   eval (times k x) = k * eval x.
   induction x.
 
@@ -213,6 +214,7 @@ Theorem eval_times : forall k e,
   eval (times k e) = k * eval e.
   induction e; crush.
 Qed.
+(* end thide *)
 
 (** This style is motivated by a hard truth: one person's manual proof script is almost always mostly inscrutable to most everyone else.  I claim that step-by-step formal proofs are a poor way of conveying information.  Thus, we had might as well cut out the steps and automate as much as possible.
 
@@ -240,6 +242,7 @@ Fixpoint reassoc (e : exp) : exp :=
   end.
 
 Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
+(* begin thide *)
   induction e; crush;
     match goal with
       | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
@@ -274,6 +277,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
         destruct E; crush
     end.
 Qed.
+(* end thide *)
 
 (** In the limit, a complicated inductive proof might rely on one hint for each inductive case.  The lemma for each hint could restate the associated case.  Compared to manual proof scripts, we arrive at more readable results.  Scripts no longer need to depend on the order in which cases are generated.  The lemmas are easier to digest separately than are fragments of tactic code, since lemma statements include complete proof contexts.  Such contexts can only be extracted from monolithic manual proofs by stepping through scripts interactively.
 
@@ -293,6 +297,7 @@ Require Import MoreDep.
 (* end hide *)
 
 Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
+(* begin thide *)
   induction e; crush.
 
   dep_destruct (cfold e1); crush.
@@ -403,6 +408,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
                 dep_destruct E
             end; crush).
 Qed.
+(* end thide *)
 
 (** Even after we put together nice automated proofs, we must deal with specification changes that can invalidate them.  It is not generally possible to step through single-tactic proofs interactively.  There is a command %\index{Vernacular commands!Debug On}%[Debug On] that lets us step through points in tactic execution, but the debugger tends to make counterintuitive choices of which points we would like to stop at, and per-point output is quite verbose, so most Coq users do not find this debugging mode very helpful.  How are we to understand what has broken in a script that used to work?
 
@@ -418,6 +424,7 @@ Qed.
 Hint Rewrite confounder : cpdt.
 
 Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
+(* begin thide *)
   induction e; crush;
     match goal with
       | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
@@ -516,6 +523,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
       The way a rewrite is displayed is somewhat baroque, but we can see that theorem [confounder] is the final culprit.  At this point, we could remove that hint, prove an alternate version of the key lemma [rewr], or come up with some other remedy.  Fixing this kind of problem tends to be relatively easy once the problem is revealed. *)
 
 Abort.
+(* end thide *)
 
 (** printing * $\times$ *)
 
@@ -558,6 +566,7 @@ Finished transaction in 2. secs (1.264079u,0.s)
 
       Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
 
+(* begin thide *)
     Restart.
     info eauto 6.
     (** %\vspace{-.15in}%[[
@@ -617,6 +626,7 @@ Finished transaction in 2. secs (1.264079u,0.s)
        The first choice [eauto] makes is to apply [H3], since [H3] has the fewest hypotheses of all of the hypotheses and hints that match.  However, it turns out that the single hypothesis generated is unprovable.  That does not stop [eauto] from trying to prove it with an exponentially sized tree of applications of transitivity, reflexivity, and symmetry of equality.  It is the children of the initial [apply H3] that account for all of the noticeable time in proof execution.  In a more realistic development, we might use this output of [debug] to realize that adding transitivity as a hint was a bad idea. *)
 
   Qed.
+(* end thide *)
 End slow.
 
 (** It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\index{thunks}\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run [Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
@@ -725,8 +735,10 @@ Check IntTheorems.unique_ident.
 Projections like [Int.G] are known to be definitionally equal to the concrete values we have assigned to them, so the above theorem yields as a trivial corollary the following more natural restatement: *)
 
 Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
+(* begin thide *)
   exact IntTheorems.unique_ident.
 Qed.
+(* end thide *)
 
 (** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module.  On the other hand, all module values must be determined statically, so modules may not be computed, e.g., within the defintions of normal functions, based on particular function parameters. *)
 
