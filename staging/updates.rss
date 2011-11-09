@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A pass through "Proving in the Large"</title>
+        <pubDate>Wed, 9 Nov 2011 15:25:42 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>A pass through "Reasoning About Equality Proofs"</title>
         <pubDate>Sun, 6 Nov 2011 16:50:59 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
