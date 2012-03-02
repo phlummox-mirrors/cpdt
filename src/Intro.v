@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -169,7 +169,7 @@ Readers with no prior Coq experience can ignore the preceding discussion!  I hop
 
 Coq is a very complex system, with many different commands driven more by pragmatic concerns than by any overarching aesthetic principle.  When I use some construct for the first time, I try to give a one-sentence intuition for what it accomplishes, but I leave the details to the Coq reference manual%~\cite{CoqManual}%.  I expect that readers interested in complete understandings will be consulting that manual frequently; in that sense, this book is not meant to be completely standalone.  I often use constructs in code snippets without first introducing them at all, but explanations should always follow in the prose paragraphs immediately after the offending snippets.
 
-Most chapters end with suggested exercises.  Some exercises marked with %``$\star$''%#"star"# are especially difficult or deal with especially advanced subjects that the reader may not wish to master on a first reading.
+Previous versions of the book included some suggested exercises at the ends of chapters.  Since then, I have decided to remove the exercises and focus on the main book exposition.  Especially in the domain of interactive theorem proving, keeping exercises at the proper difficulty level is a lot of work, I have learned!  My advice to readers is to learn to use Coq by getting started applying it in their own real projects, rather than focusing on artificial exercises.
 *)
 
 (** ** On the Tactic Library *)

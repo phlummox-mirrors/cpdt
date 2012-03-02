@@ -862,29 +862,3 @@ Qed.
    Finally, Coq type inference can be more helpful in constructing values in inductive types.  Application of a particular constructor of that type tells Coq what to expect from the arguments, while, for instance, forming a generic pair does not make clear an intention to interpret the value as belonging to a particular recursive type.  This downside can be mitigated to an extent by writing %``%#"#constructor#"#%''% functions for a recursive type, mirroring the definition of the corresponding inductive type.
 
    Reflexive encodings of data types are seen relatively rarely.  As our examples demonstrated, manipulating index values manually can lead to hard-to-read code.  A normal inductive type is generally easier to work with, once someone has gone through the trouble of implementing an induction principle manually with the techniques we studied in Chapter 3.  For small developments, avoiding that kind of coding can justify the use of reflexive data structures.  There are also some useful instances of %\index{co-inductive types}%co-inductive definitions with nested data structures (e.g., lists of values in the co-inductive type) that can only be deconstructed effectively with reflexive encoding of the nested structures. *)
-
-
-(** * Exercises *)
-
-(** remove printing * *)
-
-(** Some of the type family definitions and associated functions from this chapter are duplicated in the [DepList] module of the book source.  Some of their names have been changed to be more sensible in a general context.
-
-%\begin{enumerate}%#<ol>#
-
-%\item%#<li># Define a tree analogue of [hlist].  That is, define a parameterized type of binary trees with data at their leaves, and define a type family [htree] indexed by trees.  The structure of an [htree] mirrors its index tree, with the type of each data element (which only occur at leaves) determined by applying a type function to the corresponding element of the index tree.  Define a type standing for all possible paths from the root of a tree to leaves and use it to implement a function [tget] for extracting an element of an [htree] by path.  Define a function [htmap2] for %``%#"#mapping over two trees in parallel.#"#%''%  That is, [htmap2] takes in two [htree]s with the same index tree, and it forms a new [htree] with the same index by applying a binary function pointwise.
-
-  Repeat this process so that you implement each definition for each of the three definition styles covered in this chapter: inductive, recursive, and index function.#</li>#
-
-%\item%#<li># Write a dependently typed interpreter for a simple programming language with ML-style pattern-matching, using one of the encodings of heterogeneous lists to represent the different branches of a [case] expression.  (There are other ways to represent the same thing, but the point of this exercise is to practice using those heterogeneous list types.)  The object language is defined informally by this grammar:
-  [[
-t ::= bool | t + t
-p ::= x | b | inl p | inr p
-e ::= x | b | inl e | inr e | case e of [p => e]* | _ => e
-]]
-
-  The non-terminal [x] stands for a variable, and [b] stands for a boolean constant.  The production for [case] expressions means that a pattern-match includes zero or more pairs of patterns and expressions, along with a default case.
-
-  Your interpreter should be implemented in the style demonstrated in this chapter.  That is, your definition of expressions should use dependent types and de Bruijn indices to combine syntax and typing rules, such that the type of an expression tells the types of variables that are in scope.  You should implement a simple recursive function translating types [t] to [Set], and your interpreter should produce values in the image of this translation.#</li>#
-
-#</ol>#%\end{enumerate}% *)

@@ -60,3 +60,8 @@ install: cpdt.tgz latex/cpdt.pdf html
 
 pdf:
 	evince latex/cpdt.pdf&
+
+latex/exercises.pdf: Makefile src/Exercises.v
+	coqc -I src src/Exercises
+	coqdoc --latex -s src/Exercises.v -o latex/exercises.tex
+	cd latex ; pdflatex exercises
