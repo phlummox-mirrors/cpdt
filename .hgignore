@@ -25,6 +25,7 @@ cpdt.tgz
 *.dvi
 *.log
 *.v.tex
+exercises.tex
 *.toc
 *.bbl
 *.blg
