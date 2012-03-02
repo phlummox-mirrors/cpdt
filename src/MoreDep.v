@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -151,6 +151,35 @@ Definition hd n (ls : ilist (S n)) : A := hd' ls.
 End ilist.
 
 (** We annotate our main [match] with a type that is itself a [match].  We write that the function [hd'] returns [unit] when the list is empty and returns the carried type [A] in all other cases.  In the definition of [hd], we just call [hd'].  Because the index of [ls] is known to be nonzero, the type checker reduces the [match] in the type of [hd'] to [A]. *)
+
+
+(** * The One Rule of Dependent Pattern Matching in Coq *)
+
+(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on %\index{dependent pattern matching}\emph{%#<i>#dependent pattern matching#</i>#%}% of the kind we met in the previous section.
+
+A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the %\index{discriminee}\emph{%#<i>#discriminee#</i>#%}%, the value being matched on.  In other words, the [match] type %\emph{%#<i>#depends#</i>#%}% on the discriminee.
+
+When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on %\emph{%#<i>#invalid#</i>#%}% programs is easier to understand!
+
+We come now to the one rule of dependent pattern matching in Coq.  A general dependent pattern match assumes this form (with unnecessary parentheses included to make the syntax easier to parse):
+[[
+  match E in (T x1 ... xn) as y return U with
+    | C z1 ... zm => B
+    | ...
+  end
+]]
+
+The discriminee is a term [E], a value in some inductive type family [T], which takes [n] arguments.  An %\index{in clause}%[in] clause binds an explicit name [xi] for the [i]th argument passed to [T] in the type of [E].  An %\index{as clause}%[as] clause binds the name [y] to refer to the discriminee [E].
+
+We bind these new variables [xi] and [y] so that they may be referred to in [U], a type given in the %\index{return clause}%[return] clause.  The overall type of the [match] will be [U], with [E] substituted for [y], and with each [xi] substituted by the actual argument appearing in that position within [E]'s type.
+
+In general, each case of a [match] may have a pattern built up in several layers from the constructors of various inductive type families.  To keep this exposition simple, we will focus on patterns that are just single applications of inductive type constructors to lists of variables.  Coq actually compiles the more general kind of pattern matching into this more restricted kind automatically, so understanding the typing of [match] requires understanding the typing of [match]es lowered to match one constructor at a time.
+
+The last piece of the typing rule tells how to type-check a [match] case.  A generic constructor application [C z1 ... zm] has some type [T x1' ... xn'], an application of the type family used in [E]'s type, probably with occurrences of the [zi] variables.  From here, a simple recipe determines what type we will require for the case body [B].  The type of [B] should be [U] with the following two substitutions applied: we replace [y] (the [as] clause variable) with [C z1 ... zm], and we replace each [xi] (the [in] clause variables) with [xi'].  In other words, we specialize the result type based on what we learn based on which pattern has matched the discriminee.
+
+This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses.
+
+A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both %\index{parameters}\emph{%#<i>#parameters#</i>#%}% and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
 
 
 (** * A Tagless Interpreter *)
