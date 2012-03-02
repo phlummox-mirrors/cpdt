@@ -137,7 +137,7 @@ If I do that job well, then this book should be of interest even to people who h
 (**
 I try to keep the required background knowledge to a minimum in this book.  I will assume familiarity with the material from usual discrete math and logic courses taken by undergraduate computer science majors, and I will assume that readers have significant experience programming in one of the ML dialects, in Haskell, or in some other, closely related language.  Experience with only dynamically typed functional languages might lead to befuddlement in some places, but a reader who has come to understand Scheme deeply will probably be fine.
 
-My background is in programming languages, formal semantics, and program verification.  I sometimes use examples from that domain,   As a reference on these topics, I recommend %\emph{%#<i>#Types and Programming Languages#</i>#%}~\cite{TAPL}%, by Benjamin C. Pierce; however, I have tried to choose examples so that they may be understood without background in semantics.
+My background is in programming languages, formal semantics, and program verification.  I sometimes use examples from that domain.  As a reference on these topics, I recommend %\emph{%#<i>#Types and Programming Languages#</i>#%}~\cite{TAPL}%, by Benjamin C. Pierce; however, I have tried to choose examples so that they may be understood without background in semantics.
 *)
 
 
