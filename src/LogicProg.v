@@ -1,4 +1,4 @@
-(* Copyright (c) 2011, Adam Chlipala
+(* Copyright (c) 2011-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -21,17 +21,33 @@ Set Implicit Arguments.
 
    \chapter{Proof Search by Logic Programming}% *)
 
-(** Exciting new chapter that is missing prose for the new content!  Some content was moved from the next chapter, and it may not seem entirely to fit here yet. *)
+(** The Curry-Howard correspondence tells us that proving is %``%#"#just#"#%''% programming, but the pragmatics of the two activities are very different.  Generally we care about properties of a program besides its type, but the same is not true about proofs.  Any proof of a theorem will do just as well.  As a result, automated proof search is conceptually simpler than automated programming.
+
+   The paradigm of %\index{logic programming}%logic programming, as embodied in languages like %\index{Prolog}%Prolog, is a good match for proof search in higher-order logic.  This chapter introduces the details, attempting to avoid any dependence on past logic programming experience. *)
 
 
 (** * Introducing Logic Programming *)
 
+(** Recall the definition of addition from the standard library. *)
+
 Print plus.
+(** %\vspace{-.15in}%[[
+plus = 
+fix plus (n m : nat) : nat := match n with
+                              | 0 => m
+                              | S p => S (plus p m)
+                              end
+
+]]
+
+This is a recursive definition, in the style of functional programming.  We might also follow the style of logic programming, which corresponds to the inductive relations we have defined in previous chapters. *)
 
 Inductive plusR : nat -> nat -> nat -> Prop :=
 | PlusO : forall m, plusR O m m
 | PlusS : forall n m r, plusR n m r
   -> plusR (S n) m (S r).
+
+(** Intuitively, a fact [plusR n m r] only holds when [plus n m = r].  It is not hard to prove this correspondence formally. *)
 
 (* begin thide *)
 Hint Constructors plusR.
@@ -52,52 +68,182 @@ Theorem plusR_plus : forall n m r,
 Qed.
 (* end thide *)
 
+(** With the functional definition of [plus], simple equalities about arithmetic follow by computation. *)
+
 Example four_plus_three : 4 + 3 = 7.
 (* begin thide *)
   reflexivity.
 Qed.
 (* end thide *)
 
+Print four_plus_three.
+(** %\vspace{-.15in}%[[
+four_plus_three = eq_refl
+]]
+
+With the relational definition, the same equalities take more steps to prove, but the process is completely mechanical.  For example, consider this simple-minded manual proof search strategy.  The steps with error messages shown afterward will be omitted from the final script.
+*)
+
 Example four_plus_three' : plusR 4 3 7.
 (* begin thide *)
+(** %\vspace{-.2in}%[[
+  apply PlusO.
+]]
+%\vspace{-.2in}%
+<<
+Error: Impossible to unify "plusR 0 ?24 ?24" with "plusR 4 3 7".
+>> *)
+  apply PlusS.
+(** %\vspace{-.2in}%[[
+  apply PlusO.
+]]
+%\vspace{-.2in}%
+<<
+Error: Impossible to unify "plusR 0 ?25 ?25" with "plusR 3 3 6".
+>> *)
+  apply PlusS.
+(** %\vspace{-.2in}%[[
+  apply PlusO.
+]]
+%\vspace{-.2in}%
+<<
+Error: Impossible to unify "plusR 0 ?26 ?26" with "plusR 2 3 5".
+>> *)
+  apply PlusS.
+(** %\vspace{-.2in}%[[
+  apply PlusO.
+]]
+%\vspace{-.2in}%
+<<
+Error: Impossible to unify "plusR 0 ?27 ?27" with "plusR 1 3 4".
+>> *)
+  apply PlusS.
+  apply PlusO.
+
+(** At this point the proof is completed.  It is no doubt clear that a simple procedure could find all proofs of this kind for us.  We are just exploring all possible proof trees, built from the two candidate steps [apply PlusO] and [apply PlusS].  The built-in tactic %\index{tactics!auto}%[auto] does exactly that, since above we used [Hint Constructors] to register the two candidate proof steps as hints. *)
+
+Restart.
   auto.
 Qed.
 (* end thide *)
 
-Example five_plus_three' : plusR 5 3 8.
+Print four_plus_three'.
+(** %\vspace{-.15in}%[[
+four_plus_three' = PlusS (PlusS (PlusS (PlusS (PlusO 3))))
+]]
+*)
+
+(** Let us try the same approach on a slightly more complex goal. *)
+
+Example five_plus_three : plusR 5 3 8.
 (* begin thide *)
+  auto.
+
+(** This time, [auto] is not enough to make any progress.  Since even a single candidate step may lead to an infinite space of possible proof trees, [auto] is parameterized on the maximum depth of trees to consider.  The default depth is 5, and it turns out that we need depth 6 to prove the goal. *)
+
   auto 6.
+
+(** Sometimes it is useful to see a description of the proof tree that [auto] finds, with the %\index{tactics!info}%[info] tactical. *)
+
 Restart.
   info auto 6.
+(** %\vspace{-.15in}%[[
+ == apply PlusS; apply PlusS; apply PlusS; apply PlusS; 
+    apply PlusS; apply PlusO.
+]]
+*)
 Qed.
 (* end thide *)
 
-(* begin thide *)
-Hint Constructors ex.
-(* end thide *)
+(** The two key components of logic programming are %\index{backtracking}\emph{%#<i>#backtracking#</i>#%}% and %\index{unification}\emph{%#<i>#unification#</i>#%}%.  To see these techniques in action, consider this further silly example.  Here our candidate proof steps will be reflexivity and quantifier instantiation. *)
 
 Example seven_minus_three : exists x, x + 3 = 7.
 (* begin thide *)
-  eauto 6.
-Abort.
+(** For explanatory purposes, let us simulate a user with minimal understanding of arithmetic.  We start by choosing an instantiation for the quantifier.  Recall that [ex_intro] is the constructor for existentially quantified formulas. *)
+
+  apply ex_intro with 0.
+(** %\vspace{-.2in}%[[
+  reflexivity.
+]]
+%\vspace{-.2in}%
+<<
+  Error: Impossible to unify "7" with "0 + 3".
+>>
+
+This seems to be a dead end.  Let us %\emph{%#<i>#backtrack#</i>#%}% to the point where we ran [apply] and make a better alternate choice.
+*)
+
+Restart.
+  apply ex_intro with 4.
+  reflexivity.
+Qed.
 (* end thide *)
+
+(** The above was a fairly tame example of backtracking.  In general, any node in an under-construction proof tree may be the destination of backtracking an arbitrarily large number of times, as different candidate proof steps are found not to lead to full proof trees, within the depth bound passed to [auto].
+
+   Next we demonstrate unification, which will be easier when we switch to the relational formulation of addition. *)
 
 Example seven_minus_three' : exists x, plusR x 3 7.
 (* begin thide *)
+(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder %\index{unification variable}\emph{%#<i>#unification variables#</i>#%}% standing in for those parameters we wish to postpone guessing. *)
+
+  eapply ex_intro.
+(** [[
+1 subgoal
+  
+  ============================
+   plusR ?70 3 7
+]]
+
+Now we can finish the proof with the right applications of [plusR]'s constructors.  Note that new unification variables are being generated to stand for new unknowns. *)
+
+  apply PlusS.
+(** [[
+  ============================
+   plusR ?71 3 6
+]]
+*)
+  apply PlusS. apply PlusS. apply PlusS.
+(** [[
+  ============================
+   plusR ?74 3 3
+]]
+*)
+  apply PlusO.
+
+(** The [auto] tactic will not perform these sorts of steps that introduce unification variables, but the %\index{tactics!eauto}%[eauto] tactic will.  It is helpful to work with two separate tactics, because proof search in the [eauto] style can uncover many more potential proof trees and hence take much longer to run. *)
+
+Restart.
   info eauto 6.
+(** %\vspace{-.15in}%[[
+ == eapply ex_intro; apply PlusS; apply PlusS; 
+    apply PlusS; apply PlusS; apply PlusO.
+]]
+*)
 Qed.
 (* end thide *)
+
+(** This proof gives us our first example where logic programming simplifies proof search compared to functional programming.  In general, functional programs are only meant to be run in a single direction; a function has disjoint sets of inputs and outputs.  In the last example, we effectively ran a logic program backwards, deducing an input that gives rise to a certain output.  The same works for deducing an unknown value of the other input. *)
 
 Example seven_minus_four' : exists x, plusR 4 x 7.
 (* begin thide *)
-  info eauto 6.
+  eauto 6.
 Qed.
 (* end thide *)
 
+(** By proving the right auxiliary facts, we can reason about specific functional programs in the same way as we did above for a logic program.  Let us prove that the constructors of [plusR] have natural interpretations as lemmas about [plus].  We can find the first such lemma already proved in the standard library, using the %\index{Vernacular commands!SearchRewrite}%[SearchRewrite] command to find a library function proving an equality whose lefthand or righthand side matches a pattern with wildcards. *)
+
 (* begin thide *)
 SearchRewrite (O + _).
+(** %\vspace{-.15in}%[[
+plus_O_n: forall n : nat, 0 + n = n
+]]
+
+The command %\index{Vernacular commands!Hint Immediate}%[Hint Immediate] asks [auto] and [eauto] to consider this lemma as a candidate step for any leaf of a proof tree. *)
 
 Hint Immediate plus_O_n.
+
+(** The counterpart to [PlusS] we will prove ourselves. *)
 
 Lemma plusS : forall n m r,
   n + m = r
@@ -105,26 +251,34 @@ Lemma plusS : forall n m r,
   crush.
 Qed.
 
+(** The command %\index{Vernacular commands!Hint Resolve}%[Hint Resolve] adds a new candidate proof step, to be attempted at any level of a proof tree, not just at leaves. *)
+
 Hint Resolve plusS.
 (* end thide *)
 
-Example seven_minus_three : exists x, x + 3 = 7.
+(** Now that we have registered the proper hints, we can replicate our previous examples with the normal, functional addition [plus]. *)
+
+Example seven_minus_three'' : exists x, x + 3 = 7.
 (* begin thide *)
-  info eauto 6.
+  eauto 6.
 Qed.
 (* end thide *)
 
 Example seven_minus_four : exists x, 4 + x = 7.
 (* begin thide *)
-  info eauto 6.
+  eauto 6.
 Qed.
 (* end thide *)
 
-Example hundred_minus_hundred : exists x, 4 + x + 0 = 7.
+(** This new hint database is far from a complete decision procedure, as we see in a further example that [eauto] does not finish. *)
+
+Example seven_minus_four_zero : exists x, 4 + x + 0 = 7.
 (* begin thide *)
   eauto 6.
 Abort.
 (* end thide *)
+
+(** A further lemma will be helpful. *)
 
 (* begin thide *)
 Lemma plusO : forall n m,
@@ -136,26 +290,97 @@ Qed.
 Hint Resolve plusO.
 (* end thide *)
 
+(** Note that, if we consider the inputs to [plus] as the inputs of a corresponding logic program, the new rule [plusO] introduces an ambiguity.  For instance, a sum [0 + 0] would match both of [plus_O_n] and [plusO], depending on which operand we focus on.  This ambiguity may increase the number of potential search trees, slowing proof search, but semantically it presents no problems, and in fact it leads to an automated proof of the present example. *)
+
 Example seven_minus_four_zero : exists x, 4 + x + 0 = 7.
 (* begin thide *)
-  info eauto 7.
+  eauto 7.
 Qed.
 (* end thide *)
 
+(** Just how much damage can be done by adding hints that grow the space of possible proof trees?  A classic gotcha comes from unrestricted use of transitivity, as embodied in this library theorem about equality: *)
+
 Check eq_trans.
+(** %\vspace{-.15in}%[[
+eq_trans
+     : forall (A : Type) (x y z : A), x = y -> y = z -> x = z
+]]
+*)
+
+(** Hints are scoped over sections, so let us enter a section to contain the effects of an unfortunate hint choice. *)
 
 Section slow.
   Hint Resolve eq_trans.
 
+  (** The following fact is false, but that does not stop [eauto] from taking a very long time to search for proofs of it.  We use the handy %\index{Vernacular commands!Time}%[Time] command to measure how long a proof step takes to run.  None of the following steps make any progress. *)
+
   Example three_minus_four_zero : exists x, 1 + x = 0.
     Time eauto 1.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.u,0.s)
+>>
+*)
+
     Time eauto 2.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.u,0.s)
+>>
+*)
+
     Time eauto 3.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.008u,0.s)
+>>
+*)
+
     Time eauto 4.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.068005u,0.004s)
+>>
+*)
+
     Time eauto 5.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 2. secs (1.92012u,0.044003s)
+>>
+*)
+
+(** We see worrying exponential growth in running time, and the %\index{tactics!debug}%[debug] tactical helps us see where [eauto] is wasting its time, outputting a trace of every proof step that is attempted.  The rule [eq_trans] applies at every node of a proof tree, and [eauto] tries all such positions. *)
+
     debug eauto 3.
+(** [[
+1 depth=3 
+1.1 depth=2 eapply ex_intro
+1.1.1 depth=1 apply plusO
+1.1.1.1 depth=0 eapply eq_trans
+1.1.2 depth=1 eapply eq_trans
+1.1.2.1 depth=1 apply plus_n_O
+1.1.2.1.1 depth=0 apply plusO
+1.1.2.1.2 depth=0 eapply eq_trans
+1.1.2.2 depth=1 apply @eq_refl
+1.1.2.2.1 depth=0 apply plusO
+1.1.2.2.2 depth=0 eapply eq_trans
+1.1.2.3 depth=1 apply eq_add_S ; trivial
+1.1.2.3.1 depth=0 apply plusO
+1.1.2.3.2 depth=0 eapply eq_trans
+1.1.2.4 depth=1 apply eq_sym ; trivial
+1.1.2.4.1 depth=0 eapply eq_trans
+1.1.2.5 depth=0 apply plusO
+1.1.2.6 depth=0 apply plusS
+1.1.2.7 depth=0 apply f_equal (A:=nat)
+1.1.2.8 depth=0 apply f_equal2 (A1:=nat) (A2:=nat)
+1.1.2.9 depth=0 eapply eq_trans
+]]
+*)
   Abort.
 End slow.
+
+(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named %\index{hint databases}\emph{%#<i>#hint databases#</i>#%}% to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
 
 (* begin thide *)
 Hint Resolve eq_trans : slow.
@@ -163,23 +388,50 @@ Hint Resolve eq_trans : slow.
 
 Example three_minus_four_zero : exists x, 1 + x = 0.
 (* begin thide *)
-  eauto.
+  Time eauto.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.004u,0.s)
+>>
+
+This [eauto] fails to prove the goal, but it least it takes substantially less than the 2 seconds required above! *)
+
 Abort.
 (* end thide *)
 
+(** One simple example from before runs in the same amount of time, avoiding pollution by transivity. *)
+
 Example seven_minus_three_again : exists x, x + 3 = 7.
 (* begin thide *)
-  eauto 6.
+  Time eauto 6.
+(** %\vspace{-.15in}%
+<<
+Finished transaction in 0. secs (0.004001u,0.s)
+>>
+%\vspace{-.2in}% *)
+
 Qed.
 (* end thide *)
+
+(** When we %\emph{%#<i>#do#</i>#%}% need transitivity, we ask for it explicitly. *)
 
 Example needs_trans : forall x y, 1 + x = y
   -> y = 2
   -> exists z, z + x = 3.
 (* begin thide *)
   info eauto with slow.
+(** %\vspace{-.2in}%[[
+ == intro x; intro y; intro H; intro H0; simple eapply ex_intro; 
+    apply plusS; simple eapply eq_trans.
+    exact H.
+    
+    exact H0.
+]]
+*)
 Qed.
 (* end thide *)
+
+(** The [info] trace shows that [eq_trans] was used in just the position where it is needed to complete the proof.  We also see that [auto] and [eauto] always perform [intro] steps without counting them toward the bound on proof tree depth. *)
 
 
 (** * Searching for Underconstrained Values *)
