@@ -619,7 +619,7 @@ Lemma optExp_correct : forall vs e, evalExp vs (optExp e) = evalExp vs e.
             end; crush).
 Qed.
 
-Hint Rewrite optExp_correct : cpdt.
+Hint Rewrite optExp_correct .
 
 (** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation. *)
 

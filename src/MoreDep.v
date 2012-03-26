@@ -860,7 +860,7 @@ Lemma substring_none : forall s n,
   induction s; substring.
 Qed.
 
-Hint Rewrite substring_all substring_none : cpdt.
+Hint Rewrite substring_all substring_none.
 
 Lemma substring_split : forall s m,
   substring 0 m s ++ substring m (length s - m) s = s.
@@ -883,12 +883,12 @@ Qed.
 Lemma substring_app_snd : forall s2 s1 n,
   length s1 = n
   -> substring n (length (s1 ++ s2) - n) (s1 ++ s2) = s2.
-  Hint Rewrite <- minus_n_O : cpdt.
+  Hint Rewrite <- minus_n_O.
 
   induction s1; crush.
 Qed.
 
-Hint Rewrite substring_app_fst substring_app_snd using solve [trivial] : cpdt.
+Hint Rewrite substring_app_fst substring_app_snd using solve [trivial].
 (* end hide *)
 
 (** A few auxiliary functions help us in our final matcher definition.  The function [split] will be used to implement the regexp concatenation case. *)
@@ -946,7 +946,7 @@ Lemma app_empty_end : forall s, s ++ "" = s.
   induction s; crush.
 Qed.
 
-Hint Rewrite app_empty_end : cpdt.
+Hint Rewrite app_empty_end.
 
 Lemma substring_self : forall s n,
   n <= 0
@@ -960,12 +960,12 @@ Lemma substring_empty : forall s n m,
   induction s; substring.
 Qed.
 
-Hint Rewrite substring_self substring_empty using omega : cpdt.
+Hint Rewrite substring_self substring_empty using omega.
 
 Lemma substring_split' : forall s n m,
   substring n m s ++ substring (n + m) (length s - (n + m)) s
   = substring n (length s - n) s.
-  Hint Rewrite substring_split : cpdt.
+  Hint Rewrite substring_split.
 
   induction s; substring.
 Qed.
@@ -1020,7 +1020,7 @@ Lemma substring_suffix_emp : forall s n m,
 Qed.
 
 Hint Rewrite substring_stack substring_stack' substring_suffix
-  using omega : cpdt.
+  using omega.
 
 Lemma minus_minus : forall n m1 m2,
   m1 + m2 <= n
@@ -1032,7 +1032,7 @@ Lemma plus_n_Sm' : forall n m : nat, S (n + m) = m + S n.
   intros; omega.
 Qed.
 
-Hint Rewrite minus_minus using omega : cpdt.
+Hint Rewrite minus_minus using omega.
 (* end hide *)
 
 (** One more helper function will come in handy: [dec_star], for implementing another linear search through ways of splitting a string, this time for implementing the Kleene star. *)
@@ -1098,7 +1098,7 @@ Section dec_star.
     \/ exists l, l < length s - n
       /\ P (substring n (S l) s)
       /\ star P (substring (n + S l) (length s - (n + S l)) s).
-    Hint Rewrite plus_n_Sm' : cpdt.
+    Hint Rewrite plus_n_Sm'.
 
     intros;
       match goal with

@@ -848,9 +848,9 @@ Qed.
 Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect:%\index{Vernacular commands!Hint Rewrite}% *)
 
 (* begin hide *)
-Hint Rewrite tconcat_correct : cpdt.
+Hint Rewrite tconcat_correct.
 (* end hide *)
-(** %\noindent%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [tconcat_correct : cpdt.] *)
+(** %\noindent%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [tconcat_correct.] *)
 
 (** Here we meet the pervasive concept of a %\emph{%#<i>#hint#</i>#%}%.  Many proofs can be found through exhaustive enumerations of combinations of possible proof steps; hints provide the set of steps to consider.  The tactic [crush] is applying such brute force search for us silently, and it will consider more possibilities as we add more hints.  This particular hint asks that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  In general, segragating hints into different databases is helpful to control the performance of proof search, in cases where domain knowledge allows us to narrow the set of proof steps to be considered in brute force search.  Part III of this book considers such pragmatic aspects of proof search in much more detail.
 
@@ -864,9 +864,9 @@ Qed.
 (** We can register this main lemma as another hint, allowing us to prove the final theorem trivially. *)
 
 (* begin hide *)
-Hint Rewrite tcompile_correct' : cpdt.
+Hint Rewrite tcompile_correct'.
 (* end hide *)
-(** %\noindent%[Hint ]%\coqdockw{%#<tt>#Rewrite#</tt>#%}%[ tcompile_correct' : cpdt.] *)
+(** %\noindent%[Hint ]%\coqdockw{%#<tt>#Rewrite#</tt>#%}%[ tcompile_correct'.] *)
 
 Theorem tcompile_correct : forall t (e : texp t),
   tprogDenote (tcompile e nil) tt = (texpDenote e, tt).

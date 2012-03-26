@@ -586,7 +586,7 @@ Error: Impossible to unify "datatypeDenoteOk dd" with
 
   Restart.
 
-  Hint Rewrite hget_hmake : cpdt.
+  Hint Rewrite hget_hmake.
   Hint Resolve foldr_plus.
  
   unfold size; intros; pattern v; apply dok; crush.
@@ -605,7 +605,7 @@ Theorem map_id : forall T dt
 (* begin thide *)
   (** Let us begin as we did in the last theorem, after adding another useful library equality as a hint. *)
 
-  Hint Rewrite hget_hmap : cpdt.
+  Hint Rewrite hget_hmap.
 
   unfold map; intros; pattern v; apply dok; crush.
   (** %\vspace{-.15in}%[[

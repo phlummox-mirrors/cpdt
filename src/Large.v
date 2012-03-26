@@ -208,7 +208,7 @@ Qed.
 
 Reset eval_times.
 
-Hint Rewrite mult_plus_distr_l : cpdt.
+Hint Rewrite mult_plus_distr_l.
 
 Theorem eval_times : forall k e,
   eval (times k e) = k * eval e.
@@ -421,7 +421,7 @@ Theorem confounder : forall e1 e2 e3,
   crush.
 Qed.
 
-Hint Rewrite confounder : cpdt.
+Hint Rewrite confounder.
 
 Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 (* begin thide *)
@@ -468,19 +468,19 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   Undo.
   info t.
   (** %\vspace{-.15in}%[[
- == simpl in *; intuition; subst; autorewrite with cpdt in *; 
-    simpl in *; intuition; subst; autorewrite with cpdt in *; 
+ == simpl in *; intuition; subst; autorewrite with core in *; 
+    simpl in *; intuition; subst; autorewrite with core in *; 
     simpl in *; intuition; subst; destruct (reassoc e2).
     simpl in *; intuition.
     
     simpl in *; intuition.
     
-    simpl in *; intuition; subst; autorewrite with cpdt in *;
+    simpl in *; intuition; subst; autorewrite with core in *;
        refine (eq_ind_r
                  (fun n : nat =>
                   n * (eval e3 + 1 - 1) * eval e4 = eval e1 * eval e2) _ IHe1);
-       autorewrite with cpdt in *; simpl in *; intuition; 
-    subst; autorewrite with cpdt in *; simpl in *; 
+       autorewrite with core in *; simpl in *; intuition; 
+    subst; autorewrite with core in *; simpl in *; 
     intuition; subst.
  
     ]]
@@ -491,15 +491,15 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   (** We arbitrarily split the script into chunks.  The first few seem not to do any harm. *)
 
-  simpl in *; intuition; subst; autorewrite with cpdt in *.
-  simpl in *; intuition; subst; autorewrite with cpdt in *.
+  simpl in *; intuition; subst; autorewrite with core in *.
+  simpl in *; intuition; subst; autorewrite with core in *.
   simpl in *; intuition; subst; destruct (reassoc e2).
   simpl in *; intuition.
   simpl in *; intuition.
 
   (** The next step is revealed as the culprit, bringing us to the final unproved subgoal. *)
 
-  simpl in *; intuition; subst; autorewrite with cpdt in *.
+  simpl in *; intuition; subst; autorewrite with core in *.
 
   (** We can split the steps further to assign blame. *)
 
@@ -508,13 +508,13 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   simpl in *.
   intuition.
   subst.
-  autorewrite with cpdt in *.
+  autorewrite with core in *.
 
   (** It was the final of these four tactics that made the rewrite.  We can find out exactly what happened.  The [info] command presents hierarchical views of proof steps, and we can zoom down to a lower level of detail by applying [info] to one of the steps that appeared in the original trace. *)
 
   Undo.
 
-  info autorewrite with cpdt in *.
+  info autorewrite with core in *.
   (** %\vspace{-.15in}%[[
  == refine (eq_ind_r (fun n : nat => n = eval e1 * eval e2) _
               (confounder (reassoc e1) e3 e4)).

@@ -420,9 +420,9 @@ Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
   = plus (nsize tr2) (nsize tr1).
 (* begin thide *)
 (* begin hide *)
-  Hint Rewrite n_plus_O plus_assoc : cpdt.
+  Hint Rewrite n_plus_O plus_assoc.
 (* end hide *)
-  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [n_plus_O plus_assoc : cpdt.] *)
+  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [n_plus_O plus_assoc.] *)
 
   induction tr1; crush.
 Qed.
@@ -1125,9 +1125,9 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   = plus (ntsize tr2) (ntsize tr1).
 (* begin thide *)
 (* begin hide *)
-  Hint Rewrite plus_S : cpdt.
+  Hint Rewrite plus_S.
 (* end hide *)
-  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [plus_S : cpdt.] *)
+  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [plus_S.] *)
 
   (** We know that the standard induction principle is insufficient for the task, so we need to provide a %\index{tactics!using}%[using] clause for the [induction] tactic to specify our alternate principle. *)
 

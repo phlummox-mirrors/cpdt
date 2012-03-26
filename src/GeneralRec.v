@@ -696,7 +696,7 @@ Lemma TBind_Answer : forall (A B : Type) (v : A) (m2 : A -> thunk B),
     simpl; findDestr; reflexivity.
 Qed.
 
-Hint Rewrite TBind_Answer : cpdt.
+Hint Rewrite TBind_Answer.
 
 (** printing exists $\exists$ *)
 
@@ -723,7 +723,7 @@ Inductive eval A : thunk A -> A -> Prop :=
 | EvalAnswer : forall x, eval (Answer x) x
 | EvalThink : forall m x, eval m x -> eval (Think m) x.
 
-Hint Rewrite frob_eq : cpdt.
+Hint Rewrite frob_eq.
 
 Lemma eval_frob : forall A (c : thunk A) x,
   eval (frob c) x

@@ -781,11 +781,11 @@ Print linear.
 
 (** * More on [auto] Hints *)
 
-(** Another class of built-in tactics includes [auto], [eauto], and [autorewrite].  These are based on %\textit{%#<i>#hint databases#</i>#%}%, which we have seen extended in many examples so far.  These tactics are important, because, in Ltac programming, we cannot create %``%#"#global variables#"#%''% whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.
+(** Let us stop at this point and take stock of the possibilities for [auto] and [eauto] hints.  Hints are contained within %\textit{%#<i>#hint databases#</i>#%}%, which we have seen extended in many examples so far.  When no hint database is specified, a default database is used.  Hints in the default database are always used by [auto] or [eauto].  The chance to extend hint databases imperatively is important, because, in Ltac programming, we cannot create %``%#"#global variables#"#%''% whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.  In fact, [crush] is defined in terms of [auto], which explains how we achieve this extensibility.  Other user-defined tactics can take similar advantage of [auto] and [eauto].
 
-The basic hints for [auto] and [eauto] are [Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; [Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; [Constructors type], which acts like [Resolve] applied to every constructor of an inductive type; and [Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
+The basic hints for [auto] and [eauto] are %\index{Vernacular commands!Hint Immediate}%[Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; %\index{Vernacular commands!Hint Resolve}%[Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; %\index{Vernacular commands!Hint Constructors}%[Constructors type], which acts like [Resolve] applied to every constructor of an inductive type; and %\index{Vernacular commands!Hint Unfold}%[Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
 
-All of these [Hint] commands can be issued alternatively with a more primitive hint kind, [Extern].  A few examples should do best to explain how [Hint Extern] works. *)
+All of these [Hint] commands can be issued alternatively with a more primitive hint kind, [Extern].  A few more examples of [Hint Extern] should illustrate more of the possibilities. *)
 
 Theorem bool_neq : true <> false.
 (* begin thide *)
@@ -795,7 +795,7 @@ Theorem bool_neq : true <> false.
 
 Abort.
 
-(** It is hard to come up with a [bool]-specific hint that is not just a restatement of the theorem we mean to prove.  Luckily, a simpler form suffices. *)
+(** It is hard to come up with a [bool]-specific hint that is not just a restatement of the theorem we mean to prove.  Luckily, a simpler form suffices, by appealing to the built-in tactic %\index{tactics!congruence}%[congruence], a complete procedure for the theory of equality, uninterpreted functions, and datatype constructors. *)
 
 Hint Extern 1 (_ <> _) => congruence.
 
@@ -804,9 +804,7 @@ Theorem bool_neq : true <> false.
 Qed.
 (* end thide *)
 
-(** Our hint says: %``%#"#whenever the conclusion matches the pattern [_ <> _], try applying [congruence].#"#%''%  The [1] is a cost for this rule.  During proof search, whenever multiple rules apply, rules are tried in increasing cost order, so it pays to assign high costs to relatively expensive [Extern] hints.
-
-[Extern] hints may be implemented with the full Ltac language.  This example shows a case where a hint uses a [match]. *)
+(** [Extern] hints may be implemented with the full Ltac language.  This example shows a case where a hint uses a [match]. *)
 
 Section forall_and.
   Variable A : Set.
@@ -818,7 +816,7 @@ Section forall_and.
 (* begin thide *)
     crush.
 
-    (** [crush] makes no progress beyond what [intros] would have accomplished.  [auto] will not apply the hypothesis [both] to prove the goal, because the conclusion of [both] does not unify with the conclusion of the goal.  However, we can teach [auto] to handle this kind of goal. *)
+    (** The [crush] invocation makes no progress beyond what [intros] would have accomplished.  An [auto] invocation will not apply the hypothesis [both] to prove the goal, because the conclusion of [both] does not unify with the conclusion of the goal.  However, we can teach [auto] to handle this kind of goal. *)
 
     Hint Extern 1 (P ?X) =>
       match goal with
@@ -829,32 +827,38 @@ Section forall_and.
   Qed.
 (* end thide *)
 
-  (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  [proj1] is a function from the standard library for extracting a proof of [R] from a proof of [R /\ S]. *)
+  (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  The function [proj1] is from the standard library, for extracting a proof of [R] from a proof of [R /\ S]. *)
 
 End forall_and.
 
 (** After our success on this example, we might get more ambitious and seek to generalize the hint to all possible predicates [P].
-
    [[
   Hint Extern 1 (?P ?X) =>
     match goal with
       | [ H : forall x, P x /\ _ |- _ ] => apply (proj1 (H X))
     end.
-
+]]
+<<
 User error: Bound head variable
- 
-   ]]
+>>
 
-   Coq's [auto] hint databases work as tables mapping %\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
+   Coq's [auto] hint databases work as tables mapping %\index{head symbol}\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
 
-   This restriction on [Extern] hints is the main limitation of the [auto] mechanism, preventing us from using it for general context simplifications that are not keyed off of the form of the conclusion.  This is perhaps just as well, since we can often code more efficient tactics with specialized Ltac programs, and we will see how in the next chapter. *)
+   Fortunately, a more basic form of [Hint Extern] also applies.  We may simply leave out the pattern to the left of the [=>], incorporating the corresponding logic into the Ltac script. *)
+
+Hint Extern 1 =>
+  match goal with
+    | [ H : forall x, ?P x /\ _ |- ?P ?X ] => apply (proj1 (H X))
+  end.
+
+(** Be forewarned that a [Hint Extern] of this kind will be applied at %\emph{%#<i>#every#</i>#%}% node of a proof tree, so an expensive Ltac script may slow proof search significantly. *)
 
 
 (** * Rewrite Hints *)
 
-   (** We have used [Hint Rewrite] in many examples so far.  [crush] uses these hints by calling [autorewrite].  Our rewrite hints have taken the form [Hint Rewrite lemma : cpdt], adding them to the [cpdt] rewrite database.  This is because, in contrast to [auto], [autorewrite] has no default database.  Thus, we set the convention that [crush] uses the [cpdt] database.
+(** Another dimension of extensibility with hints is rewriting with quantified equalities.  We have used the associated command %\index{Vernacular commands!Hint Rewrite}%[Hint Rewrite] in many examples so far.  The [crush] tactic uses these hints by calling the built-in tactic %\index{tactics!autorewrite}%[autorewrite].  Our rewrite hints have taken the form [Hint Rewrite lemma], which by default adds them to the default hint database [core]; but alternate hint databases may also be specified just as with, e.g., [Hint Resolve].
 
-   This example shows a direct use of [autorewrite]. *)
+   The next example shows a direct use of [autorewrite].  Note that, while [Hint Rewrite] uses a default database, [autorewrite] requires that a database be named. *)
 
 Section autorewrite.
   Variable A : Set.
@@ -862,10 +866,10 @@ Section autorewrite.
 
   Hypothesis f_f : forall x, f (f x) = f x.
 
-  Hint Rewrite f_f : my_db.
+  Hint Rewrite f_f.
 
   Lemma f_f_f : forall x, f (f (f x)) = f x.
-    intros; autorewrite with my_db; reflexivity.
+    intros; autorewrite with core; reflexivity.
   Qed.
 
   (** There are a few ways in which [autorewrite] can lead to trouble when insufficient care is taken in choosing hints.  First, the set of hints may define a nonterminating rewrite system, in which case invocations to [autorewrite] may not terminate.  Second, we may add hints that %``%#"#lead [autorewrite] down the wrong path.#"#%''%  For instance: *)
@@ -873,10 +877,10 @@ Section autorewrite.
   Section garden_path.
     Variable g : A -> A.
     Hypothesis f_g : forall x, f x = g x.
-    Hint Rewrite f_g : my_db.
+    Hint Rewrite f_g.
 
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
-      intros; autorewrite with my_db.
+      intros; autorewrite with core.
       (** [[
 ============================
  g (g (g x)) = g x
@@ -889,16 +893,16 @@ Section autorewrite.
 
   Reset garden_path.
 
-  (** [autorewrite] also works with quantified equalities that include additional premises, but we must be careful to avoid similar incorrect rewritings. *)
+  (** The [autorewrite] tactic also works with quantified equalities that include additional premises, but we must be careful to avoid similar incorrect rewritings. *)
 
   Section garden_path.
     Variable P : A -> Prop.
     Variable g : A -> A.
     Hypothesis f_g : forall x, P x -> f x = g x.
-    Hint Rewrite f_g : my_db.
+    Hint Rewrite f_g.
 
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
-      intros; autorewrite with my_db.
+      intros; autorewrite with core.
       (** [[
 
   ============================
@@ -926,35 +930,37 @@ subgoal 4 is:
     Variable g : A -> A.
     Hypothesis f_g : forall x, P x -> f x = g x.
 (* begin thide *)
-    Hint Rewrite f_g using assumption : my_db.
+    Hint Rewrite f_g using assumption.
 (* end thide *)
 
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
 (* begin thide *)
-      intros; autorewrite with my_db; reflexivity.
+      intros; autorewrite with core; reflexivity.
     Qed.
 (* end thide *)
 
-    (** [autorewrite] will still use [f_g] when the generated premise is among our assumptions. *)
+    (** We may still use [autorewrite] to apply [f_g] when the generated premise is among our assumptions. *)
 
     Lemma f_f_f_g : forall x, P x -> f (f x) = g x.
 (* begin thide *)
-      intros; autorewrite with my_db; reflexivity.
+      intros; autorewrite with core; reflexivity.
 (* end thide *)
     Qed.
   End garden_path.
 
   (** remove printing * *)
 
-  (** It can also be useful to use the [autorewrite with db in *] form, which does rewriting in hypotheses, as well as in the conclusion. *)
+  (** It can also be useful to apply the [autorewrite with db in *] form, which does rewriting in hypotheses, as well as in the conclusion. *)
 
   (** printing * $*$ *)
 
   Lemma in_star : forall x y, f (f (f (f x))) = f (f y)
     -> f x = f (f (f y)).
 (* begin thide *)
-    intros; autorewrite with my_db in *; assumption.
+    intros; autorewrite with core in *; assumption.
 (* end thide *)
   Qed.
 
 End autorewrite.
+
+(** Many proofs can be automated in pleasantly modular ways with deft combination of [auto] and [autorewrite]. *)

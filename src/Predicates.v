@@ -364,9 +364,9 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
     -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
 (* begin hide *)
-    Hint Rewrite app_length : cpdt.
+    Hint Rewrite app_length.
 (* end hide *)
-(** %\hspace{.075in}%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [app_length : cpdt.] *)
+(** %\hspace{.075in}%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [app_length.] *)
 
     crush.
   Qed.
@@ -637,7 +637,7 @@ Theorem even_4 : even 4.
 (* end thide *)
 Qed.
 
-(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  Note that this sort of hint may be placed in a default database, such that a command has no equivalent to the [: cpdt] from our earlier rewrite hints.%\index{Hint Constructirs}%  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
+(** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
 
 (* begin thide *)
 (* begin hide *)
@@ -872,9 +872,9 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
 (** %\hspace{-.075in}\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
 (* begin hide *)
-  Hint Rewrite <- plus_n_Sm : cpdt.
+  Hint Rewrite <- plus_n_Sm.
 (* end hide *)
-(** %\hspace{-.075in}%[Hint] %\noindent\coqdockw{%#<tt>#Rewrite#</tt>#%}% [<- plus_n_sm : cpdt.] *)
+(** %\hspace{-.075in}%[Hint] %\noindent\coqdockw{%#<tt>#Rewrite#</tt>#%}% [<- plus_n_sm.] *)
 
   induction 1; crush;
     match goal with
