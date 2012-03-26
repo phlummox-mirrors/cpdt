@@ -436,13 +436,31 @@ Qed.
 
 (** * Searching for Underconstrained Values *)
 
+(** Recall the definition of the list length function. *)
+
 Print length.
+(** %\vspace{-.15in}%[[
+length = 
+fun A : Type =>
+fix length (l : list A) : nat :=
+  match l with
+  | nil => 0
+  | _ :: l' => S (length l')
+  end
+]]
+
+This function is easy to reason about in the forward direction, computing output from input. *)
 
 Example length_1_2 : length (1 :: 2 :: nil) = 2.
   auto.
 Qed.
 
 Print length_1_2.
+(** %\vspace{-.15in}%[[
+length_1_2 = eq_refl
+]]
+
+As in the last section, we will prove some lemmas to recast [length] in logic programming style, to help us compute inputs from outputs. *)
 
 (* begin thide *)
 Theorem length_O : forall A, length (nil (A := A)) = O.
@@ -458,15 +476,43 @@ Qed.
 Hint Resolve length_O length_S.
 (* end thide *)
 
+(** Let us apply these hints to prove that a [list nat] of length 2 exists. *)
+
 Example length_is_2 : exists ls : list nat, length ls = 2.
 (* begin thide *)
   eauto.
+(** <<
+No more subgoals but non-instantiated existential variables:
+Existential 1 = ?20249 : [ |- nat]
+Existential 2 = ?20252 : [ |- nat]
+>>
+
+Coq complains that we finished the proof without determining the values of some unification variables created during proof search.  The error message may seem a bit silly, since %\emph{%#<i>#any#</i>#%}% value of type [nat] (for instance, 0) can be plugged in for either variable!  However, for more complex types, finding their inhabitants may be as complex as theorem-proving in general.
+
+The %\index{Vernacular commands!Show Proof}%[Show Proof] command shows exactly which proof term [eauto] has found, with the undetermined unification variables appearing explicitly where they are used. *)
 
   Show Proof.
+(** <<
+Proof: ex_intro (fun ls : list nat => length ls = 2)
+         (?20249 :: ?20252 :: nil)
+         (length_S ?20249 (?20252 :: nil)
+            (length_S ?20252 nil (length_O nat)))
+>>
+%\vspace{-.2in}% *)
+
 Abort.
 (* end thide *)
 
+(** We see that the two unification variables stand for the two elements of the list.  Indeed, list length is independent of data values.  Paradoxically, we can make the proof search process easier by constraining the list further, so that proof search naturally locates appropriate data elements by unification.  The library predicate [Forall] will be helpful. *)
+
 Print Forall.
+(** %\vspace{-.15in}%[[
+Inductive Forall (A : Type) (P : A -> Prop) : list A -> Prop :=
+    Forall_nil : Forall P nil
+  | Forall_cons : forall (x : A) (l : list A),
+                  P x -> Forall P l -> Forall P (x :: l)
+]]
+*)
 
 Example length_is_2 : exists ls : list nat, length ls = 2
   /\ Forall (fun n => n >= 1) ls.
@@ -475,7 +521,25 @@ Example length_is_2 : exists ls : list nat, length ls = 2
 Qed.
 (* end thide *)
 
+(** We can see which list [eauto] found by printing the proof term. *)
+
+Print length_is_2.
+(** %\vspace{-.15in}%[[
+length_is_2 = 
+ex_intro
+  (fun ls : list nat => length ls = 2 /\ Forall (fun n : nat => n >= 1) ls)
+  (1 :: 1 :: nil)
+  (conj (length_S 1 (1 :: nil) (length_S 1 nil (length_O nat)))
+     (Forall_cons 1 (le_n 1)
+        (Forall_cons 1 (le_n 1) (Forall_nil (fun n : nat => n >= 1)))))
+]]
+*)
+
+(** Let us try one more, fancier example.  First, we use a standard high-order function to define a function for summing all data elements of a list. *)
+
 Definition sum := fold_right plus O.
+
+(** Another basic lemma will be helpful to guide proof search. *)
 
 (* begin thide *)
 Lemma plusO' : forall n m,
@@ -486,8 +550,12 @@ Qed.
 
 Hint Resolve plusO'.
 
+(** Finally, we meet %\index{Vernacular commands!Hint Extern}%[Hint Extern], the command to register a custom hint.  That is, we provide a pattern to match against goals during proof search.  Whenever the pattern matches, a tactic (given to the right of an arrow [=>]) is attempted.  Below, the number [1] gives a priority for this step.  Lower priorities are tried before higher priorities, which can have a significant effect on proof search time. *)
+
 Hint Extern 1 (sum _ = _) => simpl.
 (* end thide *)
+
+(** Now we can find a length-2 list whose sum is 0. *)
 
 Example length_and_sum : exists ls : list nat, length ls = 2
   /\ sum ls = O.
@@ -496,7 +564,11 @@ Example length_and_sum : exists ls : list nat, length ls = 2
 Qed.
 (* end thide *)
 
+(* begin hide *)
 Print length_and_sum.
+(* end hide *)
+
+(** Printing the proof term shows the unsurprising list that is found.  Here is an example where it is less obvious which list will be used.  Can you guess which list [eauto] will choose? *)
 
 Example length_and_sum' : exists ls : list nat, length ls = 5
   /\ sum ls = 42.
@@ -505,7 +577,11 @@ Example length_and_sum' : exists ls : list nat, length ls = 5
 Qed.
 (* end thide *)
 
+(* begin hide *)
 Print length_and_sum'.
+(* end hide *)
+
+(** We will give away part of the answer and say that the above list is less interesting than we would like, because it contains too many zeroes.  A further constraint forces a different solution for a smaller instance of the problem. *)
 
 Example length_and_sum'' : exists ls : list nat, length ls = 2
   /\ sum ls = 3
@@ -515,7 +591,11 @@ Example length_and_sum'' : exists ls : list nat, length ls = 2
 Qed.
 (* end thide *)
 
+(* begin hide *)
 Print length_and_sum''.
+(* end hide *)
+
+(** We could continue through exercises of this kind, but even more interesting than finding lists automatically is finding %\emph{%#<i>#programs#</i>#%}% automatically. *)
 
 
 (** * Synthesizing Programs *)
