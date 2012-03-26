@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Revisions touching many chapters</title>
+        <pubDate>Mon, 26 Mar 2012 16:59:11 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>I've moved the exercises out of the book, because I don't feel that I have the time to produce well-tested exercises yet; changed crush's use of autorewrite so that Hint Rewrite commands may be given without explicit hint databases; added a crucial new section to "More Dependent Types"; and added prose and other improvements to "Proof Search by Logic Programming."</description>
+</item>
+
+<item>
         <title>A pass through "Proving in the Large"</title>
         <pubDate>Wed, 9 Nov 2011 15:25:42 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
