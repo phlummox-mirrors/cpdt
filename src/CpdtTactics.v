@@ -81,11 +81,11 @@ Ltac rewriteHyp :=
     | [ H : _ |- _ ] => rewrite H; auto; [idtac]
   end.
 
-Ltac rewriterP := repeat (rewriteHyp; autorewrite with cpdt in *).
+Ltac rewriterP := repeat (rewriteHyp; autorewrite with core in *).
 
-Ltac rewriter := autorewrite with cpdt in *; rewriterP.
+Ltac rewriter := autorewrite with core in *; rewriterP.
 
-Hint Rewrite app_ass : cpdt.
+Hint Rewrite app_ass.
 
 Definition done (T : Type) (x : T) := True.
 
@@ -130,7 +130,7 @@ Require Import JMeq.
 
 Ltac crush' lemmas invOne :=
   let sintuition := simpl in *; intuition; try subst; repeat (simplHyp invOne; intuition; try subst); try congruence in
-    let rewriter := autorewrite with cpdt in *;
+    let rewriter := autorewrite with core in *;
       repeat (match goal with
                 | [ H : ?P |- _ ] =>
                   match P with
@@ -139,7 +139,7 @@ Ltac crush' lemmas invOne :=
                       || (rewrite H; [ | solve [ crush' lemmas invOne ] ])
                         || (rewrite H; [ | solve [ crush' lemmas invOne ] | solve [ crush' lemmas invOne ] ])
                   end
-              end; autorewrite with cpdt in *)
+              end; autorewrite with core in *)
     in (sintuition; rewriter;
         match lemmas with
           | false => idtac

@@ -838,7 +838,7 @@ Qed.
 Theorem cfold_correct : forall t (e : exp' t),
   exp'Denote (cfold e) = exp'Denote e.
 (* begin thide *)
-  Hint Rewrite cfoldCond_correct : cpdt.
+  Hint Rewrite cfoldCond_correct.
   Hint Resolve cond_ext.
 
   induction e; crush;
