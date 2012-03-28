@@ -1,4 +1,4 @@
-(* Copyright (c) 2009-2011, Adam Chlipala
+(* Copyright (c) 2009-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -8,6 +8,8 @@
  *)
 
 (* begin hide *)
+Require Import List.
+
 Require Import DepList CpdtTactics.
 
 Set Implicit Arguments.
@@ -1016,4 +1018,152 @@ Print Assumptions proj1_again.
 Closed under the global context
 >>
 
-This example illustrates again how some of the same design patterns we learned for dependently typed programming can be used fruitfully in theorem statements. *)
+This example illustrates again how some of the same design patterns we learned for dependently typed programming can be used fruitfully in theorem statements.
+
+%\medskip%
+
+To close the chapter, we consider one final way to avoid dependence on axioms.  Often this task is equivalent to writing definitions such that they %\emph{%#<i>#compute#</i>#%}%.  That is, we want Coq's normal reduction to be able to run certain programs to completion.  Here is a simple example where such computation can get stuck.  In proving properties of such functions, we would need to apply axioms like %\index{axiom K}%K manually to make progress.
+
+Imagine we are working with %\index{deep embedding}%deeply embedded syntax of some programming language, where each term is considered to be in the scope of a number of free variables that hold normal Coq values.  To enforce proper typing, we will need to model a Coq typing environment somehow.  One natural choice is as a list of types, where variable number [i] will be treated as a reference to the [i]th element of the list. *)
+
+Section withTypes.
+  Variable types : list Set.
+
+  (** To give the semantics of terms, we will need to represent value environments, which assign each variable a term of the proper type. *)
+
+  Variable values : hlist (fun x : Set => x) types.
+
+  (** Now imagine that we are writing some procedure that operates on a distinguished variable of type [nat].  A hypothesis formalizes this assumption, using the standard library function [nth_error] for looking up list elements by position. *)
+
+  Variable natIndex : nat.
+  Variable natIndex_ok : nth_error types natIndex = Some nat.
+
+  (** It is not hard to use this hypothesis to write a function for extracting the [nat] value in position [natIndex] of [values], starting with two helpful lemmas, each of which we finish with [Defined] to mark the lemma as transparent, so that its definition may be expanded during evaluation. *)
+
+  Lemma nth_error_nil : forall A n x,
+    nth_error (@nil A) n = Some x
+    -> False.
+    destruct n; simpl; unfold error; congruence.
+  Defined.
+
+  Implicit Arguments nth_error_nil [A n x].
+
+  Lemma Some_inj : forall A (x y : A),
+    Some x = Some y
+    -> x = y.
+    congruence.
+  Defined.
+
+  Fixpoint getNat (types' : list Set) (values' : hlist (fun x : Set => x) types')
+    (natIndex : nat) : (nth_error types' natIndex = Some nat) -> nat :=
+    match values' with
+      | HNil => fun pf => match nth_error_nil pf with end
+      | HCons t ts x values'' =>
+        match natIndex return nth_error (t :: ts) natIndex = Some nat -> nat with
+          | O => fun pf =>
+            match Some_inj pf in _ = T return T with
+              | refl_equal => x
+            end
+          | S natIndex' => getNat values'' natIndex'
+        end
+    end.
+End withTypes.
+
+(** The problem becomes apparent when we experiment with running [getNat] on a concrete [types] list. *)
+
+Definition myTypes := unit :: nat :: bool :: nil.
+Definition myValues : hlist (fun x : Set => x) myTypes :=
+  tt ::: 3 ::: false ::: HNil.
+
+Definition myNatIndex := 1.
+
+Theorem myNatIndex_ok : nth_error myTypes myNatIndex = Some nat.
+  reflexivity.
+Defined.
+
+Eval compute in getNat myValues myNatIndex myNatIndex_ok.
+(** %\vspace{-.15in}%[[
+     = 3
+]]
+
+We have not hit the problem yet, since we proceeded with a concrete equality proof for [myNatIndex_ok].  However, consider a case where we want to reason about the behavior of [getNat] %\emph{%#<i>#independently#</i>#%}% of a specific proof. *)
+
+Theorem getNat_is_reasonable : forall pf, getNat myValues myNatIndex pf = 3.
+  intro; compute.
+(**
+<<
+1 subgoal
+>>
+%\vspace{-.3in}%[[
+  pf : nth_error myTypes myNatIndex = Some nat
+  ============================
+   match
+     match
+       pf in (_ = y)
+       return (nat = match y with
+                     | Some H => H
+                     | None => nat
+                     end)
+     with
+     | eq_refl => eq_refl
+     end in (_ = T) return T
+   with
+   | eq_refl => 3
+   end = 3
+]]
+
+Since the details of the equality proof [pf] are not known, computation can proceed no further.  A rewrite with axiom K would allow us to make progress, but we can rethink the definitions a bit to avoid depending on axioms. *)
+
+Abort.
+
+(** Here is a definition of a function that turns out to be useful, though no doubt its purpose will be mysterious for now.  A call [update ls n x] overwrites the [n]th position of the list [ls] with the value [x], padding the end of the list with extra [x] values as needed to ensure sufficient length. *)
+
+Fixpoint copies A (x : A) (n : nat) : list A :=
+  match n with
+    | O => nil
+    | S n' => x :: copies x n'
+  end.
+
+Fixpoint update A (ls : list A) (n : nat) (x : A) : list A :=
+  match ls with
+    | nil => copies x n ++ x :: nil
+    | y :: ls' => match n with
+                    | O => x :: ls'
+                    | S n' => y :: update ls' n' x
+                  end
+  end.
+
+(** Now let us revisit the definition of [getNat]. *)
+
+Section withTypes'.
+  Variable types : list Set.
+  Variable natIndex : nat.
+
+  (** Here is the trick: instead of asserting properties about the list [types], we build a %``%#"#new#"#%''% list that is %\emph{%#<i>#guaranteed by construction#</i>#%}% to have those properties. *)
+
+  Definition types' := update types natIndex nat.
+
+  Variable values : hlist (fun x : Set => x) types'.
+
+  (** Now a bit of dependent pattern matching helps us rewrite [getNat] in a way that avoids any use of equality proofs. *)
+
+  Fixpoint getNat' (types'' : list Set) (natIndex : nat)
+    : hlist (fun x : Set => x) (update types'' natIndex nat) -> nat :=
+    match types'' with
+      | nil => fun vs => hhd vs
+      | t :: types0 =>
+        match natIndex return hlist (fun x : Set => x)
+          (update (t :: types0) natIndex nat) -> nat with
+          | O => fun vs => hhd vs
+          | S natIndex' => fun vs => getNat' types0 natIndex' (htl vs)
+        end
+    end.
+End withTypes'.
+
+(** Now the surprise comes in how easy it is to %\emph{%#<i>#use#</i>#%}% [getNat'].  While typing works by modification of a types list, we can choose parameters so that the modification has no effect. *)
+
+Theorem getNat_is_reasonable : getNat' myTypes myNatIndex myValues = 3.
+  reflexivity.
+Qed.
+
+(** The same parameters as before work without alteration, and we avoid use of axioms. *)
