@@ -558,13 +558,13 @@ Notation "{< x >}" := (existT _ _ x).
 Definition balance1 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n
     -> { c : color & rbtree c (S n) } with
-    | RedNode' _ _ _ t1 y t2 =>
-      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n
+    | RedNode' _ c0 _ t1 y t2 =>
+      match t1 in rbtree c n return rbtree c0 n -> rbtree c2 n
         -> { c : color & rbtree c (S n) } with
         | RedNode _ a x b => fun c d =>
           {<RedNode (BlackNode a x b) y (BlackNode c data d)>}
         | t1' => fun t2 =>
-          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n
+          match t2 in rbtree c n return rbtree Black n -> rbtree c2 n
             -> { c : color & rbtree c (S n) } with
             | RedNode _ b x c => fun a d =>
               {<RedNode (BlackNode a y b) x (BlackNode c data d)>}
@@ -581,13 +581,13 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
 
 Definition balance2 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n -> { c : color & rbtree c (S n) } with
-    | RedNode' _ _ _ t1 z t2 =>
-      match t1 in rbtree c n return rbtree _ n -> rbtree c2 n
+    | RedNode' _ c0 _ t1 z t2 =>
+      match t1 in rbtree c n return rbtree c0 n -> rbtree c2 n
         -> { c : color & rbtree c (S n) } with
         | RedNode _ b y c => fun d a =>
           {<RedNode (BlackNode a data b) y (BlackNode c z d)>}
         | t1' => fun t2 =>
-          match t2 in rbtree c n return rbtree _ n -> rbtree c2 n
+          match t2 in rbtree c n return rbtree Black n -> rbtree c2 n
             -> { c : color & rbtree c (S n) } with
             | RedNode _ c z' d => fun b a =>
               {<RedNode (BlackNode a data b) z (BlackNode c z' d)>}
@@ -1132,7 +1132,11 @@ Section dec_star.
       + {forall l', S l' <= l
         -> ~ P (substring n (S l') s)
         \/ ~ P' (substring (n + S l') (length s - (n + S l')) s)} :=
-      match l with
+      match l return {exists l', S l' <= l
+        /\ P (substring n (S l') s) /\ P' (substring (n + S l') (length s - (n + S l')) s)}
+      + {forall l', S l' <= l
+        -> ~ P (substring n (S l') s)
+        \/ ~ P' (substring (n + S l') (length s - (n + S l')) s)} with
         | O => _
         | S l' =>
           (P_dec (substring n (S l') s) && P'_dec (n' := n + S l') _)
@@ -1186,13 +1190,10 @@ Section dec_star.
     end.
   Defined.
 
-  (** Finally, we have [dec_star].  It has a straightforward implementation.  We introduce a spurious match on [s] so that [simpl] will know to reduce calls to [dec_star].  The heuristic that [simpl] uses is only to unfold identifier definitions when doing so would simplify some [match] expression. *)
+  (** Finally, we have [dec_star], defined by straightforward reduction from [dec_star']. *)
 
   Definition dec_star : {star P s} + {~ star P s}.
-    refine (match s return _ with
-              | "" => Reduce (dec_star' (n := length s) 0 _)
-              | _ => Reduce (dec_star' (n := length s) 0 _)
-            end); crush.
+    refine (Reduce (dec_star' (n := length s) 0 _)); crush.
   Defined.
 End dec_star.
 
@@ -1226,22 +1227,22 @@ Defined.
 
 (* begin hide *)
 Example hi := Concat (Char "h"%char) (Char "i"%char).
-Eval simpl in matches hi "hi".
-Eval simpl in matches hi "bye".
+Eval hnf in matches hi "hi".
+Eval hnf in matches hi "bye".
 
 Example a_b := Or (Char "a"%char) (Char "b"%char).
-Eval simpl in matches a_b "".
-Eval simpl in matches a_b "a".
-Eval simpl in matches a_b "aa".
-Eval simpl in matches a_b "b".
+Eval hnf in matches a_b "".
+Eval hnf in matches a_b "a".
+Eval hnf in matches a_b "aa".
+Eval hnf in matches a_b "b".
 (* end hide *)
 
-(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer. *)
+(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to %\index{head-normal form}\emph{%#<i>#head-normal form#</i>#%}%, where the datatype constructor used to build its value is known. *)
 
 Example a_star := Star (Char "a"%char).
-Eval simpl in matches a_star "".
-Eval simpl in matches a_star "a".
-Eval simpl in matches a_star "b".
-Eval simpl in matches a_star "aa".
+Eval hnf in matches a_star "".
+Eval hnf in matches a_star "a".
+Eval hnf in matches a_star "b".
+Eval hnf in matches a_star "aa".
 
 (** Evaluation inside Coq does not scale very well, so it is easy to build other tests that run for hours or more.  Such cases are better suited to execution with the extracted OCaml code. *)

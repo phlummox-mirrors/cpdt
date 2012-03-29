@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -566,7 +566,7 @@ Notation "[| x |]" := (Found _ x _).
 
 Definition pred_strong7 : forall n : nat, {{m | n = S m}}.
   refine (fun n =>
-    match n with
+    match n return {{m | n = S m}} with
       | O => ??
       | S n' => [|n'|]
     end); trivial.
@@ -725,7 +725,7 @@ Definition typeCheck : forall e : exp, {{t | hasType e t}}.
   Hint Constructors hasType.
 
   refine (fix F (e : exp) : {{t | hasType e t}} :=
-    match e with
+    match e return {{t | hasType e t}} with
       | Nat _ => [|TNat|]
       | Plus e1 e2 =>
         t1 <- F e1;
@@ -872,7 +872,7 @@ Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ 
   (** Finally, the implementation of [typeCheck] can be transcribed literally, simply switching notations as needed. *)
 
   refine (fix F (e : exp) : {t : type | hasType e t} + {forall t, ~ hasType e t} :=
-    match e with
+    match e return {t : type | hasType e t} + {forall t, ~ hasType e t} with
       | Nat _ => [||TNat||]
       | Plus e1 e2 =>
         t1 <-- F e1;
