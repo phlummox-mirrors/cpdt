@@ -12,6 +12,13 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Update to work with Coq 8.4 beta (and keep working with 8.3pl2)</title>
+        <pubDate>Thu, 29 Mar 2012 18:10:00 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
         <title>Two new tricks useful in proof by reflection</title>
         <pubDate>Thu, 29 Mar 2012 17:12:01 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>

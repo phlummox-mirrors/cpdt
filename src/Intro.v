@@ -183,7 +183,7 @@ Some readers have asked about the pragmatics of using this tactic library in the
 (** ** Installation and Emacs Set-Up *)
 
 (**
-At the start of the next chapter, I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq version 8.3pl2, though parts may work with other versions.
+At the start of the next chapter, I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq versions 8.3pl2 and 8.4 beta, though parts may work with other versions.
 
 %\index{Proof General|(}%To set up your Proof General environment to process the source to this chapter, a few simple steps are required.
 

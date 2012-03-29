@@ -1,4 +1,4 @@
-(* Copyright (c) 2006, 2011, Adam Chlipala
+(* Copyright (c) 2006, 2011-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -345,6 +345,11 @@ Qed.
 Hint Resolve ex_irrelevant.
 
 Require Import Max.
+
+Theorem max_spec_le : forall n m, n <= m /\ max n m = m \/ m <= n /\ max n m = n.
+  induction n; destruct m; simpl; intuition;
+    specialize (IHn m); intuition.
+Qed.
 
 Ltac max := intros n m; generalize (max_spec_le n m); crush.
 
