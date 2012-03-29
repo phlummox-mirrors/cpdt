@@ -1147,10 +1147,17 @@ Section withTypes'.
 
   (** Now a bit of dependent pattern matching helps us rewrite [getNat] in a way that avoids any use of equality proofs. *)
 
+  Fixpoint skipCopies (n : nat)
+    : hlist (fun x : Set => x) (copies nat n ++ nat :: nil) -> nat :=
+    match n with
+      | O => fun vs => hhd vs
+      | S n' => fun vs => skipCopies n' (htl vs)
+    end.
+
   Fixpoint getNat' (types'' : list Set) (natIndex : nat)
     : hlist (fun x : Set => x) (update types'' natIndex nat) -> nat :=
     match types'' with
-      | nil => fun vs => hhd vs
+      | nil => skipCopies natIndex
       | t :: types0 =>
         match natIndex return hlist (fun x : Set => x)
           (update (t :: types0) natIndex nat) -> nat with

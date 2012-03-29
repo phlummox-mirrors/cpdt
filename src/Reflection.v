@@ -741,3 +741,111 @@ Abort.
 
 (** More work would be needed to complete the reflective tactic, as we must connect our new syntax type with the real meanings of formulas, but the details are the same as in our prior implementation with [quote]. *)
 (* end thide *)
+
+
+(** * Building a Reification Tactic that Recurses Under Binders *)
+
+(** All of our examples so far have stayed away from reifying the syntax of terms that use such features as quantifiers and [fun] function abstractions.  Such cases are complicated by the fact that different subterms may be allowed to reference different sets of free variables.  Some cleverness is needed to clear this hurdle, but a few simple patterns will suffice.  Consider this example of a simple dependently typed term language, where a function abstraction body is represented conveniently with a Coq function. *)
+
+Inductive type : Type :=
+| Nat : type
+| NatFunc : type -> type.
+
+Inductive term : type -> Type :=
+| Const : nat -> term Nat
+| Plus : term Nat -> term Nat -> term Nat
+| Abs : forall t, (nat -> term t) -> term (NatFunc t).
+
+Fixpoint typeDenote (t : type) : Type :=
+  match t with
+    | Nat => nat
+    | NatFunc t => nat -> typeDenote t
+  end.
+
+Fixpoint termDenote t (e : term t) : typeDenote t :=
+  match e with
+    | Const n => n
+    | Plus e1 e2 => termDenote e1 + termDenote e2
+    | Abs _ e1 => fun x => termDenote (e1 x)
+  end.
+
+(** Here is a naive first attempt at a reification tactic. *)
+
+Ltac refl' e :=
+  match e with
+    | ?E1 + ?E2 =>
+      let r1 := refl' E1 in
+      let r2 := refl' E2 in
+        constr:(Plus r1 r2)
+
+    | fun x : nat => ?E1 =>
+      let r1 := refl' E1 in
+        constr:(Abs (fun x => r1 x))
+
+    | _ => constr:(Const e)
+  end.
+
+(** Recall that a regular Ltac pattern variable [?X] only matches terms that %\emph{%#<i>#do not mention new variables introduced within the pattern#</i>#%}%.  In our naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
+
+   To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  For instance: *)
+
+Reset refl'.
+Ltac refl' e :=
+  match e with
+    | ?E1 + ?E2 =>
+      let r1 := refl' E1 in
+      let r2 := refl' E2 in
+        constr:(Plus r1 r2)
+
+    | fun x : nat => @?E1 x =>
+      let r1 := refl' E1 in
+        constr:(Abs r1)
+
+    | _ => constr:(Const e)
+  end.
+
+(** Now, in the abstraction case, we bind [E1] as a function from an [x] value to the value of the abstraction body.  Unfortunately, our recursive call there is not destined for success.  It will match the same abstraction pattern and trigger another recursive call, and so on through infinite recursion.  One last refactoring yields a working procedure.  The key idea is to consider every input to [refl'] as %\emph{%#<i>#a function over the values of variables introduced during recursion#</i>#%}%. *)
+
+Reset refl'.
+Ltac refl' e :=
+  match eval simpl in e with
+    | fun x : ?T => @?E1 x + @?E2 x =>
+      let r1 := refl' E1 in
+      let r2 := refl' E2 in
+        constr:(fun x => Plus (r1 x) (r2 x))
+
+    | fun (x : ?T) (y : nat) => @?E1 x y =>
+      let r1 := refl' (fun p : T * nat => E1 (fst p) (snd p)) in
+        constr:(fun x => Abs (fun y => r1 (x, y)))
+
+    | _ => constr:(fun x => Const (e x))
+  end.
+
+(** Note how now even the addition case works in terms of functions, with [@?X] patterns.  The abstraction case introduces a new variable by extending the type used to represent the free variables.  In particular, the argument to [refl'] used type [T] to represent all free variables.  We extend the type to [T * nat] for the type representing free variable values within the abstraction body.  A bit of bookkeeping with pairs and their projections produces an appropriate version of the abstraction body to pass in a recursive call.  To ensure that all this repackaging of terms does not interfere with pattern matching, we add an extra [simpl] reduction on the function argument, in the first line of the body of [refl'].
+
+   Now one more tactic provides an example of how to apply reification.  Let us consider goals that are equalities between terms that can be reified.  We want to change such goals into equalities between appropriate calls to [termDenote]. *)
+
+Ltac refl :=
+  match goal with
+    | [ |- ?E1 = ?E2 ] =>
+      let E1' := refl' (fun _ : unit => E1) in
+      let E2' := refl' (fun _ : unit => E2) in
+        change (termDenote (E1' tt) = termDenote (E2' tt));
+          cbv beta iota delta [fst snd]
+  end.
+
+Goal (fun (x y : nat) => x + y + 13) = (fun (_ z : nat) => z).
+  refl.
+(** %\vspace{-.15in}%[[
+  ============================
+   termDenote
+     (Abs
+        (fun y : nat =>
+         Abs (fun y0 : nat => Plus (Plus (Const y) (Const y0)) (Const 13)))) =
+   termDenote (Abs (fun _ : nat => Abs (fun y0 : nat => Const y0)))
+]]
+*)
+
+Abort.
+
+(** Our encoding here uses Coq functions to represent binding within the terms we reify, which makes it difficult to implement certain functions over reified terms.  An alternative would be to represent variables with numbers.  This can be done by writing a slightly smarter reification function that detects variable references by detecting when term arguments are just compositions of [fst] and [snd]; from the order of the compositions we may read off the variable number.  We leave the details as an exercise for the reader. *)

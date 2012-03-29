@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Two new tricks useful in proof by reflection</title>
+        <pubDate>Thu, 29 Mar 2012 17:12:01 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>The "Universes and Axioms" chapter has a new ending describing a way to avoid axioms in dealing with reified typing environments, and the "Proof by Reflection" chapter has a new ending explaining how to write a reification function that recurses under binders.</description>
+</item>
+
+<item>
         <title>Revisions touching many chapters</title>
         <pubDate>Mon, 26 Mar 2012 16:59:11 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
