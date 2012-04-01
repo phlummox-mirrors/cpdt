@@ -247,6 +247,8 @@ Proof by Reflection & \texttt{Reflection.v} \\
 \hline
 Proving in the Large & \texttt{Large.v} \\
 \hline
+A Taste of Reasoning About Programming Language Syntax & \texttt{Large.v} \\
+\hline
 \end{tabular} \end{center}
 
 % *)

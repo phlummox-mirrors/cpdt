@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>New Chapter: "A Taste of Reasoning About Programming Language Syntax"</title>
+        <pubDate>Sun, 1 Apr 2012 14:58:20 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>This new chapter condenses and recasts some material from the old Part IV of CPDT.  I felt the level of detail I was giving was out of proportion to my certainty that the techniques I was demonstrating would make sense to use in 5 years, so I'm opting instead for a quick tour that is mostly meant to convey the moral that encoding choices matter (but also to introduce PHOAS).</description>
+</item>
+
+<item>
         <title>Update to work with Coq 8.4 beta (and keep working with 8.3pl2)</title>
         <pubDate>Thu, 29 Mar 2012 18:10:00 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>

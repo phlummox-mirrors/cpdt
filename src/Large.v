@@ -1,4 +1,4 @@
-(* Copyright (c) 2009-2011, Adam Chlipala
+(* Copyright (c) 2009-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -16,7 +16,9 @@ Set Implicit Arguments.
 (* end hide *)
 
 
-(** %\chapter{Proving in the Large}% *)
+(** %\part{The Big Picture}
+
+   \chapter{Proving in the Large}% *)
 
 (** It is somewhat unfortunate that the term %``%#"#theorem proving#"#%''% looks so much like the word %``%#"#theory.#"#%''%  Most researchers and practitioners in software assume that mechanized theorem proving is profoundly impractical.  Indeed, until recently, most advances in theorem proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
 
