@@ -3,7 +3,7 @@ MODULES_PROSE := Intro
 MODULES_CODE  := StackMachine InductiveTypes Predicates Coinductive Subset GeneralRec \
 	MoreDep DataStruct Equality Generic Universes LogicProg Match Reflection \
 	Large ProgLang
-MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE)
+MODULES_DOC   := $(MODULES_PROSE) $(MODULES_CODE) Conclusion
 MODULES       := $(MODULES_NODOC) $(MODULES_DOC)
 VS            := $(MODULES:%=src/%.v)
 TEX           := $(MODULES:%=latex/%.v.tex)

@@ -12,7 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
-        <title>New Chapter: "A Taste of Reasoning About Programming Language Syntax"</title>
+        <title>New Conclusion page</title>
+        <pubDate>Tue, 3 Apr 2012 15:08:37 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+</item>
+
+<item>
+        <title>New chapter: "A Taste of Reasoning About Programming Language Syntax"</title>
         <pubDate>Sun, 1 Apr 2012 14:58:20 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
         <author>adamc@csail.mit.edu</author>
