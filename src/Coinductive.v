@@ -621,20 +621,33 @@ Qed.
 
 Hint Rewrite optExp_correct .
 
-(** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation. *)
+(** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation.  At a high level, we show inclusions between behaviors, going in both directions between original and optimized programs. *)
 
-Theorem optCmd_correct : forall vs1 c vs2, evalCmd vs1 c vs2
+Ltac finisher := match goal with
+                   | [ H : evalCmd _ _ _ |- _ ] => ((inversion H; [])
+                     || (inversion H; [|])); subst
+                 end; crush; eauto 10.
+
+Lemma optCmd_correct1 : forall vs1 c vs2, evalCmd vs1 c vs2
   -> evalCmd vs1 (optCmd c) vs2.
   intros; apply (evalCmd_coind (fun vs1 c' vs2 => exists c, evalCmd vs1 c vs2
     /\ c' = optCmd c)); eauto; crush;
     match goal with
       | [ H : _ = optCmd ?E |- _ ] => destruct E; simpl in *; discriminate
         || injection H; intros; subst
-    end; match goal with
-           | [ H : evalCmd _ _ _ |- _ ] => ((inversion H; [])
-             || (inversion H; [|])); subst
-         end; crush; eauto 10.
+    end; finisher.
+Qed.
+
+Lemma optCmd_correct2 : forall vs1 c vs2, evalCmd vs1 (optCmd c) vs2
+  -> evalCmd vs1 c vs2.
+  intros; apply (evalCmd_coind (fun vs1 c vs2 => evalCmd vs1 (optCmd c) vs2));
+    crush; finisher.
+Qed.
+
+Theorem optCmd_correct : forall vs1 c vs2, evalCmd vs1 (optCmd c) vs2
+  <-> evalCmd vs1 c vs2.
+  intuition; apply optCmd_correct1 || apply optCmd_correct2; assumption.
 Qed.
 (* end thide *)
 
-(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like %\texttt{%#<tt>#if#</tt>#%}%; the same proof should continue working, after the co-induction principle is extended to the new evaluation rules. *)
+(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like %\texttt{%#<tt>#if#</tt>#%}%; the same proof script should continue working, after the co-induction principle is extended to the new evaluation rules. *)
