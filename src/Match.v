@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -22,7 +22,7 @@ Set Implicit Arguments.
 
 (** * Some Built-In Automation Tactics *)
 
-(** A number of tactics are called repeatedly by [crush].  The %\index{tactics!intuition}%[intuition] tactic simplifies propositional structure of goals.  The %\index{tactics!congruence}%[congruence] tactic applies the rules of equality and congruence closure, plus properties of constructors of inductive types.  The %\index{tactics!omega}%[omega] tactic provides a complete decision procedure for a theory that is called %\index{linear arithmetic}%quantifier-free linear arithmetic or %\index{Presburger arithmetic}%Presburger arithmetic, depending on whom you ask.  That is, [omega] proves any goal that follows from looking only at parts of that goal that can be interpreted as propositional formulas whose atomic formulas are basic comparison operations on natural numbers or integers.
+(** A number of tactics are called repeatedly by [crush].  The %\index{tactics!intuition}%[intuition] tactic simplifies propositional structure of goals.  The %\index{tactics!congruence}%[congruence] tactic applies the rules of equality and congruence closure, plus properties of constructors of inductive types.  The %\index{tactics!omega}%[omega] tactic provides a complete decision procedure for a theory that is called %\index{linear arithmetic}%quantifier-free linear arithmetic or %\index{Presburger arithmetic}%Presburger arithmetic, depending on whom you ask.  That is, [omega] proves any goal that follows from looking only at parts of that goal that can be interpreted as propositional formulas whose atomic formulas are basic comparison operations on natural numbers or integers, with operands built from constants, variables, addition, and subtraction (with multiplication by a constant available as a shorthand for addition or subtraction).
 
    The %\index{tactics!ring}%[ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a similar tactic %\index{tactics!field}\coqdockw{%#<tt>#field#</tt>#%}% for simplifying values in fields by conversion to fractions over rings.  Both [ring] and %\coqdockw{%#<tt>#field#</tt>#%}% can only solve goals that are equalities.  The %\index{tactics!fourier}\coqdockw{%#<tt>#fourier#</tt>#%}% tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
 
@@ -194,7 +194,7 @@ Ltac extend pf :=
     notHyp t; generalize pf; intro.
 (* end thide *)
 
-(** We see the useful %\index{tactics!type of}%[type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].  The tactic %\index{tactics!generalize}%[generalize] takes as input a term [t] (for instance, a proof of some proposition) and then changes the conclusion from [G] to [T -> G], where [T] is the type of [t] (for instance, the proposition proved by a proof given as argument).
+(** We see the useful %\index{tactics!type of}%[type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].  The tactic %\index{tactics!generalize}%[generalize] takes as input a term [t] (for instance, a proof of some proposition) and then changes the conclusion from [G] to [T -> G], where [T] is the type of [t] (for instance, the proposition proved by the proof [t]).
 
    With these tactics defined, we can write a tactic [completer] for adding to the context all consequences of a set of simple first-order formulas. *)
 
@@ -308,9 +308,9 @@ Abort.
 
 (** The problem is that unification variables may not contain locally bound variables.  In this case, [?][P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
 
-   The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the %``%#"#real#"#%''% value.  In Coq 8.1 and earlier, there is no such workaround.
+   The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the %``%#"#real#"#%''% value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in the next chapter.
 
-   No matter which version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the infinite-looping behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the %``%#"#already present#"#%''% check and leading to different behavior, where the same fact may be added to the context repeatedly in an infinite loop.  Our earlier [completer] tactic uses a modus ponens rule that matches the implication conclusion with a variable, which blocks matching against non-trivial universal quantifiers. *)
+   No matter which Coq version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the infinite-looping behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the %``%#"#already present#"#%''% check and leading to different behavior, where the same fact may be added to the context repeatedly in an infinite loop.  Our earlier [completer] tactic uses a modus ponens rule that matches the implication conclusion with a variable, which blocks matching against non-trivial universal quantifiers. *)
 
 
 (** * Functional Programming in Ltac *)
@@ -435,7 +435,9 @@ Goal False.
 Abort.
 (* end thide *)
 
-(** One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
+(** Each position within an Ltac script has a default applicable non-terminal, where [constr] and [ltac] are the main options worth thinking about, standing respectively for terms of Gallina and Ltac.  The explicit colon notation can always be used to override the default non-terminal choice, though code being parsed as Gallina can no longer use such overrides.  Within the [ltac] non-terminal, top-level function applications are treated as applications in Ltac, not Gallina; but the %\emph{%#<i>#arguments#</i>#%}% to such functions are parsed with [constr] by default.  This choice may seem strange, until we realize that we have been relying on it all along in all the proof scripts we write!  For instance, the [apply] tactic is an Ltac function, and it is natural to interpret its argument as a term of Gallina, not Ltac.  We use an [ltac] prefix to parse Ltac function arguments as Ltac terms themselves, as in the call to [map] above.  For some simple cases, Ltac terms may be passed without an extra prefix.  For instance, an identifier that has an Ltac meaning but no Gallina meaning will be interpreted in Ltac automatically.
+
+One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
 
 (* begin thide *)
 (* begin hide *)
@@ -465,7 +467,7 @@ Error: variable n should be bound to a term.
 >> *)
 Abort.
 
-(** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one %``%#"#datatype#"#%''% that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monad}\index{Haskell}%monadic programming in Haskell%~\cite{monads,IO}% may recognize a similarity.  Side-effecting Haskell programs can be thought of as pure programs that return %\emph{%#<i>#the code of programs in an imperative language#</i>#%}%, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
+(** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one %``%#"#datatype#"#%''% that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monad}\index{Haskell}%monadic programming in Haskell%~\cite{Monads,IO}% may recognize a similarity.  Side-effecting Haskell programs can be thought of as pure programs that return %\emph{%#<i>#the code of programs in an imperative language#</i>#%}%, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
 
    Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
 
@@ -499,7 +501,11 @@ nil
 Abort.
 (* end thide *)
 
-(** We see exactly the trace of function arguments that we expected initially, and an examination of the proof state afterward would show that variable [n] has been added with value [3]. *)
+(** We see exactly the trace of function arguments that we expected initially, and an examination of the proof state afterward would show that variable [n] has been added with value [3].
+
+   Considering the comparison with Haskell's IO monad, there is an important subtlety that deserves to be mentioned.  A Haskell IO computation represents (theoretically speaking, at least) a transformer from one state of the real world to another, plus a pure value to return.  Some of the state can be very specific to the program, as in the case of heap-allocated mutable references, but some can be along the lines of the favorite example %``%#"#launch missile,#"#%''% where the program has a side effect on the real world that is not possible to undo.
+
+   In contrast, Ltac scripts can be thought of as controlling just two simple kinds of mutable state.  First, there is the current sequence of proof subgoals.  Second, there is a partial assignment of discovered values to unification variables introduced by proof search (for instance, by [eauto], as we saw in the previous chapter).  Crucially, %\emph{%#<i>#every mutation of this state can be undone#</i>#%}% during backtracking introduced by [match], [auto], and other built-in Ltac constructs.  Ltac proof scripts have state, but it is purely local, and all changes to it are reversible, which is a very useful semantics for proof search. *)
 
 
 (** * Recursive Proof Search *)
@@ -519,7 +525,7 @@ Ltac inster n :=
     end.
 (* end thide *)
 
-(** The tactic begins by applying propositional simplification.  Next, it checks if any chain length remains.  If so, it tries all possible ways of instantiating quantified hypotheses with properly typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
+(** The tactic begins by applying propositional simplification.  Next, it checks if any chain length remains, failing if not.  If so, it tries all possible ways of instantiating quantified hypotheses with properly typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
 
    We can verify the efficacy of [inster] with two short examples.  The built-in [firstorder] tactic (with no extra arguments) is able to prove the first but not the second. *)
 
@@ -543,7 +549,7 @@ Section test_inster.
   Qed.
 End test_inster.
 
-(** The style employed in the definition of [inster] can seem very counterintuitive to functional programmers.  Usually, functional programs accumulate state changes in explicit arguments to recursive functions.  In Ltac, the state of the current subgoal is always implicit.  Nonetheless, in contrast to general imperative programming, it is easy to undo any changes to this state, and indeed such %``%#"#undoing#"#%''% happens automatically at failures within [match]es.  In this way, Ltac programming is similar to programming in Haskell with a stateful failure monad that supports a composition operator along the lines of the [first] tactical.  The key pieces of state include not only the form of the goal, but also decisions about the values of unification variables.  These decisions are rolled back with all the other state after failure.
+(** The style employed in the definition of [inster] can seem very counterintuitive to functional programmers.  Usually, functional programs accumulate state changes in explicit arguments to recursive functions.  In Ltac, the state of the current subgoal is always implicit.  Nonetheless, recalling the discussion at the end of the last section, in contrast to general imperative programming, it is easy to undo any changes to this state, and indeed such %``%#"#undoing#"#%''% happens automatically at failures within [match]es.  In this way, Ltac programming is similar to programming in Haskell with a stateful failure monad that supports a composition operator along the lines of the [first] tactical.
 
    Functional programming purists may react indignantly to the suggestion of programming this way.  Nonetheless, as with other kinds of %``%#"#monadic programming,#"#%''% many problems are much simpler to solve with Ltac than they would be with explicit, pure proof manipulation in ML or Haskell.  To demonstrate, we will write a basic simplification procedure for logical implications.
 
@@ -682,7 +688,7 @@ Theorem imp_True : forall P,
   imp.
 Qed.
 
-(** Our final [matcher] tactic is now straightforward.  First, we [intros] all variables into scope.  Then we attempt simple premise simplifications, finishing the proof upon finding [False] and eliminating any existential quantifiers that we find.  After that, we search through the conclusion.  We remove [True] conjuncts, remove existential quantifiers by introducing unification variables for their bound variables, and search for matching premises to cancel.  Finally, when no more progress is made, we see if the goal has become trivial and can be solved by [imp_True].  In each case, we use the tactic [simple apply] in place of [apply] to use a simpler, less expensive unification algorithm. *)
+(** Our final [matcher] tactic is now straightforward.  First, we [intros] all variables into scope.  Then we attempt simple premise simplifications, finishing the proof upon finding [False] and eliminating any existential quantifiers that we find.  After that, we search through the conclusion.  We remove [True] conjuncts, remove existential quantifiers by introducing unification variables for their bound variables, and search for matching premises to cancel.  Finally, when no more progress is made, we see if the goal has become trivial and can be solved by [imp_True].  In each case, we use the tactic %\index{tactics!simple apply}%[simple apply] in place of [apply] to use a simpler, less expensive unification algorithm. *)
 
 Ltac matcher :=
   intros;
@@ -746,12 +752,13 @@ and_True_prem
      : forall (P : nat -> Prop) (Q : Prop),
        (exists x : nat, P x /\ Q) --> Q /\ (exists x : nat, P x)
 ]]
-*)
+
+This proof term is a mouthful, and we can be glad that we did not build it manually! *)
 
 
 (** * Creating Unification Variables *)
 
-(** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variable internally to support flexible proof search.  While [eauto] and its relatives do %\textit{%#<i>#backward#</i>#%}% reasoning, we often want to do similar %\textit{%#<i>#forward#</i>#%}% reasoning, where unification variables can be useful for similar reasons.
+(** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variables internally to support flexible proof search.  While [eauto] and its relatives do %\textit{%#<i>#backward#</i>#%}% reasoning, we often want to do similar %\textit{%#<i>#forward#</i>#%}% reasoning, where unification variables can be useful for similar reasons.
 
    For example, we can write a tactic that instantiates the quantifiers of a universally quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
 
@@ -782,27 +789,16 @@ Theorem t5 : (forall x : nat, S x > x) -> 2 > 1.
    The proof context is extended with a new variable [y], which has been assigned to be equal to a fresh unification variable [?279].  We want to instantiate [H] with [?279].  To get ahold of the new unification variable, rather than just its alias [y], we perform a trivial unfolding in the expression [y], using the %\index{tactics!eval}%[eval] Ltac construct, which works with the same reduction strategies that we have seen in tactics (e.g., [simpl], [compute], etc.).  *)
 
   let y' := eval unfold y in y in
-    clear y; generalize (H y').
+    clear y; specialize (H y').
 
   (** [[
-  H : forall x : nat, S x > x
+  H : S ?279 > ?279
   ============================
-   S ?279 > ?279 -> 2 > 1
+    2 > 1
  
    ]]
 
-   Our instantiation was successful.  We can finish by using the refined formula to replace the original. *)
-
-  clear H; intro H.
-
-  (** [[
-  H : S ?281 > ?281
-  ============================
-   2 > 1
- 
-   ]]
-
-   We can finish the proof by using [apply]'s unification to figure out the proper value of [?281].  (The original unification variable was replaced by another, as often happens in the internals of the various tactics' implementations.) *)
+   Our instantiation was successful.  We can finish the proof by using [apply]'s unification to figure out the proper value of [?279]. *)
 
   apply H.
 Qed.
@@ -857,7 +853,7 @@ Section t6.
  
    ]]
 
-   [eauto] still cannot prove the goal, so we eliminate the two new existential quantifiers.  (Recall that [ex] is the underlying type family to which uses of the [exists] syntax are compiled.) *)
+   Normal [eauto] still cannot prove the goal, so we eliminate the two new existential quantifiers.  (Recall that [ex] is the underlying type family to which uses of the [exists] syntax are compiled.) *)
 
     repeat match goal with
              | [ H : ex _ |- _ ] => destruct H
@@ -1000,3 +996,5 @@ Theorem t9 : exists p : nat * nat, fst p = 3.
                   | [ |- fst ?x = 3 ] => equate x (3, 2)
                 end; reflexivity.
 Qed.
+
+(** This technique is even more useful within recursive and iterative tactics that are meant to solve broad classes of goals. *)
