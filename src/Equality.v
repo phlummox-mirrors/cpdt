@@ -739,9 +739,118 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
     intros f f0 H; rewrite H; reflexivity.
   Qed.
 (* end thide *)
-End fhapp'.
 
-(** This example illustrates a general pattern: heterogeneous equality often simplifies theorem statements, but we still need to do some work to line up some dependent pattern matches that tactics will generate for us. *)
+End fhapp'. 
+
+(** This example illustrates a general pattern: heterogeneous equality often simplifies theorem statements, but we still need to do some work to line up some dependent pattern matches that tactics will generate for us.
+   
+   The proof we have found relies on the [JMeq_eq] axiom, which we can verify with a command%\index{Vernacular commands!Print Assumptions}% that we will discuss more in two chapters. *)
+
+Print Assumptions fhapp_ass'.
+(** %\vspace{-.15in}%[[
+Axioms:
+JMeq_eq : forall (A : Type) (x y : A), x == y -> x = y
+]]
+
+It was the [rewrite H] tactic that implicitly appealed to the axiom.  By restructuring the proof, we can avoid axiom dependence.  A general lemma about pairs provides the key element.  (Our use of [generalize] above can be thought of as reducing the proof to another, more complex and specialized lemma.) *)
+
+Lemma pair_cong : forall A1 A2 B1 B2 (x1 : A1) (x2 : A2) (y1 : B1) (y2 : B2),
+  x1 == x2
+  -> y1 == y2
+  -> (x1, y1) == (x2, y2).
+  intros until y2; intros Hx Hy; rewrite Hx; rewrite Hy; reflexivity.
+Qed.
+
+Hint Resolve pair_cong.
+
+Section fhapp''.
+  Variable A : Type.
+  Variable B : A -> Type.
+
+  Theorem fhapp_ass'' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
+    (hls3 : fhlist B ls3),
+    fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
+    induction ls1; crush.
+  Qed.
+End fhapp''.
+
+Print Assumptions fhapp_ass''.
+(** <<
+Closed under the global context
+>>
+
+One might wonder exactly which elements of a proof involving [JMeq] imply that [JMeq_eq] must be used.  For instance, above we noticed that [rewrite] had brought [JMeq_eq] into the proof of [fhap_ass'], yet here we have also used [rewrite] with [JMeq] hypotheses while avoiding axioms!  One illuminating exercise is comparing the types of the lemmas that [rewrite] uses under the hood to implement the rewrites.  Here is the normal lemma for [eq] rewriting:%\index{Gallina terms!eq\_ind\_r}% *)
+
+Check eq_ind_r.
+(** %\vspace{-.15in}%[[
+eq_ind_r
+     : forall (A : Type) (x : A) (P : A -> Prop),
+       P x -> forall y : A, y = x -> P y
+]]
+
+The corresponding lemma used for [JMeq] in the proof of [pair_cong] is %\index{Gallina terms!JMeq\_rew\_r}%[JMeq_rew_r], which, confusingly, is defined by [rewrite] as needed, so it is not available for checking until after we apply it. *)
+
+Check JMeq_rew_r.
+(** %\vspace{-.15in}%[[
+JMeq_rew_r
+     : forall (A : Type) (x : A) (B : Type) (b : B)
+         (P : forall B0 : Type, B0 -> Type), P B b -> x == b -> P A x
+]]
+
+The key difference is that, where the [eq] lemma is parametrized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply [JMeq_rew_r], it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and %\emph{%#<i>#its type#</i>#%}%.  In other words, the predicate must be %\emph{%#<i>#polymorphic#</i>#%}% in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done naively leads to a type error.
+
+When [rewrite] cannot figure out how to apply [JMeq_rew_r] for [x == y] where [x] and [y] have the same type, the tactic can instead use an alternate theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
+
+Check JMeq_ind_r.
+(** %\vspace{-.15in}%[[
+JMeq_ind_r
+     : forall (A : Type) (x : A) (P : A -> Prop),
+       P x -> forall y : A, y == x -> P y
+]]
+
+Ironically, where in the proof of [fhapp_ass'] we used [rewrite app_ass] to make it clear that a use of [JMeq] was actually homogeneously typed, we created a situation where [rewrite] applied the axiom-based [JMeq_ind_r] instead of the axiom-free [JMeq_rew_r]!
+
+For another simple example, consider this theorem that applies a heterogeneous equality to prove a congruence fact. *)
+
+Theorem out_of_luck : forall n m : nat,
+  n == m
+  -> S n == S m.
+  intros n m H.
+
+  (** Applying [JMeq_ind_r] is easy, as the %\index{tactics!pattern}%[pattern] tactic will transform the goal into an application of an appropriate [fun] to a term that we want to abstract. *)
+
+  pattern n.
+  (** %\vspace{-.15in}%[[
+  n : nat
+  m : nat
+  H : n == m
+  ============================
+   (fun n0 : nat => S n0 == S m) n
+]]
+*)
+  apply JMeq_ind_r with (x := m); auto.
+
+  (** However, we run into trouble trying to get the goal into a form compatible with [JMeq_rew_r.] *)
+  Undo 2.
+(** %\vspace{-.15in}%[[
+  pattern nat, n.
+]]
+<<
+Error: The abstracted term "fun (P : Set) (n0 : P) => S n0 == S m"
+is not well typed.
+Illegal application (Type Error): 
+The term "S" of type "nat -> nat"
+cannot be applied to the term
+ "n0" : "P"
+This term has type "P" which should be coercible to 
+"nat".
+>>
+
+In other words, the successor function [S] is insufficiently polymorphic.  If we try to generalize over the type of [n], we find that [S] is no longer legal to apply to [n]. *)
+
+Abort.
+
+(** Why did we not run into this problem in our proof of [fhapp_ass'']?  The reason is that the pair constructor is polymorphic in the types of the pair components, while functions like [S] are not polymorphic at all.  Use of such non-polymorphic functions with [JMeq] tends to push toward use of axioms.  The example with [nat] here is a bit unrealistic; more likely cases would involve functions that have %\emph{%#<i>#some#</i>#%}% polymorphism, but not enough to allow abstractions of the sort we attempted above with [pattern].  For instance, we might have an equality between two lists, where the goal only type-checks when the terms involved really are lists, though everything is polymorphic in the types of list data elements.  The #<a href="http://www.mpi-sws.org/~gil/Heq/">#Heq%\footnote{\url{http://www.mpi-sws.org/~gil/Heq/}}%#</a># library builds up a slightly different foundation to help avoid such problems. *)
 
 
 (** * Equivalence of Equality Axioms *)
