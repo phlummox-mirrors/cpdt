@@ -351,6 +351,93 @@ Check bar.
   The type that Coq comes up with may be used in strictly more contexts than the type one might have expected. *)
 
 
+(** ** Deciphering Baffling Messages About Inability to Unify *)
+
+(** One of the most confusing sorts of Coq error messages arises from an interplay between universes, syntax notations, and %\index{implicit arguments}%implicit arguments.  Consider the following innocuous lemma, which is symmetry of equality for the special case of types. *)
+
+Theorem symmetry : forall A B : Type,
+  A = B
+  -> B = A.
+  intros ? ? H; rewrite H; reflexivity.
+Qed.
+
+(** Let us attempt an admittedly silly proof of the following theorem. *)
+
+Theorem illustrative_but_silly_detour : unit = unit.
+  (** [[
+     apply symmetry.
+]]
+<<
+Error: Impossible to unify "?35 = ?34" with "unit = unit".
+>>
+
+Coq tells us that we cannot, in fact, apply our lemma [symmetry] here, but the error message seems defective.  In particular, one might think that [apply] should unify [?35] and [?34] with [unit] to ensure that the unification goes through.  In fact, the problem is in a part of the unification problem that is %\emph{%#<i>#not#</i>#%}% shown to us in this error message!
+
+The following command is the secret to getting better error messages in such cases: *)
+
+  Set Printing All.
+  (** [[
+     apply symmetry.
+]]
+<<
+Error: Impossible to unify "@eq Type ?46 ?45" with "@eq Set unit unit".
+>>
+
+Now we can see the problem: it is the first, %\emph{%#<i>#implicit#</i>#%}% argument to the underlying equality function [eq] that disagrees across the two terms.  The universe [Set] may be both an element and a subtype of [Type], but the two are not definitionally equal. *)
+
+Abort.
+
+(** A variety of changes to the theorem statement would lead to use of [Type] as the implicit argument of [eq].  Here is one such change. *)
+
+Theorem illustrative_but_silly_detour : (unit : Type) = unit.
+  apply symmetry; reflexivity.
+Qed.
+
+(** There are many related issues that can come up with error messages, where one or both of notations and implicit arguments hide important details.  The [Set Printing All] command turns off all such features and exposes underlying CIC terms.
+
+   For completeness, we mention one other class of confusing error message about inability to unify two terms that look obviously unifiable.  Each unification variable has a scope; a unification variable instantiation may not mention variables that were not already defined within that scope, at the point in proof search where the unification variable was introduced.  Consider this illustrative example: *)
+
+Unset Printing All.
+
+Theorem ex_symmetry : (exists x, x = 0) -> (exists x, 0 = x).
+  econstructor.
+  (** %\vspace{-.15in}%[[
+  H : exists x : nat, x = 0
+  ============================
+   0 = ?98
+   ]]
+   *)
+
+  destruct H.
+  (** %\vspace{-.15in}%[[
+  x : nat
+  H : x = 0
+  ============================
+   0 = ?99
+   ]]
+   *)
+
+  (** [[
+     symmetry; exact H.
+]]
+
+<<
+Error: In environment
+x : nat
+H : x = 0
+The term "H" has type "x = 0" while it is expected to have type 
+"?99 = 0".
+>>
+
+  The problem here is that variable [x] was introduced by [destruct] %\emph{%#<i>#after#</i>#%}% we introduced [?99] with [eexists], so the instantiation of [?99] may not mention [x].  A simple reordering of the proof solves the problem. *)
+
+  Restart.
+  destruct 1 as [x]; apply ex_intro with x; symmetry; assumption.
+Qed.
+
+(** This restriction for unification variables may seem counterintuitive, but it follows from the fact that CIC contains no concept of unification variable.  Rather, to construct the final proof term, at the point in a proof where the unification variable is introduced, we replace it with the instantiation we eventually find for it.  It is simply syntactically illegal to refer there to variables that are not in scope. *)
+
+
 (** * The [Prop] Universe *)
 
 (** In Chapter 4, we saw parallel versions of useful datatypes for %``%#"#programs#"#%''% and %``%#"#proofs.#"#%''%  The convention was that programs live in [Set], and proofs live in [Prop].  We gave little explanation for why it is useful to maintain this distinction.  There is certainly documentation value from separating programs from proofs; in practice, different concerns apply to building the two types of objects.  It turns out, however, that these concerns motivate formal differences between the two universes in Coq.
