@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>A number of revisions</title>
+        <pubDate>Thu, 12 Apr 2012 18:42:46 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>Stronger theorem at end of "Infinite Data and Proofs" chapter; in "Reasoning About Equality Proofs" chapter, more discussion of axiom avoidance and tactic pitfalls for JMeq; general passes through "Proof Ssearch in Ltac" and "Proving in the Large" chapters; in "Universes and Axioms" chapter, a class of baffling error messages explained; comments added to CpdtTactics.v.</description>
+</item>
+
+<item>
         <title>New Conclusion page</title>
         <pubDate>Tue, 3 Apr 2012 15:08:37 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
