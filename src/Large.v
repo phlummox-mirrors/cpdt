@@ -135,7 +135,7 @@ Abort.
 
 (** Can you spot what went wrong, without stepping through the script step-by-step?  The problem is that [trivial] never fails.  Originally, [trivial] had been succeeding in proving an equality that follows by reflexivity.  Our change to [times] leads to a case where that equality is no longer true.  The invocation [trivial] happily leaves the false equality in place, and we continue on to the span of tactics intended for the second inductive case.  Unfortunately, those tactics end up being applied to the %\textit{%#<i>#first#</i>#%}% case instead.
 
-   The problem with [trivial] could be %``%#"#solved#"#%''% by writing, e.g., [trivial; fail] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will general more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
+   The problem with [trivial] could be %``%#"#solved#"#%''% by writing, e.g., [solve [ trivial ]] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will generate more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
 
 Reset times.
 
@@ -145,7 +145,7 @@ Fixpoint times (k : nat) (e : exp) : exp :=
     | Plus e1 e2 => Plus (times k e1) (times k e2)
   end.
 
-(** Many real developments try to make essentially unstructured proofs look structured by applying careful indentation conventions, idempotent case-marker tactics included soley to serve as documentation, and so on.  All of these strategies suffer from the same kind of failure of abstraction that was just demonstrated.  I like to say that if you find yourself caring about indentation in a proof script, it is a sign that the script is structured poorly.
+(** Many real developments try to make essentially unstructured proofs look structured by applying careful indentation conventions, idempotent case-marker tactics included solely to serve as documentation, and so on.  All of these strategies suffer from the same kind of failure of abstraction that was just demonstrated.  I like to say that if you find yourself caring about indentation in a proof script, it is a sign that the script is structured poorly.
 
    We can rewrite the current proof with a single tactic. *)
 
@@ -156,7 +156,7 @@ Theorem eval_times : forall k e,
     | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
 Qed.
 
-(** This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.
+(** We use the form of the semicolon operator that allows a different tactic to be specified for each generated subgoal.  This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.
 
    The situation gets worse in considering extensions to the theorem we want to prove.  Let us add multiplication nodes to our [exp] type and see how the proof fares. *)
 
@@ -283,7 +283,13 @@ Qed.
 
 (** In the limit, a complicated inductive proof might rely on one hint for each inductive case.  The lemma for each hint could restate the associated case.  Compared to manual proof scripts, we arrive at more readable results.  Scripts no longer need to depend on the order in which cases are generated.  The lemmas are easier to digest separately than are fragments of tactic code, since lemma statements include complete proof contexts.  Such contexts can only be extracted from monolithic manual proofs by stepping through scripts interactively.
 
-   The more common situation is that a large induction has several easy cases that automation makes short work of.  In the remaining cases, automation performs some standard simplification.  Among these cases, some may require quite involved proofs; such a case may deserve a hint lemma of its own, where the lemma statement may copy the simplified version of the case.  Alternatively, the proof script for the main theorem may be extended with some automation code targeted at the specific case.  Even such targeted scripting is more desirable than manual proving, because it may be read and understood without knowledge of a proof's hierarchical structure, case ordering, or name binding structure. *)
+   The more common situation is that a large induction has several easy cases that automation makes short work of.  In the remaining cases, automation performs some standard simplification.  Among these cases, some may require quite involved proofs; such a case may deserve a hint lemma of its own, where the lemma statement may copy the simplified version of the case.  Alternatively, the proof script for the main theorem may be extended with some automation code targeted at the specific case.  Even such targeted scripting is more desirable than manual proving, because it may be read and understood without knowledge of a proof's hierarchical structure, case ordering, or name binding structure.
+
+   A competing alternative to the common style of Coq tactics is the %\index{declarative proof scripts}\emph{%#<i>#declarative#</i>#%}% style, most frequently associated today with the %\index{Isar}%Isar%~\cite{Isar}% language.  A declarative proof script is very explicit about subgoal structure and introduction of local names, aiming for human readability.  The coding of proof automation is taken to be outside the scope of the proof language, an assumption related to the idea that it is not worth building new automation for each serious theorem.  I have shown in this book many examples of theorem-specific automation, which I believe is crucial for scaling to significant results.  Declarative proof scripts make it easier to read scripts to modify them for theorem statement changes, but the alternate %\index{adaptive proof scripts}\emph{%#<i>#adaptive#</i>#%}% style from this book allows use of the %\emph{%#<i>#same#</i>#%}% scripts for many versions of a theorem.
+
+   Perhaps I am a pessimist for thinking that fully formal proofs will inevitably consist of details that are uninteresting to people, but it is my preference to focus on conveying proof-specific details through choice of lemmas.  Additionally, adaptive Ltac scripts contain bits of automation that can be understood in isolation.  For instance, in a big [repeat match] loop, each case can generally be digested separately, which is a big contrast from trying to understand the hierarchical structure of a script in a more common style.  Adaptive scripts rely on variable binding, but generally only over very small scopes, whereas understanding a traditional script requires tracking the identities of local variables potentially across pages of code.
+
+   One might also wonder why it makes sense to prove all theorems automatically (in the sense of adaptive proof scripts) but not construct all programs automatically.  My view there is that %\emph{%#<i>#program synthesis#</i>#%}% is a very useful idea that deserves broader application!  In practice, there are difficult obstacles in the way of finding a program automatically from its specification.  A typical specification is not exhaustive in its description of program properties.  For instance, details of performance on particular machine architectures are often omitted.  As a result, a synthesized program may be correct in some sense while suffering from deficiencies in other senses.  Program synthesis research will continue to come up with ways of dealing with this problem, but the situation for theorem proving is fundamentally similar.  Following mathematical practice, the only property of a formal proof that we care about is which theorem it proves, and it is trivial to check this property automatically.  In other words, with a simple criterion for what makes a proof acceptable, automatic search is straightforward.  Of course, in practice we also care about understandability of proofs to facilitate long-term maintenance, and that is just what the techniques outlined above are meant to support, and the next section gives some related advice. *)
 
 
 (** * Debugging and Maintaining Automation *)
@@ -292,7 +298,7 @@ Qed.
 
    Before we are ready to update our proofs, we need to write them in the first place.  While fully automated scripts are most robust to changes of specification, it is hard to write every new proof directly in that form.  Instead, it is useful to begin a theorem with exploratory proving and then gradually refine it into a suitable automated form.
 
-   Consider this theorem from Chapter 8, which we begin by proving in a mostly manual way, invoking [crush] after each steop to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
+   Consider this theorem from Chapter 8, which we begin by proving in a mostly manual way, invoking [crush] after each step to discharge any low-hanging fruit.  Our manual effort involves choosing which expressions to case-analyze on. *)
 
 (* begin hide *)
 Require Import MoreDep.
@@ -452,7 +458,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   induction e.
 
-  (** Since we see the subgoals before any simplification occurs, it is clear that this is the case for constants.  [t] makes short work of it. *)
+  (** Since we see the subgoals before any simplification occurs, it is clear that this is the case for constants.  Our [t] makes short work of it. *)
   
   t.
 
@@ -631,7 +637,9 @@ Finished transaction in 2. secs (1.264079u,0.s)
 (* end thide *)
 End slow.
 
-(** It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\index{thunks}\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run [Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
+(** As aggravating as the above situation may be, there is greater aggravation to be had from importing library modules with commands like %\index{Vernacular commands!Require Import}%[Require Import].  Such a command imports not just the Gallina terms from a module, but also all the hints for [auto], [eauto], and [autorewrite].  Some very recent versions of Coq include mechanisms for removing hints from databases, but the proper solution is to be very conservative in exporting hints from modules.  Consider putting hints in named databases, so that they may be used only when called upon explicitly, as demonstrated in Chapter 13.
+
+It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\index{thunks}\textit{%#<i>#thunks#</i>#%}% (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run %\index{Vernacular commands!Qed}%[Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
 
    The %\index{tactics!abstract}%[abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
 
@@ -667,12 +675,18 @@ Module Type GROUP_THEOREMS.
   Axiom unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
 End GROUP_THEOREMS.
 
-(** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M].  The proofs are completely manual, since it would take some effort to build suitable generic automation; rather, these theorems can serve as a basis for an automated procedure for simplifying group expressions, along the lines of the procedure for monoids from the last chapter.  We take the proofs from the Wikipedia page on elementary group theory.%\index{Vernacular commands!Module}% *)
+(** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M]. %\index{Vernacular commands!Module}% *)
 
-Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
+Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
+  (** As in ML, Coq provides multiple options for ascribing signatures to modules.  Here we use just the colon operator, which implements %\index{opaque ascription}\emph{%#<i>#opaque ascription#</i>#%}%, hiding all details of the module not exposed by the signature.  Another option is %\index{transparent ascription}\emph{%#<i>#transparent ascription#</i>#%}% via the [<:] operator, which checks for signature compatibility without hiding implementation details.  Here we stick with opaque ascription but employ the [with] operation to add more detail to a signature, exposing just those implementation details that we need to.  For instance, here we expose the underlying group representation set and operator definitions.  Without such a refinement, we would get an output module proving theorems about some unknown group, which is not very useful.  Also note that opaque ascription can in Coq have some undesirable consequences without analogues in ML, since not just the types but also the %\emph{%#<i>#definitions#</i>#%}% of identifiers have significance in type checking and theorem proving. *)
+
   Module M := M.
+  (** To ensure that the module we are building meets the [GROUP_THEOREMS] signature, we add an extra local name for [M], the functor argument. *)
 
   Import M.
+  (** It would be inconvenient to repeat the prefix [M.] everywhere in our theorem statements and proofs, so we bring all the identifiers of [M] into the local scope unqualified.
+
+     Now we are ready to prove the three theorems.  The proofs are completely manual, which may seem ironic given the content of the previous sections!  This illustrates another lesson, which is that short proof scripts that change infrequently may be worth leaving unautomated.  It would take some effort to build suitable generic automation for these theorems about groups, so I stick with manual proof scripts to avoid distracting us from the main message of the section.  We take the proofs from the Wikipedia page on elementary group theory. *)
 
   Theorem inverse' : forall a, f a (i a) = e.
     intro.
@@ -700,7 +714,7 @@ Module Group (M : GROUP) : GROUP_THEOREMS with Module M := M.
     symmetry.
     apply ident'.
   Qed.
-End Group.
+End GroupProofs.
 
 (** We can show that the integers with [+] form a group. *)
 
@@ -726,11 +740,11 @@ End Int.
 
 (** Next, we can produce integer-specific versions of the generic group theorems. *)
 
-Module IntTheorems := Group(Int).
+Module IntProofs := GroupProofs(Int).
 
-Check IntTheorems.unique_ident.
+Check IntProofs.unique_ident.
 (** %\vspace{-.15in}% [[
-  IntTheorems.unique_ident
+  IntProofs.unique_ident
      : forall e' : Int.G, (forall a : Int.G, Int.f e' a = a) -> e' = Int.e
      ]]
 
@@ -738,7 +752,7 @@ Projections like [Int.G] are known to be definitionally equal to the concrete va
 
 Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
 (* begin thide *)
-  exact IntTheorems.unique_ident.
+  exact IntProofs.unique_ident.
 Qed.
 (* end thide *)
 
