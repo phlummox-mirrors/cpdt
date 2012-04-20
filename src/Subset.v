@@ -651,7 +651,7 @@ Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd 
 Defined.
 (* end thide *)
 
-(** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function. *)
+(** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function.  %The operator rendered here as $\longleftarrow$ is noted in the source as a less-than character followed by two hyphens.% *)
 
 (** printing <-- $\longleftarrow$ *)
 
@@ -675,6 +675,8 @@ Definition doublePred' : forall n1 n2 : nat,
     [||(m1, m2)||]); tauto.
 Defined.
 (* end thide *)
+
+(** This example demonstrates how judicious selection of notations can hide complexities in the rich types of programs. *)
 
 
 (** * A Type-Checking Example *)

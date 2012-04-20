@@ -233,7 +233,7 @@ Check bool_ind.
 
 (** That is, to prove that a property describes all [bool]s, prove that it describes both [true] and [false].
 
-There is no interesting Curry-Howard analogue of [bool].  Of course, we can define such a type by replacing [Set] by [Prop] above, but the proposition we arrive it is not very useful.  It is logically equivalent to [True], but it provides two indistinguishable primitive proofs, [true] and [false].   In the rest of the chapter, we will skip commenting on Curry-Howard versions of inductive definitions where such versions are not interesting. *)
+There is no interesting Curry-Howard analogue of [bool].  Of course, we can define such a type by replacing [Set] by [Prop] above, but the proposition we arrive at is not very useful.  It is logically equivalent to [True], but it provides two indistinguishable primitive proofs, [true] and [false].   In the rest of the chapter, we will skip commenting on Curry-Howard versions of inductive definitions where such versions are not interesting. *)
 
 
 (** * Simple Recursive Types *)
@@ -660,7 +660,7 @@ Fixpoint pformulaDenote (f : pformula) : Prop :=
     | Conjunction f1 f2 => pformulaDenote f1 /\ pformulaDenote f2
   end.
 
-(** This is a just a warm-up that does not use reflexive types, the new feature we mean to introduce.  When we set our sights on first-order logic instead, it becomes very handy to give constructors recursive arguments that are functions. *)
+(** This is just a warm-up that does not use reflexive types, the new feature we mean to introduce.  When we set our sights on first-order logic instead, it becomes very handy to give constructors recursive arguments that are functions. *)
 
 Inductive formula : Set :=
 | Eq : nat -> nat -> formula
