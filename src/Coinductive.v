@@ -362,7 +362,7 @@ Abort.
 
    %\medskip%
 
-   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with %\index{co-induction principles}\emph{%#<i>#co-induction principles#</i>#%}%.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
+   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions of the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with %\index{co-induction principles}\emph{%#<i>#co-induction principles#</i>#%}%.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
 
    An induction principle is parameterized over a predicate characterizing what we mean to prove, %\emph{%#<i>#as a function of the inductive fact that we already know#</i>#%}%.  Dually, a co-induction principle ought to be parameterized over a predicate characterizing what we mean to prove, %\emph{%#<i>#as a function of the arguments to the co-inductive predicate that we are trying to prove#</i>#%}%.
 
@@ -378,13 +378,14 @@ Definition hd A (s : stream A) : A :=
 Section stream_eq_coind.
   Variable A : Type.
   Variable R : stream A -> stream A -> Prop.
-  (** This relation generalizes the theorem we want to prove, characterizinge exactly which two arguments to [stream_eq] we want to consider. *)
+  (** This relation generalizes the theorem we want to prove, characterizing exactly which two arguments to [stream_eq] we want to consider. *)
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
-  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that a [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is %\index{bisimulation}\emph{%#<i>#bisimulation#</i>#%}%. *)
+  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is %\index{bisimulation}\emph{%#<i>#bisimulation#</i>#%}%. *)
 
   (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
+
   Theorem stream_eq_coind : forall s1 s2, R s1 s2 -> stream_eq s1 s2.
     cofix; destruct s1; destruct s2; intro.
     generalize (Cons_case_hd H); intro Heq; simpl in Heq; rewrite Heq.
@@ -395,6 +396,7 @@ Section stream_eq_coind.
 End stream_eq_coind.
 
 (** To see why this proof is guarded, we can print it and verify that the one co-recursive call is an immediate argument to a constructor. *)
+
 Print stream_eq_coind.
 
 (** We omit the output and proceed to proving [ones_eq''] again.  The only bit of ingenuity is in choosing [R], and in this case the most restrictive predicate works. *)

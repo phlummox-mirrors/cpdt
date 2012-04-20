@@ -627,7 +627,7 @@ Reset n.
 
 (** This kind of %``%#"#axiomatic presentation#"#%''% of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
 
-   In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is %\index{inconsistent axioms}\textit{%#<i>#inconsistent#</i>#%}%.   That is, a set of axioms may imply [False], which allows any theorem to proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
+   In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is %\index{inconsistent axioms}\textit{%#<i>#inconsistent#</i>#%}%.   That is, a set of axioms may imply [False], which allows any theorem to be proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
 
 Axiom not_classic : ~ forall P : Prop, P \/ ~ P.
 
