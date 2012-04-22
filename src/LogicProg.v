@@ -23,7 +23,7 @@ Set Implicit Arguments.
 
 (** The Curry-Howard correspondence tells us that proving is %``%#"#just#"#%''% programming, but the pragmatics of the two activities are very different.  Generally we care about properties of a program besides its type, but the same is not true about proofs.  Any proof of a theorem will do just as well.  As a result, automated proof search is conceptually simpler than automated programming.
 
-   The paradigm of %\index{logic programming}%logic programming, as embodied in languages like %\index{Prolog}%Prolog, is a good match for proof search in higher-order logic.  This chapter introduces the details, attempting to avoid any dependence on past logic programming experience. *)
+   The paradigm of %\index{logic programming}%logic programming%~\cite{LogicProgramming}%, as embodied in languages like %\index{Prolog}%Prolog%~\cite{Prolog}%, is a good match for proof search in higher-order logic.  This chapter introduces the details, attempting to avoid any dependence on past logic programming experience. *)
 
 
 (** * Introducing Logic Programming *)

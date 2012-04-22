@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Infinite Data and Proofs}% *)
 
-(** In lazy functional programming languages like %\index{Haskell}%Haskell, infinite data structures are everywhere.  Infinite lists and more exotic datatypes provide convenient abstractions for communication between parts of a program.  Achieving similar convenience without infinite lazy structures would, in many cases, require acrobatic inversions of control flow.
+(** In lazy functional programming languages like %\index{Haskell}%Haskell, infinite data structures are everywhere%~\cite{whyfp}%.  Infinite lists and more exotic datatypes provide convenient abstractions for communication between parts of a program.  Achieving similar convenience without infinite lazy structures would, in many cases, require acrobatic inversions of control flow.
 
 %\index{laziness}%Laziness is easy to implement in Haskell, where all the definitions in a program may be thought of as mutually recursive.  In such an unconstrained setting, it is easy to implement an infinite loop when you really meant to build an infinite list, where any finite prefix of the list should be forceable in finite time.  Haskell programmers learn how to avoid such slip-ups.  In Coq, such a laissez-faire policy is not good enough.
 
