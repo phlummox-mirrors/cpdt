@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Some content finishing touches</title>
+        <pubDate>Sun, 22 Apr 2012 16:26:07 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>In introduction, clarify meaning of certified programming; add some citations.</description>
+</item>
+
+<item>
         <title>A number of revisions</title>
         <pubDate>Thu, 12 Apr 2012 18:42:46 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
