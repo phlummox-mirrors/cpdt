@@ -814,7 +814,7 @@ Abort.
 Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
   tprogDenote (tcompile e ts) s = (texpDenote e, s).
 
-(** While lemma [compile_correct'] quantified over a program that is the %``%#"#continuation#"#%''% for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
+(** While lemma [compile_correct'] quantified over a program that is the %``%#"#continuation#"#%''~\cite{continuations}% for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
 
    Let us try to prove this theorem in the same way that we settled on in the last section. *)
 

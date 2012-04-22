@@ -471,7 +471,7 @@ Abort.
 
    Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
 
-   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}\emph{%#<i>#continuation-passing style#</i>#%}%, a program structuring idea popular in functional programming. *)
+   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}\emph{%#<i>#continuation-passing style#</i>#%}~\cite{continuations}%, a program structuring idea popular in functional programming. *)
 
 (* begin hide *)
 Reset length.
