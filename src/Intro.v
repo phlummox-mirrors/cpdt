@@ -200,13 +200,17 @@ At the start of the next chapter, I assume that you have installed Coq and Proof
 
 %\item %#<li>#Run %\texttt{%#<tt>#make#</tt>#%}% in %\texttt{%#<tt>#DIR#</tt>#%}%.#</li>#
 
-%\item %#<li>#There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program, which provides the interactive Coq toplevel.  The best way to add settings that will be shared by many source files is to add a custom variable setting to your %\index{.emacs file@\texttt{.emacs} file}\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
+%\item %#<li>#There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the %\texttt{%#<tt>#coqtop#</tt>#%}% program, which provides the interactive Coq toplevel.  One way to add settings that will be shared by many source files is to add a custom variable setting to your %\index{.emacs file@\texttt{.emacs} file}\texttt{%#<tt>#.emacs#</tt>#%}% file, like this:
 %\begin{verbatim}%#<pre>#(custom-set-variables
   ...
   '(coq-prog-args '("-I" "DIR/src"))
   ...
 )#</pre>#%\end{verbatim}%
-The extra arguments demonstrated here are the proper choices for working with the code for this book.  The ellipses stand for other Emacs customization settings you may already have.  It can be helpful to save several alternate sets of flags in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, with all but one commented out within the %\texttt{%#<tt>#custom-set-variables#</tt>#%}% block at any given time.#</li>#
+The extra arguments demonstrated here are the proper choices for working with the code for this book.  The ellipses stand for other Emacs customization settings you may already have.  It can be helpful to save several alternate sets of flags in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, with all but one commented out within the %\texttt{%#<tt>#custom-set-variables#</tt>#%}% block at any given time.
+
+Alternatively, Proof General configuration can be set on a per-directory basis, using a %\index{.dir-locals.el file@\texttt{.dir-locals.el} file}\texttt{%#<i>#.dir-locals.el#</i>#%}% file in the directory of the source files for which you want the settings to apply.  Here is an example that could be written in such a file to enable use of the book source.  Note the need to include an argument that starts Coq in Emacs support mode.
+%\begin{verbatim}%#<pre>#((coq-mode . ((coq-prog-args . ("-emacs-U" "-I" "DIR/src")))))#</pre>#%\end{verbatim}%
+ #</li>#
 
 #</ol>#%\end{enumerate}%
 

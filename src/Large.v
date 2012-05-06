@@ -852,4 +852,12 @@ Require Import Lib.
 )
 >>
 
-   When working on multiple projects, it is useful to leave multiple versions of this setting in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, commenting out all but one of them at any moment in time.  To switch between projects, change the commenting structure and restart Emacs. *)
+   When working on multiple projects, it is useful to leave multiple versions of this setting in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, commenting out all but one of them at any moment in time.  To switch between projects, change the commenting structure and restart Emacs.
+
+   Alternatively, we can revisit the directory-local settings approach and write the following into a file %\texttt{%#<tt>#.dir-locals.el#</tt>#%}% in %\texttt{%#<i>#CLIENT#</i>#%}%:
+
+<<
+((coq-mode . ((coq-prog-args .
+  ("-emacs-U" "-R" "LIB" "Lib" "-R" "CLIENT" "Client")))))
+>>
+*)
