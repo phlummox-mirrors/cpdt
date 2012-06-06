@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Proof by Reflection}% *)
 
-(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique, %\index{proof by reflection}\textit{%#<i>#proof by reflection#</i>#%}~\cite{reflection}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term %\textit{%#<i>#reflection#</i>#%}% applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them. *)
+(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique, %\index{proof by reflection}%_proof by reflection_ %\cite{reflection}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term _reflection_ applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them. *)
 
 
 (** * Proving Evenness *)
@@ -81,7 +81,7 @@ Definition check_even : forall n : nat, [isEven n].
     end); auto.
 Defined.
 
-(** The function [check_even] may be viewed as a %\emph{%#<i>#verified decision procedure#</i>#%}%, because its type guarantees that it never returns [Yes] for inputs that are not even.
+(** The function [check_even] may be viewed as a _verified decision procedure_, because its type guarantees that it never returns [Yes] for inputs that are not even.
 
    Now we can use dependent pattern-matching to write a function that performs a surprising feat.  When given a [partial P], this function [partialOut] returns a proof of [P] if the [partial] value contains a proof, and it returns a (useless) proof of [True] otherwise.  From the standpoint of ML and Haskell programming, it seems impossible to write such a type, but it is trivial with a [return] annotation. *)
 
@@ -167,7 +167,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
 
-   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\index{reification}\textit{%#<i>#reify#</i>#%}% [Prop] into some type that we %\textit{%#<i>#can#</i>#%}% analyze.  This inductive type is a good candidate: *)
+   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\index{reification}%_reify_ [Prop] into some type that we _can_ analyze.  This inductive type is a good candidate: *)
 
 (* begin thide *)
 Inductive taut : Set :=
@@ -176,7 +176,7 @@ Inductive taut : Set :=
 | TautOr : taut -> taut -> taut
 | TautImp : taut -> taut -> taut.
 
-(** We write a recursive function to %\emph{%#<i>#reflect#</i>#%}% this syntax back to [Prop].  Such functions are also called %\index{interpretation function}\emph{%#<i>#interpretation functions#</i>#%}%, and have used them in previous examples to give semantics to small programming languages. *)
+(** We write a recursive function to _reflect_ this syntax back to [Prop].  Such functions are also called %\index{interpretation function}%_interpretation functions_, and have used them in previous examples to give semantics to small programming languages. *)
 
 Fixpoint tautDenote (t : taut) : Prop :=
   match t with
@@ -237,7 +237,7 @@ tautTrue
      : True /\ True -> True \/ True /\ (True -> True)
     ]]
 
-    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here %\textit{%#<i>#is#</i>#%}% on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here _is_ on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
 
     It may also be worth pointing out that our previous example of evenness testing used a function [partialOut] for sound handling of input goals that the verified decision procedure fails to prove.  Here, we prove that our procedure [tautTrue] (recall that an inductive proof may be viewed as a recursive procedure) is able to prove any goal representable in [taut], so no extra step is necessary. *)
 
@@ -785,7 +785,7 @@ Ltac refl' e :=
     | _ => constr:(Const e)
   end.
 
-(** Recall that a regular Ltac pattern variable [?X] only matches terms that %\emph{%#<i>#do not mention new variables introduced within the pattern#</i>#%}%.  In our naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
+(** Recall that a regular Ltac pattern variable [?X] only matches terms that _do not mention new variables introduced within the pattern_.  In our naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
 
    To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  For instance: *)
 
@@ -804,7 +804,7 @@ Ltac refl' e :=
     | _ => constr:(Const e)
   end.
 
-(** Now, in the abstraction case, we bind [E1] as a function from an [x] value to the value of the abstraction body.  Unfortunately, our recursive call there is not destined for success.  It will match the same abstraction pattern and trigger another recursive call, and so on through infinite recursion.  One last refactoring yields a working procedure.  The key idea is to consider every input to [refl'] as %\emph{%#<i>#a function over the values of variables introduced during recursion#</i>#%}%. *)
+(** Now, in the abstraction case, we bind [E1] as a function from an [x] value to the value of the abstraction body.  Unfortunately, our recursive call there is not destined for success.  It will match the same abstraction pattern and trigger another recursive call, and so on through infinite recursion.  One last refactoring yields a working procedure.  The key idea is to consider every input to [refl'] as _a function over the values of variables introduced during recursion_. *)
 
 Reset refl'.
 Ltac refl' e :=

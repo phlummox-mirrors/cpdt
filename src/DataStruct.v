@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -369,7 +369,7 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 
 (** * Recursive Type Definitions *)
 
-(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports %``%#"#type-level computation,#"#%''% we can redo our inductive definitions as %\textit{%#<i>#recursive#</i>#%}% definitions. *)
+(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports %``%#"#type-level computation,#"#%''% we can redo our inductive definitions as _recursive_ definitions. *)
 
 (* EX: Come up with an alternate [ilist] definition that makes it easier to write [get]. *)
 
@@ -568,7 +568,7 @@ Error: Non strictly positive occurrence of "tree" in
 
   The special-case rule for nested datatypes only works with nested uses of other inductive types, which could be replaced with uses of new mutually inductive types.  We defined [filist] recursively, so it may not be used for nested recursion.
 
-  Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, %\index{reflexive inductive type}%reflexive types.  Instead of merely using [fin] to get elements out of [ilist], we can %\textit{%#<i>#define#</i>#%}% [ilist] in terms of [fin].  For the reasons outlined above, it turns out to be easier to work with [ffin] in place of [fin]. *)
+  Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, %\index{reflexive inductive type}%reflexive types.  Instead of merely using [fin] to get elements out of [ilist], we can _define_ [ilist] in terms of [fin].  For the reasons outlined above, it turns out to be easier to work with [ffin] in place of [fin]. *)
 
   Inductive tree : Set :=
   | Leaf : A -> tree
@@ -608,7 +608,7 @@ Fixpoint inc (t : tree nat) : tree nat :=
     | Node _ f => Node (fun idx => inc (f idx))
   end.
 
-(** Now we are ready to prove the theorem where we got stuck before.  We will not need to define any new induction principle, but it %\textit{%#<i>#will#</i>#%}% be helpful to prove some lemmas. *)
+(** Now we are ready to prove the theorem where we got stuck before.  We will not need to define any new induction principle, but it _will_ be helpful to prove some lemmas. *)
 
 Lemma plus_ge : forall x1 y1 x2 y2,
   x1 >= x2
@@ -818,7 +818,7 @@ Lemma cfoldCond_correct : forall t (default : exp' t)
             end; crush).
 Qed.
 
-(** It is also useful to know that the result of a call to [cond] is not changed by substituting new tests and bodies functions, so long as the new functions have the same input-output behavior as the old.  It turns out that, in Coq, it is not possible to prove in general that functions related in this way are equal.  We treat this issue with our discussion of axioms in a later chapter.  For now, it suffices to prove that the particular function [cond] is %\textit{%#<i>#extensional#</i>#%}%; that is, it is unaffected by substitution of functions with input-output equivalents. *)
+(** It is also useful to know that the result of a call to [cond] is not changed by substituting new tests and bodies functions, so long as the new functions have the same input-output behavior as the old.  It turns out that, in Coq, it is not possible to prove in general that functions related in this way are equal.  We treat this issue with our discussion of axioms in a later chapter.  For now, it suffices to prove that the particular function [cond] is _extensional_; that is, it is unaffected by substitution of functions with input-output equivalents. *)
 
 Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : ffin n -> bool)
   (bodies bodies' : ffin n -> A),

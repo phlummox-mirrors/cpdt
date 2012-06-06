@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -22,7 +22,7 @@ Set Implicit Arguments.
 
 %\index{laziness}%Laziness is easy to implement in Haskell, where all the definitions in a program may be thought of as mutually recursive.  In such an unconstrained setting, it is easy to implement an infinite loop when you really meant to build an infinite list, where any finite prefix of the list should be forceable in finite time.  Haskell programmers learn how to avoid such slip-ups.  In Coq, such a laissez-faire policy is not good enough.
 
-We spent some time in the last chapter discussing the %\index{Curry-Howard correspondence}%Curry-Howard isomorphism, where proofs are identified with functional programs.  In such a setting, infinite loops, intended or otherwise, are disastrous.  If Coq allowed the full breadth of definitions that Haskell did, we could code up an infinite loop and use it to prove any proposition vacuously.  That is, the addition of general recursion would make CIC %\textit{%#<i>#inconsistent#</i>#%}%.  For an arbitrary proposition [P], we could write:
+We spent some time in the last chapter discussing the %\index{Curry-Howard correspondence}%Curry-Howard isomorphism, where proofs are identified with functional programs.  In such a setting, infinite loops, intended or otherwise, are disastrous.  If Coq allowed the full breadth of definitions that Haskell did, we could code up an infinite loop and use it to prove any proposition vacuously.  That is, the addition of general recursion would make CIC _inconsistent_.  For an arbitrary proposition [P], we could write:
 [[
 Fixpoint bad (u : unit) : P := bad u.
 ]]
@@ -33,12 +33,12 @@ There are also algorithmic considerations that make universal termination very d
 
 One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs; several such approaches are surveyed in Chapter 7.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
 
-Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism, %\index{co-inductive types}\textit{%#<i>#co-inductive types#</i>#%}%, is the subject of this chapter. *)
+Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism, %\index{co-inductive types}%_co-inductive types_, is the subject of this chapter. *)
 
 
 (** * Computing with Infinite Data *)
 
-(** Let us begin with the most basic type of infinite data, %\textit{%#<i>#streams#</i>#%}%, or lazy lists.%\index{Vernacular commands!CoInductive}% *)
+(** Let us begin with the most basic type of infinite data, _streams_, or lazy lists.%\index{Vernacular commands!CoInductive}% *)
 
 Section stream.
   Variable A : Type.
@@ -49,7 +49,7 @@ End stream.
 
 (** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
 
-   How do we write down a stream constant?  Obviously simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to %\textit{%#<i>#use#</i>#%}% values of recursive inductive types effectively, here we find that we need %\index{co-recursive definitions}\textit{%#<i>#co-recursive definitions#</i>#%}% to %\textit{%#<i>#build#</i>#%}% values of co-inductive types effectively.
+   How do we write down a stream constant?  Obviously simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need %\index{co-recursive definitions}%_co-recursive definitions_ to _build_ values of co-inductive types effectively.
 
    We can define a stream consisting only of zeroes.%\index{Vernacular commands!CoFixpoint}% *)
 
@@ -98,9 +98,9 @@ Eval simpl in approx trues_falses 10.
 
 (* end thide *)
 
-(** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints %\textit{%#<i>#consume#</i>#%}% values of inductive types, with restrictions on which %\textit{%#<i>#arguments#</i>#%}% may be passed in recursive calls.  Dually, co-fixpoints %\textit{%#<i>#produce#</i>#%}% values of co-inductive types, with restrictions on what may be done with the %\textit{%#<i>#results#</i>#%}% of co-recursive calls.
+(** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints _consume_ values of inductive types, with restrictions on which _arguments_ may be passed in recursive calls.  Dually, co-fixpoints _produce_ values of co-inductive types, with restrictions on what may be done with the _results_ of co-recursive calls.
 
-The restriction for co-inductive types shows up as the %\index{guardedness condition}\textit{%#<i>#guardedness condition#</i>#%}%, and it can be broken into two parts.  First, consider this stream definition, which would be legal in Haskell.
+The restriction for co-inductive types shows up as the %\index{guardedness condition}%_guardedness condition_, and it can be broken into two parts.  First, consider this stream definition, which would be legal in Haskell.
 [[
 CoFixpoint looper : stream nat := looper.
 ]]
@@ -114,7 +114,7 @@ looper : stream nat
 unguarded recursive call in "looper"
 >>
 
-The rule we have run afoul of here is that %\textit{%#<i>#every co-recursive call must be guarded by a constructor#</i>#%}%; that is, every co-recursive call must be a direct argument to a constructor of the co-inductive type we are generating.  It is a good thing that this rule is enforced.  If the definition of [looper] were accepted, our [approx] function would run forever when passed [looper], and we would have fallen into inconsistency.
+The rule we have run afoul of here is that _every co-recursive call must be guarded by a constructor_; that is, every co-recursive call must be a direct argument to a constructor of the co-inductive type we are generating.  It is a good thing that this rule is enforced.  If the definition of [looper] were accepted, our [approx] function would run forever when passed [looper], and we would have fallen into inconsistency.
 
 Some familiar functions are easy to write in co-recursive fashion. *)
 
@@ -130,7 +130,7 @@ End map.
 
 (** This code is a literal copy of that for the list [map] function, with the [Nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
 
-   The implications of the condition can be subtle.  To illustrate how, we start off with another co-recursive function definition that %\textit{%#<i>#is#</i>#%}% legal.  The function [interleave] takes two streams and produces a new stream that alternates between their elements. *)
+   The implications of the condition can be subtle.  To illustrate how, we start off with another co-recursive function definition that _is_ legal.  The function [interleave] takes two streams and produces a new stream that alternates between their elements. *)
 
 Section interleave.
   Variable A : Type.
@@ -186,7 +186,7 @@ CoFixpoint map' (s : stream A) : stream B :=
 Clearly in this case the [map'] calls are not immediate arguments to constructors, so we violate the guardedness condition. *)
 (* end thide *)
 
-(** A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for %\index{productivity}\emph{%#<i>#productivity#</i>#%}% of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
+(** A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for %\index{productivity}%_productivity_ of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
 
 
 (** * Infinite Proofs *)
@@ -205,7 +205,7 @@ Theorem ones_eq : ones = ones'.
 
 Abort.
 
-(** Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a %\textit{%#<i>#co-inductive proposition#</i>#%}%.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
+(** Co-inductive datatypes make sense by analogy from Haskell.  What we need now is a _co-inductive proposition_.  That is, we want to define a proposition whose proofs may be infinite, subject to the guardedness condition.  The idea of infinite proofs does not show up in usual mathematics, but it can be very useful (unsurprisingly) for reasoning about infinite data structures.  Besides examples from Haskell, infinite data and proofs will also turn out to be useful for modelling inherently infinite mathematical objects, like program executions.
 
 We are ready for our first %\index{co-inductive predicates}%co-inductive predicate. *)
 
@@ -262,7 +262,7 @@ Thinking about how Coq would generate a proof term from the proof script above, 
 Guarded.
 ]]
 
-     Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems %\textit{%#<i>#before#</i>#%}% we think we are ready to run [Qed].
+     Running [Guarded] here gives us the same error message that we got when we tried to run [Qed].  In larger proofs, [Guarded] can be helpful in detecting problems _before_ we think we are ready to run [Qed].
      
      We need to start the co-induction by applying [stream_eq]'s constructor.  To do that, we need to know that both arguments to the predicate are [Cons]es.  Informally, this is trivial, but [simpl] is not able to help us. *)
 
@@ -344,7 +344,7 @@ Qed.
 
 (** Why did this silly-looking trick help?  The answer has to do with the constraints placed on Coq's evaluation rules by the need for termination.  The [cofix]-related restriction that foiled our first attempt at using [simpl] is dual to a restriction for [fix].  In particular, an application of an anonymous [fix] only reduces when the top-level structure of the recursive argument is known.  Otherwise, we would be unfolding the recursive definition ad infinitum.
 
-   Fixpoints only reduce when enough is known about the %\textit{%#<i>#definitions#</i>#%}% of their arguments.  Dually, co-fixpoints only reduce when enough is known about %\textit{%#<i>#how their results will be used#</i>#%}%.  In particular, a [cofix] is only expanded when it is the discriminee of a [match].  Rewriting with our superficially silly lemma wrapped new [match]es around the two [cofix]es, triggering reduction.
+   Fixpoints only reduce when enough is known about the _definitions_ of their arguments.  Dually, co-fixpoints only reduce when enough is known about _how their results will be used_.  In particular, a [cofix] is only expanded when it is the discriminee of a [match].  Rewriting with our superficially silly lemma wrapped new [match]es around the two [cofix]es, triggering reduction.
 
    If [cofix]es reduced haphazardly, it would be easy to run into infinite loops in evaluation, since we are, after all, building infinite objects.
 
@@ -362,9 +362,9 @@ Abort.
 
    %\medskip%
 
-   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions of the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with %\index{co-induction principles}\emph{%#<i>#co-induction principles#</i>#%}%.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
+   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions of the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with %\index{co-induction principles}%_co-induction principles_.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
 
-   An induction principle is parameterized over a predicate characterizing what we mean to prove, %\emph{%#<i>#as a function of the inductive fact that we already know#</i>#%}%.  Dually, a co-induction principle ought to be parameterized over a predicate characterizing what we mean to prove, %\emph{%#<i>#as a function of the arguments to the co-inductive predicate that we are trying to prove#</i>#%}%.
+   An induction principle is parameterized over a predicate characterizing what we mean to prove, _as a function of the inductive fact that we already know_.  Dually, a co-induction principle ought to be parameterized over a predicate characterizing what we mean to prove, _as a function of the arguments to the co-inductive predicate that we are trying to prove_.
 
    To state a useful principle for [stream_eq], it will be useful first to define the stream head function. *)
 
@@ -382,7 +382,7 @@ Section stream_eq_coind.
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
-  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is %\index{bisimulation}\emph{%#<i>#bisimulation#</i>#%}%. *)
+  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is %\index{bisimulation}%_bisimulation_. *)
 
   (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
 
@@ -519,7 +519,7 @@ Qed.
 
 (** * Simple Modeling of Non-Terminating Programs *)
 
-(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of %\index{co-inductive big-step operational semantics}\emph{%#<i>#co-inductive big-step operational semantics#</i>#%}~\cite{BigStep}%.
+(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of %\index{co-inductive big-step operational semantics}%_co-inductive big-step operational semantics_ %\cite{BigStep}%.
 
    We define a suggestive synonym for [nat], as we will consider programs with infinitely many variables, represented as [nat]s. *)
 
@@ -553,7 +553,7 @@ Inductive cmd : Set :=
 | Seq : cmd -> cmd -> cmd
 | While : exp -> cmd -> cmd.
 
-(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture %\emph{%#<i>#nonterminating#</i>#%}% executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to %\emph{%#<i>#any#</i>#%}% final state. *)
+(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture _nonterminating_ executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to _any_ final state. *)
 
 CoInductive evalCmd : vars -> cmd -> vars -> Prop :=
 | EvalAssign : forall vs v e, evalCmd vs (Assign v e) (set vs v (evalExp vs e))
@@ -582,7 +582,7 @@ Section evalCmd_coind.
     -> (evalExp vs1 e = 0 /\ vs3 = vs1)
     \/ exists vs2, evalExp vs1 e <> 0 /\ R vs1 c vs2 /\ R vs2 (While e c) vs3.
 
-  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an %\index{intro pattern}\emph{%#<i>#intro pattern#</i>#%}% in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
+  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an %\index{intro pattern}%_intro pattern_ in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
 
   Theorem evalCmd_coind : forall vs1 c vs2, R vs1 c vs2 -> evalCmd vs1 c vs2.
     cofix; intros; destruct c.

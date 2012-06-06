@@ -26,7 +26,7 @@ Set Implicit Arguments.
 
    The %\index{tactics!ring}%[ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a similar tactic %\index{tactics!field}\coqdockw{%#<tt>#field#</tt>#%}% for simplifying values in fields by conversion to fractions over rings.  Both [ring] and %\coqdockw{%#<tt>#field#</tt>#%}% can only solve goals that are equalities.  The %\index{tactics!fourier}\coqdockw{%#<tt>#fourier#</tt>#%}% tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
 
-   The %\index{setoids}\textit{%#<i>#setoid#</i>#%}% facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''%
+   The %\index{setoids}%_setoid_ facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''%
 
    There are several other built-in %``%#"#black box#"#%''% automation tactics, which one can learn about by perusing the Coq manual.  The real promise of Coq, though, is in the coding of problem-specific tactics with Ltac. *)
 
@@ -59,9 +59,9 @@ Theorem hmm : forall (a b c : bool),
 Qed.
 (* end thide *)
 
-(** The %\index{tactics!repeat}%[repeat] that we use here is called a %\index{tactical}\textit{%#<i>#tactical#</i>#%}%, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on %\textit{%#<i>#their#</i>#%}% generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
+(** The %\index{tactics!repeat}%[repeat] that we use here is called a %\index{tactical}%_tactical_, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on _their_ generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
 
-   Another very useful Ltac building block is %\index{context patterns}\textit{%#<i>#context patterns#</i>#%}%. *)
+   Another very useful Ltac building block is %\index{context patterns}%_context patterns_. *)
 
 (* begin thide *)
 Ltac find_if_inside :=
@@ -133,7 +133,7 @@ End propositional.
 
 It is tempting to assume that [match] works like it does in ML.  In fact, there are a few critical differences in its behavior.  One is that we may include arbitrary expressions in patterns, instead of being restricted to variables and constructors.  Another is that the same variable may appear multiple times, inducing an implicit equality constraint.
 
-There is a related pair of two other differences that are much more important than the others.  The [match] construct has a %\textit{%#<i>#backtracking semantics for failure#</i>#%}%.  In ML, pattern matching works by finding the first pattern to match and then executing its body.  If the body raises an exception, then the overall match raises the same exception.  In Coq, failures in case bodies instead trigger continued search through the list of cases.
+There is a related pair of two other differences that are much more important than the others.  The [match] construct has a _backtracking semantics for failure_.  In ML, pattern matching works by finding the first pattern to match and then executing its body.  If the body raises an exception, then the overall match raises the same exception.  In Coq, failures in case bodies instead trigger continued search through the list of cases.
 
 For instance, this (unnecessarily verbose) proof script works: *)
 
@@ -148,7 +148,7 @@ Qed.
 
 (** The first case matches trivially, but its body tactic fails, since the conclusion does not begin with a quantifier or implication.  In a similar ML match, that would mean that the whole pattern-match fails.  In Coq, we backtrack and try the next pattern, which also matches.  Its body tactic succeeds, so the overall tactic succeeds as well.
 
-   The example shows how failure can move to a different pattern within a [match].  Failure can also trigger an attempt to find %\textit{%#<i>#a different way of matching a single pattern#</i>#%}%.  Consider another example: *)
+   The example shows how failure can move to a different pattern within a [match].  Failure can also trigger an attempt to find _a different way of matching a single pattern_.  Consider another example: *)
 
 Theorem m2 : forall P Q R : Prop, P -> Q -> R -> Q.
   intros; match goal with
@@ -435,7 +435,7 @@ Goal False.
 Abort.
 (* end thide *)
 
-(** Each position within an Ltac script has a default applicable non-terminal, where [constr] and [ltac] are the main options worth thinking about, standing respectively for terms of Gallina and Ltac.  The explicit colon notation can always be used to override the default non-terminal choice, though code being parsed as Gallina can no longer use such overrides.  Within the [ltac] non-terminal, top-level function applications are treated as applications in Ltac, not Gallina; but the %\emph{%#<i>#arguments#</i>#%}% to such functions are parsed with [constr] by default.  This choice may seem strange, until we realize that we have been relying on it all along in all the proof scripts we write!  For instance, the [apply] tactic is an Ltac function, and it is natural to interpret its argument as a term of Gallina, not Ltac.  We use an [ltac] prefix to parse Ltac function arguments as Ltac terms themselves, as in the call to [map] above.  For some simple cases, Ltac terms may be passed without an extra prefix.  For instance, an identifier that has an Ltac meaning but no Gallina meaning will be interpreted in Ltac automatically.
+(** Each position within an Ltac script has a default applicable non-terminal, where [constr] and [ltac] are the main options worth thinking about, standing respectively for terms of Gallina and Ltac.  The explicit colon notation can always be used to override the default non-terminal choice, though code being parsed as Gallina can no longer use such overrides.  Within the [ltac] non-terminal, top-level function applications are treated as applications in Ltac, not Gallina; but the _arguments_ to such functions are parsed with [constr] by default.  This choice may seem strange, until we realize that we have been relying on it all along in all the proof scripts we write!  For instance, the [apply] tactic is an Ltac function, and it is natural to interpret its argument as a term of Gallina, not Ltac.  We use an [ltac] prefix to parse Ltac function arguments as Ltac terms themselves, as in the call to [map] above.  For some simple cases, Ltac terms may be passed without an extra prefix.  For instance, an identifier that has an Ltac meaning but no Gallina meaning will be interpreted in Ltac automatically.
 
 One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
 
@@ -467,11 +467,11 @@ Error: variable n should be bound to a term.
 >> *)
 Abort.
 
-(** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one %``%#"#datatype#"#%''% that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monad}\index{Haskell}%monadic programming in Haskell%~\cite{Monads,IO}% may recognize a similarity.  Side-effecting Haskell programs can be thought of as pure programs that return %\emph{%#<i>#the code of programs in an imperative language#</i>#%}%, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
+(** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one %``%#"#datatype#"#%''% that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monad}\index{Haskell}%monadic programming in Haskell%~\cite{Monads,IO}% may recognize a similarity.  Side-effecting Haskell programs can be thought of as pure programs that return _the code of programs in an imperative language_, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
 
    Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
 
-   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}\emph{%#<i>#continuation-passing style#</i>#%}~\cite{continuations}%, a program structuring idea popular in functional programming. *)
+   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}%_continuation-passing style_ %\cite{continuations}%, a program structuring idea popular in functional programming. *)
 
 (* begin hide *)
 Reset length.
@@ -486,7 +486,7 @@ Ltac length ls k :=
   end.
 (* end thide *)
 
-(** The new [length] takes a new input: a %\emph{%#<i>#continuation#</i>#%}% [k], which is a function to be called to continue whatever proving process we were in the middle of when we called [length].  The argument passed to [k] may be thought of as the return value of [length]. *)
+(** The new [length] takes a new input: a _continuation_ [k], which is a function to be called to continue whatever proving process we were in the middle of when we called [length].  The argument passed to [k] may be thought of as the return value of [length]. *)
 
 (* begin thide *)
 Goal False.
@@ -505,7 +505,7 @@ Abort.
 
    Considering the comparison with Haskell's IO monad, there is an important subtlety that deserves to be mentioned.  A Haskell IO computation represents (theoretically speaking, at least) a transformer from one state of the real world to another, plus a pure value to return.  Some of the state can be very specific to the program, as in the case of heap-allocated mutable references, but some can be along the lines of the favorite example %``%#"#launch missile,#"#%''% where the program has a side effect on the real world that is not possible to undo.
 
-   In contrast, Ltac scripts can be thought of as controlling just two simple kinds of mutable state.  First, there is the current sequence of proof subgoals.  Second, there is a partial assignment of discovered values to unification variables introduced by proof search (for instance, by [eauto], as we saw in the previous chapter).  Crucially, %\emph{%#<i>#every mutation of this state can be undone#</i>#%}% during backtracking introduced by [match], [auto], and other built-in Ltac constructs.  Ltac proof scripts have state, but it is purely local, and all changes to it are reversible, which is a very useful semantics for proof search. *)
+   In contrast, Ltac scripts can be thought of as controlling just two simple kinds of mutable state.  First, there is the current sequence of proof subgoals.  Second, there is a partial assignment of discovered values to unification variables introduced by proof search (for instance, by [eauto], as we saw in the previous chapter).  Crucially, _every mutation of this state can be undone_ during backtracking introduced by [match], [auto], and other built-in Ltac constructs.  Ltac proof scripts have state, but it is purely local, and all changes to it are reversible, which is a very useful semantics for proof search. *)
 
 
 (** * Recursive Proof Search *)
@@ -758,7 +758,7 @@ This proof term is a mouthful, and we can be glad that we did not build it manua
 
 (** * Creating Unification Variables *)
 
-(** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variables internally to support flexible proof search.  While [eauto] and its relatives do %\textit{%#<i>#backward#</i>#%}% reasoning, we often want to do similar %\textit{%#<i>#forward#</i>#%}% reasoning, where unification variables can be useful for similar reasons.
+(** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variables internally to support flexible proof search.  While [eauto] and its relatives do _backward_ reasoning, we often want to do similar _forward_ reasoning, where unification variables can be useful for similar reasons.
 
    For example, we can write a tactic that instantiates the quantifiers of a universally quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
 

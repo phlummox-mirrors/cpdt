@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2011, Adam Chlipala
+(* Copyright (c) 2008-2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -29,7 +29,7 @@ The last chapter took a deep dive into some of the more advanced Coq features, t
 
 (** Mainstream presentations of mathematics treat proofs as objects that exist outside of the universe of mathematical objects.  However, for a variety of reasoning, it is convenient to encode proofs, traditional mathematical objects, and programs within a single formal language.  Validity checks on mathematical objects are useful in any setting, to catch typoes and other uninteresting errors.  The benefits of static typing for programs are widely recognized, and Coq brings those benefits to both mathematical objects and programs via a uniform mechanism.  In fact, from this point on, we will not bother to distinguish between programs and mathematical objects.  Many mathematical formalisms are most easily encoded in terms of programs.
 
-Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the %\index{Curry-Howard correspondence}\emph{%#<i>#Curry-Howard correspondence#</i>#%}~\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
+Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the %\index{Curry-Howard correspondence}%_Curry-Howard correspondence_ %\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
 
 The last chapter's example already snuck in an instance of Curry-Howard.  We used the token [->] to stand for both function types and logical implications.  One reasonable conclusion upon seeing this might be that some fancy overloading of notations is at work.  In fact, functions and implications are precisely identical according to Curry-Howard!  That is, they are just two ways of describing the same computational phenomenon.
 
@@ -65,11 +65,11 @@ Check (fun x : False => x).
 Check (fun x : False => match x with end : True).
 (** [: False -> True] *)
 
-(** Every one of these example programs whose type looks like a logical formula is a %\index{proof term}\emph{%#<i>#proof term#</i>#%}%.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
+(** Every one of these example programs whose type looks like a logical formula is a %\index{proof term}%_proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
 
 In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or %\index{proposition}%propositions (i.e., formulas or theorem statements).
 
-One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] %\emph{%#<i>#evaluates#</i>#%}% to either [true] or [false].  This means that we have an %\emph{%#<i>#algorithm#</i>#%}% for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like most any properties of general-purpose programs. *)
+One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] _evaluates_ to either [true] or [false].  This means that we have an _algorithm_ for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like most any properties of general-purpose programs. *)
 
 
 (** * Enumerations *)
@@ -118,7 +118,7 @@ Qed.
 
 %\noindent%...which corresponds to %``%#"#proof by case analysis#"#%''% in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
-What exactly %\textit{%#<i>#is#</i>#%}% the %\index{induction principles}%induction principle for [unit]?  We can ask Coq: *)
+What exactly _is_ the %\index{induction principles}%induction principle for [unit]?  We can ask Coq: *)
 
 Check unit_ind.
 (** [unit_ind : forall P : unit -> Prop, P tt -> forall u : unit, P u] *)
@@ -290,7 +290,7 @@ Theorem n_plus_O : forall n : nat, plus n O = n.
 (* begin thide *)
   induction n.
 
-(** Our first subgoal is [plus O O = O], which %\textit{%#<i>#is#</i>#%}% trivial by computation. *)
+(** Our first subgoal is [plus O O = O], which _is_ trivial by computation. *)
 
   reflexivity.
 
@@ -348,7 +348,7 @@ Qed.
 
 (** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
 
-There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\index{theory of equality and uninterpreted functions}\textit{%#<i>#complete decision procedure for the theory of equality and uninterpreted functions#</i>#%}%, plus some smarts about inductive types.
+There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\index{theory of equality and uninterpreted functions}%_complete decision procedure for the theory of equality and uninterpreted functions_, plus some smarts about inductive types.
 
 %\medskip%
 
@@ -470,7 +470,7 @@ Theorem length_app : forall T (ls1 ls2 : list T), length (app ls1 ls2)
 Qed.
 (* end thide *)
 
-(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\index{sections}\index{Vernacular commands!Section}\index{Vernacular commands!Variable}\textit{%#<i>#section#</i>#%}% mechanism.  The following block of code is equivalent to the above: *)
+(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\index{sections}\index{Vernacular commands!Section}\index{Vernacular commands!Variable}%_section_ mechanism.  The following block of code is equivalent to the above: *)
 
 (* begin hide *)
 Reset list.
@@ -644,14 +644,14 @@ Qed.
 
 (** * Reflexive Types *)
 
-(** A kind of inductive type called a %\textit{%#<i>#reflexive type#</i>#%}% is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  Our example will be an encoding of the syntax of first-order logic.  Since the idea of syntactic encodings of logic may require a bit of acclimation, let us first consider a simpler formula type for a subset of propositional logic. *)
+(** A kind of inductive type called a _reflexive type_ is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  Our example will be an encoding of the syntax of first-order logic.  Since the idea of syntactic encodings of logic may require a bit of acclimation, let us first consider a simpler formula type for a subset of propositional logic. *)
 
 Inductive pformula : Set :=
 | Truth : pformula
 | Falsehood : pformula
 | Conjunction : pformula -> pformula -> pformula.
 
-(** A key distinction here is between, for instance, the %\emph{%#<i>#syntax#</i>#%}% [Truth] and its %\emph{%#<i>#semantics#</i>#%}% [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
+(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
 
 Fixpoint pformulaDenote (f : pformula) : Prop :=
   match f with
@@ -712,13 +712,13 @@ Check formula_ind.
  
 ]]
 
-Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds %\textit{%#<i>#for any application of the argument function [f1]#</i>#%}%.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
+Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds _for any application of the argument function [f1]_.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
 
 %\medskip%
 
 Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in %\index{Haskell}%Haskell and %\index{ML}%ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
 
-Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called %\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}\textit{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}~\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
+Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called %\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}%_higher-order abstract syntax (HOAS)_ %\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
 (** [[
 Inductive term : Set :=
 | App : term -> term -> term
@@ -729,7 +729,7 @@ Inductive term : Set :=
 Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
 >>
 
-We have run afoul of the %\index{strict positivity requirement}\index{positivity requirement}\textit{%#<i>#strict positivity requirement#</i>#%}% for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.  Our candidate definition above violates the positivity requirement because it involves an argument of type [term -> term], where the type [term] that we are defining appears to the left of an arrow.  The candidate type of [App] is fine, however, since every occurrence of [term] is either a constructor argument or the final result type.
+We have run afoul of the %\index{strict positivity requirement}\index{positivity requirement}%_strict positivity requirement_ for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.  Our candidate definition above violates the positivity requirement because it involves an argument of type [term -> term], where the type [term] that we are defining appears to the left of an arrow.  The candidate type of [App] is fine, however, since every occurrence of [term] is either a constructor argument or the final result type.
 
 Why must Coq enforce this restriction?  Imagine that our last definition had been accepted, allowing us to write this function:
 
@@ -812,7 +812,7 @@ Print unit_rect.
  
 ]]
 
-The only new wrinkle here is the annotations on the [match] expression.  This is a %\index{dependent pattern matching}\emph{%#<i>#dependently typed#</i>#%}% pattern match, because the %\emph{%#<i>#type#</i>#%}% of the expression depends on the %\emph{%#<i>#value#</i>#%}% being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
+The only new wrinkle here is the annotations on the [match] expression.  This is a %\index{dependent pattern matching}%_dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
 
 %\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [unit_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
 
@@ -957,7 +957,7 @@ Inductive nat_tree : Set :=
 | NLeaf' : nat_tree
 | NNode' : nat -> list nat_tree -> nat_tree.
 
-(** This is an example of a %\index{nested inductive type}\textit{%#<i>#nested#</i>#%}% inductive type definition, because we use the type we are defining as an argument to a parametrized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
+(** This is an example of a %\index{nested inductive type}%_nested_ inductive type definition, because we use the type we are defining as an argument to a parametrized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
 
 Like we encountered for mutual inductive types, we find that the automatically generated induction principle for [nat_tree] is too weak. *)
 
@@ -1070,7 +1070,7 @@ Section nat_tree_ind'.
           end) ls)
     end.
 
-  (** We include an anonymous [fix] version of [list_nat_tree_ind] that is literally %\textit{%#<i>#nested#</i>#%}% inside the definition of the recursive function corresponding to the inductive definition that had the nested use of [list].   *)
+  (** We include an anonymous [fix] version of [list_nat_tree_ind] that is literally _nested_ inside the definition of the recursive function corresponding to the inductive definition that had the nested use of [list].   *)
 
 End nat_tree_ind'.
 
