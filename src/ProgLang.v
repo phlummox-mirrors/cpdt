@@ -82,7 +82,7 @@ Fixpoint typeDenote (t : type) : Type :=
 
 (** * Dependent de Bruijn Indices *)
 
-(** The first encoding is one we met first in Chapter 9, the %\emph{%#<i>#dependent de Bruijn index#</i>#%}% encoding.  We represent program syntax terms in a type familiy parametrized by a list of types, representing the %\emph{%#<i>#typing context#</i>#%}%, or information on which free variables are in scope and what their types are.  Variables are represented in a way isomorphic to the natural numbers, where number 0 represents the first element in the context, number 1 the second element, and so on.  Actually, instead of numbers, we use the [member] dependent type family from Chapter 9. *)
+(** The first encoding is one we met first in Chapter 9, the _dependent de Bruijn index_ encoding.  We represent program syntax terms in a type familiy parametrized by a list of types, representing the _typing context_, or information on which free variables are in scope and what their types are.  Variables are represented in a way isomorphic to the natural numbers, where number 0 represents the first element in the context, number 1 the second element, and so on.  Actually, instead of numbers, we use the [member] dependent type family from Chapter 9. *)
 
 Module FirstOrder.
 
@@ -124,7 +124,7 @@ Module FirstOrder.
       | Let _ _ _ e1 e2 => fun s => termDenote e2 (termDenote e1 s ::: s)
     end.
 
-  (** With this term representation, some program transformations are easy to implement and prove correct.  Certainly we would be worried if this were not the the case for the %\emph{%#<i>#identity#</i>#%}% transformation, which takes a term apart and reassembles it. *)
+  (** With this term representation, some program transformations are easy to implement and prove correct.  Certainly we would be worried if this were not the the case for the _identity_ transformation, which takes a term apart and reassembles it. *)
 
   Fixpoint ident G t (e : term G t) : term G t :=
     match e with
@@ -144,17 +144,27 @@ Module FirstOrder.
     induction e; t.
   Qed.
 
-  (** A slightly more ambitious transformation belongs to the family of %\emph{%#<i>#constant folding#</i>#%}% optimizations we have used as examples in other chapters. *)
+  (** A slightly more ambitious transformation belongs to the family of _constant folding_ optimizations we have used as examples in other chapters. *)
+
+  Axiom admit : forall T, T.
 
   Fixpoint cfold G t (e : term G t) : term G t :=
     match e with
       | Plus G e1 e2 =>
         let e1' := cfold e1 in
         let e2' := cfold e2 in
-          match e1', e2' return _ with
-            | Const _ n1, Const _ n2 => Const (n1 + n2)
-            | _, _ => Plus e1' e2'
-          end
+        let maybeOpt := match e1' return _ with
+                          | Const _ n1 =>
+                            match e2' return _ with
+                              | Const _ n2 => Some (Const (n1 + n2))
+                              | _ => None
+                            end
+                          | _ => None
+                        end in
+        match maybeOpt with
+          | None => Plus e1' e2'
+          | Some e' => e'
+        end
 
       | Abs _ _ _ e1 => Abs (cfold e1)
       | App _ _ _ e1 e2 => App (cfold e1) (cfold e2)
@@ -178,9 +188,9 @@ Module FirstOrder.
               end; t).
   Qed.
 
-  (** The transformations we have tried so far have been straightforward because they do not have interesting effects on the variable binding structure of terms.  The dependent de Bruijn representation is called %\index{first-order syntax}\emph{%#<i>#first-order#</i>#%}% because it encodes variable identity explicitly; all such representations incur bookkeeping overheads in transformations that rearrange binding structure.
+  (** The transformations we have tried so far have been straightforward because they do not have interesting effects on the variable binding structure of terms.  The dependent de Bruijn representation is called %\index{first-order syntax}%_first-order_ because it encodes variable identity explicitly; all such representations incur bookkeeping overheads in transformations that rearrange binding structure.
 
-     As an example of a tricky transformation, consider one that removes all uses of %``%#"#[let x = e1 in e2]#"#%''% by substituting [e1] for [x] in [e2].  We will implement the translation by pairing the %``%#"#compile-time#"#%''% typing environment with a %``%#"#run-time#"#%''% value environment or %\emph{%#<i>#substitution#</i>#%}%, mapping each variable to a value to be substituted for it.  Such a substitute term may be placed within a program in a position with a larger typing environment than applied at the point where the substitute term was chosen.  To support such context transplantation, we need %\emph{%#<i>#lifting#</i>#%}%, a standard de Bruijn indices operation.  With dependent typing, lifting corresponds to weakening for typing judgments.
+     As an example of a tricky transformation, consider one that removes all uses of %``%#"#[let x = e1 in e2]#"#%''% by substituting [e1] for [x] in [e2].  We will implement the translation by pairing the %``%#"#compile-time#"#%''% typing environment with a %``%#"#run-time#"#%''% value environment or _substitution_, mapping each variable to a value to be substituted for it.  Such a substitute term may be placed within a program in a position with a larger typing environment than applied at the point where the substitute term was chosen.  To support such context transplantation, we need _lifting_, a standard de Bruijn indices operation.  With dependent typing, lifting corresponds to weakening for typing judgments.
 
      The fundamental goal of lifting is to add a new variable to a typing context, maintaining the validity of a term in the expanded context.  To express the operation of adding a type to a context, we use a helper function [insertAt]. *)
 
@@ -222,7 +232,7 @@ Module FirstOrder.
       | Let _ _ _ e1 e2 => Let (lift' t' n e1) (lift' t' (S n) e2)
     end.
 
-  (** In the [Let] removal transformation, we only need to apply lifting to add a new variable at the %\emph{%#<i>#beginning#</i>#%}% of a typing context, so we package lifting into this final, simplified form. *)
+  (** In the [Let] removal transformation, we only need to apply lifting to add a new variable at the _beginning_ of a typing context, so we package lifting into this final, simplified form. *)
 
   Definition lift G t' t (e : term G t) : term (t' :: G) t :=
     lift' t' O e.
@@ -308,11 +318,11 @@ End FirstOrder.
 
 (** * Parametric Higher-Order Abstract Syntax *)
 
-(** In contrast to first-order encodings, %\index{higher-order syntax}\emph{%#<i>#higher-order#</i>#%}% encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an %\index{object language}\emph{%#<i>#object language#</i>#%}% (the language being formalized) can be represented using the binding constructs of the %\index{meta language}\emph{%#<i>#meta language#</i>#%}% (the language in which the formalization is done).  The best known higher-order encoding is called %\index{higher-order abstract syntax}\index{HOAS}\emph{%#<i>#higher-order abstract syntax (HOAS)#</i>#%}~\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
+(** In contrast to first-order encodings, %\index{higher-order syntax}%_higher-order_ encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an %\index{object language}%_object language_ (the language being formalized) can be represented using the binding constructs of the %\index{meta language}%_meta language_ (the language in which the formalization is done).  The best known higher-order encoding is called %\index{higher-order abstract syntax}\index{HOAS}%_higher-order abstract syntax (HOAS)_ %\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
 
 Module HigherOrder.
 
-  (** With HOAS, each object language binding construct is represented with a %\emph{%#<i>#function#</i>#%}% of the meta language.  Here is what we get if we apply that idea within an inductive definition of term syntax. *)
+  (** With HOAS, each object language binding construct is represented with a _function_ of the meta language.  Here is what we get if we apply that idea within an inductive definition of term syntax. *)
 
 (** %\vspace{-.15in}%[[
   Inductive term : type -> Type :=
@@ -327,7 +337,7 @@ Module HigherOrder.
 
    However, Coq rejects this definition for failing to meet the %\index{strict positivity restriction}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
 
-   An alternate higher-order encoding is %\index{parametric higher-order abstract syntax}\index{PHOAS}\emph{%#<i>#parametric HOAS#</i>#%}%, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a %\emph{%#<i>#representation of variables#</i>#%}%. *)
+   An alternate higher-order encoding is %\index{parametric higher-order abstract syntax}\index{PHOAS}%_parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a _representation of variables_. *)
 
   Section var.
     Variable var : type -> Type.
@@ -348,13 +358,13 @@ Module HigherOrder.
   Implicit Arguments Const [var].
   Implicit Arguments Abs [var dom ran].
 
-  (** Coq accepts this definition because our embedded functions now merely take %\emph{%#<i>#variables#</i>#%}% as arguments, instead of arbitrary terms.  One might wonder whether there is an easy loophole to exploit here, instantiating the parameter [var] as [term] itself.  However, to do that, we would need to choose a variable representation for this nested mention of [term], and so on through an infinite descent into [term] arguments.
+  (** Coq accepts this definition because our embedded functions now merely take _variables_ as arguments, instead of arbitrary terms.  One might wonder whether there is an easy loophole to exploit here, instantiating the parameter [var] as [term] itself.  However, to do that, we would need to choose a variable representation for this nested mention of [term], and so on through an infinite descent into [term] arguments.
 
   We write the final type of a closed term using polymorphic quantification over all possible choices of [var] type family. *)
 
   Definition Term t := forall var, term var t.
 
-  (** Here are the new representations of the example terms from the last section.  Note how each is written as a function over a [var] choice, such that the specific choice has no impact on the %\emph{%#<i>#structure#</i>#%}% of the term. *)
+  (** Here are the new representations of the example terms from the last section.  Note how each is written as a function over a [var] choice, such that the specific choice has no impact on the _structure_ of the term. *)
 
   Example add : Term (Func Nat (Func Nat Nat)) := fun var =>
     Abs (fun x => Abs (fun y => Plus (Var x) (Var y))).
@@ -362,7 +372,7 @@ Module HigherOrder.
   Example three_the_hard_way : Term Nat := fun var =>
     App (App (add var) (Const 1)) (Const 2).
 
-  (** The argument [var] does not even appear in the function body for [add].  How can that be?  By giving our terms expressive types, we allow Coq to infer many arguments for us.  In fact, we do not even need to name the [var] argument!  Even though these formal parameters appear as underscores, they %\emph{%#<i>#are#</i>#%}% mentioned in the function bodies that type inference calculates. *)
+  (** The argument [var] does not even appear in the function body for [add].  How can that be?  By giving our terms expressive types, we allow Coq to infer many arguments for us.  In fact, we do not even need to name the [var] argument!  Even though these formal parameters appear as underscores, they _are_ mentioned in the function bodies that type inference calculates. *)
 
   Example add' : Term (Func Nat (Func Nat Nat)) := fun _ =>
     Abs (fun x => Abs (fun y => Plus (Var x) (Var y))).
@@ -373,7 +383,7 @@ Module HigherOrder.
 
   (** ** Functional Programming with PHOAS *)
 
-  (** It may not be at all obvious that the PHOAS representation admits the crucial computable operations.  The key to effective deconstruction of PHOAS terms is one principle: treat the [var] parameter as an unconstrained choice of %\emph{%#<i>#which data should be annotated on each variable#</i>#%}%.  We will begin with a simple example, that of counting how many variable nodes appear in a PHOAS term.  This operation requires no data annotated on variables, so we simply annotate variables with [unit] values.  Note that, when we go under binders in the cases for [Abs] and [Let], we must provide the data value to annotate on the new variable we pass beneath.  For our current choice of [unit] data, we always pass [tt]. *)
+  (** It may not be at all obvious that the PHOAS representation admits the crucial computable operations.  The key to effective deconstruction of PHOAS terms is one principle: treat the [var] parameter as an unconstrained choice of _which data should be annotated on each variable_.  We will begin with a simple example, that of counting how many variable nodes appear in a PHOAS term.  This operation requires no data annotated on variables, so we simply annotate variables with [unit] values.  Note that, when we go under binders in the cases for [Abs] and [Let], we must provide the data value to annotate on the new variable we pass beneath.  For our current choice of [unit] data, we always pass [tt]. *)
 
   Fixpoint countVars t (e : term (fun _ => unit) t) : nat :=
     match e with
@@ -427,7 +437,7 @@ Module HigherOrder.
      ]]
      *)
 
-  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of one term in another.  The key insight here is to %\emph{%#<i>#tag variables with terms#</i>#%}%, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parametrized over a specific [var] choice. *)
+  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of one term in another.  The key insight here is to _tag variables with terms_, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parametrized over a specific [var] choice. *)
 
   Fixpoint squash var t (e : term (term var) t) : term var t :=
     match e with
@@ -463,7 +473,7 @@ Module HigherOrder.
                (Const 1)) (Const 2)) (Const 3)
      ]]
 
-     One further development, which may seem surprising at first, is that we can also implement a usual term denotation function, when we %\emph{%#<i>#tag variables with their denotations#</i>#%}%. *)
+     One further development, which may seem surprising at first, is that we can also implement a usual term denotation function, when we _tag variables with their denotations_. *)
 
   Fixpoint termDenote t (e : term typeDenote t) : typeDenote t :=
     match e with
@@ -694,11 +704,11 @@ Module HigherOrder.
   
   (** ** Establishing Term Well-Formedness *)
 
-  (** Can there be values of type [Term t] that are not well-formed according to [Wf]?  We expect that Gallina satisfies key %\index{parametricity}\emph{%#<i>#parametricity#</i>#%}~\cite{parametricity}% properties, which indicate how polymorphic types may only be inhabited by specific values.  We omit details of parametricity theorems here, but [forall t (E : Term t), Wf E] follows the flavor of such theorems.  One option would be to assert that fact as an axiom, %``%#"#proving#"#%''% that any output of any of our translations is well-formed.  We could even prove the soundness of the theorem on paper meta-theoretically, say by considering some particular model of CIC.
+  (** Can there be values of type [Term t] that are not well-formed according to [Wf]?  We expect that Gallina satisfies key %\index{parametricity}%_parametricity_ %\cite{parametricity}% properties, which indicate how polymorphic types may only be inhabited by specific values.  We omit details of parametricity theorems here, but [forall t (E : Term t), Wf E] follows the flavor of such theorems.  One option would be to assert that fact as an axiom, %``%#"#proving#"#%''% that any output of any of our translations is well-formed.  We could even prove the soundness of the theorem on paper meta-theoretically, say by considering some particular model of CIC.
 
      To be more cautious, we could prove [Wf] for every term that interests us, threading such proofs through all transformations.  Here is an example exercise of that kind, for [Unlet].
 
-     First, we prove that [wf] is %\emph{%#<i>#monotone#</i>#%}%, in that a given instance continues to hold as we add new variable pairs to the variable isomorphism. *)
+     First, we prove that [wf] is _monotone_, in that a given instance continues to hold as we add new variable pairs to the variable isomorphism. *)
 
   Hint Constructors wf.
   Hint Extern 1 (In _ _) => simpl; tauto.

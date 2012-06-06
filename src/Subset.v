@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 \chapter{Subset Types and Variations}% *)
 
-(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\index{dependent types}\textit{%#<i>#dependent types#</i>#%}% to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
+(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\index{dependent types}%_dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
 
 
 (** * Introducing Subset Types *)
@@ -69,9 +69,9 @@ Definition pred_strong1 (n : nat) : n > 0 -> nat :=
     | S n' => fun _ => n'
   end.
 
-(** We expand the type of [pred] to include a %\textit{%#<i>#proof#</i>#%}% that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a %\textit{%#<i>#dependent#</i>#%}% type, because its type depends on the %\textit{%#<i>#value#</i>#%}% of the argument [n].
+(** We expand the type of [pred] to include a _proof_ that its argument [n] is greater than 0.  When [n] is 0, we use the proof to derive a contradiction, which we can use to build a value of any type via a vacuous pattern match.  When [n] is a successor, we have no need for the proof and just return the answer.  The proof argument can be said to have a _dependent_ type, because its type depends on the _value_ of the argument [n].
 
-   Coq's [Eval] command can execute particular invocations of [pred_strong1] just as easily as it can execute more traditional functional programs.  Note that Coq has decided that argument [n] of [pred_strong1] can be made %\textit{%#<i>#implicit#</i>#%}%, since it can be deduced from the type of the second argument, so we need not write [n] in function calls. *)
+   Coq's [Eval] command can execute particular invocations of [pred_strong1] just as easily as it can execute more traditional functional programs.  Note that Coq has decided that argument [n] of [pred_strong1] can be made _implicit_, since it can be deduced from the type of the second argument, so we need not write [n] in function calls. *)
 
 Theorem two_gt0 : 2 > 0.
   crush.
@@ -104,7 +104,7 @@ The term "pf" has type "n > 0" while it is expected to have type
 
 The term [zgtz pf] fails to type-check.  Somehow the type checker has failed to take into account information that follows from which [match] branch that term appears in.  The problem is that, by default, [match] does not let us use such implied information.  To get refined typing, we must always rely on [match] annotations, either written explicitly or inferred.
 
-In this case, we must use a [return] annotation to declare the relationship between the %\textit{%#<i>#value#</i>#%}% of the [match] discriminee and the %\textit{%#<i>#type#</i>#%}% of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship.
+In this case, we must use a [return] annotation to declare the relationship between the _value_ of the [match] discriminee and the _type_ of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship.
 
 We are lucky that Coq's heuristics infer the [return] clause (specifically, [return n > 0 -> nat]) for us in this case. *)
 
@@ -114,7 +114,7 @@ Definition pred_strong1' (n : nat) : n > 0 -> nat :=
     | S n' => fun _ => n'
   end.
 
-(** By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of %\index{higher-order unification}\textit{%#<i>#higher-order unification#</i>#%}~\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
+(** By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of %\index{higher-order unification}%_higher-order unification_ %\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
 
 Let us now take a look at the OCaml code Coq generates for [pred_strong1]. *)
 
@@ -138,7 +138,7 @@ let pred_strong1 = function
 
 (** The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: program components of type [Prop] are erased systematically.
 
-We can reimplement our dependently typed [pred] based on %\index{subset types}\textit{%#<i>#subset types#</i>#%}%, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
+We can reimplement our dependently typed [pred] based on %\index{subset types}%_subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
 
 Print sig.
 (** %\vspace{-.15in}% [[
@@ -268,7 +268,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
 (* end thide *)
 Defined.
 
-(** We end the %``%#"#proof#"#%''% with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as %\index{transparent}\emph{%#<i>#transparent#</i>#%}%, allowing it to be unfolded; while [Qed] marks an identifier as %\index{opaque}\emph{%#<i>#opaque#</i>#%}%, preventing unfolding.)  Let us see what our proof script constructed. *)
+(** We end the %``%#"#proof#"#%''% with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as %\index{transparent}%_transparent_, allowing it to be unfolded; while [Qed] marks an identifier as %\index{opaque}%_opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
 
 Print pred_strong4.
 (** %\vspace{-.15in}% [[
@@ -636,7 +636,7 @@ Notation "x <- e1 ; e2" := (match e1 with
                            end)
 (right associativity, at level 60).
 
-(** The meaning of [x <- e1; e2] is: First run [e1].  If it fails to find an answer, then announce failure for our derived computation, too.  If [e1] %\textit{%#<i>#does#</i>#%}% find an answer, pass that answer on to [e2] to find the final result.  The variable [x] can be considered bound in [e2].
+(** The meaning of [x <- e1; e2] is: First run [e1].  If it fails to find an answer, then announce failure for our derived computation, too.  If [e1] _does_ find an answer, pass that answer on to [e2] to find the final result.  The variable [x] can be considered bound in [e2].
 
    This notation is very helpful for composing richly typed procedures.  For instance, here is a very simple implementation of a function to take the predecessors of two naturals at once. *)
 

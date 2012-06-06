@@ -36,7 +36,7 @@ Section ilist.
 
 (** We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.
 
-   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\index{phase distinction}\textit{%#<i>#phase distinction#</i>#%}% that characterizes [ilist] as %\textit{%#<i>#dependently typed#</i>#%}%.
+   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\index{phase distinction}%_phase distinction_ that characterizes [ilist] as _dependently typed_.
 
    In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
 
@@ -56,11 +56,11 @@ Section ilist.
     end.
 (* end thide *)
 
-(** Using [return] alone allowed us to express a dependency of the [match] result type on the %\textit{%#<i>#value#</i>#%}% of the discriminee.  What %\index{Gallina terms!in}%[in] adds to our arsenal is a way of expressing a dependency on the %\textit{%#<i>#type#</i>#%}% of the discriminee.  Specifically, the [n1] in the [in] clause above is a %\textit{%#<i>#binding occurrence#</i>#%}% whose scope is the [return] clause.
+(** Using [return] alone allowed us to express a dependency of the [match] result type on the _value_ of the discriminee.  What %\index{Gallina terms!in}%[in] adds to our arsenal is a way of expressing a dependency on the _type_ of the discriminee.  Specifically, the [n1] in the [in] clause above is a _binding occurrence_ whose scope is the [return] clause.
 
-We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for %\textit{%#<i>#parameters#</i>#%}% to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
+We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called %\index{stratified type systems}\textit{%#<i>#stratified#</i>#%}% type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called %\index{stratified type systems}%_stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -110,7 +110,7 @@ Definition hd n (ls : ilist (S n)) : A :=
 Error: Non exhaustive pattern-matching: no clause found for pattern Nil
 >>
 
-Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  In fact, recent versions of Coq %\textit{%#<i>#do#</i>#%}% allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
+Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
@@ -123,7 +123,7 @@ Definition hd n (ls : ilist (S n)) : A :=
 Error: The reference n was not found in the current environment
 >>
 
-In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification%~\cite{HOU}%, which is undecidable.  There %\textit{%#<i>#are#</i>#%}% useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
+In this and other cases, we feel like we want [in] clauses with type family arguments that are not variables.  Unfortunately, Coq only supports variables in those positions.  A completely general mechanism could only be supported with a solution to the problem of higher-order unification%~\cite{HOU}%, which is undecidable.  There _are_ useful heuristics for handling non-variable indices which are gradually making their way into Coq, but we will spend some time in this and the next few chapters on effective pattern matching on dependent types using only the primitive [match] annotations.
 
 Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
 
@@ -155,11 +155,11 @@ End ilist.
 
 (** * The One Rule of Dependent Pattern Matching in Coq *)
 
-(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on %\index{dependent pattern matching}\emph{%#<i>#dependent pattern matching#</i>#%}% of the kind we met in the previous section.
+(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on %\index{dependent pattern matching}%_dependent pattern matching_ of the kind we met in the previous section.
 
-A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the %\index{discriminee}\emph{%#<i>#discriminee#</i>#%}%, the value being matched on.  In other words, the [match] type %\emph{%#<i>#depends#</i>#%}% on the discriminee.
+A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the %\index{discriminee}%_discriminee_, the value being matched on.  In other words, the [match] type _depends_ on the discriminee.
 
-When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on %\emph{%#<i>#invalid#</i>#%}% programs is easier to understand!
+When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on _invalid_ programs is easier to understand!
 
 We come now to the one rule of dependent pattern matching in Coq.  A general dependent pattern match assumes this form (with unnecessary parentheses included to make the syntax easier to parse):
 [[
@@ -179,12 +179,12 @@ The last piece of the typing rule tells how to type-check a [match] case.  A gen
 
 This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses.
 
-A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both %\index{parameters}\emph{%#<i>#parameters#</i>#%}% and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
+A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both %\index{parameters}%_parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
 
 
 (** * A Tagless Interpreter *)
 
-(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\index{tagless interpreters}\textit{%#<i>#tagless#</i>#%}% interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
+(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\index{tagless interpreters}%_tagless_ interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
 
 Inductive type : Set :=
 | Nat : type
@@ -206,7 +206,7 @@ Inductive exp : type -> Set :=
 
 (** We have a standard algebraic datatype [type], defining a type language of naturals, booleans, and product (pair) types.  Then we have the indexed inductive type [exp], where the argument to [exp] tells us the encoded type of an expression.  In effect, we are defining the typing rules for expressions simultaneously with the syntax.
 
-   We can give types and expressions semantics in a new style, based critically on the chance for %\textit{%#<i>#type-level computation#</i>#%}%. *)
+   We can give types and expressions semantics in a new style, based critically on the chance for _type-level computation_. *)
 
 Fixpoint typeDenote (t : type) : Set :=
   match t with
@@ -215,7 +215,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => typeDenote t1 * typeDenote t2
   end%type.
 
-(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%][type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token [type] is one example of an identifer bound to a %\textit{%#<i>#notation scope#</i>#%}%.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
+(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%][type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token [type] is one example of an identifer bound to a _notation scope_.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
@@ -473,7 +473,7 @@ Theorem depth_max : forall c n (t : rbtree c n), depth max t <= 2 * n + 1.
  
    ]]
 
-   We see that [IHt1] is %\textit{%#<i>#almost#</i>#%}% the fact we need, but it is not quite strong enough.  We will need to strengthen our induction hypothesis to get the proof to go through. *)
+   We see that [IHt1] is _almost_ the fact we need, but it is not quite strong enough.  We will need to strengthen our induction hypothesis to get the proof to go through. *)
 
 Abort.
 
@@ -573,9 +573,9 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
       end t2
   end.
 
-(** We apply a trick that I call the %\index{convoy pattern}\textit{%#<i>#convoy pattern#</i>#%}%.  Recall that [match] annotations only make it possible to describe a dependence of a [match] %\textit{%#<i>#result type#</i>#%}% on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
+(** We apply a trick that I call the %\index{convoy pattern}%_convoy pattern_.  Recall that [match] annotations only make it possible to describe a dependence of a [match] _result type_ on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
 
-   In particular, we can extend the [match] to return %\textit{%#<i>#functions over the free variables whose types we want to refine#</i>#%}%.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
+   In particular, we can extend the [match] to return _functions over the free variables whose types we want to refine_.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
 
    Here is the symmetric function [balance2], for cases where the possibly invalid tree appears on the right rather than on the left. *)
 
@@ -634,7 +634,7 @@ Section insert.
             end (ins b)
     end.
 
-  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisfies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on %\textit{%#<i>#the result of a recursive call#</i>#%}%, rather than just on that call's argument.
+  (** The one new trick is a variation of the convoy pattern.  In each of the last two pattern matches, we want to take advantage of the typing connection between the trees [a] and [b].  We might naively apply the convoy pattern directly on [a] in the first [match] and on [b] in the second.  This satisfies the type checker per se, but it does not satisfy the termination checker.  Inside each [match], we would be calling [ins] recursively on a locally bound variable.  The termination checker is not smart enough to trace the dataflow into that variable, so the checker does not know that this recursive argument is smaller than the original argument.  We make this fact clearer by applying the convoy pattern on _the result of a recursive call_, rather than just on that call's argument.
 
      Finally, we are in the home stretch of our effort to define [insert].  We just need a few more definitions of non-recursive functions.  First, we need to give the final characterization of [insert]'s return type.  Inserting into a red-rooted tree gives a black-rooted tree where black depth has increased, and inserting into a black-rooted tree gives a tree where black depth has stayed the same and where the root is an arbitrary color. *)
 
@@ -772,7 +772,7 @@ Section insert.
   End present.
 End insert.
 
-(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the %\textit{%#<i>#value#</i>#%}% of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the _value_ of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
 
 (* begin hide *)
 Recursive Extraction insert.
@@ -1237,7 +1237,7 @@ Eval hnf in matches a_b "aa".
 Eval hnf in matches a_b "b".
 (* end hide *)
 
-(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to %\index{head-normal form}\emph{%#<i>#head-normal form#</i>#%}%, where the datatype constructor used to build its value is known. *)
+(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to %\index{head-normal form}%_head-normal form_, where the datatype constructor used to build its value is known. *)
 
 Example a_star := Star (Char "a"%char).
 Eval hnf in matches a_star "".

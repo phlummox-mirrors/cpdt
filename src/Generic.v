@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2010, Adam Chlipala
+(* Copyright (c) 2008-2010, 2012, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -18,13 +18,13 @@ Set Implicit Arguments.
 
 (** %\chapter{Generic Programming}% *)
 
-(** %\index{generic programming}\textit{%#<i>#Generic programming#</i>#%}% makes it possible to write functions that operate over different types of data.  %\index{parametric polymorphism}%Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style %\index{module systems}%module systems%~\cite{modules}% and Haskell %\index{type classes}%type classes%~\cite{typeclasses}% are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a %\index{deriving clauses}%[deriving] clause%~\cite{deriving}%, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do %\index{datatype-generic programming}\emph{%#<i>#datatype-generic programming#</i>#%}% much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
+(** %\index{generic programming}%_Generic programming_ makes it possible to write functions that operate over different types of data.  %\index{parametric polymorphism}%Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style %\index{module systems}%module systems%~\cite{modules}% and Haskell %\index{type classes}%type classes%~\cite{typeclasses}% are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a %\index{deriving clauses}%[deriving] clause%~\cite{deriving}%, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do %\index{datatype-generic programming}%_datatype-generic programming_ much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
 
    Generic programming can often be very useful in Coq developments, so we devote this chapter to studying it.  In a proof assistant, there is the new possibility of generic proofs about generic programs, which we also devote some space to. *)
 
 (** * Reflecting Datatype Definitions *)
 
-(** The key to generic programming with dependent types is %\index{universe types}\textit{%#<i>#universe types#</i>#%}%.  This concept should not be confused with the idea of %\textit{%#<i>#universes#</i>#%}% from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide %\textit{%#<i>#syntactic representations#</i>#%}% of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we %\textit{%#<i>#can#</i>#%}% case analyze on reflected syntactic versions of those types.
+(** The key to generic programming with dependent types is %\index{universe types}%_universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reflected syntactic versions of those types.
 
    Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
@@ -69,7 +69,7 @@ End tree.
 (* begin thide *)
 Definition tree_dt (A : Type) : datatype := Con A 0 :: Con unit 2 :: nil.
 
-(** Each datatype representation stands for a family of inductive types.  For a specific real datatype and a reputed representation for it, it is useful to define a type of %\textit{%#<i>#evidence#</i>#%}% that the datatype is compatible with the encoding. *)
+(** Each datatype representation stands for a family of inductive types.  For a specific real datatype and a reputed representation for it, it is useful to define a type of _evidence_ that the datatype is compatible with the encoding. *)
 
 Section denote.
   Variable T : Type.
@@ -116,7 +116,7 @@ Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
 
 (* EX: Define a generic [size] function. *)
 
-(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a %\index{recursion schemes}\textit{%#<i>#recursion scheme#</i>#%}% for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
+(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a %\index{recursion schemes}%_recursion scheme_ for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
 
 (* begin thide *)
 Definition fixDenote (T : Type) (dt : datatype) :=

@@ -155,7 +155,7 @@ Restart.
 Qed.
 (* end thide *)
 
-(** The two key components of logic programming are %\index{backtracking}\emph{%#<i>#backtracking#</i>#%}% and %\index{unification}\emph{%#<i>#unification#</i>#%}%.  To see these techniques in action, consider this further silly example.  Here our candidate proof steps will be reflexivity and quantifier instantiation. *)
+(** The two key components of logic programming are %\index{backtracking}%_backtracking_ and %\index{unification}%_unification_.  To see these techniques in action, consider this further silly example.  Here our candidate proof steps will be reflexivity and quantifier instantiation. *)
 
 Example seven_minus_three : exists x, x + 3 = 7.
 (* begin thide *)
@@ -170,7 +170,7 @@ Example seven_minus_three : exists x, x + 3 = 7.
   Error: Impossible to unify "7" with "0 + 3".
 >>
 
-This seems to be a dead end.  Let us %\emph{%#<i>#backtrack#</i>#%}% to the point where we ran [apply] and make a better alternate choice.
+This seems to be a dead end.  Let us _backtrack_ to the point where we ran [apply] and make a better alternate choice.
 *)
 
 Restart.
@@ -185,7 +185,7 @@ Qed.
 
 Example seven_minus_three' : exists x, plusR x 3 7.
 (* begin thide *)
-(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder %\index{unification variable}\emph{%#<i>#unification variables#</i>#%}% standing in for those parameters we wish to postpone guessing. *)
+(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder %\index{unification variable}%_unification variables_ standing in for those parameters we wish to postpone guessing. *)
 
   eapply ex_intro.
 (** [[
@@ -380,7 +380,7 @@ Finished transaction in 2. secs (1.92012u,0.044003s)
   Abort.
 End slow.
 
-(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named %\index{hint databases}\emph{%#<i>#hint databases#</i>#%}% to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
+(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named %\index{hint databases}%_hint databases_ to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
 
 (* begin thide *)
 Hint Resolve eq_trans : slow.
@@ -413,7 +413,7 @@ Finished transaction in 0. secs (0.004001u,0.s)
 Qed.
 (* end thide *)
 
-(** When we %\emph{%#<i>#do#</i>#%}% need transitivity, we ask for it explicitly. *)
+(** When we _do_ need transitivity, we ask for it explicitly. *)
 
 Example needs_trans : forall x y, 1 + x = y
   -> y = 2
@@ -487,7 +487,7 @@ Existential 1 = ?20249 : [ |- nat]
 Existential 2 = ?20252 : [ |- nat]
 >>
 
-Coq complains that we finished the proof without determining the values of some unification variables created during proof search.  The error message may seem a bit silly, since %\emph{%#<i>#any#</i>#%}% value of type [nat] (for instance, 0) can be plugged in for either variable!  However, for more complex types, finding their inhabitants may be as complex as theorem-proving in general.
+Coq complains that we finished the proof without determining the values of some unification variables created during proof search.  The error message may seem a bit silly, since _any_ value of type [nat] (for instance, 0) can be plugged in for either variable!  However, for more complex types, finding their inhabitants may be as complex as theorem-proving in general.
 
 The %\index{Vernacular commands!Show Proof}%[Show Proof] command shows exactly which proof term [eauto] has found, with the undetermined unification variables appearing explicitly where they are used. *)
 
@@ -595,7 +595,7 @@ Qed.
 Print length_and_sum''.
 (* end hide *)
 
-(** We could continue through exercises of this kind, but even more interesting than finding lists automatically is finding %\emph{%#<i>#programs#</i>#%}% automatically. *)
+(** We could continue through exercises of this kind, but even more interesting than finding lists automatically is finding _programs_ automatically. *)
 
 
 (** * Synthesizing Programs *)
@@ -753,7 +753,7 @@ Qed.
 
 Hint Resolve plus_0 times_1.
 
-(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the %\emph{%#<i>#ring#</i>#%}% algebraic structure, so, since the naturals form a ring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
+(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the _ring_ algebraic structure, so, since the naturals form a ring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
 
 Require Import Arith Ring.
 
@@ -781,7 +781,7 @@ Print linear.
 
 (** * More on [auto] Hints *)
 
-(** Let us stop at this point and take stock of the possibilities for [auto] and [eauto] hints.  Hints are contained within %\textit{%#<i>#hint databases#</i>#%}%, which we have seen extended in many examples so far.  When no hint database is specified, a default database is used.  Hints in the default database are always used by [auto] or [eauto].  The chance to extend hint databases imperatively is important, because, in Ltac programming, we cannot create %``%#"#global variables#"#%''% whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.  In fact, [crush] is defined in terms of [auto], which explains how we achieve this extensibility.  Other user-defined tactics can take similar advantage of [auto] and [eauto].
+(** Let us stop at this point and take stock of the possibilities for [auto] and [eauto] hints.  Hints are contained within _hint databases_, which we have seen extended in many examples so far.  When no hint database is specified, a default database is used.  Hints in the default database are always used by [auto] or [eauto].  The chance to extend hint databases imperatively is important, because, in Ltac programming, we cannot create %``%#"#global variables#"#%''% whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.  In fact, [crush] is defined in terms of [auto], which explains how we achieve this extensibility.  Other user-defined tactics can take similar advantage of [auto] and [eauto].
 
 The basic hints for [auto] and [eauto] are %\index{Vernacular commands!Hint Immediate}%[Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; %\index{Vernacular commands!Hint Resolve}%[Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; %\index{Vernacular commands!Hint Constructors}%[Constructors type], which acts like [Resolve] applied to every constructor of an inductive type; and %\index{Vernacular commands!Hint Unfold}%[Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
 
@@ -842,7 +842,7 @@ End forall_and.
 User error: Bound head variable
 >>
 
-   Coq's [auto] hint databases work as tables mapping %\index{head symbol}\textit{%#<i>#head symbols#</i>#%}% to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
+   Coq's [auto] hint databases work as tables mapping %\index{head symbol}%_head symbols_ to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
 
    Fortunately, a more basic form of [Hint Extern] also applies.  We may simply leave out the pattern to the left of the [=>], incorporating the corresponding logic into the Ltac script. *)
 
@@ -851,7 +851,7 @@ Hint Extern 1 =>
     | [ H : forall x, ?P x /\ _ |- ?P ?X ] => apply (proj1 (H X))
   end.
 
-(** Be forewarned that a [Hint Extern] of this kind will be applied at %\emph{%#<i>#every#</i>#%}% node of a proof tree, so an expensive Ltac script may slow proof search significantly. *)
+(** Be forewarned that a [Hint Extern] of this kind will be applied at _every_ node of a proof tree, so an expensive Ltac script may slow proof search significantly. *)
 
 
 (** * Rewrite Hints *)
