@@ -36,7 +36,7 @@ Section ilist.
 
 (** We see that, within its section, [ilist] is given type [nat -> Set].  Previously, every inductive type we have seen has either had plain [Set] as its type or has been a predicate with some type ending in [Prop].  The full generality of inductive definitions lets us integrate the expressivity of predicates directly into our normal programming.
 
-   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the %\index{phase distinction}%_phase distinction_ that characterizes [ilist] as _dependently typed_.
+   The [nat] argument to [ilist] tells us the length of the list.  The types of [ilist]'s constructors tell us that a [Nil] list has length [O] and that a [Cons] list has length one greater than the length of its tail.  We may apply [ilist] to any natural number, even natural numbers that are only known at runtime.  It is this breaking of the%\index{phase distinction}% _phase distinction_ that characterizes [ilist] as _dependently typed_.
 
    In expositions of list types, we usually see the length function defined first, but here that would not be a very productive function to code.  Instead, let us implement list concatenation. *)
 
@@ -60,7 +60,7 @@ Section ilist.
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called %\index{stratified type systems}%_stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -155,9 +155,9 @@ End ilist.
 
 (** * The One Rule of Dependent Pattern Matching in Coq *)
 
-(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on %\index{dependent pattern matching}%_dependent pattern matching_ of the kind we met in the previous section.
+(** The rest of this chapter will demonstrate a few other elegant applications of dependent types in Coq.  Readers encountering such ideas for the first time often feel overwhelmed, concluding that there is some magic at work whereby Coq sometimes solves the halting problem for the programmer and sometimes does not, applying automated program understanding in a way far beyond what is found in conventional languages.  The point of this section is to cut off that sort of thinking right now!  Dependent type-checking in Coq follows just a few algorithmic rules.  Chapters 10 and 12 introduce many of those rules more formally, and the main additional rule is centered on%\index{dependent pattern matching}% _dependent pattern matching_ of the kind we met in the previous section.
 
-A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the %\index{discriminee}%_discriminee_, the value being matched on.  In other words, the [match] type _depends_ on the discriminee.
+A dependent pattern match is a [match] expression where the type of the overall [match] is a function of the value and/or the type of the%\index{discriminee}% _discriminee_, the value being matched on.  In other words, the [match] type _depends_ on the discriminee.
 
 When exactly will Coq accept a dependent pattern match as well-typed?  Some other dependently typed languages employ fancy decision procedures to determine when programs satisfy their very expressive types.  The situation in Coq is just the opposite.  Only very straightforward symbolic rules are applied.  Such a design choice has its drawbacks, as it forces programmers to do more work to convince the type checker of program validity.  However, the great advantage of a simple type checking algorithm is that its action on _invalid_ programs is easier to understand!
 
@@ -179,12 +179,12 @@ The last piece of the typing rule tells how to type-check a [match] case.  A gen
 
 This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses.
 
-A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both %\index{parameters}%_parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
+A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both%\index{parameters}% _parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
 
 
 (** * A Tagless Interpreter *)
 
-(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a %\index{tagless interpreters}%_tagless_ interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
+(** A favorite example for motivating the power of functional programming is implementation of a simple expression language interpreter.  In ML and Haskell, such interpreters are often implemented using an algebraic datatype of values, where at many points it is checked that a value was built with the right constructor of the value type.  With dependent types, we can implement a%\index{tagless interpreters}% _tagless_ interpreter that both removes this source of runtime inefficiency and gives us more confidence that our implementation is correct. *)
 
 Inductive type : Set :=
 | Nat : type
@@ -385,16 +385,13 @@ User error: e1 is used in hypothesis e
 
   (** This successfully breaks the subgoal into 5 new subgoals, one for each constructor of [exp] that could produce an [exp Nat].  Note that [dep_destruct] is successful in ruling out the other cases automatically, in effect automating some of the work that we have done manually in implementing functions like [hd] and [pairOut].
 
-     This is the only new trick we need to learn to complete the proof.  We can back up and give a short, automated proof.  The main inconvenience in the proof is that we cannot write a pattern that matches a [match] without including a case for every constructor of the inductive type we match over. *)
+     This is the only new trick we need to learn to complete the proof.  We can back up and give a short, automated proof. *)
 
   Restart.
 
   induction e; crush;
     repeat (match goal with
-              | [ |- context[match cfold ?E with NConst _ => _ | Plus _ _ => _
-                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
-                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
-                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+              | [ |- context[match cfold ?E with NConst _ => _ | _ => _ end] ] =>
                 dep_destruct (cfold E)
               | [ |- context[match pairOut (cfold ?E) with Some _ => _
                                | None => _ end] ] =>
@@ -403,6 +400,8 @@ User error: e1 is used in hypothesis e
             end; crush).
 Qed.
 (* end thide *)
+
+(** With this example, we get a first taste of how to build automated proofs that adapt automatically to changes in function definitions. *)
 
 
 (** * Dependently Typed Red-Black Trees *)
@@ -573,7 +572,7 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
       end t2
   end.
 
-(** We apply a trick that I call the %\index{convoy pattern}%_convoy pattern_.  Recall that [match] annotations only make it possible to describe a dependence of a [match] _result type_ on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
+(** We apply a trick that I call the%\index{convoy pattern}% _convoy pattern_.  Recall that [match] annotations only make it possible to describe a dependence of a [match] _result type_ on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
 
    In particular, we can extend the [match] to return _functions over the free variables whose types we want to refine_.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
 
@@ -676,16 +675,8 @@ Section insert.
     Ltac present_balance :=
       crush;
       repeat (match goal with
-                | [ _ : context[match ?T with
-                                  | Leaf => _
-                                  | RedNode _ _ _ _ => _
-                                  | BlackNode _ _ _ _ _ _ => _
-                                end] |- _ ] => dep_destruct T
-                | [ |- context[match ?T with
-                                 | Leaf => _
-                                 | RedNode _ _ _ _ => _
-                                 | BlackNode _ _ _ _ _ _ => _
-                                 end] ] => dep_destruct T
+                | [ _ : context[match ?T with Leaf => _ | _ => _ end] |- _ ] => dep_destruct T
+                | [ |- context[match ?T with Leaf => _ | _ => _ end] ] => dep_destruct T
               end; crush).
 
     (** The balance correctness theorems are simple first-order logic equivalences, where we use the function [projT2] to project the payload of a [sigT] value. *)
@@ -711,8 +702,6 @@ Section insert.
       end.
 
     (** Now the statement and proof of the [ins] correctness theorem are straightforward, if verbose.  We proceed by induction on the structure of a tree, followed by finding case analysis opportunities on expressions we see being analyzed in [if] or [match] expressions.  After that, we pattern-match to find opportunities to use the theorems we proved about balancing.  Finally, we identify two variables that are asserted by some hypothesis to be equal, and we use that hypothesis to replace one variable with the other everywhere. *)
-
-(** printing * $*$ *)
 
     Theorem present_ins : forall c n (t : rbtree c n),
       present_insResult t (ins t).
@@ -748,8 +737,6 @@ Section insert.
           end;
           tauto.
     Qed.
-
-(** printing * $\times$ *)
 
     (** The hard work is done.  The most readable way to state correctness of [insert] involves splitting the property into two color-specific theorems.  We write a tactic to encapsulate the reasoning steps that work to establish both facts. *)
 
@@ -1237,7 +1224,7 @@ Eval hnf in matches a_b "aa".
 Eval hnf in matches a_b "b".
 (* end hide *)
 
-(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to %\index{head-normal form}%_head-normal form_, where the datatype constructor used to build its value is known. *)
+(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to%\index{head-normal form}% _head-normal form_, where the datatype constructor used to build its value is known. *)
 
 Example a_star := Star (Char "a"%char).
 Eval hnf in matches a_star "".
