@@ -15,12 +15,14 @@ Require Import CpdtTactics.
 Set Implicit Arguments.
 (* end hide *)
 
+(** printing <-- $\longleftarrow$ *)
+
 
 (** %\part{Programming with Dependent Types}
 
 \chapter{Subset Types and Variations}% *)
 
-(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of %\index{dependent types}%_dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
+(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of%\index{dependent types}% _dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
 
 
 (** * Introducing Subset Types *)
@@ -114,7 +116,7 @@ Definition pred_strong1' (n : nat) : n > 0 -> nat :=
     | S n' => fun _ => n'
   end.
 
-(** By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of %\index{higher-order unification}%_higher-order unification_ %\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
+(** By making explicit the functional relationship between value [n] and the result type of the [match], we guide Coq toward proper type checking.  The clause for this example follows by simple copying of the original annotation on the definition.  In general, however, the [match] annotation inference problem is undecidable.  The known undecidable problem of%\index{higher-order unification}% _higher-order unification_ %\cite{HOU}% reduces to the [match] type inference problem.  Over time, Coq is enhanced with more and more heuristics to get around this problem, but there must always exist [match]es whose types Coq cannot infer without annotations.
 
 Let us now take a look at the OCaml code Coq generates for [pred_strong1]. *)
 
@@ -138,7 +140,7 @@ let pred_strong1 = function
 
 (** The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: program components of type [Prop] are erased systematically.
 
-We can reimplement our dependently typed [pred] based on %\index{subset types}%_subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
+We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
 
 Print sig.
 (** %\vspace{-.15in}% [[
@@ -268,7 +270,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
 (* end thide *)
 Defined.
 
-(** We end the %``%#"#proof#"#%''% with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as %\index{transparent}%_transparent_, allowing it to be unfolded; while [Qed] marks an identifier as %\index{opaque}%_opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
+(** We end the %``%#"#proof#"#%''% with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as%\index{transparent}% _transparent_, allowing it to be unfolded; while [Qed] marks an identifier as%\index{opaque}% _opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
 
 Print pred_strong4.
 (** %\vspace{-.15in}% [[
@@ -545,7 +547,9 @@ let rec in_dec a_eq_dec x = function
       (match a_eq_dec x x' with
          | true -> true
          | false -> in_dec a_eq_dec x ls')
-</pre># *)
+</pre>#
+
+This is more or the less code for the corresponding function from the OCaml standard library. *)
 
 
 (** * Partial Subset Types *)
@@ -652,8 +656,6 @@ Defined.
 (* end thide *)
 
 (** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function.  %The operator rendered here as $\longleftarrow$ is noted in the source as a less-than character followed by two hyphens.% *)
-
-(** printing <-- $\longleftarrow$ *)
 
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
@@ -859,8 +861,6 @@ Lemma hasType_det : forall e t1,
 Qed.
 
 (** Now we can define the type-checker.  Its type expresses that it only fails on untypable expressions. *)
-
-(** printing <-- $\longleftarrow$ *)
 
 (* end thide *)
 Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
