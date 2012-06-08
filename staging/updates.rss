@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Preparing for final typesetting</title>
+        <pubDate>Fri, 8 Jun 2012 15:55:17 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>I'm getting ready for the final push to get the PDF rendering into shape to use as the final version of the book to deliver to MIT Press.  I plan to get some coqdoc issues fixed, and I've undone some hack-arounds that were meant to avoid a need for coqdoc changes, in addition to some general improvements to the markup.  I've also made some changes to take advantage of Coq 8.4 features.</description>
+</item>
+
+<item>
         <title>Some content finishing touches</title>
         <pubDate>Sun, 22 Apr 2012 16:26:07 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
