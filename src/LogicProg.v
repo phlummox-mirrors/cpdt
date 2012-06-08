@@ -143,7 +143,7 @@ Example five_plus_three : plusR 5 3 8.
 
   auto 6.
 
-(** Sometimes it is useful to see a description of the proof tree that [auto] finds, with the %\index{tactics!info}%[info] tactical. *)
+(** Sometimes it is useful to see a description of the proof tree that [auto] finds, with the %\index{tactics!info}%[info] tactical.  (This tactical is not available in Coq 8.4 as of this writing, but I hope it reappears soon.) *)
 
 Restart.
   info auto 6.
@@ -155,7 +155,7 @@ Restart.
 Qed.
 (* end thide *)
 
-(** The two key components of logic programming are %\index{backtracking}%_backtracking_ and %\index{unification}%_unification_.  To see these techniques in action, consider this further silly example.  Here our candidate proof steps will be reflexivity and quantifier instantiation. *)
+(** The two key components of logic programming are%\index{backtracking}% _backtracking_ and%\index{unification}% _unification_.  To see these techniques in action, consider this further silly example.  Here our candidate proof steps will be reflexivity and quantifier instantiation. *)
 
 Example seven_minus_three : exists x, x + 3 = 7.
 (* begin thide *)
@@ -185,7 +185,7 @@ Qed.
 
 Example seven_minus_three' : exists x, plusR x 3 7.
 (* begin thide *)
-(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder %\index{unification variable}%_unification variables_ standing in for those parameters we wish to postpone guessing. *)
+(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder%\index{unification variable}% _unification variables_ standing in for those parameters we wish to postpone guessing. *)
 
   eapply ex_intro.
 (** [[
@@ -380,7 +380,7 @@ Finished transaction in 2. secs (1.92012u,0.044003s)
   Abort.
 End slow.
 
-(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named %\index{hint databases}%_hint databases_ to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
+(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named%\index{hint databases}% _hint databases_ to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
 
 (* begin thide *)
 Hint Resolve eq_trans : slow.
@@ -791,7 +791,7 @@ Theorem bool_neq : true <> false.
 (* begin thide *)
   auto.
 
-  (** [crush] would have discharged this goal, but the default hint database for [auto] contains no hint that applies. *)
+  (** A call to [crush] would have discharged this goal, but the default hint database for [auto] contains no hint that applies. *)
 
 Abort.
 
@@ -804,7 +804,7 @@ Theorem bool_neq : true <> false.
 Qed.
 (* end thide *)
 
-(** [Extern] hints may be implemented with the full Ltac language.  This example shows a case where a hint uses a [match]. *)
+(** A [Hint Extern] may be implemented with the full Ltac language.  This example shows a case where a hint uses a [match]. *)
 
 Section forall_and.
   Variable A : Set.
@@ -842,7 +842,7 @@ End forall_and.
 User error: Bound head variable
 >>
 
-   Coq's [auto] hint databases work as tables mapping %\index{head symbol}%_head symbols_ to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
+   Coq's [auto] hint databases work as tables mapping%\index{head symbol}% _head symbols_ to lists of tactics to try.  Because of this, the constant head of an [Extern] pattern must be determinable statically.  In our first [Extern] hint, the head symbol was [not], since [x <> y] desugars to [not (eq x y)]; and, in the second example, the head symbol was [P].
 
    Fortunately, a more basic form of [Hint Extern] also applies.  We may simply leave out the pattern to the left of the [=>], incorporating the corresponding logic into the Ltac script. *)
 
@@ -948,11 +948,7 @@ subgoal 4 is:
     Qed.
   End garden_path.
 
-  (** remove printing * *)
-
   (** It can also be useful to apply the [autorewrite with db in *] form, which does rewriting in hypotheses, as well as in the conclusion. *)
-
-  (** printing * $*$ *)
 
   Lemma in_star : forall x y, f (f (f (f x))) = f (f y)
     -> f x = f (f (f y)).
