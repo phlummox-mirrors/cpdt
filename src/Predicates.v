@@ -34,19 +34,13 @@ Reset unit.
 
 (** The so-called %\index{Curry-Howard correspondence}``%#"#Curry-Howard correspondence#"#%''~\cite{Curry,Howard}% states a formal connection between functional programs and mathematical proofs.  In the last chapter, we snuck in a first introduction to this subject in Coq.  Witness the close similarity between the types [unit] and [True] from the standard library: *)
 
-(* begin hide *)
 Print unit.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#unit#</tt>#%}%[.] *)
 (** [[
   Inductive unit : Set :=  tt : unit
 ]]
 *)
 
-(* begin hide *)
 Print True.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#True#</tt>#%}%[.] *)
 (** [[
   Inductive True : Prop :=  I : True
   ]]
@@ -56,7 +50,7 @@ Print True.
 
 The type [unit] has one value, [tt].  The type [True] has one proof, [I].  Why distinguish between these two types?  Many people who have read about Curry-Howard in an abstract context and not put it to use in proof engineering answer that the two types in fact _should not_ be distinguished.  There is a certain aesthetic appeal to this point of view, but I want to argue that it is best to treat Curry-Howard very loosely in practical proving.  There are Coq-specific reasons for preferring the distinction, involving efficient compilation and avoidance of paradoxes in the presence of classical math, but I will argue that there is a more general principle that should lead us to avoid conflating programming and proving.
 
-The essence of the argument is roughly this: to an engineer, not all functions of type [A -> B] are created equal, but all proofs of a proposition [P -> Q] are.  This idea is known as %\index{proof irrelevance}%_proof irrelevance_, and its formalizations in logics prevent us from distinguishing between alternate proofs of the same proposition.  Proof irrelevance is compatible with, but not derivable in, Gallina.  Apart from this theoretical concern, I will argue that it is most effective to do engineering with Coq by employing different techniques for programs versus proofs.  Most of this book is organized around that distinction, describing how to program, by applying standard functional programming techniques in the presence of dependent types; and how to prove, by writing custom Ltac decision procedures.
+The essence of the argument is roughly this: to an engineer, not all functions of type [A -> B] are created equal, but all proofs of a proposition [P -> Q] are.  This idea is known as%\index{proof irrelevance}% _proof irrelevance_, and its formalizations in logics prevent us from distinguishing between alternate proofs of the same proposition.  Proof irrelevance is compatible with, but not derivable in, Gallina.  Apart from this theoretical concern, I will argue that it is most effective to do engineering with Coq by employing different techniques for programs versus proofs.  Most of this book is organized around that distinction, describing how to program, by applying standard functional programming techniques in the presence of dependent types; and how to prove, by writing custom Ltac decision procedures.
 
 With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus %``%#"#datatypes.#"#%''%  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
 
@@ -78,25 +72,18 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 (* end thide *)
   Qed.
 
-  (** We may always use the [apply] tactic to take a proof step based on applying a particular constructor of the inductive predicate that we are trying to establish.  Sometimes there is only one constructor that could possibly apply, in which case a shortcut is available: *)
+  (** We may always use the [apply] tactic to take a proof step based on applying a particular constructor of the inductive predicate that we are trying to establish.  Sometimes there is only one constructor that could possibly apply, in which case a shortcut is available:%\index{tactics!constructor}% *)
 
 (* begin thide *)
   Theorem obvious' : True.
-(* begin hide *)
     constructor.
-(* end hide *)
-(** %\hspace{.075in}\coqdockw{%#<tt>#constructor#</tt>#%}%.%\vspace{-.1in}% *)
-
   Qed.
 
 (* end thide *)
 
   (** There is also a predicate [False], which is the Curry-Howard mirror image of [Empty_set] from the last chapter. *)
 
-(* begin hide *)
   Print False.
-(* end hide *)
-  (** %\noindent%[Print] %\coqdocinductive{%#<tt>#False#</tt>#%}%[.] *)
   (** [[
   Inductive False : Prop :=
  
@@ -158,11 +145,8 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 
   (** We also have conjunction, which we introduced in the last chapter. *)
 
-(* begin hide *)
   Print and.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#and#</tt>#%}%[.]
-[[
+(** [[
     Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
  
   ]]
@@ -209,11 +193,8 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 
   (** Coq disjunction is called %\index{Gallina terms!or}%[or] and abbreviated with the infix operator [\/]. *)
 
-(* begin hide *)
   Print or.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#or#</tt>#%}%[.]
-[[
+(** [[
   Inductive or (A : Prop) (B : Prop) : Prop :=
     or_introl : A -> A \/ B | or_intror : B -> A \/ B
  
@@ -240,12 +221,9 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
  
  ]]
 
- We can see that, in the first subgoal, we want to prove the disjunction by proving its second disjunct.  The %\index{tactics!right}\coqdockw{%#<tt>#right#</tt>#%}% tactic telegraphs this intent. *)
+ We can see that, in the first subgoal, we want to prove the disjunction by proving its second disjunct.  The %\index{tactics!right}%[right] tactic telegraphs this intent. *)
 
-(* begin hide *)    
     right; assumption.
-(* end hide *)
-(** %\hspace{.075in}\coqdockw{%#<tt>#right#</tt>#%}%[; assumption.] *)
 
     (** The second subgoal has a symmetric proof.%\index{tactics!left}%
 
@@ -258,10 +236,7 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
    ]]
    *)
 
-(* begin hide *)
     left; assumption.
-(* end hide *)
-(** %\hspace{.075in}\coqdockw{%#<tt>#left#</tt>#%}%[; assumption.] *)
 
 (* end thide *)
   Qed.
@@ -320,7 +295,7 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
 (* end thide *)
   Qed.
 
-  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  %\index{tactics!intuition}%[intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
+  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  The tactic %\index{tactics!intuition}%[intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
 
   Theorem arith_comm : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
@@ -363,10 +338,7 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
   Theorem arith_comm' : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
     -> length (ls1 ++ ls2) = 6 \/ length ls1 = length ls2.
-(* begin hide *)
     Hint Rewrite app_length.
-(* end hide *)
-(** %\hspace{.075in}%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [app_length.] *)
 
     crush.
   Qed.
@@ -379,13 +351,13 @@ End Propositional.
 
 (** * What Does It Mean to Be Constructive? *)
 
-(** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  [bool] is a datatype whose two values are [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth?
+(** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  The datatype [bool] is built from two values [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth?
 
-The answer comes from the fact that Coq implements %\index{constructive logic}%_constructive_ or %\index{intuitionistic logic|see{constructive logic}}%_intuitionistic_ logic, in contrast to the %\index{classical logic}%_classical_ logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is %\index{decidability}%_decidable_, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like %``%#"#this particular Turing machine halts.#"#%''%
+The answer comes from the fact that Coq implements%\index{constructive logic}% _constructive_ or%\index{intuitionistic logic|see{constructive logic}}% _intuitionistic_ logic, in contrast to the%\index{classical logic}% _classical_ logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is%\index{decidability}% _decidable_, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like %``%#"#this particular Turing machine halts.#"#%''%
 
 Hence the distinction between [bool] and [Prop].  Programs of type [bool] are computational by construction; we can always run them to determine their results.  Many [Prop]s are undecidable, and so we can write more expressive formulas with [Prop]s than with [bool]s, but the inevitable consequence is that we cannot simply %``%#"#run a [Prop] to determine its truth.#"#%''%
 
-Constructive logic lets us define all of the logical connectives in an aesthetically appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called %\index{program extraction}%_program extraction_, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
+Constructive logic lets us define all of the logical connectives in an aesthetically appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called%\index{program extraction}% _program extraction_, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
 
 We will see more about Coq's program extraction facility in a later chapter.  However, I think it is worth interjecting another warning at this point, following up on the prior warning about taking the Curry-Howard correspondence too literally.  It is possible to write programs by theorem-proving methods in Coq, but hardly anyone does it.  It is almost always most useful to maintain the distinction between programs and proofs.  If you write a program by proving a theorem, you are likely to run into algorithmic inefficiencies that you introduced in your proof to make it easier to prove.  It is a shame to have to worry about such situations while proving tricky theorems, and it is a happy state of affairs that you almost certainly will not need to, with the ideal of extracting programs from proofs being confined mostly to theoretical studies. *)
 
@@ -396,11 +368,8 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
-(* begin hide *)
   Print ex.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#ex#</tt>#%}%[.]
-[[
+(** [[
   Inductive ex (A : Type) (P : A -> Prop) : Prop :=
     ex_intro : forall x : A, P x -> ex P
   
@@ -411,12 +380,9 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
   (** remove printing exists *)
-  (** We can start this proof with a tactic %\index{tactics!exists}\coqdockw{%exists%}%, which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text %``%#"#exists#"#%''% in formulas.) *)
+  (** We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text %``%#"#exists#"#%''% in formulas.) *)
 
-(* begin hide *)
   exists 1.
-(* end hide *)
-  (** %\coqdockw{%#<tt>#exists#</tt>#%}% [1.] *)
 
   (** The conclusion is replaced with a version using the existential witness that we announced.
 
@@ -484,25 +450,18 @@ Inductive isZero : nat -> Prop :=
 
 Theorem isZero_zero : isZero 0.
 (* begin thide *)
-(* begin hide *)
   constructor.
-(* end hide *)
-  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
-
 (* end thide *)
 Qed.
 
-(** We can call [isZero] a %\index{judgment}%_judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of %\index{natural deduction}%_natural deduction_, where we write a number of %\index{inference rules}%_inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
+(** We can call [isZero] a%\index{judgment}% _judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of%\index{natural deduction}% _natural deduction_, where we write a number of%\index{inference rules}% _inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
 
 The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names _before_ the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to use different arguments to the type for different constructors.
 
 For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
 
-(* begin hide *)
 Print eq.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#eq#</tt>#%}%[.]
-[[
+(** [[
   Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
  
   ]]
@@ -576,7 +535,7 @@ isZero_ind
  
    ]]
 
-   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (][S (][S (][S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
 
 
 (* begin hide *)
@@ -613,37 +572,26 @@ Inductive even : nat -> Prop :=
 | EvenO : even O
 | EvenSS : forall n, even n -> even (S (S n)).
 
-(** Think of [even] as another judgment defined by natural deduction rules.  [EvenO] is a rule with nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (][S (][S n))] below.
+(** Think of [even] as another judgment defined by natural deduction rules.  The rule [EvenO] has nothing above the line and [even O] below the line, and [EvenSS] is a rule with [even n] above the line and [even (S (S n))] below.
 
 The proof techniques of the last section are easily adapted. *)
 
 Theorem even_0 : even 0.
 (* begin thide *)
-(* begin hide *)
   constructor.
-(* end hide *)
-  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
-
 (* end thide *)
 Qed.
 
 Theorem even_4 : even 4.
 (* begin thide *)
-(* begin hide *)
   constructor; constructor; constructor.
-(* end hide *)
-  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[.]%\vspace{-.075in}% *)
-
 (* end thide *)
 Qed.
 
 (** It is not hard to see that sequences of constructor applications like the above can get tedious.  We can avoid them using Coq's hint facility, with a new [Hint] variant that asks to consider all constructors of an inductive type during proof search.  The tactic %\index{tactics!auto}%[auto] performs exhaustive proof search up to a fixed depth, considering only the proof steps we have registered as hints. *)
 
 (* begin thide *)
-(* begin hide *)
 Hint Constructors even.
-(* end hide *)
-(** %\noindent%[Hint] %\coqdockw{%#<tt>#Constructors#</tt>#%}% [even.] *)
 
 Theorem even_4' : even 4.
   auto.
@@ -722,12 +670,9 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
    ]]
    *)
 
-(* begin hide *)
   constructor.
-(* end hide *)
-  (** %\coqdockw{%#<tt>#constructor#</tt>#%}%[.]
 
-[[
+(** [[
   ============================
    even (n0 + m)
  
@@ -739,14 +684,11 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
   IHn : forall m : nat, even n -> even m -> even (n + m)
   ]]
 
-  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called %\index{rule induction}%_rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with %``%#"#normal#"#%''% induction is apparent.
+  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with %``%#"#normal#"#%''% induction is apparent.
 
   Recall that tactics like [induction] and [destruct] may be passed numbers to refer to unnamed lefthand sides of implications in the conclusion, where the argument [n] refers to the [n]th such hypothesis. *)
 
-(* begin hide *)
 Restart.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
   induction 1.
 (** [[
@@ -781,12 +723,9 @@ Restart.
 
    We simplify and apply a constructor, as in our last proof attempt. *)
 
-(* begin hide *)
   simpl; constructor.
-(* end hide *)
-  (** [simpl; ]%\coqdockw{%#<tt>#constructor#</tt>#%}%[.]
 
-[[
+(** [[
   ============================
    even (n + m)
  
@@ -798,10 +737,7 @@ Restart.
 
   (** In fact, [crush] can handle all of the details of the proof once we declare the induction strategy. *)
 
-(* begin hide *)
 Restart.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
   induction 1; crush.
 (* end thide *)
@@ -848,12 +784,9 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
 
   At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
 
-(* begin hide *)
   SearchRewrite (_ + S _).
-(* end hide *)
-(** %\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% [(_ + S _).]
 
-[[
+(** [[
   plus_n_Sm : forall n m : nat, S (n + m) = n + S m
      ]]
      *)
@@ -866,15 +799,9 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
 
   (** As usual, we can rewrite the proof to avoid referencing any locally generated names, which makes our proof script more readable and more robust to changes in the theorem statement.  We use the notation [<-] to request a hint that does right-to-left rewriting, just like we can with the [rewrite] tactic. *)
 
-(* begin hide *)
   Restart.
-(* end hide *)
-(** %\hspace{-.075in}\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
-(* begin hide *)
   Hint Rewrite <- plus_n_Sm.
-(* end hide *)
-(** %\hspace{-.075in}%[Hint] %\noindent\coqdockw{%#<tt>#Rewrite#</tt>#%}% [<- plus_n_sm.] *)
 
   induction 1; crush;
     match goal with
