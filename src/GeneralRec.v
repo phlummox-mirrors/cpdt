@@ -20,16 +20,16 @@ Set Implicit Arguments.
 
 (** Termination of all programs is a crucial property of Gallina.  Non-terminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions.
 
-   What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as %\index{primitive recursion}%_primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardness condition that guarantees productivity.
+   What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as%\index{primitive recursion}% _primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardness condition that guarantees productivity.
 
    Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs, without any up-front characterization of which inputs those may be.
 
-   Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of Chapter 5 demonstrated what is called a %\index{deep embedding}%_deep embedding_ of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a %\index{shallow embedding}%_shallow embedding_, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
+   Before proceeding, it is important to note that the problem here is not as fundamental as it may appear.  The final example of Chapter 5 demonstrated what is called a%\index{deep embedding}% _deep embedding_ of the syntax and semantics of a programming language.  That is, we gave a mathematical definition of a language of programs and their meanings.  This language clearly admitted non-termination, and we could think of writing all our sophisticated recursive functions with such explicit syntax types.  However, in doing so, we forfeit our chance to take advantage of Coq's very good built-in support for reasoning about Gallina programs.  We would rather use a%\index{shallow embedding}% _shallow embedding_, where we model informal constructs by encoding them as normal Gallina programs.  Each of the three techniques of this chapter follows that style. *)
 
 
 (** * Well-Founded Recursion *)
 
-(** The essence of terminating recursion is that there are no infinite chains of nested recursive calls.  This intuition is commonly mapped to the mathematical idea of a %\index{well-founded relation}%_well-founded relation_, and the associated standard technique in Coq is %\index{well-founded recursion}%_well-founded recursion_.  The syntactic-subterm relation that Coq applies by default is well-founded, but many cases demand alternate well-founded relations.  To demonstrate, let us see where we get stuck on attempting a standard merge sort implementation. *)
+(** The essence of terminating recursion is that there are no infinite chains of nested recursive calls.  This intuition is commonly mapped to the mathematical idea of a%\index{well-founded relation}% _well-founded relation_, and the associated standard technique in Coq is%\index{well-founded recursion}% _well-founded recursion_.  The syntactic-subterm relation that Coq applies by default is well-founded, but many cases demand alternate well-founded relations.  To demonstrate, let us see where we get stuck on attempting a standard merge sort implementation. *)
 
 Section mergeSort.
   Variable A : Type.
@@ -90,7 +90,7 @@ well_founded =
 fun (A : Type) (R : A -> A -> Prop) => forall a : A, Acc R a
 ]]
 
-The bulk of the definitional work devolves to the %\index{accessibility relation}\index{Gallina terms!Acc}%_accessibility_ relation [Acc], whose definition we may also examine. *)
+The bulk of the definitional work devolves to the%\index{accessibility relation}\index{Gallina terms!Acc}% _accessibility_ relation [Acc], whose definition we may also examine. *)
 
   Print Acc.
 (** %\vspace{-.15in}% [[
@@ -224,7 +224,7 @@ Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
     else ls.
   intros; apply (Fix_eq (@lengthOrder_wf A) (fun _ => list A)); intros.
 
-  (** The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between %``%#"#self#"#%''% arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general %\index{extensionality}%_function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
+  (** The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between %``%#"#self#"#%''% arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general%\index{extensionality}% _function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
 
   Check Fix_eq.
 (** %\vspace{-.15in}%[[
@@ -747,6 +747,10 @@ Qed.
 Notation "x <- m1 ; m2" :=
   (TBind m1 (fun x => m2)) (right associativity, at level 70).
 
+(* begin hide *)
+Definition fib := 0.
+(* end hide *)
+
 (** %\vspace{-.15in}%[[
 CoFixpoint fib (n : nat) : thunk nat :=
   match n with
@@ -768,7 +772,7 @@ CoInductive comp (A : Type) : Type :=
 | Ret : A -> comp A
 | Bnd : forall B, comp B -> (B -> comp A) -> comp A.
 
-(** This example shows off Coq's support for %\index{recursively non-uniform parameters}%_recursively non-uniform parameters_, as in the case of the parameter [A] declared above, where each constructor's type ends in [comp A], but there is a recursive use of [comp] with a different parameter [B].  Beside that technical wrinkle, we see the simplest possible definition of a monad, via a type whose two constructors are precisely the monad operators.
+(** This example shows off Coq's support for%\index{recursively non-uniform parameters}% _recursively non-uniform parameters_, as in the case of the parameter [A] declared above, where each constructor's type ends in [comp A], but there is a recursive use of [comp] with a different parameter [B].  Beside that technical wrinkle, we see the simplest possible definition of a monad, via a type whose two constructors are precisely the monad operators.
 
    It is easy to define the semantics of terminating [comp] computations. *)
 
