@@ -15,16 +15,18 @@ Require Import CpdtTactics DepList.
 Set Implicit Arguments.
 (* end hide *)
 
+(** printing ~> $\leadsto$ *)
+
 
 (** %\chapter{Generic Programming}% *)
 
-(** %\index{generic programming}%_Generic programming_ makes it possible to write functions that operate over different types of data.  %\index{parametric polymorphism}%Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style %\index{module systems}%module systems%~\cite{modules}% and Haskell %\index{type classes}%type classes%~\cite{typeclasses}% are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a %\index{deriving clauses}%[deriving] clause%~\cite{deriving}%, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do %\index{datatype-generic programming}%_datatype-generic programming_ much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
+(** %\index{generic programming}% _Generic programming_ makes it possible to write functions that operate over different types of data.  %\index{parametric polymorphism}%Parametric polymorphism in ML and Haskell is one of the simplest examples.  ML-style %\index{module systems}%module systems%~\cite{modules}% and Haskell %\index{type classes}%type classes%~\cite{typeclasses}% are more flexible cases.  These language features are often not as powerful as we would like.  For instance, while Haskell includes a type class classifying those types whose values can be pretty-printed, per-type pretty-printing is usually either implemented manually or implemented via a %\index{deriving clauses}%[deriving] clause%~\cite{deriving}%, which triggers ad-hoc code generation.  Some clever encoding tricks have been used to achieve better within Haskell and other languages, but we can do%\index{datatype-generic programming}% _datatype-generic programming_ much more cleanly with dependent types.  Thanks to the expressive power of CIC, we need no special language support.
 
    Generic programming can often be very useful in Coq developments, so we devote this chapter to studying it.  In a proof assistant, there is the new possibility of generic proofs about generic programs, which we also devote some space to. *)
 
 (** * Reflecting Datatype Definitions *)
 
-(** The key to generic programming with dependent types is %\index{universe types}%_universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reflected syntactic versions of those types.
+(** The key to generic programming with dependent types is%\index{universe types}% _universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reflected syntactic versions of those types.
 
    Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
@@ -87,8 +89,6 @@ End denote.
 
 (** Some example pieces of evidence should help clarify the convention.  First, we define some helpful notations, providing different ways of writing constructor denotations.  There is really just one notation, but we need several versions of it to cover different choices of which variables will be used in the body of a definition.  %The ASCII \texttt{\textasciitilde{}>} from the notation will be rendered later as $\leadsto$.% *)
 
-(** printing ~> $\leadsto$ *)
-
 Notation "[ ! , ! ~> x ]" := ((fun _ _ => x) : constructorDenote _ (Con _ _)).
 Notation "[ v , ! ~> x ]" := ((fun v _ => x) : constructorDenote _ (Con _ _)).
 Notation "[ ! , r ~> x ]" := ((fun _ r => x) : constructorDenote _ (Con _ _)).
@@ -116,7 +116,7 @@ Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
 
 (* EX: Define a generic [size] function. *)
 
-(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a %\index{recursion schemes}%_recursion scheme_ for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
+(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a%\index{recursion schemes}% _recursion scheme_ for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
 
 (* begin thide *)
 Definition fixDenote (T : Type) (dt : datatype) :=
@@ -478,7 +478,7 @@ Section ok.
         -> P ((hget dd m) x r))
       -> forall v, P v.
 
-  (** This definition can take a while to digest.  The quantifier over [m : member c dt] is considering each constructor in turn; like in normal induction principles, each constructor has an associated proof case.  The expression [hget dd m] then names the constructor we have selected.  After binding [m], we quantify over all possible arguments (encoded with [x] and [r]) to the constructor that [m] selects.  Within each specific case, we quantify further over [i : fin (][recursive c)] to consider all of our induction hypotheses, one for each recursive argument of the current constructor.
+  (** This definition can take a while to digest.  The quantifier over [m : member c dt] is considering each constructor in turn; like in normal induction principles, each constructor has an associated proof case.  The expression [hget dd m] then names the constructor we have selected.  After binding [m], we quantify over all possible arguments (encoded with [x] and [r]) to the constructor that [m] selects.  Within each specific case, we quantify further over [i : fin (recursive c)] to consider all of our induction hypotheses, one for each recursive argument of the current constructor.
 
      We have completed half the burden of defining side conditions.  The other half comes in characterizing when a recursion scheme [fx] is valid.  The natural condition is that [fx] behaves appropriately when applied to any constructor application. *)
 
