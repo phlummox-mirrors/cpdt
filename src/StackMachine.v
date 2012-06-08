@@ -19,17 +19,17 @@ Set Implicit Arguments.
 (** %\chapter{Some Quick Examples}% *)
 
 
-(** I will start off by jumping right in to a fully-worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
+(** I will start off by jumping right in to a fully worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
 As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines
 
-%\index{Vernacular commands!Require}%[Require Import Bool] #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%Arith%}%#</span></span># #<span class="inlinecode"><span class="id" type="var">#%\coqdocconstructor{%List%}%#</span></span># [CpdtTactics.]
+%\index{Vernacular commands!Require}%[Require Import Bool Arith List CpdtTactics.]
 
 %\noindent{}%and
 
-%\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.]
+%\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit Arguments.]
 
-%\noindent{}%at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit] #<span class="inlinecode"><span class="id" type="keyword">#%\coqdockw{%Arguments%}%#</span></span>#[.], where the latter affects the default behavior of definitions regarding type inference.
+%\noindent{}%at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit Arguments.], where the latter affects the default behavior of definitions regarding type inference.
 *)
 
 
@@ -64,36 +64,32 @@ Definition binopDenote (b : binop) : nat -> nat -> nat :=
   end.
 
 (** The meaning of a binary operator is a binary function over naturals, defined with pattern-matching notation analogous to the %\texttt{%#<tt>#case#</tt>#%}% and %\texttt{%#<tt>#match#</tt>#%}% of ML and Haskell, and referring to the functions [plus] and [mult] from the Coq standard library.  The keyword [Definition] is Coq's all-purpose notation for binding a term of the programming language to a name, with some associated syntactic sugar, like the notation we see here for defining a function.  That sugar could be expanded to yield this definition:
-
 [[
 Definition binopDenote : binop -> nat -> nat -> nat := fun (b : binop) =>
   match b with
     | Plus => plus
     | Times => mult
   end.
-
 ]]
 
 In this example, we could also omit all of the type annotations, arriving at:
-
 [[
 Definition binopDenote := fun b =>
   match b with
     | Plus => plus
     | Times => mult
   end.
-
 ]]
 
 Languages like Haskell and ML have a convenient %\index{principal types}\index{type inference}%_principal types_ property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the %\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}%_Calculus of Inductive Constructions (CIC)_ %\cite{CIC}%, which is an extension of the older %\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}%_Calculus of Constructions (CoC)_ %\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like %\index{strong normalization}%_strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and %\index{relative consistency}%_relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
+This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the%\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}% _Calculus of Inductive Constructions_ (CIC)%~\cite{CIC}%, which is an extension of the older%\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}% _Calculus of Constructions_ (CoC)%~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like%\index{strong normalization}% _strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and%\index{relative consistency}% _relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
 
-Coq is actually based on an extension of CIC called %\index{Gallina}%_Gallina_.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
+Coq is actually based on an extension of CIC called%\index{Gallina}% _Gallina_.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
-Next, there is %\index{Ltac}%_Ltac_, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
+Next, there is%\index{Ltac}% _Ltac_, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
 
-Finally, commands like [Inductive] and [Definition] are part of %\index{Vernacular commands}%_the Vernacular_, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like _trees_ of vernacular commands, thanks to various nested scoping constructs.)
+Finally, commands like [Inductive] and [Definition] are part of%\index{Vernacular commands}% _the Vernacular_, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like _trees_ of vernacular commands, thanks to various nested scoping constructs.)
 
 %\medskip%
 
@@ -203,12 +199,12 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of %\index{strengthening the induction hypothesis}%_strengthening the induction hypothesis_.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
+(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of%\index{strengthening the induction hypothesis}% _strengthening the induction hypothesis_.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
 
 Lemma compile_correct' : forall e p s,
   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
 
-(** After the period in the [Lemma] command, we are in %\index{interactive proof-editing mode}%_the interactive proof-editing mode_.  We find ourselves staring at this ominous screen of text:
+(** After the period in the [Lemma] command, we are in%\index{interactive proof-editing mode}% _the interactive proof-editing mode_.  We find ourselves staring at this ominous screen of text:
 
 [[
 1 subgoal
@@ -223,7 +219,7 @@ Coq seems to be restating the lemma for us.  What we are seeing is a limited cas
 
 Next in the output, we see our single subgoal described in full detail.  There is a double-dashed line, above which would be our free variables and %\index{hypotheses}%hypotheses, if we had any.  Below the line is the %\index{conclusion}%conclusion, which, in general, is to be proved from the hypotheses.
 
-We manipulate the proof state by running commands called %\index{tactics}%_tactics_.  Let us start out by running one of the most important tactics:%\index{tactics!induction}%
+We manipulate the proof state by running commands called%\index{tactics}% _tactics_.  Let us start out by running one of the most important tactics:%\index{tactics!induction}%
 *)
 
   induction e.
@@ -271,10 +267,7 @@ We see that [intros] changes [forall]-bound variables at the beginning of a goal
 To progress further, we need to use the definitions of some of the functions appearing in the goal.  The [unfold] tactic replaces an identifier with its definition.%\index{tactics!unfold}%
 *)
 
-(* begin hide *)
   unfold compile.
-(* end hide *)
-(** %\coqdockw{unfold} \coqdocdefinition{compile}.%#<tt>unfold compile.</tt># *)
 (** [[
  n : nat
  s : stack
@@ -286,10 +279,7 @@ To progress further, we need to use the definitions of some of the functions app
 ]]
 *)
 
-(* begin hide *)
   unfold expDenote.
-(* end hide *)
-(** %\coqdockw{unfold} \coqdocdefinition{expDenote}.%#<tt>unfold expDenote.</tt># *)
 (** [[
  n : nat
  s : stack
@@ -301,10 +291,7 @@ To progress further, we need to use the definitions of some of the functions app
 
 We only need to unfold the first occurrence of [progDenote] to prove the goal.  An [at] clause used with [unfold] specifies a particular occurrence of an identifier to unfold, where we count occurrences from left to right.%\index{tactics!unfold}% *)
 
-(* begin hide *)
   unfold progDenote at 1.
-(* end hide *)
-(** %\coqdockw{unfold} \coqdocdefinition{progDenote} \coqdoctac{at} 1.%#<tt>unfold progDenote at 1.</tt># *)
 (** [[
  n : nat
  s : stack
@@ -324,7 +311,7 @@ We only need to unfold the first occurrence of [progDenote] to prove the goal.  
  
 ]]
 
-This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm %\coqdocconstructor{None} (\coqdocvar{A}:=\coqdocdefinition{stack})%#<tt>None (A:=stack)</tt>#, which has an annotation specifying that the type of the term ought to be [option A].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
+This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm [None (A:=stack)], which has an annotation specifying that the type of the term ought to be [option A].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
 
 Fortunately, in this case, we can eliminate the complications of anonymous recursion right away, since the structure of the argument ([iConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic, which applies the same reduction strategy that we used earlier with [Eval] (and whose details we still postpone).%\index{tactics!simpl}%
 *)
@@ -351,10 +338,7 @@ Fortunately, in this case, we can eliminate the complications of anonymous recur
 Now we can unexpand the definition of [progDenote]:%\index{tactics!fold}%
 *)
 
-(* begin hide *)
   fold progDenote.
-(* end hide *)
-(** %\coqdockw{fold} \coqdocdefinition{progDenote}.%#<tt>fold progDenote.</tt># *)
 (** [[
  n : nat
  s : stack
@@ -388,20 +372,13 @@ It looks like we are at the end of this case, since we have a trivial equality. 
 
 We see our first example of %\index{hypotheses}%hypotheses above the double-dashed line.  They are the inductive hypotheses [IHe1] and [IHe2] corresponding to the subterms [e1] and [e2], respectively.
 
-We start out the same way as before, introducing new free variables and unfolding and folding the appropriate definitions.  The seemingly frivolous [unfold]/%\coqdockw{fold}%#<tt>fold</tt># pairs are actually accomplishing useful work, because [unfold] will sometimes perform easy simplifications. %\index{tactics!intros}\index{tactics!unfold}\index{tactics!fold}% *)
+We start out the same way as before, introducing new free variables and unfolding and folding the appropriate definitions.  The seemingly frivolous [unfold]/[fold] pairs are actually accomplishing useful work, because [unfold] will sometimes perform easy simplifications. %\index{tactics!intros}\index{tactics!unfold}\index{tactics!fold}% *)
 
   intros.
-(* begin hide *)
   unfold compile.
   fold compile.
   unfold expDenote.
   fold expDenote.
-(* end hide *)
-(** %\coqdockw{unfold} \coqdocdefinition{compile}.
-\coqdockw{fold} \coqdocdefinition{compile}.
-\coqdockw{unfold} \coqdocdefinition{expDenote}.
-\coqdockw{fold} \coqdocdefinition{expDenote}.%
-   #<tt>unfold compile. fold compile. unfold expDenote. fold expDenote.</tt># *)
 
 (** Now we arrive at a point where the tactics we have seen so far are insufficient.  No further definition unfoldings get us anywhere, so we will need to try something different.
 
@@ -431,12 +408,9 @@ app_assoc_reverse
  
 ]]
 
-If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% command to find it, based on a pattern that we would like to rewrite: *)
+If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}%[SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
 
-(* begin hide *)
 SearchRewrite ((_ ++ _) ++ _).
-(* end hide *)
-(** %\coqdockw{%#<tt>#SearchRewrite#</tt>#%}% [((_ ++ _) ++ _).] *)
 (** [[
 app_assoc_reverse:
   forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
@@ -481,17 +455,18 @@ The same process lets us apply the remaining hypothesis.%\index{tactics!rewrite}
 Now we can apply a similar sequence of tactics to the one that ended the proof of the first case.%\index{tactics!unfold}\index{tactics!simpl}\index{tactics!fold}\index{tactics!reflexivity}%
 *)
 
-(* begin hide *)
   unfold progDenote at 1.
   simpl.
   fold progDenote.
   reflexivity.
-(* end hide *)
-(** %\coqdockw{unfold} \coqdocdefinition{progDenote} \coqdoctac{at} 1. \coqdockw{simpl}. \coqdockw{fold} \coqdocdefinition{progDenote}. \coqdockw{reflexivity}.%#<tt>unfold progDenote at 1. simpl. fold progDenote. reflexivity.</tt># *)
 
 (** And the proof is completed, as indicated by the message: *)
 
-(** %\coqdockw{Proof} \coqdockw{completed}.%#<tt>Proof completed.</tt># *)
+(**
+<<
+  Proof completed.
+>>
+*)
 
 (** And there lies our first proof.  Already, even for simple theorems like this, the final proof script is unstructured and not very enlightening to readers.  If we extend this approach to more serious theorems, we arrive at the unreadable proof scripts that are the favorite complaints of opponents of tactic-based proving.  Fortunately, Coq has rich support for scripted automation, and we can take advantage of such a scripted tactic (defined elsewhere) to make short work of this lemma.  We abort the old proof attempt and start again.%\index{Vernacular commands!Abort}%
 *)
@@ -507,7 +482,7 @@ Qed.
 
 (** We need only to state the basic inductive proof scheme and call a tactic that automates the tedious reasoning in between.  In contrast to the period tactic terminator from our last proof, the %\index{tactics!semicolon}%semicolon tactic separator supports structured, compositional proofs.  The tactic [t1; t2] has the effect of running [t1] and then running [t2] on each remaining subgoal.  The semicolon is one of the most fundamental building blocks of effective proof automation.  The period terminator is very useful for exploratory proving, where you need to see intermediate proof states, but final proofs of any serious complexity should have just one period, terminating a single compound tactic that probably uses semicolons.
 
-The [crush] tactic comes from the library associated with this book and is not part of the Coq standard library.  The book's library contains a number of other tactics that are especially helpful in highly-automated proofs.
+The [crush] tactic comes from the library associated with this book and is not part of the Coq standard library.  The book's library contains a number of other tactics that are especially helpful in highly automated proofs.
 
 The %\index{Vernacular commands!Qed}%[Qed] command checks that the proof is finished and, if so, saves it.  The tactic commands we have written above are an example of a _proof script_, or a series of Ltac programs; while [Qed] uses the result of the script to generate a _proof term_, a well-typed term of Gallina.  To believe that a theorem is true, we only need to trust that the (relatively simple) checker for proof terms is correct; the use of proof scripts is immaterial.  Part I of this book will introduce the principles behind encoding all proofs as terms of Gallina.
 
@@ -587,12 +562,12 @@ The inuitive explanation of [tbinop] is that a [tbinop t1 t2 t] is a binary oper
 
 ML and Haskell have indexed algebraic datatypes.  For instance, their list types are indexed by the type of data that the list carries.  However, compared to Coq, ML and Haskell 98 place two important restrictions on datatype definitions.
 
-First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}%_Generalized algebraic datatypes (GADTs)_ %\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell and other languages that removes this first restriction.
+First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}% _Generalized algebraic datatypes_ (GADT's)%~\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be _expressions_.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADT's.  In ML and Haskell, indices of types must be types and may not be _expressions_.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
-(** We can define a similar type family for typed expressions, where a term of type [texp t] can be assigned object language type [t].  (It is conventional in the world of interactive theorem proving to call the language of the proof assistant the %\index{meta language}%_meta language_ and a language being formalized the %\index{object language}%_object language_.) *)
+(** We can define a similar type family for typed expressions, where a term of type [texp t] can be assigned object language type [t].  (It is conventional in the world of interactive theorem proving to call the language of the proof assistant the%\index{meta language}% _meta language_ and a language being formalized the%\index{object language}% _object language_.) *)
 
 Inductive texp : type -> Set :=
 | TNConst : nat -> texp Nat
@@ -619,7 +594,7 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
     | TLt => leb
   end.
 
-(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine %\index{dependent pattern matching}%_dependent pattern match_, where the necessary _type_ of each case body depends on the _value_ that has been matched.  At this early stage, we will not go into detail on the many subtle aspects of Gallina that support dependent pattern-matching, but the subject is central to Part II of the book.
+(** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine%\index{dependent pattern matching}% _dependent pattern match_, where the necessary _type_ of each case body depends on the _value_ that has been matched.  At this early stage, we will not go into detail on the many subtle aspects of Gallina that support dependent pattern-matching, but the subject is central to Part II of the book.
 
 The same tricks suffice to define an expression denotation function in an unsurprising way:
 *)
@@ -645,7 +620,7 @@ Eval simpl in texpDenote (TBinop TTimes (TBinop TPlus (TNConst 2) (TNConst 2))
 
 Eval simpl in texpDenote (TBinop (TEq Nat) (TBinop TPlus (TNConst 2) (TNConst 2))
   (TNConst 7)).
-(** [= ] %\coqdocconstructor{%#<tt>#false#</tt>#%}% [ : typeDenote Bool] *)
+(** [= false : typeDenote Bool] *)
 
 Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
   (TNConst 7)).
@@ -780,22 +755,22 @@ fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
 (** We can check that the compiler generates programs that behave appropriately on our sample programs from above: *)
 
 Eval simpl in tprogDenote (tcompile (TNConst 42) nil) tt.
-(** [= (42, tt) : vstack (][Nat :: nil)] *)
+(** [= (42, tt) : vstack (Nat :: nil)] *)
 
 Eval simpl in tprogDenote (tcompile (TBConst true) nil) tt.
-(** [= (][true][, tt) : vstack (][Bool :: nil)] *)
+(** [= (true, tt) : vstack (Bool :: nil)] *)
 
 Eval simpl in tprogDenote (tcompile (TBinop TTimes (TBinop TPlus (TNConst 2)
   (TNConst 2)) (TNConst 7)) nil) tt.
-(** [= (28, tt) : vstack (][Nat :: nil)] *)
+(** [= (28, tt) : vstack (Nat :: nil)] *)
 
 Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2)
   (TNConst 2)) (TNConst 7)) nil) tt.
-(** [= (]%\coqdocconstructor{%#<tt>#false#</tt>#%}%[, tt) : vstack (][Bool :: nil)] *)
+(** [= (false, tt) : vstack (Bool :: nil)] *)
 
 Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
   (TNConst 7)) nil) tt.
-(** [= (][true][, tt) : vstack (][Bool :: nil)] *)
+(** [= (true, tt) : vstack (Bool :: nil)] *)
 
 
 (** ** Translation Correctness *)
@@ -847,10 +822,7 @@ Qed.
 
 Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  We must register [tconcat_correct] similarly to get the same effect:%\index{Vernacular commands!Hint Rewrite}% *)
 
-(* begin hide *)
 Hint Rewrite tconcat_correct.
-(* end hide *)
-(** %\noindent%[Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [tconcat_correct.] *)
 
 (** Here we meet the pervasive concept of a _hint_.  Many proofs can be found through exhaustive enumerations of combinations of possible proof steps; hints provide the set of steps to consider.  The tactic [crush] is applying such brute force search for us silently, and it will consider more possibilities as we add more hints.  This particular hint asks that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  In general, segragating hints into different databases is helpful to control the performance of proof search, in cases where domain knowledge allows us to narrow the set of proof steps to be considered in brute force search.  Part III of this book considers such pragmatic aspects of proof search in much more detail.
 
@@ -863,10 +835,7 @@ Qed.
 
 (** We can register this main lemma as another hint, allowing us to prove the final theorem trivially. *)
 
-(* begin hide *)
 Hint Rewrite tcompile_correct'.
-(* end hide *)
-(** %\noindent%[Hint ]%\coqdockw{%#<tt>#Rewrite#</tt>#%}%[ tcompile_correct'.] *)
 
 Theorem tcompile_correct : forall t (e : texp t),
   tprogDenote (tcompile e nil) tt = (texpDenote e, tt).
@@ -874,12 +843,9 @@ Theorem tcompile_correct : forall t (e : texp t),
 Qed.
 (* end thide *)
 
-(** It is probably worth emphasizing that we are doing more than building mathematical models.  Our compilers are functional programs that can be executed efficiently.  One strategy for doing so is based on %\index{program extraction}%_program extraction_, which generates OCaml code from Coq developments.  For instance, we run a command to output the OCaml version of [tcompile]:%\index{Vernacular commands!Extraction}% *)
+(** It is probably worth emphasizing that we are doing more than building mathematical models.  Our compilers are functional programs that can be executed efficiently.  One strategy for doing so is based on%\index{program extraction}% _program extraction_, which generates OCaml code from Coq developments.  For instance, we run a command to output the OCaml version of [tcompile]:%\index{Vernacular commands!Extraction}% *)
 
-(* begin hide *)
 Extraction tcompile.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Extraction#</tt>#%}%[ tcompile.] *)
 
 (** <<
 let rec tcompile t e ts =
