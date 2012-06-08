@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Proof by Reflection}% *)
 
-(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique, %\index{proof by reflection}%_proof by reflection_ %\cite{reflection}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term _reflection_ applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them. *)
+(** The last chapter highlighted a very heuristic approach to proving.  In this chapter, we will study an alternative technique,%\index{proof by reflection}% _proof by reflection_ %\cite{reflection}%.  We will write, in Gallina, decision procedures with proofs of correctness, and we will appeal to these procedures in writing very short proofs.  Such a proof is checked by running the decision procedure.  The term _reflection_ applies because we will need to translate Gallina propositions into values of inductive types representing syntax, so that Gallina programs may analyze them, and translating such a term back to the original form is called _reflecting_ it. *)
 
 
 (** * Proving Evenness *)
@@ -167,7 +167,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
 
-   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must %\index{reification}%_reify_ [Prop] into some type that we _can_ analyze.  This inductive type is a good candidate: *)
+   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must%\index{reification}% _reify_ [Prop] into some type that we _can_ analyze.  This inductive type is a good candidate: *)
 
 (* begin thide *)
 Inductive taut : Set :=
@@ -176,7 +176,7 @@ Inductive taut : Set :=
 | TautOr : taut -> taut -> taut
 | TautImp : taut -> taut -> taut.
 
-(** We write a recursive function to _reflect_ this syntax back to [Prop].  Such functions are also called %\index{interpretation function}%_interpretation functions_, and have used them in previous examples to give semantics to small programming languages. *)
+(** We write a recursive function to _reflect_ this syntax back to [Prop].  Such functions are also called%\index{interpretation function}% _interpretation functions_, and have used them in previous examples to give semantics to small programming languages. *)
 
 Fixpoint tautDenote (t : taut) : Prop :=
   match t with
@@ -375,7 +375,7 @@ End monoid.
 
 (** * A Smarter Tautology Solver *)
 
-(** Now we are ready to revisit our earlier tautology solver example.  We want to broaden the scope of the tactic to include formulas whose truth is not syntactically apparent.  We will want to allow injection of arbitrary formulas, like we allowed arbitrary monoid expressions in the last example.  Since we are working in a richer theory, it is important to be able to use equalities between different injected formulas.  For instance, we cannot prove [P -> P] by translating the formula into a value like [Imp (][Var P) (][Var P)], because a Gallina function has no way of comparing the two [P]s for equality.
+(** Now we are ready to revisit our earlier tautology solver example.  We want to broaden the scope of the tactic to include formulas whose truth is not syntactically apparent.  We will want to allow injection of arbitrary formulas, like we allowed arbitrary monoid expressions in the last example.  Since we are working in a richer theory, it is important to be able to use equalities between different injected formulas.  For instance, we cannot prove [P -> P] by translating the formula into a value like [Imp (Var P) (Var P)], because a Gallina function has no way of comparing the two [P]s for equality.
 
    To arrive at a nice implementation satisfying these criteria, we introduce the %\index{tactics!quote}%[quote] tactic and its associated library. *)
 
