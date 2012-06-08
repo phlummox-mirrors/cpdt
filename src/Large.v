@@ -103,7 +103,7 @@ Theorem eval_times : forall k e,
   trivial.
 Qed.
 
-(** We pass %\index{tactics!induction}%[induction] an %\index{intro pattern}%_intro pattern_, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
+(** We pass %\index{tactics!induction}%[induction] an%\index{intro pattern}% _intro pattern_, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
 
    That category of complaint has to do with understanding proofs as static artifacts.  As with programming in general, with serious projects, it tends to be much more important to be able to support evolution of proofs as specifications change.  Unstructured proofs like the above examples can be very hard to update in concert with theorem statements.  For instance, consider how the last proof script plays out when we modify [times] to introduce a bug. *)
 
@@ -247,7 +247,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 (* begin thide *)
   induction e; crush;
     match goal with
-      | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
+      | [ |- context[match ?E with Const _ => _ | _ => _ end] ] =>
         destruct E; crush
     end.
 
@@ -275,7 +275,7 @@ Hint Resolve rewr.
 Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   induction e; crush;
     match goal with
-      | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
+      | [ |- context[match ?E with Const _ => _ | _ => _ end] ] =>
         destruct E; crush
     end.
 Qed.
@@ -285,7 +285,7 @@ Qed.
 
    The more common situation is that a large induction has several easy cases that automation makes short work of.  In the remaining cases, automation performs some standard simplification.  Among these cases, some may require quite involved proofs; such a case may deserve a hint lemma of its own, where the lemma statement may copy the simplified version of the case.  Alternatively, the proof script for the main theorem may be extended with some automation code targeted at the specific case.  Even such targeted scripting is more desirable than manual proving, because it may be read and understood without knowledge of a proof's hierarchical structure, case ordering, or name binding structure.
 
-   A competing alternative to the common style of Coq tactics is the %\index{declarative proof scripts}%_declarative_ style, most frequently associated today with the %\index{Isar}%Isar%~\cite{Isar}% language.  A declarative proof script is very explicit about subgoal structure and introduction of local names, aiming for human readability.  The coding of proof automation is taken to be outside the scope of the proof language, an assumption related to the idea that it is not worth building new automation for each serious theorem.  I have shown in this book many examples of theorem-specific automation, which I believe is crucial for scaling to significant results.  Declarative proof scripts make it easier to read scripts to modify them for theorem statement changes, but the alternate %\index{adaptive proof scripts}%_adaptive_ style from this book allows use of the _same_ scripts for many versions of a theorem.
+   A competing alternative to the common style of Coq tactics is the%\index{declarative proof scripts}% _declarative_ style, most frequently associated today with the %\index{Isar}%Isar%~\cite{Isar}% language.  A declarative proof script is very explicit about subgoal structure and introduction of local names, aiming for human readability.  The coding of proof automation is taken to be outside the scope of the proof language, an assumption related to the idea that it is not worth building new automation for each serious theorem.  I have shown in this book many examples of theorem-specific automation, which I believe is crucial for scaling to significant results.  Declarative proof scripts make it easier to read scripts to modify them for theorem statement changes, but the alternate%\index{adaptive proof scripts}% _adaptive_ style from this book allows use of the _same_ scripts for many versions of a theorem.
 
    Perhaps I am a pessimist for thinking that fully formal proofs will inevitably consist of details that are uninteresting to people, but it is my preference to focus on conveying proof-specific details through choice of lemmas.  Additionally, adaptive Ltac scripts contain bits of automation that can be understood in isolation.  For instance, in a big [repeat match] loop, each case can generally be digested separately, which is a big contrast from trying to understand the hierarchical structure of a script in a more common style.  Adaptive scripts rely on variable binding, but generally only over very small scopes, whereas understanding a traditional script requires tracking the identities of local variables potentially across pages of code.
 
@@ -336,10 +336,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
 
   Ltac t :=
     repeat (match goal with
-              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
-                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
-                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
-                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+              | [ |- context[match ?E with NConst _ => _ | _ => _ end] ] =>
                 dep_destruct E
             end; crush).
 
@@ -364,10 +361,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
 
   Ltac t' :=
     repeat (match goal with
-              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
-                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
-                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
-                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+              | [ |- context[match ?E with NConst _ => _ | _ => _ end] ] =>
                 dep_destruct E
               | [ |- (if ?E then _ else _) = _ ] => destruct E
             end; crush).
@@ -382,10 +376,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
 
   Ltac t'' :=
     repeat (match goal with
-              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
-                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
-                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
-                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+              | [ |- context[match ?E with NConst _ => _ | _ => _ end] ] =>
                 dep_destruct E
               | [ |- (if ?E then _ else _) = _ ] => destruct E
               | [ |- context[match pairOut ?E with Some _ => _
@@ -405,10 +396,7 @@ Reset t.
 Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
   induction e; crush;
     repeat (match goal with
-              | [ |- context[match ?E with NConst _ => _ | Plus _ _ => _
-                               | Eq _ _ => _ | BConst _ => _ | And _ _ => _
-                               | If _ _ _ _ => _ | Pair _ _ _ _ => _
-                               | Fst _ _ _ => _ | Snd _ _ _ => _ end] ] =>
+              | [ |- context[match ?E with NConst _ => _ | _ => _ end] ] =>
                 dep_destruct E
               | [ |- (if ?E then _ else _) = _ ] => destruct E
               | [ |- context[match pairOut ?E with Some _ => _
@@ -435,7 +423,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 (* begin thide *)
   induction e; crush;
     match goal with
-      | [ |- context[match ?E with Const _ => _ | Plus _ _ => _ | Mult _ _ => _ end] ] =>
+      | [ |- context[match ?E with Const _ => _ | _ => _ end] ] =>
         destruct E; crush
     end.
 
@@ -451,8 +439,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   Restart.
 
   Ltac t := crush; match goal with
-                     | [ |- context[match ?E with Const _ => _ | Plus _ _ => _
-                                      | Mult _ _ => _ end] ] =>
+                     | [ |- context[match ?E with Const _ => _ | _ => _ end] ] =>
                        destruct E; crush
                    end.
 
@@ -472,9 +459,9 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   (** What is [t] doing to get us to this point?  The %\index{tactics!info}%[info] command can help us answer this kind of question. *)
 
-  (** remove printing * *)
   Undo.
   info t.
+
   (** %\vspace{-.15in}%[[
  == simpl in *; intuition; subst; autorewrite with core in *; 
     simpl in *; intuition; subst; autorewrite with core in *; 
@@ -532,8 +519,6 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
 Abort.
 (* end thide *)
-
-(** printing * $\times$ *)
 
 (** Sometimes a change to a development has undesirable performance consequences, even if it does not prevent any old proof scripts from completing.  If the performance consequences are severe enough, the proof scripts can be considered broken for practical purposes.
 
@@ -639,7 +624,7 @@ End slow.
 
 (** As aggravating as the above situation may be, there is greater aggravation to be had from importing library modules with commands like %\index{Vernacular commands!Require Import}%[Require Import].  Such a command imports not just the Gallina terms from a module, but also all the hints for [auto], [eauto], and [autorewrite].  Some very recent versions of Coq include mechanisms for removing hints from databases, but the proper solution is to be very conservative in exporting hints from modules.  Consider putting hints in named databases, so that they may be used only when called upon explicitly, as demonstrated in Chapter 13.
 
-It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains %\index{thunks}%_thunks_ (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run %\index{Vernacular commands!Qed}%[Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
+It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains%\index{thunks}% _thunks_ (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run %\index{Vernacular commands!Qed}%[Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
 
    The %\index{tactics!abstract}%[abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
 
@@ -648,7 +633,7 @@ It is also easy to end up with a proof script that uses too much memory.  As tac
 
 (** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's _module system_ provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML%~\cite{modules}% and Objective Caml, and the discussion that follows assumes familiarity with the basics of one of those systems.
 
-   ML modules facilitate the grouping of %\index{abstract type}%abstract types with operations over those types.  Moreover, there is support for %\index{functor}%_functors_, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
+   ML modules facilitate the grouping of %\index{abstract type}%abstract types with operations over those types.  Moreover, there is support for%\index{functor}% _functors_, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
 
    When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, this module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [e] for [f], and an operation [i] that is a left inverse for [f].%\index{Vernacular commands!Module Type}% *)
 
@@ -678,7 +663,7 @@ End GROUP_THEOREMS.
 (** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M]. %\index{Vernacular commands!Module}% *)
 
 Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
-  (** As in ML, Coq provides multiple options for ascribing signatures to modules.  Here we use just the colon operator, which implements %\index{opaque ascription}%_opaque ascription_, hiding all details of the module not exposed by the signature.  Another option is %\index{transparent ascription}%_transparent ascription_ via the [<:] operator, which checks for signature compatibility without hiding implementation details.  Here we stick with opaque ascription but employ the [with] operation to add more detail to a signature, exposing just those implementation details that we need to.  For instance, here we expose the underlying group representation set and operator definitions.  Without such a refinement, we would get an output module proving theorems about some unknown group, which is not very useful.  Also note that opaque ascription can in Coq have some undesirable consequences without analogues in ML, since not just the types but also the _definitions_ of identifiers have significance in type checking and theorem proving. *)
+  (** As in ML, Coq provides multiple options for ascribing signatures to modules.  Here we use just the colon operator, which implements%\index{opaque ascription}% _opaque ascription_, hiding all details of the module not exposed by the signature.  Another option is%\index{transparent ascription}% _transparent ascription_ via the [<:] operator, which checks for signature compatibility without hiding implementation details.  Here we stick with opaque ascription but employ the [with] operation to add more detail to a signature, exposing just those implementation details that we need to.  For instance, here we expose the underlying group representation set and operator definitions.  Without such a refinement, we would get an output module proving theorems about some unknown group, which is not very useful.  Also note that opaque ascription can in Coq have some undesirable consequences without analogues in ML, since not just the types but also the _definitions_ of identifiers have significance in type checking and theorem proving. *)
 
   Module M := M.
   (** To ensure that the module we are building meets the [GROUP_THEOREMS] signature, we add an extra local name for [M], the functor argument. *)
