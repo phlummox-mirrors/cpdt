@@ -24,9 +24,9 @@ Set Implicit Arguments.
 
 (** A number of tactics are called repeatedly by [crush].  The %\index{tactics!intuition}%[intuition] tactic simplifies propositional structure of goals.  The %\index{tactics!congruence}%[congruence] tactic applies the rules of equality and congruence closure, plus properties of constructors of inductive types.  The %\index{tactics!omega}%[omega] tactic provides a complete decision procedure for a theory that is called %\index{linear arithmetic}%quantifier-free linear arithmetic or %\index{Presburger arithmetic}%Presburger arithmetic, depending on whom you ask.  That is, [omega] proves any goal that follows from looking only at parts of that goal that can be interpreted as propositional formulas whose atomic formulas are basic comparison operations on natural numbers or integers, with operands built from constants, variables, addition, and subtraction (with multiplication by a constant available as a shorthand for addition or subtraction).
 
-   The %\index{tactics!ring}%[ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a similar tactic %\index{tactics!field}\coqdockw{%#<tt>#field#</tt>#%}% for simplifying values in fields by conversion to fractions over rings.  Both [ring] and %\coqdockw{%#<tt>#field#</tt>#%}% can only solve goals that are equalities.  The %\index{tactics!fourier}\coqdockw{%#<tt>#fourier#</tt>#%}% tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
+   The %\index{tactics!ring}%[ring] tactic solves goals by appealing to the axioms of rings or semi-rings (as in algebra), depending on the type involved.  Coq developments may declare new types to be parts of rings and semi-rings by proving the associated axioms.  There is a similar tactic [field] for simplifying values in fields by conversion to fractions over rings.  Both [ring] and [field] can only solve goals that are equalities.  The %\index{tactics!fourier}%[fourier] tactic uses Fourier's method to prove inequalities over real numbers, which are axiomatized in the Coq standard library.
 
-   The %\index{setoids}%_setoid_ facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''%
+   The%\index{setoids}% _setoid_ facility makes it possible to register new equivalence relations to be understood by tactics like [rewrite].  For instance, [Prop] is registered as a setoid with the equivalence relation %``%#"#if and only if.#"#%''%  The ability to register new setoids can be very useful in proofs of a kind common in math, where all reasoning is done after %``%#"#modding out by a relation.#"#%''%
 
    There are several other built-in %``%#"#black box#"#%''% automation tactics, which one can learn about by perusing the Coq manual.  The real promise of Coq, though, is in the coding of problem-specific tactics with Ltac. *)
 
@@ -59,9 +59,9 @@ Theorem hmm : forall (a b c : bool),
 Qed.
 (* end thide *)
 
-(** The %\index{tactics!repeat}%[repeat] that we use here is called a %\index{tactical}%_tactical_, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on _their_ generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
+(** The %\index{tactics!repeat}%[repeat] that we use here is called a%\index{tactical}% _tactical_, or tactic combinator.  The behavior of [repeat t] is to loop through running [t], running [t] on all generated subgoals, running [t] on _their_ generated subgoals, and so on.  When [t] fails at any point in this search tree, that particular subgoal is left to be handled by later tactics.  Thus, it is important never to use [repeat] with a tactic that always succeeds.
 
-   Another very useful Ltac building block is %\index{context patterns}%_context patterns_. *)
+   Another very useful Ltac building block is%\index{context patterns}% _context patterns_. *)
 
 (* begin thide *)
 Ltac find_if_inside :=
@@ -117,7 +117,7 @@ Ltac my_tauto :=
 
    It is also trivial to implement the introduction rules (in the sense of %\index{natural deduction}%natural deduction%~\cite{TAPLNatDed}%) for a few of the connectives.  Implementing elimination rules is only a little more work, since we must give a name for a hypothesis to [destruct].
 
-   The last rule implements modus ponens, using a tactic %\index{tactics!specialize}\coqdockw{%#<tt>#specialize#</tt>#%}% which will replace a hypothesis with a version that is specialized to a provided set of arguments (for quantified variables or local hypotheses from implications). *)
+   The last rule implements modus ponens, using a tactic %\index{tactics!specialize}%[specialize] which will replace a hypothesis with a version that is specialized to a provided set of arguments (for quantified variables or local hypotheses from implications). *)
 
 Section propositional.
   Variables P Q R : Prop.
@@ -256,7 +256,7 @@ Ltac completer' :=
          end.
 (* end thide *)
 
-(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?][Q] with a wildcard.  Let us try our example again with this version: *)
+(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
 
 Section firstorder'.
   Variable A : Set.
@@ -306,7 +306,7 @@ User error: No matching clauses for match goal
 Abort.
 (* end thide *)
 
-(** The problem is that unification variables may not contain locally bound variables.  In this case, [?][P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
+(** The problem is that unification variables may not contain locally bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
 
    The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the %``%#"#real#"#%''% value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in the next chapter.
 
@@ -347,7 +347,7 @@ Ltac length ls :=
 Error: The reference S was not found in the current environment
 >>
 
-   The problem is that Ltac treats the expression [S (][length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to %``%#"#escape into#"#%''% the Gallina parsing nonterminal.%\index{tactics!constr}% *)
+   The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to %``%#"#escape into#"#%''% the Gallina parsing nonterminal.%\index{tactics!constr}% *)
 
 (* begin thide *)
 Ltac length ls :=
@@ -374,10 +374,7 @@ Goal False.
 
 Abort.
 
-(* begin hide *)
 Reset length.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
 
 (** The thing to remember is that Gallina terms built by tactics must be bound explicitly via [let] or a similar technique, rather than inserting Ltac calls directly in other Gallina terms. *)
 
@@ -410,20 +407,20 @@ Abort.
 Ltac map T f :=
   let rec map' ls :=
     match ls with
-      | nil => constr:( @nil T)
+      | nil => constr:(@nil T)
       | ?x :: ?ls' =>
         let x' := f x in
           let ls'' := map' ls' in
-            constr:( x' :: ls'')
+            constr:(x' :: ls'')
     end in
   map'.
 
-(** Ltac functions can have no implicit arguments.  It may seem surprising that we need to pass [T], the carried type of the output list, explicitly.  We cannot just use [type of f], because [f] is an Ltac term, not a Gallina term, and Ltac programs are dynamically typed.  The function [f] could use very syntactic methods to decide to return differently typed terms for different inputs.  We also could not replace [constr:( @][nil T)] with [constr: nil], because we have no strongly typed context to use to infer the parameter to [nil].  Luckily, we do have sufficient context within [constr:( x' :: ls'')].
+(** Ltac functions can have no implicit arguments.  It may seem surprising that we need to pass [T], the carried type of the output list, explicitly.  We cannot just use [type of f], because [f] is an Ltac term, not a Gallina term, and Ltac programs are dynamically typed.  The function [f] could use very syntactic methods to decide to return differently typed terms for different inputs.  We also could not replace [constr:(@nil T)] with [constr:nil], because we have no strongly typed context to use to infer the parameter to [nil].  Luckily, we do have sufficient context within [constr:(x' :: ls'')].
 
 Sometimes we need to employ the opposite direction of %``%#"#nonterminal escape,#"#%''% when we want to pass a complicated tactic expression as an argument to another tactic, as we might want to do in invoking [map]. *)
 
 Goal False.
-  let ls := map (nat * nat)%type ltac:(fun x => constr:( x, x)) (1 :: 2 :: 3 :: nil) in
+  let ls := map (nat * nat)%type ltac:(fun x => constr:(x, x)) (1 :: 2 :: 3 :: nil) in
     pose ls.
   (** [[
   l := (1, 1) :: (2, 2) :: (3, 3) :: nil : list (nat * nat)
@@ -440,10 +437,7 @@ Abort.
 One other gotcha shows up when we want to debug our Ltac functional programs.  We might expect the following code to work, to give us a version of [length] that prints a debug trace of the arguments it is called with. *)
 
 (* begin thide *)
-(* begin hide *)
 Reset length.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
 
 Ltac length ls :=
   idtac ls;
@@ -471,12 +465,9 @@ Abort.
 
    Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
 
-   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into %\index{continuation-passing style}%_continuation-passing style_ %\cite{continuations}%, a program structuring idea popular in functional programming. *)
+   The solution is like in Haskell: we must %``%#"#monadify#"#%''% our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into%\index{continuation-passing style}% _continuation-passing style_ %\cite{continuations}%, a program structuring idea popular in functional programming. *)
 
-(* begin hide *)
 Reset length.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [length.] *)
 
 Ltac length ls k :=
   idtac ls;
@@ -692,9 +683,9 @@ Qed.
 
 Ltac matcher :=
   intros;
-    repeat search_prem ltac:( simple apply False_prem || ( simple apply ex_prem; intro));
-      repeat search_conc ltac:( simple apply True_conc || simple eapply ex_conc
-        || search_prem ltac:( simple apply Match));
+    repeat search_prem ltac:(simple apply False_prem || (simple apply ex_prem; intro));
+      repeat search_conc ltac:(simple apply True_conc || simple eapply ex_conc
+        || search_prem ltac:(simple apply Match));
       try simple apply imp_True.
 (* end thide *)
 
@@ -917,10 +908,7 @@ Existential 1 =
   Abort.
 End t7.
 
-(* begin hide *)
 Reset insterU.
-(* end hide *)
-(** %\noindent\coqdockw{%#<tt>#Reset#</tt>#%}% [insterU.] *)
 
 (** We can redefine [insterU] to treat implications differently.  In particular, we pattern-match on the type of the type [T] in [forall x : ?T, ...].  If [T] has type [Prop], then [x]'s instantiation should be thought of as a proof.  Thus, instead of picking a new unification variable for it, we instead apply a user-supplied tactic [tac].  It is important that we end this special [Prop] case with [|| fail 1], so that, if [tac] fails to prove [T], we abort the instantiation, rather than continuing on to the default quantifier handling.  Also recall that the tactic form %\index{tactics!solve}%[solve [ t ]] fails if [t] does not completely solve the goal. *)
 
