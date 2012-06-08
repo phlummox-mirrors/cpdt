@@ -146,8 +146,6 @@ Module FirstOrder.
 
   (** A slightly more ambitious transformation belongs to the family of _constant folding_ optimizations we have used as examples in other chapters. *)
 
-  Axiom admit : forall T, T.
-
   Fixpoint cfold G t (e : term G t) : term G t :=
     match e with
       | Plus G e1 e2 =>
@@ -180,15 +178,12 @@ Module FirstOrder.
     termDenote (cfold e) s = termDenote e s.
     induction e; t;
       repeat (match goal with
-                | [ |- context[match ?E with
-                                 | Var _ _ _ => _ | Const _ _ => _ | Plus _ _ _ => _
-                                 | Abs _ _ _ _ => _ | App _ _ _ _ _ => _
-                                 | Let _ _ _ _ _ => _
-                               end] ] => dep_destruct E
+                | [ |- context[match ?E with Var _ _ _ => _ | _ => _ end] ] =>
+                  dep_destruct E
               end; t).
   Qed.
 
-  (** The transformations we have tried so far have been straightforward because they do not have interesting effects on the variable binding structure of terms.  The dependent de Bruijn representation is called %\index{first-order syntax}%_first-order_ because it encodes variable identity explicitly; all such representations incur bookkeeping overheads in transformations that rearrange binding structure.
+  (** The transformations we have tried so far have been straightforward because they do not have interesting effects on the variable binding structure of terms.  The dependent de Bruijn representation is called%\index{first-order syntax}% _first-order_ because it encodes variable identity explicitly; all such representations incur bookkeeping overheads in transformations that rearrange binding structure.
 
      As an example of a tricky transformation, consider one that removes all uses of %``%#"#[let x = e1 in e2]#"#%''% by substituting [e1] for [x] in [e2].  We will implement the translation by pairing the %``%#"#compile-time#"#%''% typing environment with a %``%#"#run-time#"#%''% value environment or _substitution_, mapping each variable to a value to be substituted for it.  Such a substitute term may be placed within a program in a position with a larger typing environment than applied at the point where the substitute term was chosen.  To support such context transplantation, we need _lifting_, a standard de Bruijn indices operation.  With dependent typing, lifting corresponds to weakening for typing judgments.
 
@@ -318,7 +313,7 @@ End FirstOrder.
 
 (** * Parametric Higher-Order Abstract Syntax *)
 
-(** In contrast to first-order encodings, %\index{higher-order syntax}%_higher-order_ encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an %\index{object language}%_object language_ (the language being formalized) can be represented using the binding constructs of the %\index{meta language}%_meta language_ (the language in which the formalization is done).  The best known higher-order encoding is called %\index{higher-order abstract syntax}\index{HOAS}%_higher-order abstract syntax (HOAS)_ %\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
+(** In contrast to first-order encodings,%\index{higher-order syntax}% _higher-order_ encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an%\index{object language}% _object language_ (the language being formalized) can be represented using the binding constructs of the%\index{meta language}% _meta language_ (the language in which the formalization is done).  The best known higher-order encoding is called%\index{higher-order abstract syntax}\index{HOAS}% _higher-order abstract syntax_ (HOAS) %\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
 
 Module HigherOrder.
 
@@ -337,7 +332,7 @@ Module HigherOrder.
 
    However, Coq rejects this definition for failing to meet the %\index{strict positivity restriction}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
 
-   An alternate higher-order encoding is %\index{parametric higher-order abstract syntax}\index{PHOAS}%_parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a _representation of variables_. *)
+   An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a _representation of variables_. *)
 
   Section var.
     Variable var : type -> Type.
@@ -560,11 +555,8 @@ Module HigherOrder.
     termDenote (cfold e) = termDenote e.
     induction e; t;
       repeat (match goal with
-                | [ |- context[match ?E with
-                                 | Var _ _ => _ | Const _ => _ | Plus _ _ => _
-                                 | Abs _ _ _ => _ | App _ _ _ _ => _
-                                 | Let _ _ _ _ => _
-                               end] ] => dep_destruct E
+                | [ |- context[match ?E with Var _ _ => _ | _ => _ end] ] =>
+                  dep_destruct E
               end; t).
   Qed.
 
@@ -704,7 +696,7 @@ Module HigherOrder.
   
   (** ** Establishing Term Well-Formedness *)
 
-  (** Can there be values of type [Term t] that are not well-formed according to [Wf]?  We expect that Gallina satisfies key %\index{parametricity}%_parametricity_ %\cite{parametricity}% properties, which indicate how polymorphic types may only be inhabited by specific values.  We omit details of parametricity theorems here, but [forall t (E : Term t), Wf E] follows the flavor of such theorems.  One option would be to assert that fact as an axiom, %``%#"#proving#"#%''% that any output of any of our translations is well-formed.  We could even prove the soundness of the theorem on paper meta-theoretically, say by considering some particular model of CIC.
+  (** Can there be values of type [Term t] that are not well-formed according to [Wf]?  We expect that Gallina satisfies key%\index{parametricity}% _parametricity_ %\cite{parametricity}% properties, which indicate how polymorphic types may only be inhabited by specific values.  We omit details of parametricity theorems here, but [forall t (E : Term t), Wf E] follows the flavor of such theorems.  One option would be to assert that fact as an axiom, %``%#"#proving#"#%''% that any output of any of our translations is well-formed.  We could even prove the soundness of the theorem on paper meta-theoretically, say by considering some particular model of CIC.
 
      To be more cautious, we could prove [Wf] for every term that interests us, threading such proofs through all transformations.  Here is an example exercise of that kind, for [Unlet].
 
