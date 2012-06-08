@@ -23,7 +23,7 @@ Set Implicit Arguments.
 
 (** * The Definitional Equality *)
 
-(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's %\index{definitional equality}%_definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's%\index{definitional equality}% _definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
 
    The %\index{tactics!cbv}%[cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
 
@@ -167,7 +167,7 @@ Recall that co-recursive definitions have a dual rule: a co-recursive call only 
 
 %\medskip%
 
-   The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a %\index{propositional equality}%_propositional equality_, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
+   The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a%\index{propositional equality}% _propositional equality_, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
    This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
 
@@ -273,7 +273,7 @@ The term "refl_equal ?98" has type "?98 = ?98"
 
     Is it time to throw in the towel?  Luckily, the answer is %``%#"#no.#"#%''%  In this chapter, we will see several useful patterns for proving obligations like this.
 
-    For this particular example, the solution is surprisingly straightforward.  [destruct] has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments.
+    For this particular example, the solution is surprisingly straightforward.  The [destruct] tactic has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments.
     [[
     case a0.
 
@@ -470,7 +470,7 @@ The term
  while it is expected to have type "fhlist B (ls1 ++ ls2 ++ ls3)"
 >>
 
-     This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is %\index{intensional type theory}%_intensional_, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
+     This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is%\index{intensional type theory}% _intensional_, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
 
   Theorem fhapp_ass : forall ls1 ls2 ls3
     (pf : (ls1 ++ ls2) ++ ls3 = ls1 ++ (ls2 ++ ls3))
@@ -638,7 +638,7 @@ Implicit Arguments fhapp [A B ls1 ls2].
 
 (** * Heterogeneous Equality *)
 
-(** There is another equality predicate, defined in the %\index{Gallina terms!JMeq}%[JMeq] module of the standard library, implementing %\index{heterogeneous equality}%_heterogeneous equality_. *)
+(** There is another equality predicate, defined in the %\index{Gallina terms!JMeq}%[JMeq] module of the standard library, implementing%\index{heterogeneous equality}% _heterogeneous equality_. *)
 
 Print JMeq.
 (** %\vspace{-.15in}% [[
@@ -646,7 +646,7 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
     JMeq_refl : JMeq x x
     ]]
 
-The identity [JMeq] stands for %\index{John Major equality}``%#"#John Major equality,#"#%''% a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  [JMeq] starts out looking a lot like [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+The identity [JMeq] stands for %\index{John Major equality}``%#"#John Major equality,#"#%''% a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -711,7 +711,7 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
  "fhlist B (ls1 ++ ?1572 ++ ?1573)"
 >>
 
-       Coq 8.3 currently gives an error message about an uncaught exception.  Perhaps that will be fixed soon.  In any case, it is educational to consider a more explicit approach.
+       Coq 8.4 currently gives an error message about an uncaught exception.  Perhaps that will be fixed soon.  In any case, it is educational to consider a more explicit approach.
 
        We see that [JMeq] is not a silver bullet.  We can use it to simplify the statements of equality facts, but the Coq type-checker uses non-trivial heterogeneous equality facts no more readily than it uses standard equality facts.  Here, the problem is that the form [(e1, e2)] is syntactic sugar for an explicit application of a constructor of an inductive type.  That application mentions the type of each tuple element explicitly, and our [rewrite] tries to change one of those elements without updating the corresponding type argument.
 
@@ -931,22 +931,24 @@ Qed.
 (** * Equality of Functions *)
 
 (** The following seems like a reasonable theorem to want to hold, and it does hold in set theory. [[
-   Theorem S_eta : S = (fun n => S n).
+   Theorem two_identities : (fun n => n) = (fun n => n + 0).
    ]]
 
-   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be %\index{extensionality of function equality}%_extensional_.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We _can_ assert function extensionality as an axiom. *)
+   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be%\index{extensionality of function equality}% _extensional_.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We _can_ assert function extensionality as an axiom, and indeed the standard library already contains that axiom. *)
 
-(* begin thide *)
-Axiom ext_eq : forall A B (f g : A -> B),
-  (forall x, f x = g x)
-  -> f = g.
-(* end thide *)
+Require Import FunctionalExtensionality.
+About functional_extensionality.
+(** %\vspace{-.15in}%[[
+functional_extensionality :
+forall (A B : Type) (f g : A -> B), (forall x : A, f x = g x) -> f = g
+]]
+*)
 
 (** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [S_eta] is trivial. *)
 
-Theorem S_eta : S = (fun n => S n).
+Theorem two_identities : (fun n => n) = (fun n => n + 0).
 (* begin thide *)
-  apply ext_eq; reflexivity.
+  apply functional_extensionality; crush.
 Qed.
 (* end thide *)
 
@@ -965,10 +967,10 @@ Theorem forall_eq : (forall x : nat, match x with
                                        | 0 => True
                                        | S _ => True
                                      end) x) = (nat -> True)).
-  rewrite (ext_eq (fun x => match x with
-                              | 0 => True
-                              | S _ => True
-                            end) (fun _ => True)).
+  rewrite (functional_extensionality (fun x => match x with
+                                                 | 0 => True
+                                                 | S _ => True
+                                               end) (fun _ => True)).
   (** [[
 2 subgoals
   
@@ -989,4 +991,4 @@ subgoal 2 is:
 Qed.
 (* end thide *)
 
-(** Unlike in the case of [eq_rect_eq], we have no way of deriving this axiom of %\index{functional extensionality}%_functional extensionality_ for types with decidable equality.  To allow equality reasoning without axioms, it may be worth rewriting a development to replace functions with alternate representations, such as finite map types for which extensionality is derivable in CIC. *)
+(** Unlike in the case of [eq_rect_eq], we have no way of deriving this axiom of%\index{functional extensionality}% _functional extensionality_ for types with decidable equality.  To allow equality reasoning without axioms, it may be worth rewriting a development to replace functions with alternate representations, such as finite map types for which extensionality is derivable in CIC. *)
