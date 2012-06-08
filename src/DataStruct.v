@@ -41,7 +41,7 @@ Section ilist.
   | First : forall n, fin (S n)
   | Next : forall n, fin n -> fin (S n).
 
-  (** An instance of [fin] is essentially a more richly typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (][First 1)], and [Next (][Next (][First 0))].
+  (** An instance of [fin] is essentially a more richly typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
 
      Now it is easy to pick a [Prop]-free type for a selection function.  As usual, our first implementation attempt will not convince the type checker, and we will attack the deficiencies one at a time.
 
@@ -172,7 +172,7 @@ Section ilist_map.
       | Cons _ x ls' => Cons (f x) (imap ls')
     end.
 
-  (** It is easy to prove that [get] %``%#"#distributes over#"#%''% [imap] calls.  The only tricky bit is remembering to use our [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
+  (** It is easy to prove that [get] %``%#"#distributes over#"#%''% [imap] calls. *)
 
 (* EX: Prove that [get] distributes over [imap]. *)
 
@@ -184,6 +184,7 @@ Section ilist_map.
 (* end thide *)
 End ilist_map.
 
+(** The only tricky bit is remembering to use our [dep_destruct] tactic in place of plain [destruct] when faced with a baffling tactic error message. *)
 
 (** * Heterogeneous Lists *)
 
@@ -391,7 +392,7 @@ Section filist.
       | S n' => option (ffin n')
     end.
 
-  (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail).  For instance, the three values of type [ffin 3] are [None], [Some None], and [Some (][Some None)]. *)
+  (** We express that there are no index values when [n = O], by defining such indices as type [Empty_set]; and we express that, at [n = S n'], there is a choice between picking the first element of the list (represented as [None]) or choosing a later element (represented by [Some idx], where [idx] is an index into the list tail).  For instance, the three values of type [ffin 3] are [None], [Some None], and [Some (Some None)]. *)
 
   Fixpoint fget (n : nat) : filist n -> ffin n -> A :=
     match n with
@@ -807,13 +808,7 @@ Lemma cfoldCond_correct : forall t (default : exp' t)
         specialize (IHn (fun idx => tests (Some idx)) (fun idx => bodies (Some idx)))
     end;
     repeat (match goal with
-              | [ |- context[match ?E with
-                               | NConst _ => _
-                               | Plus _ _ => _
-                               | Eq _ _ => _
-                               | BConst _ => _
-                               | Cond _ _ _ _ _ => _
-                             end] ] => dep_destruct E
+              | [ |- context[match ?E with NConst _ => _ | _ => _ end] ] => dep_destruct E
               | [ |- context[if ?B then _ else _] ] => destruct B
             end; crush).
 Qed.
@@ -855,7 +850,7 @@ Qed.
 
    Inductive types are often the most pleasant to work with, after someone has spent the time implementing some basic library functions for them, using fancy [match] annotations.  Many aspects of Coq's logic and tactic support are specialized to deal with inductive types, and you may miss out if you use alternate encodings.
 
-   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (][S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.  Even worse, it can prevent syntactic pattern-matching, like in cases where [filist] is expected but a pair type is found in the %``%#"#simplified#"#%''% version.  The same problem applies to applications of recursive functions to values in recursive types: the recursive function call may %``%#"#simplify#"#%''% when the top-level structure of the type index but not the recursive value is known, because such functions are generally defined by recursion on the index, not the value.
+   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.  Even worse, it can prevent syntactic pattern-matching, like in cases where [filist] is expected but a pair type is found in the %``%#"#simplified#"#%''% version.  The same problem applies to applications of recursive functions to values in recursive types: the recursive function call may %``%#"#simplify#"#%''% when the top-level structure of the type index but not the recursive value is known, because such functions are generally defined by recursion on the index, not the value.
 
    Another disadvantage of recursive types is that they only apply to type families whose indices determine their %``%#"#skeletons.#"#%''%  This is not true for all data structures; a good counterexample comes from the richly typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
 
