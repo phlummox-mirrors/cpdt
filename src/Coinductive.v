@@ -12,6 +12,8 @@ Require Import List.
 
 Require Import CpdtTactics.
 
+Definition bad := 0.
+
 Set Implicit Arguments.
 (* end hide *)
 
@@ -33,7 +35,7 @@ There are also algorithmic considerations that make universal termination very d
 
 One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs; several such approaches are surveyed in Chapter 7.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
 
-Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism, %\index{co-inductive types}%_co-inductive types_, is the subject of this chapter. *)
+Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism,%\index{co-inductive types}% _co-inductive types_, is the subject of this chapter. *)
 
 
 (** * Computing with Infinite Data *)
@@ -49,7 +51,7 @@ End stream.
 
 (** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
 
-   How do we write down a stream constant?  Obviously simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need %\index{co-recursive definitions}%_co-recursive definitions_ to _build_ values of co-inductive types effectively.
+   How do we write down a stream constant?  Obviously simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need%\index{co-recursive definitions}% _co-recursive definitions_ to _build_ values of co-inductive types effectively.
 
    We can define a stream consisting only of zeroes.%\index{Vernacular commands!CoFixpoint}% *)
 
@@ -98,9 +100,13 @@ Eval simpl in approx trues_falses 10.
 
 (* end thide *)
 
+(* begin hide *)
+Definition looper := 0.
+(* end hide *)
+
 (** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints _consume_ values of inductive types, with restrictions on which _arguments_ may be passed in recursive calls.  Dually, co-fixpoints _produce_ values of co-inductive types, with restrictions on what may be done with the _results_ of co-recursive calls.
 
-The restriction for co-inductive types shows up as the %\index{guardedness condition}%_guardedness condition_, and it can be broken into two parts.  First, consider this stream definition, which would be legal in Haskell.
+The restriction for co-inductive types shows up as the%\index{guardedness condition}% _guardedness condition_.  First, consider this stream definition, which would be legal in Haskell.
 [[
 CoFixpoint looper : stream nat := looper.
 ]]
@@ -128,7 +134,11 @@ Section map.
     end.
 End map.
 
-(** This code is a literal copy of that for the list [map] function, with the [Nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
+(* begin hide *)
+Definition filter := 0.
+(* end hide *)
+
+(** This code is a literal copy of that for the list [map] function, with the [nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
 
    The implications of the condition can be subtle.  To illustrate how, we start off with another co-recursive function definition that _is_ legal.  The function [interleave] takes two streams and produces a new stream that alternates between their elements. *)
 
@@ -186,7 +196,7 @@ CoFixpoint map' (s : stream A) : stream B :=
 Clearly in this case the [map'] calls are not immediate arguments to constructors, so we violate the guardedness condition. *)
 (* end thide *)
 
-(** A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for %\index{productivity}%_productivity_ of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
+(** A more interesting question is why that condition is the right one.  We can make an intuitive argument that the original [map'] definition is perfectly reasonable and denotes a well-understood transformation on streams, such that every output would behave properly with [approx].  The guardedness condition is an example of a syntactic check for%\index{productivity}% _productivity_ of co-recursive definitions.  A productive definition can be thought of as one whose outputs can be forced in finite time to any finite approximation level, as with [approx].  If we replaced the guardedness condition with more involved checks, we might be able to detect and allow a broader range of productive definitions.  However, mistakes in these checks could cause inconsistency, and programmers would need to understand the new, more complex checks.  Coq's design strikes a balance between consistency and simplicity with its choice of guard condition, though we can imagine other worthwhile balances being struck, too. *)
 
 
 (** * Infinite Proofs *)
@@ -362,7 +372,7 @@ Abort.
 
    %\medskip%
 
-   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions of the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with %\index{co-induction principles}%_co-induction principles_.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
+   Must we always be cautious with automation in proofs by co-induction?  Induction seems to have dual versions of the same pitfalls inherent in it, and yet we avoid those pitfalls by encapsulating safe Curry-Howard recursion schemes inside named induction principles.  It turns out that we can usually do the same with%\index{co-induction principles}% _co-induction principles_.  Let us take that tack here, so that we can arrive at an [induction x; crush]-style proof for [ones_eq'].
 
    An induction principle is parameterized over a predicate characterizing what we mean to prove, _as a function of the inductive fact that we already know_.  Dually, a co-induction principle ought to be parameterized over a predicate characterizing what we mean to prove, _as a function of the arguments to the co-inductive predicate that we are trying to prove_.
 
@@ -382,7 +392,7 @@ Section stream_eq_coind.
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
-  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is %\index{bisimulation}%_bisimulation_. *)
+  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
 
   (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
 
@@ -519,7 +529,7 @@ Qed.
 
 (** * Simple Modeling of Non-Terminating Programs *)
 
-(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of %\index{co-inductive big-step operational semantics}%_co-inductive big-step operational semantics_ %\cite{BigStep}%.
+(** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of%\index{co-inductive big-step operational semantics}% _co-inductive big-step operational semantics_ %\cite{BigStep}%.
 
    We define a suggestive synonym for [nat], as we will consider programs with infinitely many variables, represented as [nat]s. *)
 
@@ -582,7 +592,7 @@ Section evalCmd_coind.
     -> (evalExp vs1 e = 0 /\ vs3 = vs1)
     \/ exists vs2, evalExp vs1 e <> 0 /\ R vs1 c vs2 /\ R vs2 (While e c) vs3.
 
-  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an %\index{intro pattern}%_intro pattern_ in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
+  (** The proof is routine.  We make use of a form of %\index{tactics!destruct}%[destruct] that takes an%\index{intro pattern}% _intro pattern_ in an [as] clause.  These patterns control how deeply we break apart the components of an inductive value, and we refer the reader to the Coq manual for more details. *)
 
   Theorem evalCmd_coind : forall vs1 c vs2, R vs1 c vs2 -> evalCmd vs1 c vs2.
     cofix; intros; destruct c.
