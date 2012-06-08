@@ -29,7 +29,7 @@ The last chapter took a deep dive into some of the more advanced Coq features, t
 
 (** Mainstream presentations of mathematics treat proofs as objects that exist outside of the universe of mathematical objects.  However, for a variety of reasoning, it is convenient to encode proofs, traditional mathematical objects, and programs within a single formal language.  Validity checks on mathematical objects are useful in any setting, to catch typoes and other uninteresting errors.  The benefits of static typing for programs are widely recognized, and Coq brings those benefits to both mathematical objects and programs via a uniform mechanism.  In fact, from this point on, we will not bother to distinguish between programs and mathematical objects.  Many mathematical formalisms are most easily encoded in terms of programs.
 
-Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the %\index{Curry-Howard correspondence}%_Curry-Howard correspondence_ %\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
+Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the%\index{Curry-Howard correspondence}% _Curry-Howard correspondence_ %\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
 
 The last chapter's example already snuck in an instance of Curry-Howard.  We used the token [->] to stand for both function types and logical implications.  One reasonable conclusion upon seeing this might be that some fancy overloading of notations is at work.  In fact, functions and implications are precisely identical according to Curry-Howard!  That is, they are just two ways of describing the same computational phenomenon.
 
@@ -74,7 +74,7 @@ One of the first types we introduce will be [bool], with constructors [true] and
 
 (** * Enumerations *)
 
-(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
+(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADT's), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
 
 The singleton type [unit] is an inductive type:%\index{Gallina terms!unit}\index{Gallina terms!tt}% *)
 
@@ -127,7 +127,7 @@ Check unit_ind.
 
 The convention goes like this: [Set] is the type of normal types used in programming, and the values of such types are programs.  [Prop] is the type of logical propositions, and the values of such types are proofs.  Thus, an induction principle has a type that shows us that it is a function for building proofs.
 
-Specifically, [unit_ind] quantifies over a predicate [P] over [unit] values.  If we can present a proof that [P] holds of [tt], then we are rewarded with a proof that [P] holds for any value [u] of type [unit].  In our last proof, the predicate was [(][fun u : unit => u = tt)].
+Specifically, [unit_ind] quantifies over a predicate [P] over [unit] values.  If we can present a proof that [P] holds of [tt], then we are rewarded with a proof that [P] holds for any value [u] of type [unit].  In our last proof, the predicate was [(fun u : unit => u = tt)].
 
 The definition of [unit] places the type in [Set].  By replacing [Set] with [Prop], [unit] with [True], and [tt] with [I], we arrive at precisely the definition of [True] that the Coq standard library employs!  The program type [unit] is the Curry-Howard equivalent of the proposition [True].  We might make the tongue-in-cheek claim that, while philosophers have expended much ink on the nature of truth, we have now determined that truth is the [unit] type of functional programming.
 
@@ -150,9 +150,9 @@ Qed.
 We can see the induction principle that made this proof so easy: *)
 
 Check Empty_set_ind.
-(** [Empty_set_ind : forall (][P : Empty_set -> Prop) (e : Empty_set), P e] *)
+(** [Empty_set_ind : forall (P : Empty_set -> Prop) (e : Empty_set), P e] *)
 
-(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(][fun _ : Empty_set => 2 + 2 = 5)].
+(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
 
 We can also apply this get-out-of-jail-free card programmatically.  Here is a lazy way of converting values of [Empty_set] to values of [unit]: *)
 
@@ -207,10 +207,7 @@ The first subgoal follows by Coq's rules of computation, so we can dispatch it e
 
 (** Likewise for the second subgoal, so we can restart the proof and give a very compact justification.%\index{Vernacular commands!Restart}% *)
 
-(* begin hide *)
 Restart.
-(* end hide *)
-(** %\noindent \coqdockw{Restart}%#<tt>Restart</tt>#. *)
 
   destruct b; reflexivity.
 Qed.
@@ -244,7 +241,7 @@ Inductive nat : Set :=
 | O : nat
 | S : nat -> nat.
 
-(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (][S O)], and so on.
+(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (S O)], and so on.
 
 Pattern matching works as we demonstrated in the last chapter:%\index{Gallina terms!pred}% *)
 
@@ -308,7 +305,7 @@ We can start out by using computation to simplify the goal as far as we can.%\in
 
   simpl.
 
-(** Now the conclusion is [S (][plus n O) = S n].  Using our inductive hypothesis: *)
+(** Now the conclusion is [S (plus n O) = S n].  Using our inductive hypothesis: *)
 
   rewrite IHn.
 
@@ -318,10 +315,7 @@ We can start out by using computation to simplify the goal as far as we can.%\in
 
 (** Not much really went on in this proof, so the [crush] tactic from the [CpdtTactics] module can prove this theorem automatically. *)
 
-(* begin hide *)
 Restart.
-(* end hide *)
-(** %\noindent \coqdockw{Restart}%#<tt>Restart</tt>#. *)
 
   induction n; crush.
 Qed.
@@ -336,7 +330,7 @@ Check nat_ind.
  
   ]]
 
-Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(][fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(][forall n : nat, P n -> P (][S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
 
 Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective.%\index{tactics!injection}\index{tactics!trivial}% *)
 
@@ -346,9 +340,9 @@ Theorem S_inj : forall n m : nat, S n = S m -> n = m.
 Qed.
 (* end thide *)
 
-(** [injection] refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
+(** The [injection] tactic refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
 
-There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a %\index{theory of equality and uninterpreted functions}%_complete decision procedure for the theory of equality and uninterpreted functions_, plus some smarts about inductive types.
+There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  [congruence] generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a%\index{theory of equality and uninterpreted functions}% _complete decision procedure for the theory of equality and uninterpreted functions_, plus some smarts about inductive types.
 
 %\medskip%
 
@@ -419,10 +413,7 @@ Qed.
 Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
   = plus (nsize tr2) (nsize tr1).
 (* begin thide *)
-(* begin hide *)
   Hint Rewrite n_plus_O plus_assoc.
-(* end hide *)
-  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [n_plus_O plus_assoc.] *)
 
   induction tr1; crush.
 Qed.
@@ -718,7 +709,11 @@ Focusing on the [Forall] case, which comes third, we see that we are allowed to 
 
 Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in %\index{Haskell}%Haskell and %\index{ML}%ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
 
-Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called %\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}%_higher-order abstract syntax (HOAS)_ %\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
+Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called%\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}% _higher-order abstract syntax_ (HOAS)%~\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
+(* begin hide *)
+Inductive term : Set := App | Abs.
+Reset term.
+(* end hide *)
 (** [[
 Inductive term : Set :=
 | App : term -> term -> term
@@ -729,7 +724,7 @@ Inductive term : Set :=
 Error: Non strictly positive occurrence of "term" in "(term -> term) -> term"
 >>
 
-We have run afoul of the %\index{strict positivity requirement}\index{positivity requirement}%_strict positivity requirement_ for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.  Our candidate definition above violates the positivity requirement because it involves an argument of type [term -> term], where the type [term] that we are defining appears to the left of an arrow.  The candidate type of [App] is fine, however, since every occurrence of [term] is either a constructor argument or the final result type.
+We have run afoul of the%\index{strict positivity requirement}\index{positivity requirement}% _strict positivity requirement_ for inductive definitions, which says that the type being defined may not occur to the left of an arrow in the type of a constructor argument.  It is important that the type of a constructor is viewed in terms of a series of arguments and a result, since obviously we need recursive occurrences to the lefts of the outermost arrows if we are to have recursive occurrences at all.  Our candidate definition above violates the positivity requirement because it involves an argument of type [term -> term], where the type [term] that we are defining appears to the left of an arrow.  The candidate type of [App] is fine, however, since every occurrence of [term] is either a constructor argument or the final result type.
 
 Why must Coq enforce this restriction?  Imagine that our last definition had been accepted, allowing us to write this function:
 
@@ -773,7 +768,7 @@ Check unit_rect.
  
 ]]
 
-[unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
+The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
 
 (* begin hide *)
 Print unit_rec.
@@ -812,7 +807,7 @@ Print unit_rect.
  
 ]]
 
-The only new wrinkle here is the annotations on the [match] expression.  This is a %\index{dependent pattern matching}%_dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
+The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
 
 %\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [unit_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
 
@@ -825,15 +820,12 @@ Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
 
 (** We rely on Coq's heuristics for inferring [match] annotations, which are not consulted in the pretty-printing of terms.
 
-We can check the implementation of %\coqdocdefinition{%#<tt>#nat_rect#</tt>#%}% as well: *)
+We can check the implementation [nat_rect] as well: *)
 
-(* begin hide *)
 Print nat_rect.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocdefinition{%#<tt>#nat_rect#</tt>#%}%[.] *)
 
-(** %\hspace{-.05in}\coqdocdefinition{%#<tt>#nat_rect#</tt>#%}% [=] *)
 (** %\vspace{-.05in}% [[
+  nat_rect =
   fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
   fix F (n : nat) : P n :=
     match n as n0 return (P n0) with
@@ -844,7 +836,7 @@ Print nat_rect.
         P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
  ]]
 
- Now we have an actual recursive definition.  %\index{Gallina terms!fix}%[fix] expressions are an anonymous form of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of %\coqdocdefinition{%#<tt>#nat_rect#</tt>#%}% better by reimplementing [nat_ind] using sections. *)
+ Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
 
 Section nat_ind'.
    (** First, we have the property of natural numbers that we aim to prove. *)
@@ -868,16 +860,13 @@ Section nat_ind'.
     end.
 End nat_ind'.
 
-(** Closing the section adds the [Variable]s and [Hypothesis]es as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for %\coqdocdefinition{%#<tt>#nat_rect#</tt>#%}%.
+(** Closing the section adds the [Variable]s and [Hypothesis]es as new [fun]-bound arguments to [nat_ind'], and, modulo the use of [Prop] instead of [Type], we end up with the exact same definition that was generated automatically for [nat_rect].
 
 %\medskip%
 
 We can also examine the definition of [even_list_mut], which we generated with [Scheme] for a mutually recursive type. *)
 
-(* begin hide *)
 Print even_list_mut.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocdefinition{%#<tt>#even_list_mut#</tt>#%}%[.] *)
 (** [[
   even_list_mut = 
   fun (P : even_list -> Prop) (P0 : odd_list -> Prop) 
@@ -988,31 +977,22 @@ End All.
 
 (** It will be useful to review the definitions of [True] and [/\], since we will want to write manual proofs of them below. *)
 
-(* begin hide *)
 Print True.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#True#</tt>#%}%[.] *)
 (** [[
   Inductive True : Prop :=  I : True
   ]]
 
 That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
 
-Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the %\index{Vernacular commands!Locate}\coqdockw{%#<tt>#Locate#</tt>#%}% command, whose argument may be a parsing token.%\index{Gallina terms!and}% *)
+Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the %\index{Vernacular commands!Locate}%[Locate] command, whose argument may be a parsing token.%\index{Gallina terms!and}% *)
 
-(* begin hide *)
 Locate "/\".
-(* end hide *)
-(** %\noindent \coqdockw{Locate}%#<tt>Locate</tt># ["/\".] *)
 (** [[
   "A /\ B" := and A B  : type_scope (default interpretation)
 ]]
 *)
 
-(* begin hide *)
 Print and.
-(* end hide *)
-(** %\noindent%[Print] %\coqdocinductive{%#<tt>#and#</tt>#%}%[.] *)
 (** [[
   Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
 ]]
@@ -1021,7 +1001,7 @@ Print and.
   For conj: Arguments A, B are implicit
 >>
 
-In addition to the definition of %\coqdocinductive{%#<tt>#and#</tt>#%}% itself, we get information on %\index{implicit arguments}%implicit arguments (and some other information that we omit here).  The implicit argument information tells us that we build a proof of a conjunction by calling the constructor [conj] on proofs of the conjuncts, with no need to include the types of those proofs as explicit arguments.
+In addition to the definition of [and] itself, we get information on %\index{implicit arguments}%implicit arguments (and some other information that we omit here).  The implicit argument information tells us that we build a proof of a conjunction by calling the constructor [conj] on proofs of the conjuncts, with no need to include the types of those proofs as explicit arguments.
 
 %\medskip%
 
@@ -1124,10 +1104,7 @@ Qed.
 Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   = plus (ntsize tr2) (ntsize tr1).
 (* begin thide *)
-(* begin hide *)
   Hint Rewrite plus_S.
-(* end hide *)
-  (** [Hint] %\coqdockw{%#<tt>#Rewrite#</tt>#%}% [plus_S.] *)
 
   (** We know that the standard induction principle is insufficient for the task, so we need to provide a %\index{tactics!using}%[using] clause for the [induction] tactic to specify our alternate principle. *)
 
@@ -1156,10 +1133,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
 
   (** We can go further in automating the proof by exploiting the hint mechanism.%\index{Vernacular commands!Hint Extern}% *)
 
-(* begin hide *)
   Restart.
-(* end hide *)
-(** %\hspace{-.075in}\coqdockw{%#<tt>#Restart#</tt>#%}%[.] *)
 
   Hint Extern 1 (ntsize (match ?LS with Nil => _ | Cons _ _ => _ end) = _) =>
     destruct LS; crush.
@@ -1202,12 +1176,9 @@ This is the point in the proof where we apply some creativity.  We define a func
 
   Definition toProp (b : bool) := if b then True else False.
 
-(** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are boolean values that we can case-analyze.  We have defined [toProp] such that our conclusion of [False] is computationally equivalent to [toProp false].  Thus, the %\index{tactics!change}\coqdockw{%#<tt>#change#</tt>#%}% tactic will let us change the conclusion to [toProp false].  The general form %\coqdockw{%#<tt>#change#</tt>#%}% [e] replaces the conclusion with [e], whenever Coq's built-in computation rules suffice to establish the equivalence of [e] with the original conclusion. *)
+(** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are boolean values that we can case-analyze.  We have defined [toProp] such that our conclusion of [False] is computationally equivalent to [toProp false].  Thus, the %\index{tactics!change}%[change] tactic will let us change the conclusion to [toProp false].  The general form [change e] replaces the conclusion with [e], whenever Coq's built-in computation rules suffice to establish the equivalence of [e] with the original conclusion. *)
 
-(* begin hide *)
   change (toProp false).
-(* end hide *)
-  (** %\hspace{-.075in}\coqdockw{%#<tt>#change#</tt>#%}% [(][toProp false).] *)
 (** [[
   H : true = false
   ============================
@@ -1249,16 +1220,12 @@ We can perform a similar manual proof of injectivity of the constructor [S].  I 
 Theorem S_inj' : forall n m : nat, S n = S m -> n = m.
 (* begin thide *)
   intros n m H.
-(* begin hide *)
   change (pred (S n) = pred (S m)).
-(* end hide *)
-  (** %\hspace{-.075in}\coqdockw{%#<tt>#change#</tt>#%}% [(][pred (][S n) = pred (][S m)).] *)
-
   rewrite H.
   reflexivity.
 Qed.
 (* end thide *)
 
-(** The key piece of creativity in this theorem comes in the use of the natural number predecessor function [pred].  Embodied in the implementation of %\coqdockw{%#<tt>#injectivity#</tt>#%}% is a generic recipe for writing such type-specific functions.
+(** The key piece of creativity in this theorem comes in the use of the natural number predecessor function [pred].  Embodied in the implementation of [injection] is a generic recipe for writing such type-specific functions.
 
 The examples in this section illustrate an important aspect of the design philosophy behind Coq.  We could certainly design a Gallina replacement that built in rules for constructor discrimination and injectivity, but a simpler alternative is to include a few carefully chosen rules that enable the desired reasoning patterns and many others.  A key benefit of this philosophy is that the complexity of proof checking is minimized, which bolsters our confidence that proved theorems are really true. *)
