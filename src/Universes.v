@@ -56,7 +56,7 @@ Check Set.
  
      ]]
 
-  The type [Set] may be considered as the set of all sets, a concept that set theory handles in terms of %\index{class (in set theory)}%_classes_.  In Coq, this more general notion is [Type]. *)
+  The type [Set] may be considered as the set of all sets, a concept that set theory handles in terms of%\index{class (in set theory)}% _classes_.  In Coq, this more general notion is [Type]. *)
 
 Check Type.
 (** %\vspace{-.15in}% [[
@@ -97,9 +97,9 @@ Check Type.
 
   In the outputs of our first [Check] query, we see that the type level of [Set]'s type is [(0)+1]. Here [0] stands for the level of [Set], and we increment it to arrive at the level that _classifies_ [Set].
 
-  In the second query's output, we see that the occurrence of [Type] that we check is assigned a fresh %\index{universe variable}%_universe variable_ [Top.3].  The output type increments [Top.3] to move up a level in the universe hierarchy.  As we write code that uses definitions whose types mention universe variables, unification may refine the values of those variables.  Luckily, the user rarely has to worry about the details.
+  In the second query's output, we see that the occurrence of [Type] that we check is assigned a fresh%\index{universe variable}% _universe variable_ [Top.3].  The output type increments [Top.3] to move up a level in the universe hierarchy.  As we write code that uses definitions whose types mention universe variables, unification may refine the values of those variables.  Luckily, the user rarely has to worry about the details.
 
-  Another crucial concept in CIC is %\index{predicativity}%_predicativity_.  Consider these queries. *)
+  Another crucial concept in CIC is%\index{predicativity}% _predicativity_.  Consider these queries. *)
 
 Check forall T : nat, fin T.
 (** %\vspace{-.15in}% [[
@@ -194,7 +194,7 @@ Inductive exp : Set -> Set :=
 Error: Large non-propositional inductive types must be in Type.
 >>
 
-   This definition is %\index{large inductive types}%_large_ in the sense that at least one of its constructors takes an argument whose type has type [Type].  Coq would be inconsistent if we allowed definitions like this one in their full generality.  Instead, we must change [exp] to live in [Type].  We will go even further and move [exp]'s index to [Type] as well. *)
+   This definition is%\index{large inductive types}% _large_ in the sense that at least one of its constructors takes an argument whose type has type [Type].  Coq would be inconsistent if we allowed definitions like this one in their full generality.  Instead, we must change [exp] to live in [Type].  We will go even further and move [exp]'s index to [Type] as well. *)
 
 Inductive exp : Type -> Type :=
 | Const : forall T, T -> exp T
@@ -436,7 +436,7 @@ The term "H" has type "x = 0" while it is expected to have type
   destruct 1 as [x]; apply ex_intro with x; symmetry; assumption.
 Qed.
 
-(** This restriction for unification variables may seem counterintuitive, but it follows from the fact that CIC contains no concept of unification variable.  Rather, to construct the final proof term, at the point in a proof where the unification variable is introduced, we replace it with the instantiation we eventually find for it.  It is simply syntactically illegal to refer there to variables that are not in scope. *)
+(** This restriction for unification variables may seem counterintuitive, but it follows from the fact that CIC contains no concept of unification variable.  Rather, to construct the final proof term, at the point in a proof where the unification variable is introduced, we replace it with the instantiation we eventually find for it.  It is simply syntactically illegal to refer there to variables that are not in scope.  Without such a restriction, we could trivially %``%#"#prove#"#%''% such non-theorems as [exists n : nat, forall m : nat, n = m] by [econstructor; intro; reflexivity]. *)
 
 
 (** * The [Prop] Universe *)
@@ -516,13 +516,13 @@ let sym_ex = __
 
 In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type %\texttt{\_\_}%#<tt>__</tt>#, whose single constructor is %\texttt{\_\_}%#<tt>__</tt>#.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
 
-Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADTs%~\cite{GADT}%, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as all proofs are kept within [Prop], extraction is guaranteed to erase them.
+Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADT's%~\cite{GADT}%, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as all proofs are kept within [Prop], extraction is guaranteed to erase them.
 
 Many fans of the %\index{Curry-Howard correspondence}%Curry-Howard correspondence support the idea of _extracting programs from proofs_.  In reality, few users of Coq and related tools do any such thing.  Instead, extraction is better thought of as an optimization that reduces the runtime costs of expressive typing.
 
 %\medskip%
 
-We have seen two of the differences between proofs and programs: proofs are subject to an elimination restriction and are elided by extraction.  The remaining difference is that [Prop] is %\index{impredicativity}%_impredicative_, as this example shows. *)
+We have seen two of the differences between proofs and programs: proofs are subject to an elimination restriction and are elided by extraction.  The remaining difference is that [Prop] is%\index{impredicativity}% _impredicative_, as this example shows. *)
 
 Check forall P Q : Prop, P \/ Q -> Q \/ P.
 (** %\vspace{-.15in}% [[
@@ -602,7 +602,7 @@ Check (Base (Base 1)).
 
 (** * Axioms *)
 
-(** While the specific logic Gallina is hardcoded into Coq's implementation, it is possible to add certain logical rules in a controlled way.  In other words, Coq may be used to reason about many different refinements of Gallina where strictly more theorems are provable.  We achieve this by asserting %\index{axioms}%_axioms_ without proof.
+(** While the specific logic Gallina is hardcoded into Coq's implementation, it is possible to add certain logical rules in a controlled way.  In other words, Coq may be used to reason about many different refinements of Gallina where strictly more theorems are provable.  We achieve this by asserting%\index{axioms}% _axioms_ without proof.
 
    We will motivate the idea by touring through some standard axioms, as enumerated in Coq's online FAQ.  I will add additional commentary as appropriate. *)
 
@@ -628,7 +628,7 @@ Reset n.
 
 (** This kind of %``%#"#axiomatic presentation#"#%''% of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
 
-   In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is %\index{inconsistent axioms}%_inconsistent_.   That is, a set of axioms may imply [False], which allows any theorem to be proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
+   In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is%\index{inconsistent axioms}% _inconsistent_.   That is, a set of axioms may imply [False], which allows any theorem to be proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
 
 Axiom not_classic : ~ forall P : Prop, P \/ ~ P.
 
@@ -644,7 +644,7 @@ Reset not_classic.
 
 (** On the subject of the law of the excluded middle itself, this axiom is usually quite harmless, and many practical Coq developments assume it.  It has been proved metatheoretically to be consistent with CIC.  Here, %``%#"#proved metatheoretically#"#%''% means that someone proved on paper that excluded middle holds in a _model_ of CIC in set theory%~\cite{SetsInTypes}%.  All of the other axioms that we will survey in this section hold in the same model, so they are all consistent together.
 
-   Recall that Coq implements %\index{constructive logic}%_constructive_ logic by default, where excluded middle is not provable.  Proofs in constructive logic can be thought of as programs.  A [forall] quantifier denotes a dependent function type, and a disjunction denotes a variant type.  In such a setting, excluded middle could be interpreted as a decision procedure for arbitrary propositions, which computability theory tells us cannot exist.  Thus, constructive logic with excluded middle can no longer be associated with our usual notion of programming.
+   Recall that Coq implements%\index{constructive logic}% _constructive_ logic by default, where excluded middle is not provable.  Proofs in constructive logic can be thought of as programs.  A [forall] quantifier denotes a dependent function type, and a disjunction denotes a variant type.  In such a setting, excluded middle could be interpreted as a decision procedure for arbitrary propositions, which computability theory tells us cannot exist.  Thus, constructive logic with excluded middle can no longer be associated with our usual notion of programming.
 
    Given all this, why is it all right to assert excluded middle as an axiom?  The intuitive justification is that the elimination restriction for [Prop] prevents us from treating proofs as programs.  An excluded middle axiom that quantified over [Set] instead of [Prop] _would_ be problematic.  If a development used that axiom, we would not be able to extract the code to OCaml (soundly) without implementing a genuine universal decision procedure.  In contrast, values whose types belong to [Prop] are always erased by extraction, so we sidestep the axiom's algorithmic consequences.
 
@@ -694,7 +694,7 @@ Closed under the global context
 
   %\bigskip%
 
-  Mainstream mathematical practice assumes excluded middle, so it can be useful to have it available in Coq developments, though it is also nice to know that a theorem is proved in a simpler formal system than classical logic.  There is a similar story for %\index{proof irrelevance}%_proof irrelevance_, which simplifies proof issues that would not even arise in mainstream math. *)
+  Mainstream mathematical practice assumes excluded middle, so it can be useful to have it available in Coq developments, though it is also nice to know that a theorem is proved in a simpler formal system than classical logic.  There is a similar story for%\index{proof irrelevance}% _proof irrelevance_, which simplifies proof issues that would not even arise in mainstream math. *)
 
 Require Import ProofIrrelevance.
 Print proof_irrelevance.
@@ -932,7 +932,7 @@ Eval compute in cast (t4 13) First.
 
 (** ** Methods for Avoiding Axioms *)
 
-(** The last section demonstrated one reason to avoid axioms: they interfere with computational behavior of terms.  A further reason is to reduce the philosophical commitment of a theorem.  The more axioms one assumes, the harder it becomes to convince oneself that the formal system corresponds appropriately to one's intuitions.  A refinement of this last point, in applications like %\index{proof-carrying code}%proof-carrying code%~\cite{PCC}% in computer security, has to do with minimizing the size of a %\index{trusted code base}%_trusted code base_.  To convince ourselves that a theorem is true, we must convince ourselves of the correctness of the program that checks the theorem.  Axioms effectively become new source code for the checking program, increasing the effort required to perform a correctness audit.
+(** The last section demonstrated one reason to avoid axioms: they interfere with computational behavior of terms.  A further reason is to reduce the philosophical commitment of a theorem.  The more axioms one assumes, the harder it becomes to convince oneself that the formal system corresponds appropriately to one's intuitions.  A refinement of this last point, in applications like %\index{proof-carrying code}%proof-carrying code%~\cite{PCC}% in computer security, has to do with minimizing the size of a%\index{trusted code base}% _trusted code base_.  To convince ourselves that a theorem is true, we must convince ourselves of the correctness of the program that checks the theorem.  Axioms effectively become new source code for the checking program, increasing the effort required to perform a correctness audit.
 
    An earlier section gave one example of avoiding an axiom.  We proved that [pred_strong1] is agnostic to details of the proofs passed to it as arguments, by unfolding the definition of the function.  A %``%#"#simpler#"#%''% proof keeps the function definition opaque and instead applies a proof irrelevance axiom.  By accepting a more complex proof, we reduce our philosophical commitment and trusted base.  (By the way, the less-than relation that the proofs in question here prove turns out to admit proof irrelevance as a theorem provable within normal Gallina!)
 
