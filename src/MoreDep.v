@@ -215,7 +215,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => typeDenote t1 * typeDenote t2
   end%type.
 
-(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%][type] annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token [type] is one example of an identifer bound to a _notation scope_.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
+(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%]%\coqdocvar{%#<tt>#type#</tt>#%}% annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token %\coqdocvar{%#<tt>#type#</tt>#%}% is one example of an identifer bound to a%\index{notation scope delimiter}% _notation scope delimiter_.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
