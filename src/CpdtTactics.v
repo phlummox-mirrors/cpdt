@@ -214,7 +214,7 @@ Ltac dep_destruct E :=
   let x := fresh "x" in
     remember E as x; simpl in x; dependent destruction x;
       try match goal with
-            | [ H : _ = E |- _ ] => rewrite <- H in *; clear H
+            | [ H : _ = E |- _ ] => try rewrite <- H in *; clear H
           end.
 
 (** Nuke all hypotheses that we can get away with, without invalidating the goal statement. *)

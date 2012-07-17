@@ -773,14 +773,14 @@ Fixpoint cfold t (e : exp' t) : exp' t :=
     | Plus e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' return _ with
+      match e1', e2' return exp' Nat with
         | NConst n1, NConst n2 => NConst (n1 + n2)
         | _, _ => Plus e1' e2'
       end
     | Eq e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' return _ with
+      match e1', e2' return exp' Bool with
         | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
         | _, _ => Eq e1' e2'
       end

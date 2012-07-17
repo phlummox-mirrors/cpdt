@@ -238,8 +238,11 @@ Error: Universe inconsistency (cannot enforce Top.42 < Top.42).
 
   We are unable to instantiate the parameter [T] of [Const] with an [exp] type.  To see why, it is helpful to print the annotated version of [exp]'s inductive definition. *)
 
+(** [[
 Print exp.
-(** %\vspace{-.15in}% [[
+]]
+
+[[
 Inductive exp
               : Type $ Top.8 ^ ->
                 Type
@@ -268,8 +271,16 @@ The command outputs many more constraints, but we have collected only those that
 
 The next constraint, for [Top.15], is more complicated.  This is the universe of the second argument to the [Pair] constructor.  Not only must [Top.15] be less than [Top.8], but it also comes out that [Top.8] must be less than [Coq.Init.Datatypes.38].  What is this new universe variable?  It is from the definition of the [prod] inductive family, to which types of the form [A * B] are desugared. *)
 
+(* begin hide *)
+Inductive prod := pair.
+Reset prod.
+(* end hide *)
+
+(** [[
 Print prod.
-(** %\vspace{-.15in}% [[
+]]
+
+[[
 Inductive prod (A : Type $ Coq.Init.Datatypes.37 ^ )
           (B : Type $ Coq.Init.Datatypes.38 ^ )
             : Type $ max(Coq.Init.Datatypes.37, Coq.Init.Datatypes.38) ^ :=

@@ -280,7 +280,7 @@ Definition pairOut t (e : exp t) :=
 
 (** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages%\index{Hindley-Milner}%, but is similar to what goes on with Haskell type classes%\index{type classes}%.
 
-With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off by writing [return _]. *)
+With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference with explicit [return] clauses. *)
 
 Fixpoint cfold t (e : exp t) : exp t :=
   match e with
@@ -288,14 +288,14 @@ Fixpoint cfold t (e : exp t) : exp t :=
     | Plus e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' return _ with
+      match e1', e2' return exp Nat with
         | NConst n1, NConst n2 => NConst (n1 + n2)
         | _, _ => Plus e1' e2'
       end
     | Eq e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' return _ with
+      match e1', e2' return exp Bool with
         | NConst n1, NConst n2 => BConst (if eq_nat_dec n1 n2 then true else false)
         | _, _ => Eq e1' e2'
       end
@@ -304,7 +304,7 @@ Fixpoint cfold t (e : exp t) : exp t :=
     | And e1 e2 =>
       let e1' := cfold e1 in
       let e2' := cfold e2 in
-      match e1', e2' return _ with
+      match e1', e2' return exp Bool with
         | BConst b1, BConst b2 => BConst (b1 && b2)
         | _, _ => And e1' e2'
       end
