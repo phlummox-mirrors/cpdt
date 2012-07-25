@@ -52,7 +52,7 @@ The type [unit] has one value, [tt].  The type [True] has one proof, [I].  Why d
 
 The essence of the argument is roughly this: to an engineer, not all functions of type [A -> B] are created equal, but all proofs of a proposition [P -> Q] are.  This idea is known as%\index{proof irrelevance}% _proof irrelevance_, and its formalizations in logics prevent us from distinguishing between alternate proofs of the same proposition.  Proof irrelevance is compatible with, but not derivable in, Gallina.  Apart from this theoretical concern, I will argue that it is most effective to do engineering with Coq by employing different techniques for programs versus proofs.  Most of this book is organized around that distinction, describing how to program, by applying standard functional programming techniques in the presence of dependent types; and how to prove, by writing custom Ltac decision procedures.
 
-With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus %``%#"#datatypes.#"#%''%  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
+With that perspective in mind, this chapter is sort of a mirror image of the last chapter, introducing how to define predicates with inductive definitions.  We will point out similarities in places, but much of the effective Coq user's bag of tricks is disjoint for predicates versus "datatypes."  This chapter is also a covert introduction to dependent types, which are the foundation on which interesting inductive predicates are built, though we will rely on tactics to build dependently typed proof terms for us for now.  A future chapter introduces more manual application of dependent types. *)
 
 
 (** * Propositional Logic *)
@@ -120,6 +120,10 @@ We have also already seen the definition of [True].  For a demonstration of a lo
   Qed.
 
   (** A related notion to [False] is logical negation. *)
+
+  (* begin hide *)
+  Definition foo := not.
+  (* end hide *)
 
   Print not.
   (** %\vspace{-.15in}% [[
@@ -287,7 +291,7 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
 (* end hide *)
 
 
-  (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is %\index{tactics!tauto}%[tauto], which is a complete decision procedure for constructive propositional logic.  (More on what %``%#"#constructive#"#%''% means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
+  (** It would be a shame to have to plod manually through all proofs about propositional logic.  Luckily, there is no need.  One of the most basic Coq automation tactics is %\index{tactics!tauto}%[tauto], which is a complete decision procedure for constructive propositional logic.  (More on what "constructive" means in the next section.)  We can use [tauto] to dispatch all of the purely propositional theorems we have proved so far. *)
 
   Theorem or_comm' : P \/ Q -> Q \/ P.
 (* begin thide *)
@@ -353,9 +357,9 @@ End Propositional.
 
 (** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  The datatype [bool] is built from two values [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth?
 
-The answer comes from the fact that Coq implements%\index{constructive logic}% _constructive_ or%\index{intuitionistic logic|see{constructive logic}}% _intuitionistic_ logic, in contrast to the%\index{classical logic}% _classical_ logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is%\index{decidability}% _decidable_, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like %``%#"#this particular Turing machine halts.#"#%''%
+The answer comes from the fact that Coq implements%\index{constructive logic}% _constructive_ or%\index{intuitionistic logic|see{constructive logic}}% _intuitionistic_ logic, in contrast to the%\index{classical logic}% _classical_ logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is%\index{decidability}% _decidable_, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like "this particular Turing machine halts."
 
-Hence the distinction between [bool] and [Prop].  Programs of type [bool] are computational by construction; we can always run them to determine their results.  Many [Prop]s are undecidable, and so we can write more expressive formulas with [Prop]s than with [bool]s, but the inevitable consequence is that we cannot simply %``%#"#run a [Prop] to determine its truth.#"#%''%
+Hence the distinction between [bool] and [Prop].  Programs of type [bool] are computational by construction; we can always run them to determine their results.  Many [Prop]s are undecidable, and so we can write more expressive formulas with [Prop]s than with [bool]s, but the inevitable consequence is that we cannot simply "run a [Prop] to determine its truth."
 
 Constructive logic lets us define all of the logical connectives in an aesthetically appealing way, with orthogonal inductive definitions.  That is, each connective is defined independently using a simple, shared mechanism.  Constructivity also enables a trick called%\index{program extraction}% _program extraction_, where we write programs by phrasing them as theorems to be proved.  Since our proofs are just functional programs, we can extract executable programs from our final proofs, which we could not do as naturally with classical proofs.
 
@@ -364,7 +368,7 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 
 (** * First-Order Logic *)
 
-(** The %\index{Gallina terms!forall}%[forall] connective of first-order logic, which we have seen in many examples so far, is built into Coq.  Getting ahead of ourselves a bit, we can see it as the dependent function type constructor.  In fact, implication and universal quantification are just different syntactic shorthands for the same Coq mechanism.  A formula [P -> Q] is equivalent to [forall x : P, Q], where [x] does not appear in [Q].  That is, the %``%#"#real#"#%''% type of the implication says %``%#"#for every proof of [P], there exists a proof of [Q].#"#%''%
+(** The %\index{Gallina terms!forall}%[forall] connective of first-order logic, which we have seen in many examples so far, is built into Coq.  Getting ahead of ourselves a bit, we can see it as the dependent function type constructor.  In fact, implication and universal quantification are just different syntactic shorthands for the same Coq mechanism.  A formula [P -> Q] is equivalent to [forall x : P, Q], where [x] does not appear in [Q].  That is, the "real" type of the implication says "for every proof of [P], there exists a proof of [Q]."
 
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
@@ -380,7 +384,7 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
   (** remove printing exists *)
-  (** We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text %``%#"#exists#"#%''% in formulas.) *)
+  (** We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text "exists" in formulas.) *)
 
   exists 1.
 
@@ -503,7 +507,7 @@ Theorem isZero_contra : isZero 1 -> False.
 
    It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0].
 
-     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of %``%#"#logically complete case analysis#"#%''% is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
+     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
 
   Undo.
   inversion 1.
@@ -684,7 +688,7 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
   IHn : forall m : nat, even n -> even m -> even (n + m)
   ]]
 
-  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with %``%#"#normal#"#%''% induction is apparent.
+  Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with "normal" induction is apparent.
 
   Recall that tactics like [induction] and [destruct] may be passed numbers to refer to unnamed lefthand sides of implications in the conclusion, where the argument [n] refers to the [n]th such hypothesis. *)
 
@@ -811,7 +815,7 @@ Qed.
 
 (** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, %\index{tactics!eauto}%[eauto].
 
-The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the %``%#"#easy#"#%''% subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
 
 The original theorem now follows trivially from our lemma. *)
 
@@ -853,7 +857,7 @@ Abort.
 (* begin hide *)
 (* In-class exercises *)
 
-(* EX: Define a type [prop] of simple boolean formulas made up only of truth, falsehood, binary conjunction, and binary disjunction.  Define an inductive predicate [holds] that captures when [prop]s are valid, and define a predicate [falseFree] that captures when a [prop] does not contain the %``%#"#false#"#%''% formula.  Prove that every false-free [prop] is valid. *)
+(* EX: Define a type [prop] of simple boolean formulas made up only of truth, falsehood, binary conjunction, and binary disjunction.  Define an inductive predicate [holds] that captures when [prop]s are valid, and define a predicate [falseFree] that captures when a [prop] does not contain the "false" formula.  Prove that every false-free [prop] is valid. *)
 
 (* begin thide *)
 Inductive prop : Set :=
