@@ -27,7 +27,7 @@ The last chapter took a deep dive into some of the more advanced Coq features, t
 
 (** * Proof Terms *)
 
-(** Mainstream presentations of mathematics treat proofs as objects that exist outside of the universe of mathematical objects.  However, for a variety of reasoning, it is convenient to encode proofs, traditional mathematical objects, and programs within a single formal language.  Validity checks on mathematical objects are useful in any setting, to catch typoes and other uninteresting errors.  The benefits of static typing for programs are widely recognized, and Coq brings those benefits to both mathematical objects and programs via a uniform mechanism.  In fact, from this point on, we will not bother to distinguish between programs and mathematical objects.  Many mathematical formalisms are most easily encoded in terms of programs.
+(** Mainstream presentations of mathematics treat proofs as objects that exist outside of the universe of mathematical objects.  However, for a variety of reasoning tasks, it is convenient to encode proofs, traditional mathematical objects, and programs within a single formal language.  Validity checks on mathematical objects are useful in any setting, to catch typoes and other uninteresting errors.  The benefits of static typing for programs are widely recognized, and Coq brings those benefits to both mathematical objects and programs via a uniform mechanism.  In fact, from this point on, we will not bother to distinguish between programs and mathematical objects.  Many mathematical formalisms are most easily encoded in terms of programs.
 
 Proofs are fundamentally different from programs, because any two proofs of a theorem are considered equivalent, from a formal standpoint if not from an engineering standpoint.  However, we can use the same type-checking technology to check proofs as we use to validate our programs.  This is the%\index{Curry-Howard correspondence}% _Curry-Howard correspondence_ %\cite{Curry,Howard}%, an approach for relating proofs and programs.  We represent mathematical theorems as types, such that a theorem's proofs are exactly those programs that type-check at the corresponding type.
 
@@ -65,7 +65,7 @@ Check (fun x : False => x).
 Check (fun x : False => match x with end : True).
 (** [: False -> True] *)
 
-(** Every one of these example programs whose type looks like a logical formula is a %\index{proof term}%_proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
+(** Every one of these example programs whose type looks like a logical formula is a%\index{proof term}% _proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
 
 In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or %\index{proposition}%propositions (i.e., formulas or theorem statements).
 
@@ -116,7 +116,7 @@ Qed.
 
 ]]
 
-%\noindent%...which corresponds to %``%#"#proof by case analysis#"#%''% in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
+%\noindent%...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
 
 What exactly _is_ the %\index{induction principles}%induction principle for [unit]?  We can ask Coq: *)
 
@@ -386,7 +386,7 @@ Check nat_list_ind.
 
 %\medskip%
 
-In general, we can implement any %``%#"#tree#"#%''% types as inductive types.  For example, here are binary trees of naturals. *)
+In general, we can implement any "tree" types as inductive types.  For example, here are binary trees of naturals. *)
 
 Inductive nat_btree : Set :=
 | NLeaf : nat_btree
@@ -461,7 +461,7 @@ Theorem length_app : forall T (ls1 ls2 : list T), length (app ls1 ls2)
 Qed.
 (* end thide *)
 
-(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's %\index{sections}\index{Vernacular commands!Section}\index{Vernacular commands!Variable}%_section_ mechanism.  The following block of code is equivalent to the above: *)
+(** There is a useful shorthand for writing many definitions that share the same parameter, based on Coq's%\index{sections}\index{Vernacular commands!Section}\index{Vernacular commands!Variable}% _section_ mechanism.  The following block of code is equivalent to the above: *)
 
 (* begin hide *)
 Reset list.
@@ -658,7 +658,7 @@ Inductive formula : Set :=
 | And : formula -> formula -> formula
 | Forall : (nat -> formula) -> formula.
 
-(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of %``%#"#variables#"#%''% in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]:%\index{Vernacular commands!Example}% *)
+(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of "variables" in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]:%\index{Vernacular commands!Example}% *)
 
 Example forall_refl : formula := Forall (fun x => Eq x x).
 
@@ -713,6 +713,7 @@ Given our last example of an inductive type, many readers are probably eager to 
 (* begin hide *)
 Inductive term : Set := App | Abs.
 Reset term.
+Definition uhoh := O.
 (* end hide *)
 (** [[
 Inductive term : Set :=
@@ -759,7 +760,7 @@ Print unit_ind.
  
 ]]
 
-We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The %\texttt{%#<tt>#rec#</tt>#%}% stands for %``%#"#recursion principle,#"#%''% and the %\texttt{%#<tt>#t#</tt>#%}% at the end stands for [Type]. *)
+We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
 
 Check unit_rect.
 (** %\vspace{-.15in}% [[
@@ -817,6 +818,10 @@ Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
   match u with
     | tt => f
   end.
+
+(* begin hide *)
+Definition foo := nat_rect.
+(* end hide *)
 
 (** We rely on Coq's heuristics for inferring [match] annotations, which are not consulted in the pretty-printing of terms.
 
@@ -890,7 +895,7 @@ Print even_list_mut.
 
 ]]
 
- We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by %\texttt{%#<tt>#and#</tt>#%}% in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+ We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by <<and>> in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
 
 Section even_list_mut'.
   (** First, we need the properties that we are proving. *)
@@ -946,7 +951,7 @@ Inductive nat_tree : Set :=
 | NLeaf' : nat_tree
 | NNode' : nat -> list nat_tree -> nat_tree.
 
-(** This is an example of a %\index{nested inductive type}%_nested_ inductive type definition, because we use the type we are defining as an argument to a parametrized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
+(** This is an example of a%\index{nested inductive type}% _nested_ inductive type definition, because we use the type we are defining as an argument to a parametrized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
 
 Like we encountered for mutual inductive types, we find that the automatically generated induction principle for [nat_tree] is too weak. *)
 
@@ -1014,6 +1019,10 @@ Section nat_tree_ind'.
   Hypothesis NNode'_case : forall (n : nat) (ls : list nat_tree),
     All P ls -> P (NNode' n ls).
 
+  (* begin hide *)
+  Definition list_nat_tree_ind := O.
+  (* end hide *)
+
   (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.
 
   [[
@@ -1037,7 +1046,7 @@ Section nat_tree_ind'.
   instead of rest.
 >>
 
-  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term %``%#"#nested inductive type#"#%''% hints at the solution to this particular problem.  Just like true mutually inductive types require mutually recursive induction principles, nested types require nested recursion. *)
+  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term "nested inductive type" hints at the solution to this particular problem.  Just like true mutually inductive types require mutually recursive induction principles, nested types require nested recursion. *)
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
@@ -1153,7 +1162,7 @@ The advantage of using the hint is not very clear here, because the original pro
 Theorem true_neq_false : true <> false.
 
 (* begin thide *)
-(** We begin with the tactic %\index{tactics!red}%[red], which is short for %``%#"#one step of reduction,#"#%''% to unfold the definition of logical negation. *)
+(** We begin with the tactic %\index{tactics!red}%[red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
 
   red.
 (** [[
