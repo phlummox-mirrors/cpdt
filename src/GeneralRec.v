@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 (** Termination of all programs is a crucial property of Gallina.  Non-terminating programs introduce logical inconsistency, where any theorem can be proved with an infinite loop.  Coq uses a small set of conservative, syntactic criteria to check termination of all recursive definitions.  These criteria are insufficient to support the natural encodings of a variety of important programming idioms.  Further, since Coq makes it so convenient to encode mathematics computationally, with functional programs, we may find ourselves wanting to employ more complicated recursion in mathematical definitions.
 
-   What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as%\index{primitive recursion}% _primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardness condition that guarantees productivity.
+   What exactly are the conservative criteria that we run up against?  For _recursive_ definitions, recursive calls are only allowed on _syntactic subterms_ of the original primary argument, a restriction known as%\index{primitive recursion}% _primitive recursion_.  In fact, Coq's handling of reflexive inductive types (those defined in terms of functions returning the same type) gives a bit more flexibility than in traditional primitive recursion, but the term is still applied commonly.  In Chapter 5, we saw how _co-recursive_ definitions are checked against a syntactic guardedness condition that guarantees productivity.
 
    Many natural recursion patterns satisfy neither condition.  For instance, there is our simple running example in this chapter, merge sort.  We will study three different approaches to more flexible recursion, and the latter two of the approaches will even support definitions that may fail to terminate on certain inputs, without any up-front characterization of which inputs those may be.
 
@@ -34,7 +34,7 @@ Set Implicit Arguments.
 Section mergeSort.
   Variable A : Type.
   Variable le : A -> A -> bool.
-  (** We have a set equipped with some %``%#"#less-than-or-equal-to#"#%''% test. *)
+  (** We have a set equipped with some "less-than-or-equal-to" test. *)
 
   (** A standard function inserts an element into a sorted list, preserving sortedness. *)
 
@@ -66,7 +66,7 @@ Section mergeSort.
 	  (h1 :: ls1, h2 :: ls2)
     end.
 
-  (** Now, let us try to write the final sorting function, using a natural number %``%#"#[<=]#"#%''% test [leb] from the standard library.
+  (** Now, let us try to write the final sorting function, using a natural number "[<=]" test [leb] from the standard library.
 [[
   Fixpoint mergeSort (ls : list A) : list A :=
     if leb (length ls) 2
@@ -92,13 +92,17 @@ fun (A : Type) (R : A -> A -> Prop) => forall a : A, Acc R a
 
 The bulk of the definitional work devolves to the%\index{accessibility relation}\index{Gallina terms!Acc}% _accessibility_ relation [Acc], whose definition we may also examine. *)
 
+(* begin hide *)
+Definition Acc_intro' := Acc_intro.
+(* end hide *)
+
   Print Acc.
 (** %\vspace{-.15in}% [[
 Inductive Acc (A : Type) (R : A -> A -> Prop) (x : A) : Prop :=
     Acc_intro : (forall y : A, R y x -> Acc R y) -> Acc R x
 ]]
 
-In prose, an element [x] is accessible for a relation [R] if every element %``%#"#less than#"#%''% [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of %``%#"#absence of infinite decreasing chains.#"#%''% *)
+In prose, an element [x] is accessible for a relation [R] if every element "less than" [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of "absence of infinite decreasing chains." *)
 
   CoInductive isChain A (R : A -> A -> Prop) : stream A -> Prop :=
   | ChainCons : forall x y s, isChain R (Cons y s)
@@ -141,7 +145,7 @@ A call to %\index{Gallina terms!Fix}%[Fix] must present a relation [R] and a pro
        forall x : A, (forall y : A, R y x -> P y) -> P x
 ]]
 
-This is an encoding of the function body.  The input [x] stands for the function argument, and the next input stands for the function we are defining.  Recursive calls are encoded as calls to the second argument, whose type tells us it expects a value [y] and a proof that [y] is %``%#"#less than#"#%''% [x], according to [R].  In this way, we enforce the well-foundedness restriction on recursive calls.
+This is an encoding of the function body.  The input [x] stands for the function argument, and the next input stands for the function we are defining.  Recursive calls are encoded as calls to the second argument, whose type tells us it expects a value [y] and a proof that [y] is "less than" [x], according to [R].  In this way, we enforce the well-foundedness restriction on recursive calls.
 
 The rest of [Fix]'s type tells us that it returns a function of exactly the type we expect, so we are now ready to use it to implement [mergeSort].  Careful readers may have noticed that [Fix] has a dependent type of the sort we met in the previous chapter.
 
@@ -224,7 +228,7 @@ Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
     else ls.
   intros; apply (Fix_eq (@lengthOrder_wf A) (fun _ => list A)); intros.
 
-  (** The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between %``%#"#self#"#%''% arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general%\index{extensionality}% _function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
+  (** The library theorem [Fix_eq] imposes one more strange subgoal upon us.  We must prove that the function body is unable to distinguish between "self" arguments that map equal inputs to equal outputs.  One might think this should be true of any Gallina code, but in fact this general%\index{extensionality}% _function extensionality_ property is neither provable nor disprovable within Coq.  The type of [Fix_eq] makes clear what we must show manually: *)
 
   Check Fix_eq.
 (** %\vspace{-.15in}%[[
@@ -278,7 +282,7 @@ well_founded_induction
 
 (** * A Non-Termination Monad Inspired by Domain Theory *)
 
-(** The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on _information orders_ that relate values representing computation results, according to how much information these values convey.  For instance, a simple domain might include values %``%#"#the program does not terminate#"#%''% and %``%#"#the program terminates with the answer 5.#"#%''%  The former is considered to be an _approximation_ of the latter, while the latter is _not_ an approximation of %``%#"#the program terminates with the answer 6.#"#%''%  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.
+(** The key insights of %\index{domain theory}%domain theory%~\cite{WinskelDomains}% inspire the next approach to modeling non-termination.  Domain theory is based on _information orders_ that relate values representing computation results, according to how much information these values convey.  For instance, a simple domain might include values "the program does not terminate" and "the program terminates with the answer 5."  The former is considered to be an _approximation_ of the latter, while the latter is _not_ an approximation of "the program terminates with the answer 6."  The details of domain theory will not be important in what follows; we merely borrow the notion of an approximation ordering on computation results.
 
    Consider this definition of a type of computations. *)
 
@@ -437,7 +441,7 @@ End Bind.
 Notation "x <- m1 ; m2" :=
   (Bind m1 (fun x => m2)) (right associativity, at level 70).
 
-(** We can verify that we have indeed defined a monad, by proving the standard monad laws.  Part of the exercise is choosing an appropriate notion of equality between computations.  We use %``%#"#equality at all approximation levels.#"#%''% *)
+(** We can verify that we have indeed defined a monad, by proving the standard monad laws.  Part of the exercise is choosing an appropriate notion of equality between computations.  We use "equality at all approximation levels." *)
 
 Definition meq A (m1 m2 : computation A) := forall n, proj1_sig m1 n = proj1_sig m2 n.
 
@@ -569,7 +573,7 @@ Definition mergeSort' : forall A, (A -> A -> bool) -> list A -> computation (lis
 	else Return ls) _); abstract mergeSort'.
 Defined.
 
-(** Furthermore, %``%#"#running#"#%''% [mergeSort'] on concrete inputs is as easy as choosing a sufficiently high approximation level and letting Coq's computation rules do the rest.  Contrast this with the proof work that goes into deriving an evaluation fact for a deeply embedded language, with one explicit proof rule application per execution step. *)
+(** Furthermore, "running" [mergeSort'] on concrete inputs is as easy as choosing a sufficiently high approximation level and letting Coq's computation rules do the rest.  Contrast this with the proof work that goes into deriving an evaluation fact for a deeply embedded language, with one explicit proof rule application per execution step. *)
 
 Lemma test_mergeSort' : run (mergeSort' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
   (1 :: 2 :: 8 :: 19 :: 36 :: nil).
@@ -597,7 +601,7 @@ Qed.
 
 (** As before, proving outputs for specific inputs is as easy as demonstrating a high enough approximation level.
 
-   There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic %``%#"#gotchas#"#%''% that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort. *)
+   There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic "gotchas" that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort. *)
 
 
 (** * Co-Inductive Non-Termination Monads *)
@@ -612,7 +616,7 @@ CoInductive thunk (A : Type) : Type :=
 
 (** A computation is either an immediate [Answer] or another computation wrapped inside [Think].  Since [thunk] is co-inductive, every [thunk] type is inhabited by an infinite nesting of [Think]s, standing for non-termination.  Terminating results are [Answer] wrapped inside some finite number of [Think]s.
 
-   Why bother to write such a strange definition?  The definition of [thunk] is motivated by the ability it gives us to define a %``%#"#bind#"#%''% operation, similar to the one we defined in the previous section. *)
+   Why bother to write such a strange definition?  The definition of [thunk] is motivated by the ability it gives us to define a "bind" operation, similar to the one we defined in the previous section. *)
 
 CoFixpoint TBind A B (m1 : thunk A) (m2 : A -> thunk B) : thunk B :=
   match m1 with
@@ -748,7 +752,7 @@ Notation "x <- m1 ; m2" :=
   (TBind m1 (fun x => m2)) (right associativity, at level 70).
 
 (* begin hide *)
-Definition fib := 0.
+Definition fib := pred.
 (* end hide *)
 
 (** %\vspace{-.15in}%[[
@@ -766,7 +770,7 @@ Coq complains that the guardedness condition is violated.  The two recursive cal
 
 %\medskip%
 
-I know no easy fix for this problem of [thunk], but we can define an alternate co-inductive monad that avoids the problem, based on a proposal by Megacz%~\cite{Megacz}%.  We ran into trouble because [TBind] was not a constructor of [thunk], so let us define a new type family where %``%#"#bind#"#%''% is a constructor. *)
+I know no easy fix for this problem of [thunk], but we can define an alternate co-inductive monad that avoids the problem, based on a proposal by Megacz%~\cite{Megacz}%.  We ran into trouble because [TBind] was not a constructor of [thunk], so let us define a new type family where "bind" is a constructor. *)
 
 CoInductive comp (A : Type) : Type :=
 | Ret : A -> comp A
@@ -845,7 +849,7 @@ Theorem cassociativity : forall A B C (m : comp A) (f : A -> comp B) (g : B -> c
 Qed.
 (* end hide *)
 
-(** Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for %``%#"#bind,#"#%''%, we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
+(** Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for "bind,", we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
 
 Notation "x <- m1 ; m2" := (Bnd m1 (fun x => m2)).
 
