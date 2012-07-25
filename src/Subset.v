@@ -22,12 +22,16 @@ Set Implicit Arguments.
 
 \chapter{Subset Types and Variations}% *)
 
-(** So far, we have seen many examples of what we might call %``%#"#classical program verification.#"#%''%  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of%\index{dependent types}% _dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
+(** So far, we have seen many examples of what we might call "classical program verification."  We write programs, write their specifications, and then prove that the programs satisfy their specifications.  The programs that we have written in Coq have been normal functional programs that we could just as well have written in Haskell or ML.  In this chapter, we start investigating uses of%\index{dependent types}% _dependent types_ to integrate programming, specification, and proving into a single phase.  The techniques we will learn make it possible to reduce the cost of program verification dramatically. *)
 
 
 (** * Introducing Subset Types *)
 
 (** Let us consider several ways of implementing the natural number predecessor function.  We start by displaying the definition from the standard library: *)
+
+(* begin hide *)
+Definition foo := pred.
+(* end hide *)
 
 Print pred.
 (** %\vspace{-.15in}% [[
@@ -142,6 +146,10 @@ let pred_strong1 = function
 
 We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
 
+(* begin hide *)
+Definition bar := (sig, ex).
+(* end hide *)
+
 Print sig.
 (** %\vspace{-.15in}% [[
 Inductive sig (A : Type) (P : A -> Prop) : Type :=
@@ -210,6 +218,10 @@ Eval compute in pred_strong3 (exist _ 2 two_gt0).
       ]]
      *)
 
+(* begin hide *)
+Definition pred_strong := 0.
+(* end hide *)
+
 (** The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the base value from a subset type.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
 
 By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
@@ -244,7 +256,7 @@ Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
 (* begin thide *)
   (** We build [pred_strong4] using tactic-based proving, beginning with a [Definition] command that ends in a period before a definition is given.  Such a command enters the interactive proving mode, with the type given for the new identifier as our proof goal.  It may seem strange to change perspective so implicitly between programming and proving, but recall that programs and proofs are two sides of the same coin in Coq, thanks to the Curry-Howard correspondence.
 
-     We do most of the work with the %\index{tactics!refine}%[refine] tactic, to which we pass a partial %``%#"#proof#"#%''% of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
+     We do most of the work with the %\index{tactics!refine}%[refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
 
 %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
 [[
@@ -270,7 +282,7 @@ We can see that the first subgoal comes from the second underscore passed to [Fa
 (* end thide *)
 Defined.
 
-(** We end the %``%#"#proof#"#%''% with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as%\index{transparent}% _transparent_, allowing it to be unfolded; while [Qed] marks an identifier as%\index{opaque}% _opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
+(** We end the "proof" with %\index{Vernacular commands!Defined}%[Defined] instead of [Qed], so that the definition we constructed remains visible.  This contrasts to the case of ending a proof with [Qed], where the details of the proof are hidden afterward.  (More formally, [Defined] marks an identifier as%\index{transparent}% _transparent_, allowing it to be unfolded; while [Qed] marks an identifier as%\index{opaque}% _opaque_, preventing unfolding.)  Let us see what our proof script constructed. *)
 
 Print pred_strong4.
 (** %\vspace{-.15in}% [[
@@ -374,6 +386,10 @@ In this case, we see that the new definition yields the same computational behav
 
 (** There is another type in the standard library which captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
 
+(* begin hide *)
+Definition baz := sumbool.
+(* end hide *)
+
 Print sumbool.
 (** %\vspace{-.15in}% [[
 Inductive sumbool (A : Prop) (B : Prop) : Set :=
@@ -451,7 +467,7 @@ Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
   decide equality.
 Defined.
 
-(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses %\texttt{%#<tt>#Left#</tt>#%}% and %\texttt{%#<tt>#Right#</tt>#%}% constructors instead of the boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
+(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses <<Left>> and <<Right>> constructors instead of the boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
 
 Extract Inductive sumbool => "bool" ["true" "false"].
 Extraction eq_nat_dec'.
@@ -484,7 +500,7 @@ let rec eq_nat_dec' n m0 =
 
 (** %\smallskip%
 
-We can build %``%#"#smart#"#%''% versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean %``%#"#or.#"#%''% *)
+We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
 
 (* EX: Write a function that decides if an element belongs to a list. *)
 
@@ -591,6 +607,10 @@ Eval compute in pred_strong7 0.
 
      Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
 
+(* begin hide *)
+Definition sumor' := sumor.
+(* end hide *)
+
 Print sumor.
 (** %\vspace{-.15in}% [[
 Inductive sumor (A : Type) (B : Prop) : Type :=
@@ -632,7 +652,7 @@ Eval compute in pred_strong8 0.
 
 (** * Monadic Notations *)
 
-(** We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell [Maybe] type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a %``%#"#bind#"#%''%-like notation will still be helpful. *)
+(** We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell <<Maybe>> type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful. *)
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -655,7 +675,7 @@ Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd 
 Defined.
 (* end thide *)
 
-(** We can build a [sumor] version of the %``%#"#bind#"#%''% notation and use it to write a similarly straightforward version of this function.  %The operator rendered here as $\longleftarrow$ is noted in the source as a less-than character followed by two hyphens.% *)
+(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %The operator rendered here as $\longleftarrow$ is noted in the source as a less-than character followed by two hyphens.% *)
 
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
@@ -716,7 +736,7 @@ Definition eq_type_dec : forall t1 t2 : type, {t1 = t2} + {t1 <> t2}.
   decide equality.
 Defined.
 
-(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include %``%#"#assertions#"#%''% in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
+(** Another notation complements the monadic notation for [maybe] that we defined earlier.  Sometimes we want to include "assertions" in our procedures.  That is, we want to run a decision procedure and fail if it fails; otherwise, we want to continue, with the proof that it produced made available to us.  This infix notation captures that idea, for a procedure that returns an arbitrary two-constructor type. *)
 
 Notation "e1 ;; e2" := (if e1 then e2 else ??)
   (right associativity, at level 60).
@@ -845,7 +865,7 @@ let rec typeCheck = function
 
 (** %\smallskip%
 
-We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the %``%#"#assertion#"#%''% notation. *)
+We can adapt this implementation to use [sumor], so that we know our type-checker only fails on ill-typed inputs.  First, we define an analogue to the "assertion" notation. *)
 
 (* begin thide *)
 Notation "e1 ;;; e2" := (if e1 then e2 else !!)
