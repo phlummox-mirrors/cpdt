@@ -32,7 +32,7 @@ Section ilist.
   | Nil : ilist O
   | Cons : forall n, A -> ilist n -> ilist (S n).
 
-  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family %\index{Gallina terms!fin}%[fin], where [fin n] is isomorphic to [{m : nat | m < n}].  The type family name stands for %``%#"#finite.#"#%''% *)
+  (** We might like to have a certified function for selecting an element of an [ilist] by position.  We could do this using subset types and explicit manipulation of proofs, but dependent types let us do it more directly.  It is helpful to define a type family %\index{Gallina terms!fin}%[fin], where [fin n] is isomorphic to [{m : nat | m < n}].  The type family name stands for "finite." *)
 
   (* EX: Define a function [get] for extracting an [ilist] element by position. *)
 
@@ -160,6 +160,10 @@ Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
 *)
 (* end thide *)
 
+(* begin hide *)
+Definition map' := map.
+(* end hide *)
+
 (** Our [get] function is also quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
 
 Section ilist_map.
@@ -172,7 +176,7 @@ Section ilist_map.
       | Cons _ x ls' => Cons (f x) (imap ls')
     end.
 
-  (** It is easy to prove that [get] %``%#"#distributes over#"#%''% [imap] calls. *)
+  (** It is easy to prove that [get] "distributes over" [imap] calls. *)
 
 (* EX: Prove that [get] distributes over [imap]. *)
 
@@ -188,7 +192,7 @@ End ilist_map.
 
 (** * Heterogeneous Lists *)
 
-(** Programmers who move to statically typed functional languages from scripting languages often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a %``%#"#type-level#"#%''% list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and we can do it much more cleanly and directly in Coq. *)
+(** Programmers who move to statically typed functional languages from scripting languages often complain about the requirement that every element of a list have the same type.  With fancy type systems, we can partially lift this requirement.  We can index a list type with a "type-level" list that explains what type each element of the list should have.  This has been done in a variety of ways in Haskell using type classes, and we can do it much more cleanly and directly in Coq. *)
 
 Section hlist.
   Variable A : Type.
@@ -215,7 +219,7 @@ Section hlist.
   | MFirst : forall ls, member (elm :: ls)
   | MNext : forall x ls, member ls -> member (x :: ls).
 
-  (** Because the element [elm] that we are %``%#"#searching for#"#%''% in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
+  (** Because the element [elm] that we are "searching for" in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
 
      We can use [member] to adapt our definition of [get] to [hlist]s.  The same basic [match] tricks apply.  In the [MCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
 
@@ -370,7 +374,7 @@ Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
 
 (** * Recursive Type Definitions *)
 
-(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports %``%#"#type-level computation,#"#%''% we can redo our inductive definitions as _recursive_ definitions. *)
+(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as _recursive_ definitions. *)
 
 (* EX: Come up with an alternate [ilist] definition that makes it easier to write [get]. *)
 
@@ -434,7 +438,7 @@ Section fhlist.
       | x :: ls' => (x = elm) + fmember ls'
     end%type.
 
-  (** The definition of [fmember] follows the definition of [ffin].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [index] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
+  (** The definition of [fmember] follows the definition of [ffin].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [ffin] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
 
      We know all of the tricks needed to write a first attempt at a [get] function for [fhlist]s.
 
@@ -459,7 +463,7 @@ Section fhlist.
       | _ :: ls' => fun mls idx =>
         match idx with
           | inl pf => match pf with
-                        | refl_equal => fst mls
+                        | eq_refl => fst mls
                       end
           | inr idx' => fhget ls' (snd mls) idx'
         end
@@ -467,13 +471,17 @@ Section fhlist.
 
   (** By pattern-matching on the equality proof [pf], we make that equality known to the type-checker.  Exactly why this works can be seen by studying the definition of equality. *)
 
+  (* begin hide *)
+  Definition foo := (@eq, @eq_refl).
+  (* end hide *)
+
   Print eq.
   (** %\vspace{-.15in}% [[
-Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
+Inductive eq (A : Type) (x : A) : A -> Prop :=  eq_refl : x = x
  
 ]]
 
-In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [refl_equal] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [refl_equal], occurrences of [y] can be replaced with occurrences of [x] for typing purposes. *)
+In a proposition [x = y], we see that [x] is a parameter and [y] is a regular argument.  The type of the constructor [eq_refl] shows that [y] can only ever be instantiated to [x].  Thus, within a pattern-match with [eq_refl], occurrences of [y] can be replaced with occurrences of [x] for typing purposes. *)
 (* end thide *)
 
 End fhlist.
@@ -638,7 +646,7 @@ Qed.
 
 (** ** Another Interpreter Example *)
 
-(** We develop another example of variable-arity constructors, in the form of optimization of a small expression language with a construct like Scheme's %\texttt{%#<tt>#cond#</tt>#%}%.  Each of our conditional expressions takes a list of pairs of boolean tests and bodies.  The value of the conditional comes from the body of the first test in the list to evaluate to [true].  To simplify the %\index{interpreters}%interpreter we will write, we force each conditional to include a final, default case. *)
+(** We develop another example of variable-arity constructors, in the form of optimization of a small expression language with a construct like Scheme's <<cond>>.  Each of our conditional expressions takes a list of pairs of boolean tests and bodies.  The value of the conditional comes from the body of the first test in the list to evaluate to [true].  To simplify the %\index{interpreters}%interpreter we will write, we force each conditional to include a final, default case. *)
 
 Inductive type' : Type := Nat | Bool.
 
@@ -827,7 +835,7 @@ Lemma cond_ext : forall (A : Set) (default : A) n (tests tests' : ffin n -> bool
     end; crush.
 Qed.
 
-(** Now the final theorem is easy to prove.  We add our two lemmas as hints and perform standard automation with pattern-matching of subterms to destruct. *)
+(** Now the final theorem is easy to prove. *)
 (* end thide *)
 
 Theorem cfold_correct : forall t (e : exp' t),
@@ -843,6 +851,7 @@ Theorem cfold_correct : forall t (e : exp' t),
 Qed.
 (* end thide *)
 
+(** We add our two lemmas as hints and perform standard automation with pattern-matching of subterms to destruct. *)
 
 (** * Choosing Between Representations *)
 
@@ -850,10 +859,10 @@ Qed.
 
    Inductive types are often the most pleasant to work with, after someone has spent the time implementing some basic library functions for them, using fancy [match] annotations.  Many aspects of Coq's logic and tactic support are specialized to deal with inductive types, and you may miss out if you use alternate encodings.
 
-   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful %``%#"#simplification#"#%''% can lead to rapid bloat in the sizes of subgoals.  Even worse, it can prevent syntactic pattern-matching, like in cases where [filist] is expected but a pair type is found in the %``%#"#simplified#"#%''% version.  The same problem applies to applications of recursive functions to values in recursive types: the recursive function call may %``%#"#simplify#"#%''% when the top-level structure of the type index but not the recursive value is known, because such functions are generally defined by recursion on the index, not the value.
+   Recursive types usually involve much less initial effort, but they can be less convenient to use with proof automation.  For instance, the [simpl] tactic (which is among the ingredients in [crush]) will sometimes be overzealous in simplifying uses of functions over recursive types.  Consider a call [get l f], where variable [l] has type [filist A (S n)].  The type of [l] would be simplified to an explicit pair type.  In a proof involving many recursive types, this kind of unhelpful "simplification" can lead to rapid bloat in the sizes of subgoals.  Even worse, it can prevent syntactic pattern-matching, like in cases where [filist] is expected but a pair type is found in the "simplified" version.  The same problem applies to applications of recursive functions to values in recursive types: the recursive function call may "simplify" when the top-level structure of the type index but not the recursive value is known, because such functions are generally defined by recursion on the index, not the value.
 
-   Another disadvantage of recursive types is that they only apply to type families whose indices determine their %``%#"#skeletons.#"#%''%  This is not true for all data structures; a good counterexample comes from the richly typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
+   Another disadvantage of recursive types is that they only apply to type families whose indices determine their "skeletons."  This is not true for all data structures; a good counterexample comes from the richly typed programming language syntax types we have used several times so far.  The fact that a piece of syntax has type [Nat] tells us nothing about the tree structure of that syntax.
 
-   Finally, Coq type inference can be more helpful in constructing values in inductive types.  Application of a particular constructor of that type tells Coq what to expect from the arguments, while, for instance, forming a generic pair does not make clear an intention to interpret the value as belonging to a particular recursive type.  This downside can be mitigated to an extent by writing %``%#"#constructor#"#%''% functions for a recursive type, mirroring the definition of the corresponding inductive type.
+   Finally, Coq type inference can be more helpful in constructing values in inductive types.  Application of a particular constructor of that type tells Coq what to expect from the arguments, while, for instance, forming a generic pair does not make clear an intention to interpret the value as belonging to a particular recursive type.  This downside can be mitigated to an extent by writing "constructor" functions for a recursive type, mirroring the definition of the corresponding inductive type.
 
    Reflexive encodings of data types are seen relatively rarely.  As our examples demonstrated, manipulating index values manually can lead to hard-to-read code.  A normal inductive type is generally easier to work with, once someone has gone through the trouble of implementing an induction principle manually with the techniques we studied in Chapter 3.  For small developments, avoiding that kind of coding can justify the use of reflexive data structures.  There are also some useful instances of %\index{co-inductive types}%co-inductive definitions with nested data structures (e.g., lists of values in the co-inductive type) that can only be deconstructed effectively with reflexive encoding of the nested structures. *)

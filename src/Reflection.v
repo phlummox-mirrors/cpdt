@@ -362,7 +362,7 @@ t1 =
 fun a b c d : A =>
 monoid_reflect (Op (Op (Op (Var a) (Var b)) (Var c)) (Var d))
   (Op (Op (Var a) (Op (Var b) (Var c))) (Var d))
-  (refl_equal (a + (b + (c + (d + e)))))
+  (eq_refl (a + (b + (c + (d + e)))))
      : forall a b c d : A, a + b + c + d = a + (b + c) + d
       ]]
 

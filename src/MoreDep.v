@@ -1211,7 +1211,7 @@ Definition matches : forall P (r : regexp P) s, {P s} + {~ P s}.
       | Star _ r => dec_star _ _ _
     end); crush;
   match goal with
-    | [ H : _ |- _ ] => generalize (H _ _ (refl_equal _))
+    | [ H : _ |- _ ] => generalize (H _ _ (eq_refl _))
   end; tauto.
 Defined.
 

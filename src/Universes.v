@@ -755,13 +755,13 @@ Print eq_rect_eq.
 
   This axiom says that it is permissible to simplify pattern matches over proofs of equalities like [e = e].  The axiom is logically equivalent to some simpler corollaries.  In the theorem names, %``%#"#UIP#"#%''% stands for %\index{unicity of identity proofs}``%#"#unicity of identity proofs#"#%''%, where %``%#"#identity#"#%''% is a synonym for %``%#"#equality.#"#%''% *)
 
-Corollary UIP_refl : forall A (x : A) (pf : x = x), pf = refl_equal x.
-  intros; replace pf with (eq_rect x (eq x) (refl_equal x) x pf); [
+Corollary UIP_refl : forall A (x : A) (pf : x = x), pf = eq_refl x.
+  intros; replace pf with (eq_rect x (eq x) (eq_refl x) x pf); [
     symmetry; apply eq_rect_eq
     | exact (match pf as pf' return match pf' in _ = y return x = y with
-                                      | refl_equal => refl_equal x
+                                      | eq_refl => eq_refl x
                                     end = pf' with
-               | refl_equal => refl_equal _
+               | eq_refl => eq_refl _
              end) ].
 Qed.
 
@@ -875,12 +875,12 @@ Definition choice_Set (A B : Type) (R : A -> B -> Prop) (H : forall x : A, {y : 
 
 Definition cast (x y : Set) (pf : x = y) (v : x) : y :=
   match pf with
-    | refl_equal => v
+    | eq_refl => v
   end.
 
 (** Computation over programs that use [cast] can proceed smoothly. *)
 
-Eval compute in (cast (refl_equal (nat -> nat)) (fun n => S n)) 12.
+Eval compute in (cast (eq_refl (nat -> nat)) (fun n => S n)) 12.
 (** %\vspace{-.15in}%[[
      = 13
      : nat
@@ -897,7 +897,7 @@ Qed.
 Eval compute in (cast t3 (fun _ => First)) 12.
 (** [[
      = match t3 in (_ = P) return P with
-       | refl_equal => fun n : nat => First
+       | eq_refl => fun n : nat => First
        end 12
      : fin (12 + 1)
      ]]
@@ -938,7 +938,7 @@ Eval compute in cast (t4 13) First.
      : fin (13 + 1)
      ]]
 
-   This simple computational reduction hides the use of a recursive function to produce a suitable [refl_equal] proof term.  The recursion originates in our use of [induction] in [t4]'s proof. *)
+   This simple computational reduction hides the use of a recursive function to produce a suitable [eq_refl] proof term.  The recursion originates in our use of [induction] in [t4]'s proof. *)
 
 
 (** ** Methods for Avoiding Axioms *)
@@ -995,8 +995,8 @@ Definition finOut n (f : fin n) : match n return fin n -> Type with
                                     | _ => fun f => {f' : _ | f = Next f'} + {f = First}
                                   end f :=
   match f with
-    | First _ => inright _ (refl_equal _)
-    | Next _ f' => inleft _ (exist _ f' (refl_equal _))
+    | First _ => inright _ (eq_refl _)
+    | Next _ f' => inleft _ (exist _ f' (eq_refl _))
   end.
 (* end thide *)
 
@@ -1161,7 +1161,7 @@ Section withTypes.
         match natIndex return nth_error (t :: ts) natIndex = Some nat -> nat with
           | O => fun pf =>
             match Some_inj pf in _ = T return T with
-              | refl_equal => x
+              | eq_refl => x
             end
           | S natIndex' => getNat values'' natIndex'
         end

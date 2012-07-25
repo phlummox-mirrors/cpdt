@@ -565,13 +565,13 @@ Finished transaction in 2. secs (1.264079u,0.s)
     (** %\vspace{-.15in}%[[
  == intro x; intro y; intro H; intro H0; intro H4;
        simple eapply trans_eq.
-    simple apply refl_equal.
+    simple apply eq_refl.
     
     simple eapply trans_eq.
-    simple apply refl_equal.
+    simple apply eq_refl.
     
     simple eapply trans_eq.
-    simple apply refl_equal.
+    simple apply eq_refl.
     
     simple apply H1.
     eexact H.
@@ -596,20 +596,20 @@ Finished transaction in 2. secs (1.264079u,0.s)
 1.1.1.1.1.1 depth=6 intro
 1.1.1.1.1.1.1 depth=5 apply H3
 1.1.1.1.1.1.1.1 depth=4 eapply trans_eq
-1.1.1.1.1.1.1.1.1 depth=4 apply refl_equal
+1.1.1.1.1.1.1.1.1 depth=4 apply eq_refl
 1.1.1.1.1.1.1.1.1.1 depth=3 eapply trans_eq
-1.1.1.1.1.1.1.1.1.1.1 depth=3 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1 depth=3 apply eq_refl
 1.1.1.1.1.1.1.1.1.1.1.1 depth=2 eapply trans_eq
-1.1.1.1.1.1.1.1.1.1.1.1.1 depth=2 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.1 depth=2 apply eq_refl
 1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=1 eapply trans_eq
-1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=1 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=1 apply eq_refl
 1.1.1.1.1.1.1.1.1.1.1.1.1.1.1.1 depth=0 eapply trans_eq
 1.1.1.1.1.1.1.1.1.1.1.1.1.1.2 depth=1 apply sym_eq ; trivial
 1.1.1.1.1.1.1.1.1.1.1.1.1.1.2.1 depth=0 eapply trans_eq
 1.1.1.1.1.1.1.1.1.1.1.1.1.1.3 depth=0 eapply trans_eq
 1.1.1.1.1.1.1.1.1.1.1.1.2 depth=2 apply sym_eq ; trivial
 1.1.1.1.1.1.1.1.1.1.1.1.2.1 depth=1 eapply trans_eq
-1.1.1.1.1.1.1.1.1.1.1.1.2.1.1 depth=1 apply refl_equal
+1.1.1.1.1.1.1.1.1.1.1.1.2.1.1 depth=1 apply eq_refl
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.1.1 depth=0 eapply trans_eq
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.2 depth=1 apply sym_eq ; trivial
 1.1.1.1.1.1.1.1.1.1.1.1.2.1.2.1 depth=0 eapply trans_eq
