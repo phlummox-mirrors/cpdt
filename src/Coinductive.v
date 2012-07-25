@@ -12,7 +12,7 @@ Require Import List.
 
 Require Import CpdtTactics.
 
-Definition bad := 0.
+Definition bad : unit := tt.
 
 Set Implicit Arguments.
 (* end hide *)
@@ -33,7 +33,7 @@ This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 
-One solution is to use types to contain the possibility of non-termination.  For instance, we can create a %``%#"#non-termination monad,#"#%''% inside which we must write all of our general-recursive programs; several such approaches are surveyed in Chapter 7.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
+One solution is to use types to contain the possibility of non-termination.  For instance, we can create a "non-termination monad," inside which we must write all of our general-recursive programs; several such approaches are surveyed in Chapter 7.  This is a heavyweight solution, and so we would like to avoid it whenever possible.
 
 Luckily, Coq has special support for a class of lazy data structures that happens to contain most examples found in Haskell.  That mechanism,%\index{co-inductive types}% _co-inductive types_, is the subject of this chapter. *)
 
@@ -48,6 +48,10 @@ Section stream.
   CoInductive stream : Type :=
   | Cons : A -> stream -> stream.
 End stream.
+
+(* begin hide *)
+CoInductive evilStream := Nil.
+(* end hide *)
 
 (** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
 
@@ -180,7 +184,7 @@ Definition tl A (s : stream A) : stream A :=
 CoFixpoint bad : stream nat := tl (Cons 0 bad).
 ]]
 
-Imagine that Coq had accepted our definition, and consider how we might evaluate [approx bad 1].  We would be trying to calculate the first element in the stream [bad].  However, it is not hard to see that the definition of [bad] %``%#"#begs the question#"#%''%: unfolding the definition of [tl], we see that we essentially say %``%#"#define [bad] to equal itself#"#%''%!  Of course such an equation admits no single well-defined solution, which does not fit well with the determinism of Gallina reduction.
+Imagine that Coq had accepted our definition, and consider how we might evaluate [approx bad 1].  We would be trying to calculate the first element in the stream [bad].  However, it is not hard to see that the definition of [bad] "begs the question": unfolding the definition of [tl], we see that we essentially say "define [bad] to equal itself"!  Of course such an equation admits no single well-defined solution, which does not fit well with the determinism of Gallina reduction.
 
 Since Coq can be considered to check definitions after inlining and simplification of previously defined identifiers, the basic guardedness condition rules out our definition of [bad].  Such an inlining reduces [bad] to:
 [[
@@ -209,6 +213,10 @@ Definition ones' := map S zeroes.
 (** The obvious statement of the equality is this: *)
 
 Theorem ones_eq : ones = ones'.
+
+(* begin hide *)
+Definition foo := @eq.
+(* end hide *)
 
   (** However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)
 (* begin thide *)
@@ -246,9 +254,9 @@ Theorem ones_eq : stream_eq ones ones'.
    It looks like this proof might be easier than we expected! *)
 
   assumption.
-  (** [[
+  (** <<
 Proof completed.
-]]
+>>
 
   Unfortunately, we are due for some disappointment in our victory lap.
   [[
@@ -333,7 +341,7 @@ Theorem ones_eq : stream_eq ones ones'.
  
             ]]
 
-  Note that [cofix] notation for anonymous co-recursion, which is analogous to the [fix] notation we have already seen for recursion.  Since we have exposed the [Cons] structure of each stream, we can apply the constructor of [stream_eq]. *)
+  Note the [cofix] notation for anonymous co-recursion, which is analogous to the [fix] notation we have already seen for recursion.  Since we have exposed the [Cons] structure of each stream, we can apply the constructor of [stream_eq]. *)
 
   constructor.
   (** [[
@@ -368,7 +376,7 @@ Theorem ones_eq' : stream_eq ones ones'.
   *)
 Abort.
 
-(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with %``%#"#hiding#"#%''% the co-inductive hypothesis.
+(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.
 
    %\medskip%
 
@@ -392,7 +400,7 @@ Section stream_eq_coind.
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
-  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on %``%#"#[R]-ness#"#%''% to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
+  (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on "[R]-ness" to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
 
   (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)
 
@@ -556,7 +564,7 @@ Fixpoint evalExp (vs : vars) (e : exp) : nat :=
     | Plus e1 e2 => evalExp vs e1 + evalExp vs e2
   end.
 
-(** Finally, we define a language of commands.  It includes variable assignment, sequencing, and a %\texttt{%#<tt>#while#</tt>#%}% form that repeats as long as its test expression evaluates to a nonzero value. *)
+(** Finally, we define a language of commands.  It includes variable assignment, sequencing, and a <<while>> form that repeats as long as its test expression evaluates to a nonzero value. *)
 
 Inductive cmd : Set :=
 | Assign : var -> exp -> cmd
@@ -662,4 +670,4 @@ Theorem optCmd_correct : forall vs1 c vs2, evalCmd vs1 (optCmd c) vs2
 Qed.
 (* end thide *)
 
-(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like %\texttt{%#<tt>#if#</tt>#%}%; the same proof script should continue working, after the co-induction principle is extended to the new evaluation rules. *)
+(** In this form, the theorem tells us that the optimizer preserves observable behavior of both terminating and nonterminating programs, but we did not have to do more work than for the case of terminating programs alone.  We merely took the natural inductive definition for terminating executions, made it co-inductive, and applied the appropriate co-induction principle.  Curious readers might experiment with adding command constructs like <<if>>; the same proof script should continue working, after the co-induction principle is extended to the new evaluation rules. *)
