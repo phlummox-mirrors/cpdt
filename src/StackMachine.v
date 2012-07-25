@@ -7,30 +7,17 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-(* begin hide *)
-Require Import Bool Arith List.
-
-Require Import CpdtTactics.
-
-Set Implicit Arguments.
-(* end hide *)
-
 
 (** %\chapter{Some Quick Examples}% *)
 
-
 (** I will start off by jumping right in to a fully worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
 
-As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#</tt>#%}% for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new %\texttt{%#<tt>#.v#</tt>#%}% file in an Emacs buffer.  If you do the latter, include two lines
+As always, you can step through the source file <<StackMachine.v>> for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new <<.v>> file in an Emacs buffer.  If you do the latter, include these two lines at the start of the file. *)
 
-%\index{Vernacular commands!Require}%[Require Import Bool Arith List CpdtTactics.]
+Require Import Bool Arith List CpdtTactics.
+Set Implicit Arguments.
 
-%\noindent{}%and
-
-%\index{Vernacular commands!Set Implicit Arguments}%[Set Implicit Arguments.]
-
-%\noindent{}%at the start of the file, to match some code hidden in this rendering of the chapter source.  In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with some imports of other modules, followed by [Set Implicit Arguments.], where the latter affects the default behavior of definitions regarding type inference.
-*)
+(** In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with the above two lines, with the import list tweaked as appropriate, considering which definitions the chapter uses.  The second command above affects the default behavior of definitions regarding type inference. *)
 
 
 (** * Arithmetic Expressions Over Natural Numbers *)
@@ -43,7 +30,7 @@ As always, you can step through the source file %\texttt{%#<tt>#StackMachine.v#<
 
 Inductive binop : Set := Plus | Times.
 
-(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an %\index{algebraic datatypes}%algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of %\texttt{%#<tt>#data#</tt>#%}%, %\texttt{%#<tt>#datatype#</tt>#%}%, or %\texttt{%#<tt>#type#</tt>#%}%.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the %\index{Gallina terms!Set}%[: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that is useful in higher-order constructions. *)
+(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an %\index{algebraic datatypes}%algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of <<data>>, <<datatype>>, or <<type>>.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the %\index{Gallina terms!Set}%[: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that bis useful in higher-order constructions. *)
 
 Inductive exp : Set :=
 | Const : nat -> exp
@@ -51,11 +38,11 @@ Inductive exp : Set :=
 
 (** Now we define the type of arithmetic expressions.  We write that a constant may be built from one argument, a natural number; and a binary operation may be built from a choice of operator and two operand expressions.
 
-A note for readers following along in the PDF version: %\index{coqdoc}%coqdoc supports pretty-printing of tokens in %\LaTeX{}%#LaTeX# or HTML.  Where you see a right arrow character, the source contains the ASCII text %\texttt{%#<tt>#->#</tt>#%}%.  Other examples of this substitution appearing in this chapter are a double right arrow for %\texttt{%#<tt>#=>#</tt>#%}%, the inverted %`%#'#A' symbol for %\texttt{%#<tt>#forall#</tt>#%}%, and the Cartesian product %`%#'#X' for %\texttt{%#<tt>#*#</tt>#%}%.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
+A note for readers following along in the PDF version: %\index{coqdoc}%coqdoc supports pretty-printing of tokens in %\LaTeX{}%#LaTeX# or HTML.  Where you see a right arrow character, the source contains the ASCII text <<->>>.  Other examples of this substitution appearing in this chapter are a double right arrow for <<=>>>, the inverted %`%#'#A' symbol for <<forall>>, and the Cartesian product %`%#'#X' for <<*>>.  When in doubt about the ASCII version of a symbol, you can consult the chapter source code.
 
 %\medskip%
 
-Now we are ready to say what these programs mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to %``%#"#common sense#"#%''% constructions.)%\index{Vernacular commands!Definition}% *)
+Now we are ready to say what these programs mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to "common sense" constructions.)%\index{Vernacular commands!Definition}% *)
 
 Definition binopDenote (b : binop) : nat -> nat -> nat :=
   match b with
@@ -63,7 +50,7 @@ Definition binopDenote (b : binop) : nat -> nat -> nat :=
     | Times => mult
   end.
 
-(** The meaning of a binary operator is a binary function over naturals, defined with pattern-matching notation analogous to the %\texttt{%#<tt>#case#</tt>#%}% and %\texttt{%#<tt>#match#</tt>#%}% of ML and Haskell, and referring to the functions [plus] and [mult] from the Coq standard library.  The keyword [Definition] is Coq's all-purpose notation for binding a term of the programming language to a name, with some associated syntactic sugar, like the notation we see here for defining a function.  That sugar could be expanded to yield this definition:
+(** The meaning of a binary operator is a binary function over naturals, defined with pattern-matching notation analogous to the <<case>> and <<match>> of ML and Haskell, and referring to the functions [plus] and [mult] from the Coq standard library.  The keyword [Definition] is Coq's all-purpose notation for binding a term of the programming language to a name, with some associated syntactic sugar, like the notation we see here for defining a function.  That sugar could be expanded to yield this definition:
 [[
 Definition binopDenote : binop -> nat -> nat -> nat := fun (b : binop) =>
   match b with
@@ -81,9 +68,9 @@ Definition binopDenote := fun b =>
   end.
 ]]
 
-Languages like Haskell and ML have a convenient %\index{principal types}\index{type inference}%_principal types_ property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of %``%#"#complete#"#%''% type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient%\index{principal types}\index{type inference}% _principal types_ property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of "complete" type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the%\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}% _Calculus of Inductive Constructions_ (CIC)%~\cite{CIC}%, which is an extension of the older%\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}% _Calculus of Constructions_ (CoC)%~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like%\index{strong normalization}% _strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and%\index{relative consistency}% _relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are %``%#"#really true,#"#%''% if you believe in set theory.
+This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the%\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}% _Calculus of Inductive Constructions_ (CIC)%~\cite{CIC}%, which is an extension of the older%\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}% _Calculus of Constructions_ (CoC)%~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like%\index{strong normalization}% _strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and%\index{relative consistency}% _relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are "really true," if you believe in set theory.
 
 Coq is actually based on an extension of CIC called%\index{Gallina}% _Gallina_.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina adds many useful features that are not compiled internally to more primitive CIC features.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
 
@@ -103,7 +90,7 @@ Fixpoint expDenote (e : exp) : nat :=
 
 (** We declare explicitly that this is a recursive definition, using the keyword [Fixpoint].  The rest should be old hat for functional programmers. *)
 
-(** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses, using the command %\index{Vernacular commands!Eval}%[Eval].  This command takes an argument expressing a %\index{reduction strategy}%_reduction strategy_, or an %``%#"#order of evaluation.#"#%''%  Unlike with ML, which hardcodes an _eager_ reduction strategy, or Haskell, which hardcodes a _lazy_ strategy, in Coq we are free to choose between these and many other orders of evaluation, because all Coq programs terminate.  In fact, Coq silently checked %\index{termination checking}%termination of our [Fixpoint] definition above, using a simple heuristic based on monotonically decreasing size of arguments across recursive calls.  Specifically, recursive calls must be made on arguments that were pulled out of the original recursive argument with [match] expressions.  (In Chapter 7, we will see some ways of getting around this restriction, though simply removing the restriction would leave Coq useless as a theorem proving tool, for reasons we will start to learn about in the next chapter.)
+(** It is convenient to be able to test definitions before starting to prove things about them.  We can verify that our semantics is sensible by evaluating some sample uses, using the command %\index{Vernacular commands!Eval}%[Eval].  This command takes an argument expressing a%\index{reduction strategy}% _reduction strategy_, or an "order of evaluation."  Unlike with ML, which hardcodes an _eager_ reduction strategy, or Haskell, which hardcodes a _lazy_ strategy, in Coq we are free to choose between these and many other orders of evaluation, because all Coq programs terminate.  In fact, Coq silently checked %\index{termination checking}%termination of our [Fixpoint] definition above, using a simple heuristic based on monotonically decreasing size of arguments across recursive calls.  Specifically, recursive calls must be made on arguments that were pulled out of the original recursive argument with [match] expressions.  (In Chapter 7, we will see some ways of getting around this restriction, though simply removing the restriction would leave Coq useless as a theorem proving tool, for reasons we will start to learn about in the next chapter.)
 
 To return to our test evaluations, we run the [Eval] command using the [simpl] evaluation strategy, whose definition is best postponed until we have learned more about Coq's foundations, but which usually gets the job done. *)
 
@@ -129,7 +116,7 @@ Definition stack := list nat.
 
 (** An instruction either pushes a constant onto the stack or pops two arguments, applies a binary operator to them, and pushes the result onto the stack.  A program is a list of instructions, and a stack is a list of natural numbers.
 
-We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  %\index{Gallina operators!::}%The infix operator [::] is %``%#"#list cons#"#%''% from the Coq standard library.%\index{Gallina terms!option}% *)
+We can give instructions meanings as functions from stacks to optional stacks, where running an instruction results in [None] in case of a stack underflow and results in [Some s'] when the result of execution is the new stack [s'].  %\index{Gallina operators!::}%The infix operator [::] is "list cons" from the Coq standard library.%\index{Gallina terms!option}% *)
 
 Definition instrDenote (i : instr) (s : stack) : option stack :=
   match i with
@@ -199,7 +186,7 @@ Abort.
 (* end hide *)
 (* begin thide *)
 
-(** Though a pencil-and-paper proof might clock out at this point, writing %``%#"#by a routine induction on [e],#"#%''% it turns out not to make sense to attack this proof directly.  We need to use the standard trick of%\index{strengthening the induction hypothesis}% _strengthening the induction hypothesis_.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
+(** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of%\index{strengthening the induction hypothesis}% _strengthening the induction hypothesis_.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
 
 Lemma compile_correct' : forall e p s,
   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
@@ -311,7 +298,7 @@ We only need to unfold the first occurrence of [progDenote] to prove the goal.  
  
 ]]
 
-This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm [None (A:=stack)], which has an annotation specifying that the type of the term ought to be [option A].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
+This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm [None (A:=stack)], which has an annotation specifying that the type of the term ought to be [option stack].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
 
 Fortunately, in this case, we can eliminate the complications of anonymous recursion right away, since the structure of the argument ([iConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic, which applies the same reduction strategy that we used earlier with [Eval] (and whose details we still postpone).%\index{tactics!simpl}%
 *)
@@ -564,7 +551,7 @@ ML and Haskell have indexed algebraic datatypes.  For instance, their list types
 
 First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}% _Generalized algebraic datatypes_ (GADTs)%~\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell and other languages that removes this first restriction.
 
-The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be _expressions_.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to %``%#"#real#"#%''% functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
+The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be _expressions_.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)
 
 (** We can define a similar type family for typed expressions, where a term of type [texp t] can be assigned object language type [t].  (It is conventional in the world of interactive theorem proving to call the language of the proof assistant the%\index{meta language}% _meta language_ and a language being formalized the%\index{object language}% _object language_.) *)
@@ -611,6 +598,9 @@ Fixpoint texpDenote t (e : texp t) : typeDenote t :=
 Eval simpl in texpDenote (TNConst 42).
 (** [= 42 : typeDenote Nat] *)
 
+(* begin hide *)
+Eval simpl in texpDenote (TBConst false).
+(* end hide *)
 Eval simpl in texpDenote (TBConst true).
 (** [= true : typeDenote Bool] *)
 
@@ -629,7 +619,7 @@ Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
 
 (** ** Target Language *)
 
-(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and %``%#"#get stuck.#"#%''%  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
+(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
 
 For our new languages, besides underflow, we also have the problem of stack slots with naturals instead of bools or vice versa.  This time, we will use indexed typed families to avoid the need to reason about potential failures.
 
@@ -789,7 +779,7 @@ Abort.
 Lemma tcompile_correct' : forall t (e : texp t) ts (s : vstack ts),
   tprogDenote (tcompile e ts) s = (texpDenote e, s).
 
-(** While lemma [compile_correct'] quantified over a program that is the %``%#"#continuation#"#%''~\cite{continuations}% for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
+(** While lemma [compile_correct'] quantified over a program that is the "continuation"%~\cite{continuations}% for the expression we are considering, here we avoid drawing in any extra syntactic elements.  In addition to the source expression and its type, we also quantify over an initial stack type and a stack compatible with it.  Running the compilation of the program starting from that stack, we should arrive at a stack that differs only in having the program's denotation pushed onto it.
 
    Let us try to prove this theorem in the same way that we settled on in the last section. *)
 
@@ -824,7 +814,7 @@ Some code behind the scenes registers [app_assoc_reverse] for use by [crush].  W
 
 Hint Rewrite tconcat_correct.
 
-(** Here we meet the pervasive concept of a _hint_.  Many proofs can be found through exhaustive enumerations of combinations of possible proof steps; hints provide the set of steps to consider.  The tactic [crush] is applying such brute force search for us silently, and it will consider more possibilities as we add more hints.  This particular hint asks that the lemma be used for left-to-right rewriting, and we ask for the hint to be added to the hint database called [cpdt], which is the database used by [crush].  In general, segragating hints into different databases is helpful to control the performance of proof search, in cases where domain knowledge allows us to narrow the set of proof steps to be considered in brute force search.  Part III of this book considers such pragmatic aspects of proof search in much more detail.
+(** Here we meet the pervasive concept of a _hint_.  Many proofs can be found through exhaustive enumerations of combinations of possible proof steps; hints provide the set of steps to consider.  The tactic [crush] is applying such brute force search for us silently, and it will consider more possibilities as we add more hints.  This particular hint asks that the lemma be used for left-to-right rewriting.
 
 Now we are ready to return to [tcompile_correct'], proving it automatically this time. *)
 

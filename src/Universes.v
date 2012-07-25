@@ -527,7 +527,7 @@ let sym_ex = __
 
 In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type %\texttt{\_\_}%#<tt>__</tt>#, whose single constructor is %\texttt{\_\_}%#<tt>__</tt>#.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
 
-Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADT's%~\cite{GADT}%, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as all proofs are kept within [Prop], extraction is guaranteed to erase them.
+Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADTs%~\cite{GADT}%, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as all proofs are kept within [Prop], extraction is guaranteed to erase them.
 
 Many fans of the %\index{Curry-Howard correspondence}%Curry-Howard correspondence support the idea of _extracting programs from proofs_.  In reality, few users of Coq and related tools do any such thing.  Instead, extraction is better thought of as an optimization that reduces the runtime costs of expressive typing.
 

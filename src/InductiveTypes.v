@@ -74,7 +74,7 @@ One of the first types we introduce will be [bool], with constructors [true] and
 
 (** * Enumerations *)
 
-(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADT's), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
+(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
 
 The singleton type [unit] is an inductive type:%\index{Gallina terms!unit}\index{Gallina terms!tt}% *)
 
