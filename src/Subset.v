@@ -208,12 +208,12 @@ We can continue on in the process of refining [pred]'s type.  Let us change its 
 Definition pred_strong3 (s : {n : nat | n > 0}) : {m : nat | proj1_sig s = S m} :=
   match s return {m : nat | proj1_sig s = S m} with
     | exist 0 pf => match zgtz pf with end
-    | exist (S n') pf => exist _ n' (refl_equal _)
+    | exist (S n') pf => exist _ n' (eq_refl _)
   end.
 
 Eval compute in pred_strong3 (exist _ 2 two_gt0).
 (** %\vspace{-.15in}% [[
-     = exist (fun m : nat => 2 = S m) 1 (refl_equal 2)
+     = exist (fun m : nat => 2 = S m) 1 (eq_refl 2)
      : {m : nat | proj1_sig (exist (lt 0) 2 two_gt0) = S m}
       ]]
      *)
@@ -298,7 +298,7 @@ match n as n0 return (n0 > 0 -> {m : nat | n0 = S m}) with
                (Bool.absurd_eq_true false (pred_strong4_subproof n _)))))
 | S n' =>
     fun _ : S n' > 0 =>
-    exist (fun m : nat => S n' = S m) n' (refl_equal (S n'))
+    exist (fun m : nat => S n' = S m) n' (eq_refl (S n'))
 end
      : forall n : nat, n > 0 -> {m : nat | n = S m}
  
@@ -308,7 +308,7 @@ We see the code we entered, with some proofs filled in.  The first proof obligat
 
 Eval compute in pred_strong4 two_gt0.
 (** %\vspace{-.15in}% [[
-     = exist (fun m : nat => 2 = S m) 1 (refl_equal 2)
+     = exist (fun m : nat => 2 = S m) 1 (eq_refl 2)
      : {m : nat | 2 = S m}
      ]]
 

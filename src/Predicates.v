@@ -25,7 +25,7 @@ Inductive prod := .
 Inductive and := conj.
 Inductive or := or_introl | or_intror.
 Inductive ex := ex_intro.
-Inductive eq := refl_equal.
+Inductive eq := eq_refl.
 Reset unit.
 (* end thide *)
 (* end hide *)
@@ -466,11 +466,11 @@ For instance, our definition [isZero] makes the predicate provable only when the
 
 Print eq.
 (** [[
-  Inductive eq (A : Type) (x : A) : A -> Prop :=  refl_equal : x = x
+  Inductive eq (A : Type) (x : A) : A -> Prop :=  eq_refl : x = x
  
   ]]
 
-  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [refl_equal], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
+  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [eq_refl], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
 
 Returning to the example of [isZero], we can see how to work with hypotheses that use this predicate. *)
 

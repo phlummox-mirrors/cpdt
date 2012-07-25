@@ -332,14 +332,14 @@ Ltac run' := unfold run, runTo in *; try red; crush;
               case_eq M; intros ? ? Heq; try rewrite Heq in *; subst
             | [ H : forall n v, ?E n = Some v -> _,
                 _ : context[match ?E ?N with Some _ => _ | None => _ end] |- _ ] =>
-              specialize (H N); destruct (E N); try rewrite (H _ (refl_equal _)) by auto; try discriminate
+              specialize (H N); destruct (E N); try rewrite (H _ (eq_refl _)) by auto; try discriminate
             | [ H : forall n v, ?E n = Some v -> _, H' : ?E _ = Some _ |- _ ] => rewrite (H _ _ H') by auto
           end; simpl in *); eauto 7.
 
 Ltac run := run'; repeat (match goal with
                             | [ H : forall n v, ?E n = Some v -> _
                                 |- context[match ?E ?N with Some _ => _ | None => _ end] ] =>
-                              specialize (H N); destruct (E N); try rewrite (H _ (refl_equal _)) by auto; try discriminate
+                              specialize (H N); destruct (E N); try rewrite (H _ (eq_refl _)) by auto; try discriminate
                           end; run').
 
 Lemma ex_irrelevant : forall P : Prop, P -> exists n : nat, P.
@@ -536,12 +536,12 @@ End Fix.
 (* begin hide *)
 Lemma leq_Some : forall A (x y : A), leq (Some x) (Some y)
   -> x = y.
-  intros ? ? ? H; generalize (H _ (refl_equal _)); crush.
+  intros ? ? ? H; generalize (H _ (eq_refl _)); crush.
 Qed.
 
 Lemma leq_None : forall A (x y : A), leq (Some x) None
   -> False.
-  intros ? ? ? H; generalize (H _ (refl_equal _)); crush.
+  intros ? ? ? H; generalize (H _ (eq_refl _)); crush.
 Qed.
 
 Ltac mergeSort' := run;
