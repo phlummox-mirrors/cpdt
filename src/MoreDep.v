@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{More Dependent Types}% *)
 
-(** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up %``%#"#free theorems#"#%''% to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
+(** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
 
    In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes (that is, dependent inductive types outside [Prop]), a possibility that sets Coq apart from all of the competition not based on type theory. *)
 
@@ -60,7 +60,7 @@ Section ilist.
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology %``%#"#stratified.#"#%''%  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology "stratified."  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -86,7 +86,7 @@ Qed.
 
 (* EX: Implement statically checked "car"/"hd" *)
 
-(** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced in the previous chapter.
+(** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced two chapters ago.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
@@ -110,7 +110,7 @@ Definition hd n (ls : ilist (S n)) : A :=
 Error: Non exhaustive pattern-matching: no clause found for pattern Nil
 >>
 
-Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a %\texttt{%#<tt>#Match#</tt>#%}% exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
+Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
 
 [[
 Definition hd n (ls : ilist (S n)) : A :=
@@ -179,7 +179,7 @@ The last piece of the typing rule tells how to type-check a [match] case.  A gen
 
 This is an exhaustive description of the ways to specify how to take advantage of which pattern has matched!  No other mechanisms come into play.  For instance, there is no way to specify that the types of certain free variables should be refined based on which pattern has matched.  In the rest of the book, we will learn design patterns for achieving similar effects, where each technique leads to an encoding only in terms of [in], [as], and [return] clauses.
 
-A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both%\index{parameters}% _parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of %``%#"#what the type checker is thinking.#"#%''%  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
+A few details have been omitted above.  In Chapter 3, we learned that inductive type families may have both%\index{parameters}% _parameters_ and regular arguments.  Within an [in] clause, a parameter position must have the wildcard [_] written, instead of a variable.  (In general, Coq uses wildcard [_]'s either to indicate pattern variables that will not be mentioned again or to indicate positions where we would like type inference to infer the appropriate terms.)  Furthermore, recent Coq versions are adding more and more heuristics to infer dependent [match] annotations in certain conditions.  The general annotation inference problem is undecidable, so there will always be serious limitations on how much work these heuristics can do.  When in doubt about why a particular dependent [match] is failing to type-check, add an explicit [return] annotation!  At that point, the mechanical rule sketched in this section will provide a complete account of "what the type checker is thinking."  Be sure to avoid the common pitfall of writing a [return] annotation that does not mention any variables bound by [in] or [as]; such a [match] will never refine typing requirements based on which pattern has matched.  (One simple exception to this rule is that, when the discriminee is a variable, that same variable may be treated as if it were repeated as an [as] clause.) *)
 
 
 (** * A Tagless Interpreter *)
@@ -215,7 +215,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Prod t1 t2 => typeDenote t1 * typeDenote t2
   end%type.
 
-(** The [typeDenote] function compiles types of our object language into %``%#"#native#"#%''% Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%]%\coqdocvar{%#<tt>#type#</tt>#%}% annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token %\coqdocvar{%#<tt>#type#</tt>#%}% is one example of an identifer bound to a%\index{notation scope delimiter}% _notation scope delimiter_.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
+(** The [typeDenote] function compiles types of our object language into "native" Coq types.  It is deceptively easy to implement.  The only new thing we see is the [%]%\coqdocvar{%#<tt>#type#</tt>#%}% annotation, which tells Coq to parse the [match] expression using the notations associated with types.  Without this annotation, the [*] would be interpreted as multiplication on naturals, rather than as the product type constructor.  The token %\coqdocvar{%#<tt>#type#</tt>#%}% is one example of an identifer bound to a%\index{notation scope delimiter}% _notation scope delimiter_.  In this book, we will not go into more detail on notation scopes, but the Coq manual can be consulted for more information.
 
    We can define a function [expDenote] that is typed in terms of [typeDenote]. *)
 
@@ -528,6 +528,10 @@ Section present.
     end.
 End present.
 
+(* begin hide *)
+Definition sigT' := sigT.
+(* end hide *)
+
 (** Insertion relies on two balancing operations.  It will be useful to give types to these operations using a relative of the subset types from last chapter.  While subset types let us pair a value with a proof about that value, here we want to pair a value with another non-proof dependently typed value.  The %\index{Gallina terms!sigT}%[sigT] type fills this role. *)
 
 Locate "{ _ : _ & _ }".
@@ -552,7 +556,7 @@ Notation "{< x >}" := (existT _ _ x).
 
    A balance operation may return a tree whose root is of either color.  Thus, we use a [sigT] type to package the result tree with the color of its root.  Here is the definition of the first balance operation, which applies when the possibly invalid [rtree] belongs to the left of the valid [rbtree].
 
-   A quick word of encouragement: After writing this code, even I do not understand the precise details of how balancing works!  I consulted Chris Okasaki's paper %``%#"#Red-Black Trees in a Functional Setting#"#%''~\cite{Okasaki}% and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.*)
+   A quick word of encouragement: After writing this code, even I do not understand the precise details of how balancing works!  I consulted Chris Okasaki's paper "Red-Black Trees in a Functional Setting" %\cite{Okasaki} %and transcribed the code to use dependent types.  Luckily, the details are not so important here; types alone will tell us that insertion preserves balanced-ness, and we will prove that insertion produces trees containing the right keys.*)
 
 Definition balance1 n (a : rtree n) (data : nat) c2 :=
   match a in rtree n return rbtree c2 n
@@ -574,7 +578,7 @@ Definition balance1 n (a : rtree n) (data : nat) c2 :=
 
 (** We apply a trick that I call the%\index{convoy pattern}% _convoy pattern_.  Recall that [match] annotations only make it possible to describe a dependence of a [match] _result type_ on the discriminee.  There is no automatic refinement of the types of free variables.  However, it is possible to effect such a refinement by finding a way to encode free variable type dependencies in the [match] result type, so that a [return] clause can express the connection.
 
-   In particular, we can extend the [match] to return _functions over the free variables whose types we want to refine_.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the %``%#"#old version#"#%''% of the variable to be refined, and the type checker is happy.
+   In particular, we can extend the [match] to return _functions over the free variables whose types we want to refine_.  In the case of [balance1], we only find ourselves wanting to refine the type of one tree variable at a time.  We match on one subtree of a node, and we want the type of the other subtree to be refined based on what we learn.  We indicate this with a [return] clause starting like [rbtree _ n -> ...], where [n] is bound in an [in] pattern.  Such a [match] expression is applied immediately to the "old version" of the variable to be refined, and the type checker is happy.
 
    Here is the symmetric function [balance2], for cases where the possibly invalid tree appears on the right rather than on the left. *)
 
@@ -675,7 +679,8 @@ Section insert.
     Ltac present_balance :=
       crush;
       repeat (match goal with
-                | [ _ : context[match ?T with Leaf => _ | _ => _ end] |- _ ] => dep_destruct T
+                | [ _ : context[match ?T with Leaf => _ | _ => _ end] |- _ ] =>
+                  dep_destruct T
                 | [ |- context[match ?T with Leaf => _ | _ => _ end] ] => dep_destruct T
               end; crush).
 
@@ -759,7 +764,7 @@ Section insert.
   End present.
 End insert.
 
-(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}\texttt{%#<tt>#Obj.magic#</tt>#%}%, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the _value_ of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}%<<Obj.magic>>, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the _value_ of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
 
 (* begin hide *)
 Recursive Extraction insert.
@@ -770,7 +775,7 @@ Recursive Extraction insert.
 
 (** Another interesting example is regular expressions with dependent types that express which predicates over strings particular regexps implement.  We can then assign a dependent type to a regular expression matching function, guaranteeing that it always decides the string property that we expect it to decide.
 
-   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  That is, a string [s] matches regular expression [star e] if and only if [s] can be decomposed into a sequence of substrings that all match [e].  We use Coq's string support, which comes through a combination of the [Strings] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts.%\index{Vernacular commands!Open Scope}% *)
+   Before defining the syntax of expressions, it is helpful to define an inductive type capturing the meaning of the Kleene star.  That is, a string [s] matches regular expression [star e] if and only if [s] can be decomposed into a sequence of substrings that all match [e].  We use Coq's string support, which comes through a combination of the [String] library and some parsing notations built into Coq.  Operators like [++] and functions like [length] that we know from lists are defined again for strings.  Notation scopes help us control which versions we want to use in particular contexts.%\index{Vernacular commands!Open Scope}% *)
 
 Require Import Ascii String.
 Open Scope string_scope.
@@ -813,7 +818,7 @@ Inductive regexp : (string -> Prop) -> Type :=
 | Star : forall P (r : regexp P),
   regexp (star P).
 
-(** Many theorems about strings are useful for implementing a certified regexp matcher, and few of them are in the [Strings] library.  The book source includes statements, proofs, and hint commands for a handful of such omitted theorems.  Since they are orthogonal to our use of dependent types, we hide them in the rendered versions of this book. *)
+(** Many theorems about strings are useful for implementing a certified regexp matcher, and few of them are in the [String] library.  The book source includes statements, proofs, and hint commands for a handful of such omitted theorems.  Since they are orthogonal to our use of dependent types, we hide them in the rendered versions of this book. *)
 
 (* begin hide *)
 Open Scope specif_scope.
