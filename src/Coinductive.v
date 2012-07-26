@@ -447,7 +447,7 @@ Theorem ones_eq''' : stream_eq ones ones'.
 Qed.
 (* end thide *)
 
-(** Let us put [stream_eq_ind] through its paces a bit more, considering two different ways to compute infinite streams of all factorial values.  First, we import the [fact] factorial function from the standard library. *)
+(** Let us put [stream_eq_coind] through its paces a bit more, considering two different ways to compute infinite streams of all factorial values.  First, we import the [fact] factorial function from the standard library. *)
 
 Require Import Arith.
 Print fact.
