@@ -23,7 +23,7 @@ Set Implicit Arguments.
 
 (** * The Definitional Equality *)
 
-(** We have seen many examples so far where proof goals follow "by computation."  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's%\index{definitional equality}% _definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+(** We have seen many examples so far where proof goals follow "by computation."  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's%\index{definitional equality}% _definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion [E : T] from the premise [E : T'] and a proof that [T] and [T'] are definitionally equal.
 
    The %\index{tactics!cbv}%[cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
 

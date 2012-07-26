@@ -773,7 +773,7 @@ End Client.
 
 (** As in software development, large Coq projects are much more manageable when split across multiple files and when decomposed into libraries.  Coq and Proof General provide very good support for these activities.
 
-   Consider a library that we will name [Lib], housed in directory <<LIB>> and split between files <<A.v>>, <<B.v>>, and <<C.v>>.  A simple %\index{Makefile}%Makefile will compile the library, relying on the standard Coq tool %\index{coq\_makefile}\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
+   Consider a library that we will name [Lib], housed in directory <<LIB>> and split between files <<A.v>>, <<B.v>>, and <<C.v>>.  A simple %\index{Makefile}%Makefile will compile the library, relying on the standard Coq tool %\index{coq\_makefile}%<<coq_makefile>> to do the hard work.
 
 <<
 MODULES := A B C
@@ -792,7 +792,7 @@ clean:: Makefile.coq
         rm -f Makefile.coq
 >>
 
-   The Makefile begins by defining a variable <<VS>> holding the list of filenames to be included in the project.  The primary target is <<coq>>, which depends on the construction of an auxiliary Makefile called <<Makefile.coq>>.  Another rule explains how to build that file.  We call %\texttt{%#<tt>#coq_makefile#</tt>#%}%, using the <<-R>> flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that <<X.v>> is compiled into <<X.vo>>.
+   The Makefile begins by defining a variable <<VS>> holding the list of filenames to be included in the project.  The primary target is <<coq>>, which depends on the construction of an auxiliary Makefile called <<Makefile.coq>>.  Another rule explains how to build that file.  We call <<coq_makefile>>, using the <<-R>> flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that <<X.v>> is compiled into <<X.vo>>.
 
    Now code in <<B.v>> may refer to definitions in <<A.v>> after running
    [[
@@ -821,7 +821,7 @@ clean:: Makefile.coq
         rm -f Makefile.coq
 >>
 
-   We change the %\texttt{%#<tt>#coq_makefile#</tt>#%}% call to indicate where the library [Lib] is found.  Now <<D.v>> and <<E.v>> can refer to definitions from [Lib] module [A] after running
+   We change the <<coq_makefile>> call to indicate where the library [Lib] is found.  Now <<D.v>> and <<E.v>> can refer to definitions from [Lib] module [A] after running
    [[
 Require Import Lib.A.
    ]]

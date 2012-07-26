@@ -412,7 +412,7 @@ Qed.
 Unset Printing All.
 
 Theorem ex_symmetry : (exists x, x = 0) -> (exists x, 0 = x).
-  econstructor.
+  eexists.
   (** %\vspace{-.15in}%[[
   H : exists x : nat, x = 0
   ============================
@@ -529,7 +529,7 @@ Extraction sym_ex.
 let sym_ex = __
 >>
 
-In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type %\texttt{\_\_}%#<tt>__</tt>#, whose single constructor is %\texttt{\_\_}%#<tt>__</tt>#.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
+In this example, the [ex] type itself is in [Prop], so whole [ex] packages are erased.  Coq extracts every proposition as the (Coq-specific) type <<__>>, whose single constructor is <<__>>.  Not only are proofs replaced by [__], but proof arguments to functions are also removed completely, as we see here.
 
 Extraction is very helpful as an optimization over programs that contain proofs.  In languages like Haskell, advanced features make it possible to program with proofs, as a way of convincing the type checker to accept particular definitions.  Unfortunately, when proofs are encoded as values in GADTs%~\cite{GADT}%, these proofs exist at runtime and consume resources.  In contrast, with Coq, as long as all proofs are kept within [Prop], extraction is guaranteed to erase them.
 
