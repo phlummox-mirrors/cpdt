@@ -57,6 +57,10 @@ Even_SS
 
     For this example, we begin by using a type from the [MoreSpecif] module (included in the book source) to write a certified evenness checker. *)
 
+(* begin hide *)
+Definition paartial := partial.
+(* end hide *)
+
 Print partial.
 (** %\vspace{-.15in}% [[
 Inductive partial (P : Prop) : Set :=  Proved : P -> [P] | Uncertain : [P]
@@ -102,7 +106,7 @@ Ltac prove_even_reflective :=
   end.
 (* end thide *)
 
-(** We identify which natural number we are considering, and we %``%#"#prove#"#%''% its evenness by pulling the proof out of the appropriate [check_even] call.  Recall that the %\index{tactics!exact}%[exact] tactic proves a proposition [P] when given a proof term of precisely type [P]. *)
+(** We identify which natural number we are considering, and we "prove" its evenness by pulling the proof out of the appropriate [check_even] call.  Recall that the %\index{tactics!exact}%[exact] tactic proves a proposition [P] when given a proof term of precisely type [P]. *)
 
 Theorem even_256' : isEven 256.
   prove_even_reflective.
@@ -156,6 +160,10 @@ Theorem true_galore : (True /\ True) -> (True \/ (True /\ (True -> True))).
   tauto.
 Qed.
 
+(* begin hide *)
+Definition tg := (and_ind, or_introl).
+(* end hide *)
+
 Print true_galore.
 (** %\vspace{-.15in}% [[
 true_galore = 
@@ -167,7 +175,7 @@ and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
 
-   To write a reflective procedure for this class of goals, we will need to get into the actual %``%#"#reflection#"#%''% part of %``%#"#proof by reflection.#"#%''%  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must%\index{reification}% _reify_ [Prop] into some type that we _can_ analyze.  This inductive type is a good candidate: *)
+   To write a reflective procedure for this class of goals, we will need to get into the actual "reflection" part of "proof by reflection."  It is impossible to case-analyze a [Prop] in any way in Gallina.  We must%\index{reification}% _reify_ [Prop] into some type that we _can_ analyze.  This inductive type is a good candidate: *)
 
 (* begin thide *)
 Inductive taut : Set :=
@@ -176,7 +184,7 @@ Inductive taut : Set :=
 | TautOr : taut -> taut -> taut
 | TautImp : taut -> taut -> taut.
 
-(** We write a recursive function to _reflect_ this syntax back to [Prop].  Such functions are also called%\index{interpretation function}% _interpretation functions_, and have used them in previous examples to give semantics to small programming languages. *)
+(** We write a recursive function to _reflect_ this syntax back to [Prop].  Such functions are also called%\index{interpretation function}% _interpretation functions_, and we have used them in previous examples to give semantics to small programming languages. *)
 
 Fixpoint tautDenote (t : taut) : Prop :=
   match t with
@@ -237,14 +245,14 @@ tautTrue
      : True /\ True -> True \/ True /\ (True -> True)
     ]]
 
-    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the %``%#"#generic proof rule#"#%''% that we apply here _is_ on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it %``%#"#works#"#%''% on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here _is_ on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
 
     It may also be worth pointing out that our previous example of evenness testing used a function [partialOut] for sound handling of input goals that the verified decision procedure fails to prove.  Here, we prove that our procedure [tautTrue] (recall that an inductive proof may be viewed as a recursive procedure) is able to prove any goal representable in [taut], so no extra step is necessary. *)
 
 
 (** * A Monoid Expression Simplifier *)
 
-(** Proof by reflection does not require encoding of all of the syntax in a goal.  We can insert %``%#"#variables#"#%''% in our syntax types to allow injection of arbitrary pieces, even if we cannot apply specialized reasoning to them.  In this section, we explore that possibility by writing a tactic for normalizing monoid equations. *)
+(** Proof by reflection does not require encoding of all of the syntax in a goal.  We can insert "variables" in our syntax types to allow injection of arbitrary pieces, even if we cannot apply specialized reasoning to them.  In this section, we explore that possibility by writing a tactic for normalizing monoid equations. *)
 
 Section monoid.
   Variable A : Set.
@@ -259,7 +267,7 @@ Section monoid.
 
   (** We add variables and hypotheses characterizing an arbitrary instance of the algebraic structure of monoids.  We have an associative binary operator and an identity element for it.
 
-     It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a %``%#"#catch-all#"#%''% case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
+     It is easy to define an expression tree type for monoid expressions.  A [Var] constructor is a "catch-all" case for subexpressions that we cannot model.  These subexpressions could be actual Gallina variables, or they could just use functions that our tactic is unable to understand. *)
 
 (* begin thide *)
   Inductive mexp : Set :=
@@ -551,6 +559,10 @@ Theorem mt2 : forall x y : nat, x = y --> x = y.
   my_tauto.
 Qed.
 
+(* begin hide *)
+Definition nvm := (Node_vm, Empty_vm, End_idx, Left_idx, Right_idx).
+(* end hide *)
+
 Print mt2.
 (** %\vspace{-.15in}% [[
 mt2 = 
@@ -610,6 +622,10 @@ partialOut
 Theorem mt4' : True /\ True /\ True /\ True /\ True /\ True /\ False -> False.
   tauto.
 Qed.
+
+(* begin hide *)
+Definition fi := False_ind.
+(* end hide *)
 
 Print mt4'.
 (** %\vspace{-.15in}% [[
@@ -695,8 +711,8 @@ Inductive formula' : Set :=
 
 Ltac reifyTerm xs e :=
   match e with
-    | True => Truth'
-    | False => Falsehood'
+    | True => constr:Truth'
+    | False => constr:Falsehood'
     | ?e1 /\ ?e2 =>
       let p1 := reifyTerm xs e1 in
       let p2 := reifyTerm xs e2 in
