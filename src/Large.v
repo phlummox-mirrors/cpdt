@@ -20,14 +20,14 @@ Set Implicit Arguments.
 
    \chapter{Proving in the Large}% *)
 
-(** It is somewhat unfortunate that the term %``%#"#theorem proving#"#%''% looks so much like the word %``%#"#theory.#"#%''%  Most researchers and practitioners in software assume that mechanized theorem proving is profoundly impractical.  Indeed, until recently, most advances in theorem proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
+(** It is somewhat unfortunate that the term "theorem proving" looks so much like the word "theory."  Most researchers and practitioners in software assume that mechanized theorem proving is profoundly impractical.  Indeed, until recently, most advances in theorem proving for higher-order logics have been largely theoretical.  However, starting around the beginning of the 21st century, there was a surge in the use of proof assistants in serious verification efforts.  That line of work is still quite new, but I believe it is not too soon to distill some lessons on how to work effectively with large formal proofs.
 
    Thus, this chapter gives some tips for structuring and maintaining large Coq developments. *)
 
 
 (** * Ltac Anti-Patterns *)
 
-(** In this book, I have been following an unusual style, where proofs are not considered finished until they are %\index{fully automated proofs}``%#"#fully automated,#"#%''% in a certain sense.  Each such theorem is proved by a single tactic.  Since Ltac is a Turing-complete programming language, it is not hard to squeeze arbitrary heuristics into single tactics, using operators like the semicolon to combine steps.  In contrast, most Ltac proofs %``%#"#in the wild#"#%''% consist of many steps, performed by individual tactics followed by periods.  Is it really worth drawing a distinction between proof steps terminated by semicolons and steps terminated by periods?
+(** In this book, I have been following an unusual style, where proofs are not considered finished until they are %\index{fully automated proofs}%"fully automated," in a certain sense.  Each such theorem is proved by a single tactic.  Since Ltac is a Turing-complete programming language, it is not hard to squeeze arbitrary heuristics into single tactics, using operators like the semicolon to combine steps.  In contrast, most Ltac proofs "in the wild" consist of many steps, performed by individual tactics followed by periods.  Is it really worth drawing a distinction between proof steps terminated by semicolons and steps terminated by periods?
 
    I argue that this is, in fact, a very important distinction, with serious consequences for a majority of important verification domains.  The more uninteresting drudge work a proof domain involves, the more important it is to work to prove theorems with single tactics.  From an automation standpoint, single-tactic proofs can be extremely effective, and automation becomes more and more critical as proofs are populated by more uninteresting detail.  In this section, I will give some examples of the consequences of more common proof styles.
 
@@ -135,7 +135,7 @@ Abort.
 
 (** Can you spot what went wrong, without stepping through the script step-by-step?  The problem is that [trivial] never fails.  Originally, [trivial] had been succeeding in proving an equality that follows by reflexivity.  Our change to [times] leads to a case where that equality is no longer true.  The invocation [trivial] happily leaves the false equality in place, and we continue on to the span of tactics intended for the second inductive case.  Unfortunately, those tactics end up being applied to the _first_ case instead.
 
-   The problem with [trivial] could be %``%#"#solved#"#%''% by writing, e.g., [solve [ trivial ]] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will generate more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
+   The problem with [trivial] could be "solved" by writing, e.g., [solve [ trivial ]] instead, so that an error is signaled early on if something unexpected happens.  However, the root problem is that the syntax of a tactic invocation does not imply how many subgoals it produces.  Much more confusing instances of this problem are possible.  For example, if a lemma [L] is modified to take an extra hypothesis, then uses of [apply L] will generate more subgoals than before.  Old unstructured proof scripts will become hopelessly jumbled, with tactics applied to inappropriate subgoals.  Because of the lack of structure, there is usually relatively little to be gleaned from knowledge of the precise point in a proof script where an error is raised. *)
 
 Reset times.
 
@@ -258,7 +258,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
    eval e1 * eval e3 * eval e4 = eval e1 * eval e2
    ]]
 
-   [crush] does not know how to finish this goal.  We could finish the proof manually. *)
+   The [crush] tactic does not know how to finish this goal.  We could finish the proof manually. *)
 
   rewrite <- IHe2; crush.
 
@@ -457,10 +457,14 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   t.
 
-  (** What is [t] doing to get us to this point?  The %\index{tactics!info}%[info] command can help us answer this kind of question. *)
+  (** What is [t] doing to get us to this point?  The %\index{tactics!info}%[info] command can help us answer this kind of question.  (As of this writing, [info] is no longer functioning in the most recent Coq release, but I hope it returns.) *)
 
   Undo.
   info t.
+
+  (* begin hide *)
+  Definition eir := eq_ind_r.
+  (* end hide *)
 
   (** %\vspace{-.15in}%[[
  == simpl in *; intuition; subst; autorewrite with core in *; 
@@ -540,9 +544,9 @@ Section slow.
 
   Lemma slow : forall x y, P x y -> Q x y -> S x y -> f x = f y.
     Time eauto 6.
-    (** %\vspace{-.2in}%[[
+(** <<
 Finished transaction in 0. secs (0.068004u,0.s)
-]]
+>>
 *)
 
   Qed.
@@ -553,9 +557,9 @@ Finished transaction in 0. secs (0.068004u,0.s)
 
   Lemma slow' : forall x y, P x y -> Q x y -> S x y -> f x = f y.
     Time eauto 6.
-    (** %\vspace{-.2in}%[[
+    (** <<
 Finished transaction in 2. secs (1.264079u,0.s)
-      ]]
+      >>
 
       Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
 
@@ -585,6 +589,10 @@ Finished transaction in 2. secs (1.264079u,0.s)
 
     Restart.
     debug eauto 6.
+
+    (* begin hide *)
+    Definition deeeebug := (@eq_refl, @sym_eq).
+    (* end hide *)
 
     (** The output is a large proof tree.  The beginning of the tree is enough to reveal what is happening:
        [[
@@ -626,7 +634,7 @@ End slow.
 
 It is also easy to end up with a proof script that uses too much memory.  As tactics run, they avoid generating proof terms, since serious proof search will consider many possible avenues, and we do not want to build proof terms for subproofs that end up unused.  Instead, tactic execution maintains%\index{thunks}% _thunks_ (suspended computations, represented with closures), such that a tactic's proof-producing thunk is only executed when we run %\index{Vernacular commands!Qed}%[Qed].  These thunks can use up large amounts of space, such that a proof script exhausts available memory, even when we know that we could have used much less memory by forcing some thunks earlier.
 
-   The %\index{tactics!abstract}%[abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables remaining.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
+   The %\index{tactics!abstract}%[abstract] tactical helps us force thunks by proving some subgoals as their own lemmas.  For instance, a proof [induction x; crush] can in many cases be made to use significantly less peak memory by changing it to [induction x; abstract crush].  The main limitation of [abstract] is that it can only be applied to subgoals that are proved completely, with no undetermined unification variables in their initial states.  Still, many large automated proofs can realize vast memory savings via [abstract]. *)
 
 
 (** * Modules *)
@@ -746,9 +754,26 @@ Qed.
 
 (** * Build Processes *)
 
+(* begin hide *)
+Module Lib.
+  Module A.
+  End A.
+  Module B.
+  End B.
+  Module C.
+  End C.
+End Lib.
+Module Client.
+  Module D.
+  End D.
+  Module E.
+  End E.
+End Client.
+(* end hide *)
+
 (** As in software development, large Coq projects are much more manageable when split across multiple files and when decomposed into libraries.  Coq and Proof General provide very good support for these activities.
 
-   Consider a library that we will name [Lib], housed in directory %\texttt{%#<tt>#LIB#</tt>#%}% and split between files %\texttt{%#<tt>#A.v#</tt>#%}%, %\texttt{%#<tt>#B.v#</tt>#%}%, and %\texttt{%#<tt>#C.v#</tt>#%}%.  A simple %\index{Makefile}%Makefile will compile the library, relying on the standard Coq tool %\index{coq\_makefile}\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
+   Consider a library that we will name [Lib], housed in directory <<LIB>> and split between files <<A.v>>, <<B.v>>, and <<C.v>>.  A simple %\index{Makefile}%Makefile will compile the library, relying on the standard Coq tool %\index{coq\_makefile}\texttt{%#<tt>#coq_makefile#</tt>#%}% to do the hard work.
 
 <<
 MODULES := A B C
@@ -767,17 +792,17 @@ clean:: Makefile.coq
         rm -f Makefile.coq
 >>
 
-   The Makefile begins by defining a variable %\texttt{%#<tt>#VS#</tt>#%}% holding the list of filenames to be included in the project.  The primary target is %\texttt{%#<tt>#coq#</tt>#%}%, which depends on the construction of an auxiliary Makefile called %\texttt{%#<tt>#Makefile.coq#</tt>#%}%.  Another rule explains how to build that file.  We call %\texttt{%#<tt>#coq_makefile#</tt>#%}%, using the %\texttt{%#<tt>#-R#</tt>#%}% flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that %\texttt{%#<tt>#X.v#</tt>#%}% is compiled into %\texttt{%#<tt>#X.vo#</tt>#%}%.
+   The Makefile begins by defining a variable <<VS>> holding the list of filenames to be included in the project.  The primary target is <<coq>>, which depends on the construction of an auxiliary Makefile called <<Makefile.coq>>.  Another rule explains how to build that file.  We call %\texttt{%#<tt>#coq_makefile#</tt>#%}%, using the <<-R>> flag to specify that files in the current directory should be considered to belong to the library [Lib].  This Makefile will build a compiled version of each module, such that <<X.v>> is compiled into <<X.vo>>.
 
-   Now code in %\texttt{%#<tt>#B.v#</tt>#%}% may refer to definitions in %\texttt{%#<tt>#A.v#</tt>#%}% after running
+   Now code in <<B.v>> may refer to definitions in <<A.v>> after running
    [[
 Require Import Lib.A.
    ]]
-   %\vspace{-.15in}%Library [Lib] is presented as a module, containing a submodule [A], which contains the definitions from %\texttt{%#<tt>#A.v#</tt>#%}%.  These are genuine modules in the sense of Coq's module system, and they may be passed to functors and so on.
+   %\vspace{-.15in}%Library [Lib] is presented as a module, containing a submodule [A], which contains the definitions from <<A.v>>.  These are genuine modules in the sense of Coq's module system, and they may be passed to functors and so on.
 
-   The command [Require Import] is a convenient combination of two more primitive commands.  The %\index{Vernacular commands!Require}%[Require] command finds the %\texttt{%#<tt>#.vo#</tt>#%}% file containing the named module, ensuring that the module is loaded into memory.  The %\index{Vernacular commands!Import}%[Import] command loads all top-level definitions of the named module into the current namespace, and it may be used with local modules that do not have corresponding %\texttt{%#<tt>#.vo#</tt>#%}% files.  Another command, %\index{Vernacular commands!Load}%[Load], is for inserting the contents of a named file verbatim.  It is generally better to use the module-based commands, since they avoid rerunning proof scripts, and they facilitate reorganization of directory structure without the need to change code.
+   The command [Require Import] is a convenient combination of two more primitive commands.  The %\index{Vernacular commands!Require}%[Require] command finds the <<.vo>> file containing the named module, ensuring that the module is loaded into memory.  The %\index{Vernacular commands!Import}%[Import] command loads all top-level definitions of the named module into the current namespace, and it may be used with local modules that do not have corresponding <<.vo>> files.  Another command, %\index{Vernacular commands!Load}%[Load], is for inserting the contents of a named file verbatim.  It is generally better to use the module-based commands, since they avoid rerunning proof scripts, and they facilitate reorganization of directory structure without the need to change code.
 
-   Now we would like to use our library from a different development, called [Client] and found in directory %\texttt{%#<tt>#CLIENT#</tt>#%}%, which has its own Makefile.
+   Now we would like to use our library from a different development, called [Client] and found in directory <<CLIENT>>, which has its own Makefile.
 
 <<
 MODULES := D E
@@ -796,15 +821,15 @@ clean:: Makefile.coq
         rm -f Makefile.coq
 >>
 
-   We change the %\texttt{%#<tt>#coq_makefile#</tt>#%}% call to indicate where the library [Lib] is found.  Now %\texttt{%#<tt>#D.v#</tt>#%}% and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from [Lib] module [A] after running
+   We change the %\texttt{%#<tt>#coq_makefile#</tt>#%}% call to indicate where the library [Lib] is found.  Now <<D.v>> and <<E.v>> can refer to definitions from [Lib] module [A] after running
    [[
 Require Import Lib.A.
    ]]
-   %\vspace{-.15in}\noindent{}%and %\texttt{%#<tt>#E.v#</tt>#%}% can refer to definitions from %\texttt{%#<tt>#D.v#</tt>#%}% by running
+   %\vspace{-.15in}\noindent{}%and <<E.v>> can refer to definitions from <<D.v>> by running
    [[
 Require Import Client.D.
    ]]
-   %\vspace{-.15in}%It can be useful to split a library into several files, but it is also inconvenient for client code to import library modules individually.  We can get the best of both worlds by, for example, adding an extra source file %\texttt{%#<tt>#Lib.v#</tt>#%}% to [Lib]'s directory and Makefile, where that file contains just this line:%\index{Vernacular commands!Require Export}%
+   %\vspace{-.15in}%It can be useful to split a library into several files, but it is also inconvenient for client code to import library modules individually.  We can get the best of both worlds by, for example, adding an extra source file <<Lib.v>> to [Lib]'s directory and Makefile, where that file contains just this line:%\index{Vernacular commands!Require Export}%
    [[
 Require Export Lib.A Lib.B Lib.C.
    ]]
@@ -816,7 +841,7 @@ Require Import Lib.
 
    %\medskip%
 
-   The remaining ingredient is the proper way of editing library code files in Proof General.  Recall this snippet of %\texttt{%#<tt>#.emacs#</tt>#%}% code from Chapter 2, which tells Proof General where to find the library associated with this book.
+   The remaining ingredient is the proper way of editing library code files in Proof General.  Recall this snippet of <<.emacs>> code from Chapter 2, which tells Proof General where to find the library associated with this book.
 
 <<
 (custom-set-variables
@@ -837,9 +862,9 @@ Require Import Lib.
 )
 >>
 
-   When working on multiple projects, it is useful to leave multiple versions of this setting in your %\texttt{%#<tt>#.emacs#</tt>#%}% file, commenting out all but one of them at any moment in time.  To switch between projects, change the commenting structure and restart Emacs.
+   When working on multiple projects, it is useful to leave multiple versions of this setting in your <<.emacs>> file, commenting out all but one of them at any moment in time.  To switch between projects, change the commenting structure and restart Emacs.
 
-   Alternatively, we can revisit the directory-local settings approach and write the following into a file %\texttt{%#<tt>#.dir-locals.el#</tt>#%}% in %\texttt{%#<tt>#CLIENT#</tt>#%}%:
+   Alternatively, we can revisit the directory-local settings approach and write the following into a file <<.dir-locals.el>> in <<CLIENT>>:
 
 <<
 ((coq-mode . ((coq-prog-args .
