@@ -47,7 +47,7 @@ Check nat.
  
      ]]
 
-  From a set theory perspective, it is unsurprising to consider the natural numbers as a %``%#"#set.#"#%''% *)
+  From a set theory perspective, it is unsurprising to consider the natural numbers as a "set." *)
 
 Check Set.
 (** %\vspace{-.15in}% [[
@@ -65,7 +65,7 @@ Check Type.
  
      ]]
 
-  Strangely enough, [Type] appears to be its own type.  It is known that polymorphic languages with this property are inconsistent, via %\index{Girard's paradox}%Girard's paradox%~\cite{GirardsParadox}%.  That is, using such a language to encode proofs is unwise, because it is possible to %``%#"#prove#"#%''% any proposition.  What is really going on here?
+  Strangely enough, [Type] appears to be its own type.  It is known that polymorphic languages with this property are inconsistent, via %\index{Girard's paradox}%Girard's paradox%~\cite{GirardsParadox}%.  That is, using such a language to encode proofs is unwise, because it is possible to "prove" any proposition.  What is really going on here?
 
   Let us repeat some of our queries after toggling a flag related to Coq's printing behavior.%\index{Vernacular commands!Set Printing Universes}% *)
 
@@ -93,7 +93,7 @@ Check Type.
  
      ]]
 
-  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it really stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the %``%#"#[Type : Type]#"#%''% paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
+  Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it really stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
 
   In the outputs of our first [Check] query, we see that the type level of [Set]'s type is [(0)+1]. Here [0] stands for the level of [Set], and we increment it to arrive at the level that _classifies_ [Set].
 
@@ -176,7 +176,7 @@ Check id id.
 Error: Universe inconsistency (cannot enforce Top.16 < Top.16).
 >>
 
-  %\index{universe inconsistency}%This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is _predicative_, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, for any object of quantified type, none of those quantifiers may ever be instantiated with the object itself.  %\index{impredicativity}%Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like %``%#"#the set of all sets that do not contain themselves#"#%''% (%\index{Russell's paradox}%Russell's paradox).  Similar paradoxes would result from uncontrolled impredicativity in Coq. *)
+  %\index{universe inconsistency}%This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is _predicative_, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, for any object of quantified type, none of those quantifiers may ever be instantiated with the object itself.  %\index{impredicativity}%Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like "the set of all sets that do not contain themselves" (%\index{Russell's paradox}%Russell's paradox).  Similar paradoxes would result from uncontrolled impredicativity in Coq. *)
 
 
 (** ** Inductive Definitions *)
@@ -256,7 +256,7 @@ Inductive exp
 
   We see that the index type of [exp] has been assigned to universe level [Top.8].  In addition, each of the four occurrences of [Type] in the types of the constructors gets its own universe variable.  Each of these variables appears explicitly in the type of [exp].  In particular, any type [exp T] lives at a universe level found by incrementing by one the maximum of the four argument variables.  A consequence of this is that [exp] _must_ live at a higher universe level than any type which may be passed to one of its constructors.  This consequence led to the universe inconsistency.
 
-  Strangely, the universe variable [Top.8] only appears in one place.  Is there no restriction imposed on which types are valid arguments to [exp]?  In fact, there is a restriction, but it only appears in a global set of universe constraints that are maintained %``%#"#off to the side,#"#%''% not appearing explicitly in types.  We can print the current database.%\index{Vernacular commands!Print Universes}% *)
+  Strangely, the universe variable [Top.8] only appears in one place.  Is there no restriction imposed on which types are valid arguments to [exp]?  In fact, there is a restriction, but it only appears in a global set of universe constraints that are maintained "off to the side," not appearing explicitly in types.  We can print the current database.%\index{Vernacular commands!Print Universes}% *)
 
 Print Universes.
 (** %\vspace{-.15in}% [[
@@ -348,7 +348,7 @@ Check foo True.
  
      ]]
 
-  The basic pattern here is that Coq is willing to automatically build a %``%#"#copied-and-pasted#"#%''% version of an inductive definition, where some occurrences of [Type] have been replaced by [Set] or [Prop].  In each context, the type-checker tries to find the valid replacements that are lowest in the type hierarchy.  Automatic cloning of definitions can be much more convenient than manual cloning.  We have already taken advantage of the fact that we may re-use the same families of tuple and list types to form values in [Set] and [Type].
+  The basic pattern here is that Coq is willing to automatically build a "copied-and-pasted" version of an inductive definition, where some occurrences of [Type] have been replaced by [Set] or [Prop].  In each context, the type-checker tries to find the valid replacements that are lowest in the type hierarchy.  Automatic cloning of definitions can be much more convenient than manual cloning.  We have already taken advantage of the fact that we may re-use the same families of tuple and list types to form values in [Set] and [Type].
 
   Imitation polymorphism can be confusing in some contexts.  For instance, it is what is responsible for this weird behavior. *)
 
@@ -447,12 +447,12 @@ The term "H" has type "x = 0" while it is expected to have type
   destruct 1 as [x]; apply ex_intro with x; symmetry; assumption.
 Qed.
 
-(** This restriction for unification variables may seem counterintuitive, but it follows from the fact that CIC contains no concept of unification variable.  Rather, to construct the final proof term, at the point in a proof where the unification variable is introduced, we replace it with the instantiation we eventually find for it.  It is simply syntactically illegal to refer there to variables that are not in scope.  Without such a restriction, we could trivially %``%#"#prove#"#%''% such non-theorems as [exists n : nat, forall m : nat, n = m] by [econstructor; intro; reflexivity]. *)
+(** This restriction for unification variables may seem counterintuitive, but it follows from the fact that CIC contains no concept of unification variable.  Rather, to construct the final proof term, at the point in a proof where the unification variable is introduced, we replace it with the instantiation we eventually find for it.  It is simply syntactically illegal to refer there to variables that are not in scope.  Without such a restriction, we could trivially "prove" such non-theorems as [exists n : nat, forall m : nat, n = m] by [econstructor; intro; reflexivity]. *)
 
 
 (** * The [Prop] Universe *)
 
-(** In Chapter 4, we saw parallel versions of useful datatypes for %``%#"#programs#"#%''% and %``%#"#proofs.#"#%''%  The convention was that programs live in [Set], and proofs live in [Prop].  We gave little explanation for why it is useful to maintain this distinction.  There is certainly documentation value from separating programs from proofs; in practice, different concerns apply to building the two types of objects.  It turns out, however, that these concerns motivate formal differences between the two universes in Coq.
+(** In Chapter 4, we saw parallel versions of useful datatypes for "programs" and "proofs."  The convention was that programs live in [Set], and proofs live in [Prop].  We gave little explanation for why it is useful to maintain this distinction.  There is certainly documentation value from separating programs from proofs; in practice, different concerns apply to building the two types of objects.  It turns out, however, that these concerns motivate formal differences between the two universes in Coq.
 
    Recall the types [sig] and [ex], which are the program and proof versions of existential quantification.  Their definitions differ only in one place, where [sig] uses [Type] and [ex] uses [Prop]. *)
 
@@ -476,6 +476,10 @@ Definition projS A (P : A -> Prop) (x : sig P) : A :=
     | exist v _ => v
   end.
 
+(* begin hide *)
+Definition projE := O.
+(* end hide *)
+
 (** We run into trouble with a version that has been changed to work with [ex].
    [[
 Definition projE A (P : A -> Prop) (x : ex P) : A :=
@@ -493,7 +497,7 @@ is not allowed on a predicate in sort Type
 because proofs can be eliminated only to build proofs.
 >>
 
-  In formal Coq parlance, %\index{elimination}``%#"#elimination#"#%''% means %``%#"#pattern-matching.#"#%''%  The typing rules of Gallina forbid us from pattern-matching on a discriminee whose type belongs to [Prop], whenever the result type of the [match] has a type besides [Prop].  This is a sort of %``%#"#information flow#"#%''% policy, where the type system ensures that the details of proofs can never have any effect on parts of a development that are not also marked as proofs.
+  In formal Coq parlance, %\index{elimination}%"elimination" means "pattern-matching."  The typing rules of Gallina forbid us from pattern-matching on a discriminee whose type belongs to [Prop], whenever the result type of the [match] has a type besides [Prop].  This is a sort of "information flow" policy, where the type system ensures that the details of proofs can never have any effect on parts of a development that are not also marked as proofs.
 
   This restriction matches informal practice.  We think of programs and proofs as clearly separated, and, outside of constructive logic, the idea of computing with proofs is ill-formed.  The distinction also has practical importance in Coq, where it affects the behavior of extraction.
 
@@ -637,7 +641,7 @@ Parameter n : nat.
 Axiom positive : n > 0.
 Reset n.
 
-(** This kind of %``%#"#axiomatic presentation#"#%''% of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
+(** This kind of "axiomatic presentation" of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
 
    In general, there is a significant burden associated with any use of axioms.  It is easy to assert a set of axioms that together is%\index{inconsistent axioms}% _inconsistent_.   That is, a set of axioms may imply [False], which allows any theorem to be proved, which defeats the purpose of a proof assistant.  For example, we could assert the following axiom, which is consistent by itself but inconsistent when combined with [classic]. *)
 
@@ -653,7 +657,7 @@ Qed.
 
 Reset not_classic.
 
-(** On the subject of the law of the excluded middle itself, this axiom is usually quite harmless, and many practical Coq developments assume it.  It has been proved metatheoretically to be consistent with CIC.  Here, %``%#"#proved metatheoretically#"#%''% means that someone proved on paper that excluded middle holds in a _model_ of CIC in set theory%~\cite{SetsInTypes}%.  All of the other axioms that we will survey in this section hold in the same model, so they are all consistent together.
+(** On the subject of the law of the excluded middle itself, this axiom is usually quite harmless, and many practical Coq developments assume it.  It has been proved metatheoretically to be consistent with CIC.  Here, "proved metatheoretically" means that someone proved on paper that excluded middle holds in a _model_ of CIC in set theory%~\cite{SetsInTypes}%.  All of the other axioms that we will survey in this section hold in the same model, so they are all consistent together.
 
    Recall that Coq implements%\index{constructive logic}% _constructive_ logic by default, where excluded middle is not provable.  Proofs in constructive logic can be thought of as programs.  A [forall] quantifier denotes a dependent function type, and a disjunction denotes a variant type.  In such a setting, excluded middle could be interpreted as a decision procedure for arbitrary propositions, which computability theory tells us cannot exist.  Thus, constructive logic with excluded middle can no longer be associated with our usual notion of programming.
 
@@ -753,7 +757,7 @@ Print eq_rect_eq.
   x = eq_rect p Q x p h ]
   ]]
 
-  This axiom says that it is permissible to simplify pattern matches over proofs of equalities like [e = e].  The axiom is logically equivalent to some simpler corollaries.  In the theorem names, %``%#"#UIP#"#%''% stands for %\index{unicity of identity proofs}``%#"#unicity of identity proofs#"#%''%, where %``%#"#identity#"#%''% is a synonym for %``%#"#equality.#"#%''% *)
+  This axiom says that it is permissible to simplify pattern matches over proofs of equalities like [e = e].  The axiom is logically equivalent to some simpler corollaries.  In the theorem names, "UIP" stands for %\index{unicity of identity proofs}%"unicity of identity proofs", where "identity" is a synonym for "equality." *)
 
 Corollary UIP_refl : forall A (x : A) (pf : x = x), pf = eq_refl x.
   intros; replace pf with (eq_rect x (eq x) (eq_refl x) x pf); [
@@ -859,13 +863,13 @@ Definition choice_Set (A B : Type) (R : A -> B -> Prop) (H : forall x : A, {y : 
   exist (fun f => forall x : A, R x (f x))
   (fun x => proj1_sig (H x)) (fun x => proj2_sig (H x)).
 
-(** Via the Curry-Howard correspondence, this %``%#"#axiom#"#%''% can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtlely different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
+(** Via the Curry-Howard correspondence, this "axiom" can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtlely different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
 
-   However, when we combine an axiom of choice with the law of the excluded middle, the idea of %``%#"#choice#"#%''% becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of %``%#"#programs,#"#%''% but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This truly is more than repackaging a function with a different type.
+   However, when we combine an axiom of choice with the law of the excluded middle, the idea of "choice" becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of "programs," but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This truly is more than repackaging a function with a different type.
 
    %\bigskip%
 
-   The Coq tools support a command-line flag %\index{impredicative Set}\texttt{%#<tt>#-impredicative-set#</tt>#%}%, which modifies Gallina in a more fundamental way by making [Set] impredicative.  A term like [forall T : Set, T] has type [Set], and inductive definitions in [Set] may have constructors that quantify over arguments of any types.  To maintain consistency, an elimination restriction must be imposed, similarly to the restriction for [Prop].  The restriction only applies to large inductive types, where some constructor quantifies over a type of type [Type].  In such cases, a value in this inductive type may only be pattern-matched over to yield a result type whose type is [Set] or [Prop].  This contrasts with [Prop], where the restriction applies even to non-large inductive types, and where the result type may only have type [Prop].
+   The Coq tools support a command-line flag %\index{impredicative Set}%<<-impredicative-set>>, which modifies Gallina in a more fundamental way by making [Set] impredicative.  A term like [forall T : Set, T] has type [Set], and inductive definitions in [Set] may have constructors that quantify over arguments of any types.  To maintain consistency, an elimination restriction must be imposed, similarly to the restriction for [Prop].  The restriction only applies to large inductive types, where some constructor quantifies over a type of type [Type].  In such cases, a value in this inductive type may only be pattern-matched over to yield a result type whose type is [Set] or [Prop].  This contrasts with [Prop], where the restriction applies even to non-large inductive types, and where the result type may only have type [Prop].
 
    In old versions of Coq, [Set] was impredicative by default.  Later versions make [Set] predicative to avoid inconsistency with some classical axioms.  In particular, one should watch out when using impredicative [Set] with axioms of choice.  In combination with excluded middle or predicate extensionality, this can lead to inconsistency.  Impredicative [Set] can be useful for modeling inherently impredicative mathematical concepts, but almost all Coq developments get by fine without it. *)
 
@@ -945,7 +949,7 @@ Eval compute in cast (t4 13) First.
 
 (** The last section demonstrated one reason to avoid axioms: they interfere with computational behavior of terms.  A further reason is to reduce the philosophical commitment of a theorem.  The more axioms one assumes, the harder it becomes to convince oneself that the formal system corresponds appropriately to one's intuitions.  A refinement of this last point, in applications like %\index{proof-carrying code}%proof-carrying code%~\cite{PCC}% in computer security, has to do with minimizing the size of a%\index{trusted code base}% _trusted code base_.  To convince ourselves that a theorem is true, we must convince ourselves of the correctness of the program that checks the theorem.  Axioms effectively become new source code for the checking program, increasing the effort required to perform a correctness audit.
 
-   An earlier section gave one example of avoiding an axiom.  We proved that [pred_strong1] is agnostic to details of the proofs passed to it as arguments, by unfolding the definition of the function.  A %``%#"#simpler#"#%''% proof keeps the function definition opaque and instead applies a proof irrelevance axiom.  By accepting a more complex proof, we reduce our philosophical commitment and trusted base.  (By the way, the less-than relation that the proofs in question here prove turns out to admit proof irrelevance as a theorem provable within normal Gallina!)
+   An earlier section gave one example of avoiding an axiom.  We proved that [pred_strong1] is agnostic to details of the proofs passed to it as arguments, by unfolding the definition of the function.  A "simpler" proof keeps the function definition opaque and instead applies a proof irrelevance axiom.  By accepting a more complex proof, we reduce our philosophical commitment and trusted base.  (By the way, the less-than relation that the proofs in question here prove turns out to admit proof irrelevance as a theorem provable within normal Gallina!)
 
    One dark secret of the [dep_destruct] tactic that we have used several times is reliance on an axiom.  Consider this simple case analysis principle for [fin] values: *)
 
@@ -953,10 +957,15 @@ Theorem fin_cases : forall n (f : fin (S n)), f = First \/ exists f', f = Next f
   intros; dep_destruct f; eauto.
 Qed.
 
+(* begin hide *)
+Require Import JMeq.
+Definition jme := (JMeq, JMeq_eq).
+(* end hide *)
+
 Print Assumptions fin_cases.
 (** %\vspace{-.15in}%[[
 Axioms:
-JMeq.JMeq_eq : forall (A : Type) (x y : A), JMeq.JMeq x y -> x = y
+JMeq_eq : forall (A : Type) (x y : A), JMeq x y -> x = y
 ]]
 
   The proof depends on the [JMeq_eq] axiom that we met in the chapter on equality proofs.  However, a smarter tactic could have avoided an axiom dependence.  Here is an alternate proof via a slightly strange looking lemma. *)
@@ -988,7 +997,7 @@ Closed under the global context
 (* begin thide *)
 (** As the Curry-Howard correspondence might lead us to expect, the same pattern may be applied in programming as in proving.  Axioms are relevant in programming, too, because, while Coq includes useful extensions like [Program] that make dependently typed programming more straightforward, in general these extensions generate code that relies on axioms about equality.  We can use clever pattern matching to write our code axiom-free.
 
-As an example, consider a [Set] version of [fin_cases].  We use [Set] types instead of [Prop] types, so that return values have computational content and may be used to guide the behavior of algorithms.  Beside that, we are essentially writing the same %``%#"#proof#"#%''% in a more explicit way. *)
+As an example, consider a [Set] version of [fin_cases].  We use [Set] types instead of [Prop] types, so that return values have computational content and may be used to guide the behavior of algorithms.  Beside that, we are essentially writing the same "proof" in a more explicit way. *)
 
 Definition finOut n (f : fin n) : match n return fin n -> Type with
                                     | O => fun _ => Empty_set
@@ -1015,7 +1024,7 @@ Inductive proof : formula nil -> Prop :=
 | PInject : forall (P : Prop), P -> proof (Inject nil P)
 | PAnd : forall p q, proof p -> proof q -> proof (And p q).
 
-(** Let us prove a lemma showing that a %``%#"#[P /\ Q -> P]#"#%''% rule is derivable within the rules of [proof]. *)
+(** Let us prove a lemma showing that a "[P /\ Q -> P]" rule is derivable within the rules of [proof]. *)
 
 Theorem proj1 : forall p q, proof (And p q) -> proof p.
   destruct 1.
@@ -1070,7 +1079,11 @@ Lemma proj1_again' : forall r, proof r
 
   injection H1; intros.
 
-(** Unfortunately, the %``%#"#equality#"#%''% that we expected between [p] and [p0] comes in a strange form:
+(* begin hide *)
+  Definition existT' := existT.
+(* end hide *)
+
+(** Unfortunately, the "equality" that we expected between [p] and [p0] comes in a strange form:
 
 [[
   H3 : existT (fun Ts : list Type => formula Ts) []%list p =
@@ -1238,7 +1251,7 @@ Section withTypes'.
   Variable types : list Set.
   Variable natIndex : nat.
 
-  (** Here is the trick: instead of asserting properties about the list [types], we build a %``%#"#new#"#%''% list that is _guaranteed by construction_ to have those properties. *)
+  (** Here is the trick: instead of asserting properties about the list [types], we build a "new" list that is _guaranteed by construction_ to have those properties. *)
 
   Definition types' := update types natIndex nat.
 
