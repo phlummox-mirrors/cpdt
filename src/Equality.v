@@ -23,7 +23,7 @@ Set Implicit Arguments.
 
 (** * The Definitional Equality *)
 
-(** We have seen many examples so far where proof goals follow %``%#"#by computation.#"#%''%  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's%\index{definitional equality}% _definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
+(** We have seen many examples so far where proof goals follow "by computation."  That is, we apply computational reduction rules to reduce the goal to a normal form, at which point it follows trivially.  Exactly when this works and when it does not depends on the details of Coq's%\index{definitional equality}% _definitional equality_.  This is an untyped binary relation appearing in the formal metatheory of CIC.  CIC contains a typing rule allowing the conclusion $E : T$ from the premise $E : T'$ and a proof that $T$ and $T'$ are definitionally equal.
 
    The %\index{tactics!cbv}%[cbv] tactic will help us illustrate the rules of Coq's definitional equality.  We redefine the natural number predecessor function in a somewhat convoluted way and construct a manual proof that it returns [0] when applied to [1]. *)
 
@@ -106,7 +106,7 @@ Eval compute in fun x => id' x.
      = fun x : nat => (fix id' (n : nat) : nat := n) x
 ]]
 
-By running [compute], we ask Coq to run reduction steps until no more apply, so why do we see an application of a known function, where clearly no beta reduction has been performed?  The answer has to do with ensuring termination of all Gallina programs.  One candidate rule would say that we apply recursive definitions wherever possible.  However, this would clearly lead to nonterminating reduction sequences, since the function may appear fully applied within its own definition, and we would naively %``%#"#simplify#"#%''% such applications immediately.  Instead, Coq only applies the beta rule for a recursive function when _the top-level structure of the recursive argument is known_.  For [id'] above, we have only one argument [n], so clearly it is the recursive argument, and the top-level structure of [n] is known when the function is applied to [O] or to some [S e] term.  The variable [x] is neither, so reduction is blocked.
+By running [compute], we ask Coq to run reduction steps until no more apply, so why do we see an application of a known function, where clearly no beta reduction has been performed?  The answer has to do with ensuring termination of all Gallina programs.  One candidate rule would say that we apply recursive definitions wherever possible.  However, this would clearly lead to nonterminating reduction sequences, since the function may appear fully applied within its own definition, and we would naively "simplify" such applications immediately.  Instead, Coq only applies the beta rule for a recursive function when _the top-level structure of the recursive argument is known_.  For [id'] above, we have only one argument [n], so clearly it is the recursive argument, and the top-level structure of [n] is known when the function is applied to [O] or to some [S e] term.  The variable [x] is neither, so reduction is blocked.
 
 What are recursive arguments in general?  Every recursive function is compiled by Coq to a %\index{Gallina terms!fix}%[fix] expression, for anonymous definition of recursive functions.  Further, every [fix] with multiple arguments has one designated as the recursive argument via a [struct] annotation.  The recursive argument is the one that must decrease across recursive calls, to appease Coq's termination checker.  Coq will generally infer which argument is recursive, though we may also specify it manually, if we want to tweak reduction behavior.  For instance, consider this definition of a function to add two lists of [nat]s elementwise: *)
 
@@ -143,15 +143,19 @@ Eval compute in fun ls => addLists ls nil.
           end) ls nil
 ]]
 
-The outer application of the [fix] expression for [addList] was only simplified in the first case, because in the second case the recursive argument is [ls], whose top-level structure is not known.
+The outer application of the [fix] expression for [addLists] was only simplified in the first case, because in the second case the recursive argument is [ls], whose top-level structure is not known.
 
-The opposite behavior pertains to a version of [addList] with [ls2] marked as recursive. *)
+The opposite behavior pertains to a version of [addLists] with [ls2] marked as recursive. *)
 
 Fixpoint addLists' (ls1 ls2 : list nat) {struct ls2} : list nat :=
   match ls1, ls2 with
     | n1 :: ls1' , n2 :: ls2' => n1 + n2 :: addLists' ls1' ls2'
     | _, _ => nil
   end.
+
+(* begin hide *)
+Definition foo := @eq.
+(* end hide *)
 
 Eval compute in fun ls => addLists' ls nil.
 (** %\vspace{-.15in}%[[
@@ -169,12 +173,12 @@ Recall that co-recursive definitions have a dual rule: a co-recursive call only 
 
    The standard [eq] relation is critically dependent on the definitional equality.  The relation [eq] is often called a%\index{propositional equality}% _propositional equality_, because it reifies definitional equality as a proposition that may or may not hold.  Standard axiomatizations of an equality predicate in first-order logic define equality in terms of properties it has, like reflexivity, symmetry, and transitivity.  In contrast, for [eq] in Coq, those properties are implicit in the properties of the definitional equality, which are built into CIC's metatheory and the implementation of Gallina.  We could add new rules to the definitional equality, and [eq] would keep its definition and methods of use.
 
-   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality %``%#"#as data.#"#%''% *)
+   This all may make it sound like the choice of [eq]'s definition is unimportant.  To the contrary, in this chapter, we will see examples where alternate definitions may simplify proofs.  Before that point, I will introduce proof methods for goals that use proofs of the standard propositional equality "as data." *)
 
 
 (** * Heterogeneous Lists Revisited *)
 
-(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated %``%#"#cursor#"#%''% type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [member] types. *)
+(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [fmember] types. *)
 
 Section fhlist.
   Variable A : Type.
@@ -209,6 +213,10 @@ End fhlist.
 
 Implicit Arguments fhget [A B elm ls].
 
+(* begin hide *)
+Definition map := O.
+(* end hide *)
+
 (** We can define a [map]-like function for [fhlist]s. *)
 
 Section fhlist_map.
@@ -223,6 +231,12 @@ Section fhlist_map.
     end.
 
   Implicit Arguments fhmap [ls].
+
+  (* begin hide *)
+  Definition ilist := O.
+  Definition get := O.
+  Definition imap := O.
+  (* end hide *)
 
   (** For the inductive versions of the [ilist] definitions, we proved a lemma about the interaction of [get] and [imap].  It was a strategic choice not to attempt such a proof for the definitions that we just gave, because that sets us on a collision course with the problems that are the subject of this chapter. *)
 
@@ -271,7 +285,7 @@ The term "eq_refl ?98" has type "?98 = ?98"
 
     In retrospect, the problem is not so hard to see.  Reflexivity proofs only show [x = x] for particular values of [x], whereas here we are thinking in terms of a proof of [a = elm], where the two sides of the equality are not equal syntactically.  Thus, the essential lemma we need does not even type-check!
 
-    Is it time to throw in the towel?  Luckily, the answer is %``%#"#no.#"#%''%  In this chapter, we will see several useful patterns for proving obligations like this.
+    Is it time to throw in the towel?  Luckily, the answer is "no."  In this chapter, we will see several useful patterns for proving obligations like this.
 
     For this particular example, the solution is surprisingly straightforward.  The [destruct] tactic has a simpler sibling [case] which should behave identically for any inductive type with one constructor of no arguments.
     [[
@@ -354,6 +368,10 @@ User error: Cannot solve a second-order unification problem
 
   (** We can try to prove a lemma that would simplify proofs of many facts like [lemma2]: *)
 
+  (* begin hide *)
+  Definition lemma3' := O.
+  (* end hide *)
+
   Lemma lemma3 : forall (x : A) (pf : x = x), pf = eq_refl x.
 (* begin thide *)
     (** %\vspace{-.25in}%[[
@@ -381,7 +399,7 @@ The term "eq_refl x'" has type "x' = x'" while it is expected to have type
  "x = x'"
 >>
 
-     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], referring to the [in]-bound variable [x'].  To do a dependent [match], we _must_ choose a fresh name for the second argument of [eq].  We are just as constrained to use the %``%#"#real#"#%''% value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on _must_ equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
+     The type error comes from our [return] annotation.  In that annotation, the [as]-bound variable [pf'] has type [x = x'], referring to the [in]-bound variable [x'].  To do a dependent [match], we _must_ choose a fresh name for the second argument of [eq].  We are just as constrained to use the "real" value [x] for the first argument.  Thus, within the [return] clause, the proof we are matching on _must_ equate two non-matching terms, which makes it impossible to equate that proof with reflexivity.
 
      Nonetheless, it turns out that, with one catch, we _can_ prove this lemma. *)
 
@@ -395,7 +413,11 @@ UIP_refl
      : forall (U : Type) (x : U) (p : x = x), p = eq_refl x
      ]]
 
-     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_. *)
+     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_, the term [Eq_rect_eq.eq_rect_eq] below. *)
+
+  (* begin hide *)
+  Definition ere := eq_rect_eq.
+  (* end hide *)
 
   Print eq_rect_eq.
   (** %\vspace{-.15in}% [[
@@ -405,7 +427,11 @@ fun U : Type => Eq_rect_eq.eq_rect_eq U
        x = eq_rect p Q x p h
       ]]
 
-      The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a %``%#"#fact#"#%''% that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
+      The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
+
+  (* begin hide *)
+  Definition False' := False.
+  (* end hide *)
 
   Eval compute in (forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
     x = eq_rect p Q x p h).
@@ -416,9 +442,13 @@ fun U : Type => Eq_rect_eq.eq_rect_eq U
            end
      ]]
 
-     Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an %\index{axioms}%axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert _inconsistent_ sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via %``%#"#informal#"#%''% metatheory%~\cite{AxiomK}%, in a study that also established unprovability of the axiom in CIC.
+     Perhaps surprisingly, we cannot prove [eq_rect_eq] from within Coq.  This proposition is introduced as an %\index{axioms}%axiom; that is, a proposition asserted as true without proof.  We cannot assert just any statement without proof.  Adding [False] as an axiom would allow us to prove any proposition, for instance, defeating the point of using a proof assistant.  In general, we need to be sure that we never assert _inconsistent_ sets of axioms.  A set of axioms is inconsistent if its conjunction implies [False].  For the case of [eq_rect_eq], consistency has been verified outside of Coq via "informal" metatheory%~\cite{AxiomK}%, in a study that also established unprovability of the axiom in CIC.
 
       This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
+
+  (* begin hide *)
+  Definition Streicher_K' := (Streicher_K, UIP_refl__Streicher_K).
+  (* end hide *)
 
   Print Streicher_K.
 (* end thide *)
@@ -429,7 +459,7 @@ fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
        P (eq_refl x) -> forall p : x = x, P p
   ]]
 
-  This is the unfortunately named %\index{axiom K}``%#"#Streicher's axiom K,#"#%''% which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
+  This is the unfortunately named %\index{axiom K}%"Streicher's axiom K," which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
 
 End fhlist_map.
 
@@ -646,7 +676,7 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
     JMeq_refl : JMeq x x
     ]]
 
-The identity [JMeq] stands for %\index{John Major equality}``%#"#John Major equality,#"#%''% a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+The identity [JMeq] stands for %\index{John Major equality}%"John Major equality," a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -831,6 +861,7 @@ Theorem out_of_luck : forall n m : nat,
   apply JMeq_ind_r with (x := m); auto.
 
   (** However, we run into trouble trying to get the goal into a form compatible with [internal_JMeq_rew_r.] *)
+
   Undo 2.
 (** %\vspace{-.15in}%[[
   pattern nat, n.
@@ -850,7 +881,7 @@ In other words, the successor function [S] is insufficiently polymorphic.  If we
 
 Abort.
 
-(** Why did we not run into this problem in our proof of [fhapp_ass'']?  The reason is that the pair constructor is polymorphic in the types of the pair components, while functions like [S] are not polymorphic at all.  Use of such non-polymorphic functions with [JMeq] tends to push toward use of axioms.  The example with [nat] here is a bit unrealistic; more likely cases would involve functions that have _some_ polymorphism, but not enough to allow abstractions of the sort we attempted above with [pattern].  For instance, we might have an equality between two lists, where the goal only type-checks when the terms involved really are lists, though everything is polymorphic in the types of list data elements.  The #<a href="http://www.mpi-sws.org/~gil/Heq/">#Heq%\footnote{\url{http://www.mpi-sws.org/~gil/Heq/}}%#</a># library builds up a slightly different foundation to help avoid such problems. *)
+(** Why did we not run into this problem in our proof of [fhapp_ass'']?  The reason is that the pair constructor is polymorphic in the types of the pair components, while functions like [S] are not polymorphic at all.  Use of such non-polymorphic functions with [JMeq] tends to push toward use of axioms.  The example with [nat] here is a bit unrealistic; more likely cases would involve functions that have _some_ polymorphism, but not enough to allow abstractions of the sort we attempted above with [pattern].  For instance, we might have an equality between two lists, where the goal only type-checks when the terms involved really are lists, though everything is polymorphic in the types of list data elements.  The {{http://www.mpi-sws.org/~gil/Heq/}Heq} library builds up a slightly different foundation to help avoid such problems. *)
 
 
 (** * Equivalence of Equality Axioms *)
@@ -873,11 +904,12 @@ Definition JMeq' (A : Type) (x : A) (B : Type) (y : B) : Prop :=
 
 Infix "===" := JMeq' (at level 70, no associativity).
 
+(** remove printing exists *)
+
 (** We say that, by definition, [x] and [y] are equal if and only if there exists a proof [pf] that their types are equal, such that [x] equals the result of casting [y] with [pf].  This statement can look strange from the standpoint of classical math, where we almost never mention proofs explicitly with quantifiers in formulas, but it is perfectly legal Coq code.
 
    We can easily prove a theorem with the same type as that of the [JMeq_refl] constructor of [JMeq]. *)
 
-(** remove printing exists *)
 Theorem JMeq_refl' : forall (A : Type) (x : A), x === x.
   intros; unfold JMeq'; exists (eq_refl A); reflexivity.
 Qed.
@@ -923,7 +955,7 @@ Theorem JMeq_eq' : forall (A : Type) (x y : A),
   rewrite (UIP_refl _ _ x0); reflexivity.
 Qed.
 
-(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those %``%#"#simple#"#%''% proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements. *)
+(** We see that, in a very formal sense, we are free to switch back and forth between the two styles of proofs about equality proofs.  One style may be more convenient than the other for some proofs, but we can always interconvert between our results.  The style that does not use heterogeneous equality may be preferable in cases where many results do not require the tricks of this chapter, since then the use of axioms is avoided altogether for the simple cases, and a wider audience will be able to follow those "simple" proofs.  On the other hand, heterogeneous equality often makes for shorter and more readable theorem statements. *)
 
 (* end thide *)
 
@@ -952,7 +984,7 @@ Theorem two_identities : (fun n => n) = (fun n => n + 0).
 Qed.
 (* end thide *)
 
-(** The same axiom can help us prove equality of types, where we need to %``%#"#reason under quantifiers.#"#%''% *)
+(** The same axiom can help us prove equality of types, where we need to "reason under quantifiers." *)
 
 Theorem forall_eq : (forall x : nat, match x with
                                       | O => True
