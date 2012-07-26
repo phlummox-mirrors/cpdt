@@ -360,6 +360,10 @@ Eval cbv beta iota delta -[append] in fun A (pr : A -> string) =>
      ]]
      *)
 
+(* begin hide *)
+Definition append' := append.
+(* end hide *)
+
 (** Some of these simplified terms seem overly complex because we have turned off simplification of calls to [append], which is what uses of the [++] operator desugar to.  Selective [++] simplification would combine adjacent string literals, yielding more or less the code we would write manually to implement this printing scheme. *)
 
 
@@ -641,6 +645,10 @@ Theorem map_id : forall T dt
     At this point, it is helpful to proceed by an inner induction on the heterogeneous list [r] of recursive call results.  We could arrive at a cleaner proof by breaking this step out into an explicit lemma, but here we will do the induction inline to save space.*)
 
   induction r; crush.
+
+  (* begin hide *)
+  Definition pred' := pred.
+  (* end hide *)
 
   (** The base case is discharged automatically, and the inductive case looks like this, where [H] is the outer IH (for induction over [T] values) and [IHn] is the inner IH (for induction over the recursive arguments).
      [[
