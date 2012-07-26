@@ -21,7 +21,7 @@ Set Implicit Arguments.
 
    \chapter{Proof Search by Logic Programming}% *)
 
-(** The Curry-Howard correspondence tells us that proving is %``%#"#just#"#%''% programming, but the pragmatics of the two activities are very different.  Generally we care about properties of a program besides its type, but the same is not true about proofs.  Any proof of a theorem will do just as well.  As a result, automated proof search is conceptually simpler than automated programming.
+(** The Curry-Howard correspondence tells us that proving is "just" programming, but the pragmatics of the two activities are very different.  Generally we care about properties of a program besides its type, but the same is not true about proofs.  Any proof of a theorem will do just as well.  As a result, automated proof search is conceptually simpler than automated programming.
 
    The paradigm of %\index{logic programming}%logic programming%~\cite{LogicProgramming}%, as embodied in languages like %\index{Prolog}%Prolog%~\cite{Prolog}%, is a good match for proof search in higher-order logic.  This chapter introduces the details, attempting to avoid any dependence on past logic programming experience. *)
 
@@ -75,6 +75,10 @@ Example four_plus_three : 4 + 3 = 7.
   reflexivity.
 Qed.
 (* end thide *)
+
+(* begin hide *)
+Definition er := @eq_refl.
+(* end hide *)
 
 Print four_plus_three.
 (** %\vspace{-.15in}%[[
@@ -505,6 +509,10 @@ Abort.
 
 (** We see that the two unification variables stand for the two elements of the list.  Indeed, list length is independent of data values.  Paradoxically, we can make the proof search process easier by constraining the list further, so that proof search naturally locates appropriate data elements by unification.  The library predicate [Forall] will be helpful. *)
 
+(* begin hide *)
+Definition Forall_c := (@Forall_nil, @Forall_cons).
+(* end hide *)
+
 Print Forall.
 (** %\vspace{-.15in}%[[
 Inductive Forall (A : Type) (P : A -> Prop) : list A -> Prop :=
@@ -522,6 +530,10 @@ Qed.
 (* end thide *)
 
 (** We can see which list [eauto] found by printing the proof term. *)
+
+(* begin hide *)
+Definition conj' := (conj, le_n).
+(* end hide *)
 
 Print length_is_2.
 (** %\vspace{-.15in}%[[
@@ -661,6 +673,10 @@ Example eval1' : forall var, eval var (Plus Var (Plus (Const 8) Var)) (2 * var +
 Qed.
 (* end thide *)
 
+(* begin hide *)
+Definition e1s := eval1'_subproof.
+(* end hide *)
+
 Print eval1'.
 (** %\vspace{-.15in}%[[
 eval1' = 
@@ -781,7 +797,7 @@ Print linear.
 
 (** * More on [auto] Hints *)
 
-(** Let us stop at this point and take stock of the possibilities for [auto] and [eauto] hints.  Hints are contained within _hint databases_, which we have seen extended in many examples so far.  When no hint database is specified, a default database is used.  Hints in the default database are always used by [auto] or [eauto].  The chance to extend hint databases imperatively is important, because, in Ltac programming, we cannot create %``%#"#global variables#"#%''% whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.  In fact, [crush] is defined in terms of [auto], which explains how we achieve this extensibility.  Other user-defined tactics can take similar advantage of [auto] and [eauto].
+(** Let us stop at this point and take stock of the possibilities for [auto] and [eauto] hints.  Hints are contained within _hint databases_, which we have seen extended in many examples so far.  When no hint database is specified, a default database is used.  Hints in the default database are always used by [auto] or [eauto].  The chance to extend hint databases imperatively is important, because, in Ltac programming, we cannot create "global variables" whose values can be extended seamlessly by different modules in different source files.  We have seen the advantages of hints so far, where [crush] can be defined once and for all, while still automatically applying the hints we add throughout developments.  In fact, [crush] is defined in terms of [auto], which explains how we achieve this extensibility.  Other user-defined tactics can take similar advantage of [auto] and [eauto].
 
 The basic hints for [auto] and [eauto] are %\index{Vernacular commands!Hint Immediate}%[Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; %\index{Vernacular commands!Hint Resolve}%[Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; %\index{Vernacular commands!Hint Constructors}%[Constructors type], which acts like [Resolve] applied to every constructor of an inductive type; and %\index{Vernacular commands!Hint Unfold}%[Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
 
@@ -794,6 +810,10 @@ Theorem bool_neq : true <> false.
   (** A call to [crush] would have discharged this goal, but the default hint database for [auto] contains no hint that applies. *)
 
 Abort.
+
+(* begin hide *)
+Definition boool := bool.
+(* end hide *)
 
 (** It is hard to come up with a [bool]-specific hint that is not just a restatement of the theorem we mean to prove.  Luckily, a simpler form suffices, by appealing to the built-in tactic %\index{tactics!congruence}%[congruence], a complete procedure for the theory of equality, uninterpreted functions, and datatype constructors. *)
 
@@ -831,12 +851,16 @@ Section forall_and.
 
 End forall_and.
 
+(* begin hide *)
+Definition noot := (not, @eq).
+(* end hide *)
+
 (** After our success on this example, we might get more ambitious and seek to generalize the hint to all possible predicates [P].
    [[
-  Hint Extern 1 (?P ?X) =>
-    match goal with
-      | [ H : forall x, P x /\ _ |- _ ] => apply (proj1 (H X))
-    end.
+Hint Extern 1 (?P ?X) =>
+  match goal with
+    | [ H : forall x, P x /\ _ |- _ ] => apply (proj1 (H X))
+  end.
 ]]
 <<
 User error: Bound head variable
@@ -872,7 +896,7 @@ Section autorewrite.
     intros; autorewrite with core; reflexivity.
   Qed.
 
-  (** There are a few ways in which [autorewrite] can lead to trouble when insufficient care is taken in choosing hints.  First, the set of hints may define a nonterminating rewrite system, in which case invocations to [autorewrite] may not terminate.  Second, we may add hints that %``%#"#lead [autorewrite] down the wrong path.#"#%''%  For instance: *)
+  (** There are a few ways in which [autorewrite] can lead to trouble when insufficient care is taken in choosing hints.  First, the set of hints may define a nonterminating rewrite system, in which case invocations to [autorewrite] may not terminate.  Second, we may add hints that "lead [autorewrite] down the wrong path."  For instance: *)
 
   Section garden_path.
     Variable g : A -> A.
@@ -889,7 +913,7 @@ Section autorewrite.
 
     Abort.
 
-    (** Our new hint was used to rewrite the goal into a form where the old hint could no longer be applied.  This %``%#"#non-monotonicity#"#%''% of rewrite hints contrasts with the situation for [auto], where new hints may slow down proof search but can never %``%#"#break#"#%''% old proofs.  The key difference is that [auto] either solves a goal or makes no changes to it, while [autorewrite] may change goals without solving them.  The situation for [eauto] is slightly more complicated, as changes to hint databases may change the proof found for a particular goal, and that proof may influence the settings of unification variables that appear elsewhere in the proof state. *)
+    (** Our new hint was used to rewrite the goal into a form where the old hint could no longer be applied.  This "non-monotonicity" of rewrite hints contrasts with the situation for [auto], where new hints may slow down proof search but can never "break" old proofs.  The key difference is that [auto] either solves a goal or makes no changes to it, while [autorewrite] may change goals without solving them.  The situation for [eauto] is slightly more complicated, as changes to hint databases may change the proof found for a particular goal, and that proof may influence the settings of unification variables that appear elsewhere in the proof state. *)
 
   Reset garden_path.
 
