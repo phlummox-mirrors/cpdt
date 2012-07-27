@@ -77,7 +77,9 @@ Qed.
 (* end thide *)
 
 (* begin hide *)
+(* begin thide *)
 Definition er := @eq_refl.
+(* end thide *)
 (* end hide *)
 
 Print four_plus_three.
@@ -356,6 +358,12 @@ Finished transaction in 2. secs (1.92012u,0.044003s)
 
 (** We see worrying exponential growth in running time, and the %\index{tactics!debug}%[debug] tactical helps us see where [eauto] is wasting its time, outputting a trace of every proof step that is attempted.  The rule [eq_trans] applies at every node of a proof tree, and [eauto] tries all such positions. *)
 
+(* begin hide *)
+(* begin thide *)
+Definition syms := (eq_sym, plus_n_O, eq_add_S, f_equal2).
+(* end thide *)
+(* end hide *)
+
     debug eauto 3.
 (** [[
 1 depth=3 
@@ -403,7 +411,7 @@ This [eauto] fails to prove the goal, but it least it takes substantially less t
 Abort.
 (* end thide *)
 
-(** One simple example from before runs in the same amount of time, avoiding pollution by transivity. *)
+(** One simple example from before runs in the same amount of time, avoiding pollution by transitivity. *)
 
 Example seven_minus_three_again : exists x, x + 3 = 7.
 (* begin thide *)
@@ -510,7 +518,9 @@ Abort.
 (** We see that the two unification variables stand for the two elements of the list.  Indeed, list length is independent of data values.  Paradoxically, we can make the proof search process easier by constraining the list further, so that proof search naturally locates appropriate data elements by unification.  The library predicate [Forall] will be helpful. *)
 
 (* begin hide *)
+(* begin thide *)
 Definition Forall_c := (@Forall_nil, @Forall_cons).
+(* end thide *)
 (* end hide *)
 
 Print Forall.
@@ -532,7 +542,9 @@ Qed.
 (** We can see which list [eauto] found by printing the proof term. *)
 
 (* begin hide *)
+(* begin thide *)
 Definition conj' := (conj, le_n).
+(* end thide *)
 (* end hide *)
 
 Print length_is_2.
@@ -674,7 +686,9 @@ Qed.
 (* end thide *)
 
 (* begin hide *)
+(* begin thide *)
 Definition e1s := eval1'_subproof.
+(* end thide *)
 (* end hide *)
 
 Print eval1'.
@@ -812,7 +826,9 @@ Theorem bool_neq : true <> false.
 Abort.
 
 (* begin hide *)
+(* begin thide *)
 Definition boool := bool.
+(* end thide *)
 (* end hide *)
 
 (** It is hard to come up with a [bool]-specific hint that is not just a restatement of the theorem we mean to prove.  Luckily, a simpler form suffices, by appealing to the built-in tactic %\index{tactics!congruence}%[congruence], a complete procedure for the theory of equality, uninterpreted functions, and datatype constructors. *)
@@ -852,7 +868,9 @@ Section forall_and.
 End forall_and.
 
 (* begin hide *)
+(* begin thide *)
 Definition noot := (not, @eq).
+(* end thide *)
 (* end hide *)
 
 (** After our success on this example, we might get more ambitious and seek to generalize the hint to all possible predicates [P].

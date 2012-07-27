@@ -50,7 +50,9 @@ Section stream.
 End stream.
 
 (* begin hide *)
+(* begin thide *)
 CoInductive evilStream := Nil.
+(* end thide *)
 (* end hide *)
 
 (** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
@@ -105,7 +107,9 @@ Eval simpl in approx trues_falses 10.
 (* end thide *)
 
 (* begin hide *)
+(* begin thide *)
 Definition looper := 0.
+(* end thide *)
 (* end hide *)
 
 (** So far, it looks like co-inductive types might be a magic bullet, allowing us to import all of the Haskeller's usual tricks.  However, there are important restrictions that are dual to the restrictions on the use of inductive types.  Fixpoints _consume_ values of inductive types, with restrictions on which _arguments_ may be passed in recursive calls.  Dually, co-fixpoints _produce_ values of co-inductive types, with restrictions on what may be done with the _results_ of co-recursive calls.
@@ -139,7 +143,9 @@ Section map.
 End map.
 
 (* begin hide *)
+(* begin thide *)
 Definition filter := 0.
+(* end thide *)
 (* end hide *)
 
 (** This code is a literal copy of that for the list [map] function, with the [nil] case removed and [Fixpoint] changed to [CoFixpoint].  Many other standard functions on lazy data structures can be implemented just as easily.  Some, like [filter], cannot be implemented.  Since the predicate passed to [filter] may reject every element of the stream, we cannot satisfy the guardedness condition.
@@ -215,7 +221,9 @@ Definition ones' := map S zeroes.
 Theorem ones_eq : ones = ones'.
 
 (* begin hide *)
+(* begin thide *)
 Definition foo := @eq.
+(* end thide *)
 (* end hide *)
 
   (** However, faced with the initial subgoal, it is not at all clear how this theorem can be proved.  In fact, it is unprovable.  The [eq] predicate that we use is fundamentally limited to equalities that can be demonstrated by finite, syntactic arguments.  To prove this equivalence, we will need to introduce a new relation. *)

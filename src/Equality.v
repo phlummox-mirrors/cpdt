@@ -154,7 +154,9 @@ Fixpoint addLists' (ls1 ls2 : list nat) {struct ls2} : list nat :=
   end.
 
 (* begin hide *)
-Definition foo := @eq.
+(* begin thide *)
+Definition foo := (@eq, plus).
+(* end thide *)
 (* end hide *)
 
 Eval compute in fun ls => addLists' ls nil.
@@ -214,7 +216,9 @@ End fhlist.
 Implicit Arguments fhget [A B elm ls].
 
 (* begin hide *)
+(* begin thide *)
 Definition map := O.
+(* end thide *)
 (* end hide *)
 
 (** We can define a [map]-like function for [fhlist]s. *)
@@ -233,9 +237,11 @@ Section fhlist_map.
   Implicit Arguments fhmap [ls].
 
   (* begin hide *)
+  (* begin thide *)
   Definition ilist := O.
   Definition get := O.
   Definition imap := O.
+  (* end thide *)
   (* end hide *)
 
   (** For the inductive versions of the [ilist] definitions, we proved a lemma about the interaction of [get] and [imap].  It was a strategic choice not to attempt such a proof for the definitions that we just gave, because that sets us on a collision course with the problems that are the subject of this chapter. *)
@@ -369,7 +375,9 @@ User error: Cannot solve a second-order unification problem
   (** We can try to prove a lemma that would simplify proofs of many facts like [lemma2]: *)
 
   (* begin hide *)
+  (* begin thide *)
   Definition lemma3' := O.
+  (* end thide *)
   (* end hide *)
 
   Lemma lemma3 : forall (x : A) (pf : x = x), pf = eq_refl x.
@@ -428,7 +436,9 @@ x = eq_rect p Q x p h ]
       The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
 
   (* begin hide *)
+  (* begin thide *)
   Definition False' := False.
+  (* end thide *)
   (* end hide *)
 
   Eval compute in (forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
@@ -445,7 +455,9 @@ x = eq_rect p Q x p h ]
       This axiom is equivalent to another that is more commonly known and mentioned in type theory circles. *)
 
   (* begin hide *)
-  Definition Streicher_K' := (Streicher_K, UIP_refl__Streicher_K).
+  (* begin thide *)
+  Definition Streicher_K' := UIP_refl__Streicher_K.
+  (* end thide *)
   (* end hide *)
 
   Print Streicher_K.
@@ -462,7 +474,9 @@ fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
 End fhlist_map.
 
 (* begin hide *)
+(* begin thide *)
 Require Eqdep_dec.
+(* end thide *)
 (* end hide *)
 
 (** It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases.  To simplify presentation, we will stick with the axiom version in the rest of this chapter. *)

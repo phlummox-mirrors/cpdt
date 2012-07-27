@@ -234,6 +234,12 @@ Fixpoint expDenote t (e : exp t) : typeDenote t :=
     | Snd _ _ e' => snd (expDenote e')
   end.
 
+(* begin hide *)
+(* begin thide *)
+Definition sumboool := sumbool.
+(* end thide *)
+(* end hide *)
+
 (** Despite the fancy type, the function definition is routine.  In fact, it is less complicated than what we would write in ML or Haskell 98, since we do not need to worry about pushing final values in and out of an algebraic datatype.  The only unusual thing is the use of an expression of the form [if E then true else false] in the [Eq] case.  Remember that [eq_nat_dec] has a rich dependent type, rather than a simple boolean type.  Coq's native [if] is overloaded to work on a test of any two-constructor type, so we can use [if] to build a simple boolean from the [sumbool] that [eq_nat_dec] returns.
 
    We can implement our old favorite, a constant folding function, and prove it correct.  It will be useful to write a function [pairOut] that checks if an [exp] of [Prod] type is a pair, returning its two components if so.  Unsurprisingly, a first attempt leads to a type error.
@@ -527,10 +533,6 @@ Section present.
       | RedNode' _ _ _ a y b => present a \/ x = y \/ present b
     end.
 End present.
-
-(* begin hide *)
-Definition sigT' := sigT.
-(* end hide *)
 
 (** Insertion relies on two balancing operations.  It will be useful to give types to these operations using a relative of the subset types from last chapter.  While subset types let us pair a value with a proof about that value, here we want to pair a value with another non-proof dependently typed value.  The %\index{Gallina terms!sigT}%[sigT] type fills this role. *)
 
