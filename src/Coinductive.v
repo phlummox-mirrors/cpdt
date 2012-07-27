@@ -543,10 +543,9 @@ Qed.
 
 Definition var := nat.
 
-(** We define a type [vars] of maps from variables to values.  To define a function [set] for setting a variable's value in a map, we import the [Arith] module from Coq's standard library, and we use its function [beq_nat] for comparing natural numbers. *)
+(** We define a type [vars] of maps from variables to values.  To define a function [set] for setting a variable's value in a map, we use the standard library function [beq_nat] for comparing natural numbers. *)
 
 Definition vars := var -> nat.
-Require Import Arith.
 Definition set (vs : vars) (v : var) (n : nat) : vars :=
   fun v' => if beq_nat v v' then n else vs v'.
 

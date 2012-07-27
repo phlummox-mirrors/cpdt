@@ -413,18 +413,16 @@ UIP_refl
      : forall (U : Type) (x : U) (p : x = x), p = eq_refl x
      ]]
 
-     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_, the term [Eq_rect_eq.eq_rect_eq] below. *)
+     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_, the term [eq_rect_eq] below. *)
 
-  (* begin hide *)
-  Definition ere := eq_rect_eq.
-  (* end hide *)
-
+(* begin hide *)
+  Import Eq_rect_eq.
+(* end hide *)
   Print eq_rect_eq.
   (** %\vspace{-.15in}% [[
-eq_rect_eq = 
-fun U : Type => Eq_rect_eq.eq_rect_eq U
-     : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
-       x = eq_rect p Q x p h
+*** [ eq_rect_eq : 
+forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
+x = eq_rect p Q x p h ]
       ]]
 
       The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
@@ -462,6 +460,10 @@ fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
   This is the unfortunately named %\index{axiom K}%"Streicher's axiom K," which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
 
 End fhlist_map.
+
+(* begin hide *)
+Require Eqdep_dec.
+(* end hide *)
 
 (** It is worth remarking that it is possible to avoid axioms altogether for equalities on types with decidable equality.  The [Eqdep_dec] module of the standard library contains a parametric proof of [UIP_refl] for such cases.  To simplify presentation, we will stick with the axiom version in the rest of this chapter. *)
 

@@ -776,6 +776,10 @@ Corollary UIP : forall A (x y : A) (pf1 pf2 : x = y), pf1 = pf2.
     end.
 Qed.
 
+(* begin hide *)
+Require Eqdep_dec.
+(* end hide *)
+
 (** These corollaries are special cases of proof irrelevance.  In developments that only need proof irrelevance for equality, there is no need to assert full irrelevance.
 
    Another facet of proof irrelevance is that, like excluded middle, it is often provable for specific propositions.  For instance, [UIP] is provable whenever the type [A] has a decidable equality operation.  The module [Eqdep_dec] of the standard library contains a proof.  A similar phenomenon applies to other notable cases, including less-than proofs.  Thus, it is often possible to use proof irrelevance without asserting axioms.
@@ -843,6 +847,10 @@ Check dependent_unique_choice.
   ]]
 
   This axiom lets us convert a relational specification [R] into a function implementing that specification.  We need only prove that [R] is truly a function.  An alternate, stronger formulation applies to cases where [R] maps each input to one or more outputs.  We also simplify the statement of the theorem by considering only non-dependent function types. *)
+
+(* begin hide *)
+Require RelationalChoice.
+(* end hide *)
 
 Require Import ClassicalChoice.
 Check choice.
