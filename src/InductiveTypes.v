@@ -711,9 +711,11 @@ Up to this point, we have seen how to encode in Coq more and more of what is pos
 
 Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called%\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}% _higher-order abstract syntax_ (HOAS)%~\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
 (* begin hide *)
+(* begin thide *)
 Inductive term : Set := App | Abs.
 Reset term.
 Definition uhoh := O.
+(* end thide *)
 (* end hide *)
 (** [[
 Inductive term : Set :=
@@ -749,11 +751,8 @@ Nonetheless, the basic insight of HOAS is a very useful one, and there are ways 
 
 (** As we have emphasized a few times already, Coq proofs are actually programs, written in the same language we have been using in our examples all along.  We can get a first sense of what this means by taking a look at the definitions of some of the %\index{induction principles}%induction principles we have used.  A close look at the details here will help us construct induction principles manually, which we will see is necessary for some more advanced inductive definitions. *)
 
-(* begin hide *)
 Print unit_ind.
-(* end hide *)
-(** %\noindent%[Print] [unit_ind.] *)
-(** [[
+(** %\vspace{-.15in}%[[
   unit_ind = 
   fun P : unit -> Prop => unit_rect P
      : forall P : unit -> Prop, P tt -> forall u : unit, P u
@@ -771,11 +770,8 @@ Check unit_rect.
 
 The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
 
-(* begin hide *)
 Print unit_rec.
-(* end hide *)
-(** %\noindent%[Print] [unit_rec.] *)
-(** [[
+(** %\vspace{-.15in}%[[
   unit_rec = 
   fun P : unit -> Set => unit_rect P
      : forall P : unit -> Set, P tt -> forall u : unit, P u
@@ -794,11 +790,8 @@ Definition always_O' (u : unit) : nat :=
 
 (** Going even further down the rabbit hole, [unit_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
 
-(* begin hide *)
 Print unit_rect.
-(* end hide *)
-(** %\noindent%[Print] [unit_rect.] *)
-(** [[
+(** %\vspace{-.15in}%[[
   unit_rect = 
   fun (P : unit -> Type) (f : P tt) (u : unit) =>
   match u as u0 return (P u0) with
@@ -820,7 +813,9 @@ Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
   end.
 
 (* begin hide *)
+(* begin thide *)
 Definition foo := nat_rect.
+(* end thide *)
 (* end hide *)
 
 (** We rely on Coq's heuristics for inferring [match] annotations, which are not consulted in the pretty-printing of terms.
@@ -1020,7 +1015,9 @@ Section nat_tree_ind'.
     All P ls -> P (NNode' n ls).
 
   (* begin hide *)
+  (* begin thide *)
   Definition list_nat_tree_ind := O.
+  (* end thide *)
   (* end hide *)
 
   (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.

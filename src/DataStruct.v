@@ -161,7 +161,9 @@ Eval simpl in get (Cons 0 (Cons 1 (Cons 2 Nil))) (Next (Next First)).
 (* end thide *)
 
 (* begin hide *)
+(* begin thide *)
 Definition map' := map.
+(* end thide *)
 (* end hide *)
 
 (** Our [get] function is also quite easy to reason about.  We show how with a short example about an analogue to the list [map] function. *)
@@ -237,7 +239,8 @@ Section hlist.
         match mem in member ls' return (match ls' with
                                           | nil => Empty_set
                                           | x' :: ls'' =>
-                                            B x' -> (member ls'' -> B elm) -> B elm
+                                            B x' -> (member ls'' -> B elm)
+                                            -> B elm
                                         end) with
           | MFirst _ => fun x _ => x
           | MNext _ _ mem' => fun _ get_mls' => get_mls' mem'
@@ -472,7 +475,9 @@ Section fhlist.
   (** By pattern-matching on the equality proof [pf], we make that equality known to the type-checker.  Exactly why this works can be seen by studying the definition of equality. *)
 
   (* begin hide *)
-  Definition foo := (@eq, @eq_refl).
+  (* begin thide *)
+  Definition foo := @eq_refl.
+  (* end thide *)
   (* end hide *)
 
   Print eq.

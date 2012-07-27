@@ -402,7 +402,9 @@ Abort.
 (* EX: Write a list map function in Ltac. *)
 
 (* begin hide *)
+(* begin thide *)
 Definition mapp := (map, list).
+(* end thide *)
 (* end hide *)
 
 (** We can also use anonymous function expressions and local function definitions in Ltac, as this example of a standard list [map] function shows. *)

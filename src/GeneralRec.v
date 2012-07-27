@@ -93,7 +93,9 @@ fun (A : Type) (R : A -> A -> Prop) => forall a : A, Acc R a
 The bulk of the definitional work devolves to the%\index{accessibility relation}\index{Gallina terms!Acc}% _accessibility_ relation [Acc], whose definition we may also examine. *)
 
 (* begin hide *)
+(* begin thide *)
 Definition Acc_intro' := Acc_intro.
+(* end thide *)
 (* end hide *)
 
   Print Acc.
@@ -752,7 +754,9 @@ Notation "x <- m1 ; m2" :=
   (TBind m1 (fun x => m2)) (right associativity, at level 70).
 
 (* begin hide *)
+(* begin thide *)
 Definition fib := pred.
+(* end thide *)
 (* end hide *)
 
 (** %\vspace{-.15in}%[[

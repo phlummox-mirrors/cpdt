@@ -29,10 +29,6 @@ Set Implicit Arguments.
 
 (** Let us consider several ways of implementing the natural number predecessor function.  We start by displaying the definition from the standard library: *)
 
-(* begin hide *)
-Definition foo := pred.
-(* end hide *)
-
 Print pred.
 (** %\vspace{-.15in}% [[
 pred = fun n : nat => match n with
@@ -147,7 +143,9 @@ let pred_strong1 = function
 We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
 
 (* begin hide *)
-Definition bar := (sig, ex).
+(* begin thide *)
+Definition bar := ex.
+(* end thide *)
 (* end hide *)
 
 Print sig.
@@ -219,7 +217,9 @@ Eval compute in pred_strong3 (exist _ 2 two_gt0).
      *)
 
 (* begin hide *)
+(* begin thide *)
 Definition pred_strong := 0.
+(* end thide *)
 (* end hide *)
 
 (** The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the base value from a subset type.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
@@ -385,10 +385,6 @@ In this case, we see that the new definition yields the same computational behav
 (** * Decidable Proposition Types *)
 
 (** There is another type in the standard library which captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
-
-(* begin hide *)
-Definition baz := sumbool.
-(* end hide *)
 
 Print sumbool.
 (** %\vspace{-.15in}% [[
@@ -606,10 +602,6 @@ Eval compute in pred_strong7 0.
      ]]
 
      Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
-
-(* begin hide *)
-Definition sumor' := sumor.
-(* end hide *)
 
 Print sumor.
 (** %\vspace{-.15in}% [[

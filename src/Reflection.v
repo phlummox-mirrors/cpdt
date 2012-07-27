@@ -58,7 +58,9 @@ Even_SS
     For this example, we begin by using a type from the [MoreSpecif] module (included in the book source) to write a certified evenness checker. *)
 
 (* begin hide *)
+(* begin thide *)
 Definition paartial := partial.
+(* end thide *)
 (* end hide *)
 
 Print partial.
@@ -161,7 +163,9 @@ Theorem true_galore : (True /\ True) -> (True \/ (True /\ (True -> True))).
 Qed.
 
 (* begin hide *)
+(* begin thide *)
 Definition tg := (and_ind, or_introl).
+(* end thide *)
 (* end hide *)
 
 Print true_galore.
@@ -560,7 +564,9 @@ Theorem mt2 : forall x y : nat, x = y --> x = y.
 Qed.
 
 (* begin hide *)
+(* begin thide *)
 Definition nvm := (Node_vm, Empty_vm, End_idx, Left_idx, Right_idx).
+(* end thide *)
 (* end hide *)
 
 Print mt2.
@@ -624,7 +630,9 @@ Theorem mt4' : True /\ True /\ True /\ True /\ True /\ True /\ False -> False.
 Qed.
 
 (* begin hide *)
+(* begin thide *)
 Definition fi := False_ind.
+(* end thide *)
 (* end hide *)
 
 Print mt4'.

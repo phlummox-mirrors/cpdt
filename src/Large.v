@@ -463,7 +463,9 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
   info t.
 
   (* begin hide *)
+  (* begin thide *)
   Definition eir := eq_ind_r.
+  (* end thide *)
   (* end hide *)
 
   (** %\vspace{-.15in}%[[
@@ -591,7 +593,9 @@ Finished transaction in 2. secs (1.264079u,0.s)
     debug eauto 6.
 
     (* begin hide *)
+    (* begin thide *)
     Definition deeeebug := (@eq_refl, @sym_eq).
+    (* end thide *)
     (* end hide *)
 
     (** The output is a large proof tree.  The beginning of the tree is enough to reveal what is happening:
@@ -755,6 +759,7 @@ Qed.
 (** * Build Processes *)
 
 (* begin hide *)
+(* begin thide *)
 Module Lib.
   Module A.
   End A.
@@ -769,6 +774,7 @@ Module Client.
   Module E.
   End E.
 End Client.
+(* end thide *)
 (* end hide *)
 
 (** As in software development, large Coq projects are much more manageable when split across multiple files and when decomposed into libraries.  Coq and Proof General provide very good support for these activities.

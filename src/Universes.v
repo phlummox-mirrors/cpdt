@@ -272,8 +272,10 @@ The command outputs many more constraints, but we have collected only those that
 The next constraint, for [Top.15], is more complicated.  This is the universe of the second argument to the [Pair] constructor.  Not only must [Top.15] be less than [Top.8], but it also comes out that [Top.8] must be less than [Coq.Init.Datatypes.38].  What is this new universe variable?  It is from the definition of the [prod] inductive family, to which types of the form [A * B] are desugared. *)
 
 (* begin hide *)
+(* begin thide *)
 Inductive prod := pair.
 Reset prod.
+(* end thide *)
 (* end hide *)
 
 (** [[
@@ -477,7 +479,9 @@ Definition projS A (P : A -> Prop) (x : sig P) : A :=
   end.
 
 (* begin hide *)
+(* begin thide *)
 Definition projE := O.
+(* end thide *)
 (* end hide *)
 
 (** We run into trouble with a version that has been changed to work with [ex].
@@ -777,7 +781,9 @@ Corollary UIP : forall A (x y : A) (pf1 pf2 : x = y), pf1 = pf2.
 Qed.
 
 (* begin hide *)
+(* begin thide *)
 Require Eqdep_dec.
+(* end thide *)
 (* end hide *)
 
 (** These corollaries are special cases of proof irrelevance.  In developments that only need proof irrelevance for equality, there is no need to assert full irrelevance.
@@ -849,7 +855,9 @@ Check dependent_unique_choice.
   This axiom lets us convert a relational specification [R] into a function implementing that specification.  We need only prove that [R] is truly a function.  An alternate, stronger formulation applies to cases where [R] maps each input to one or more outputs.  We also simplify the statement of the theorem by considering only non-dependent function types. *)
 
 (* begin hide *)
+(* begin thide *)
 Require RelationalChoice.
+(* end thide *)
 (* end hide *)
 
 Require Import ClassicalChoice.
@@ -967,7 +975,9 @@ Qed.
 
 (* begin hide *)
 Require Import JMeq.
+(* begin thide *)
 Definition jme := (JMeq, JMeq_eq).
+(* end thide *)
 (* end hide *)
 
 Print Assumptions fin_cases.
@@ -1088,7 +1098,9 @@ Lemma proj1_again' : forall r, proof r
   injection H1; intros.
 
 (* begin hide *)
+(* begin thide *)
   Definition existT' := existT.
+(* end thide *)
 (* end hide *)
 
 (** Unfortunately, the "equality" that we expected between [p] and [p0] comes in a strange form:
