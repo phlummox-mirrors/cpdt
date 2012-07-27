@@ -402,7 +402,7 @@ Notation "'Yes'" := (left _ _).
 Notation "'No'" := (right _ _).
 Notation "'Reduce' x" := (if x then Yes else No) (at level 50).
 
-(** The [Reduce] notation is notable because it demonstrates how [if] is overloaded in Coq.  The [if] form actually works when the test expression has any two-constructor inductive type.  Moreover, in the [then] and [else] branches, the appropriate constructor arguments are bound.  This is important when working with [sumbool]s, when we want to have the proof stored in the test expression available when proving the proof obligations generated in the appropriate branch.
+(** The %\coqdocnotation{%#<tt>#Reduce#</tt>#%}% notation is notable because it demonstrates how [if] is overloaded in Coq.  The [if] form actually works when the test expression has any two-constructor inductive type.  Moreover, in the [then] and [else] branches, the appropriate constructor arguments are bound.  This is important when working with [sumbool]s, when we want to have the proof stored in the test expression available when proving the proof obligations generated in the appropriate branch.
 
 Now we can write [eq_nat_dec], which compares two natural numbers, returning either a proof of their equality or a proof of their inequality. *)
 
@@ -429,7 +429,7 @@ Eval compute in eq_nat_dec 2 3.
      ]]
      *)
 
-(** Note that the [Yes] and [No] notations are hiding proofs establishing the correctness of the outputs.
+(** Note that the %\coqdocnotation{%#<tt>#Yes#</tt>#%}% and %\coqdocnotation{%#<tt>#No#</tt>#%}% notations are hiding proofs establishing the correctness of the outputs.
 
    Our definition extracts to reasonable OCaml code. *)
 
