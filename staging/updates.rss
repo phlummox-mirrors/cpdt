@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Taking advantage of coqdoc changes</title>
+        <pubDate>Fri, 27 Jul 2012 16:48:35 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>Starting with some help from Matthieu Sozeau, a number of improvements have been made to the coqdoc program, which is used to generate CPDT renderings.  The changes aren't in any Coq release yet (not even an 8.4 beta release), but I hope they will make it into the final 8.4, and I've used a working Coq version to generate pretty outputs.  Now the only concrete change I have planned before the final CPDT version for publication is tweaking of empty vertical space between some page elements.</description>
+</item>
+
+<item>
         <title>Preparing for final typesetting</title>
         <pubDate>Fri, 8 Jun 2012 15:55:17 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
