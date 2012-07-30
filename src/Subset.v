@@ -83,12 +83,11 @@ Eval compute in pred_strong1 two_gt0.
 (** %\vspace{-.15in}% [[
      = 1
      : nat
- 
  ]]
 
-One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural.
+%\smallskip{}%One aspect in particular of the definition of [pred_strong1] may be surprising.  We took advantage of [Definition]'s syntactic sugar for defining function arguments in the case of [n], but we bound the proofs later with explicit [fun] expressions.  Let us see what happens if we write this function in the way that at first seems most natural.
 
-[[
+%\vspace{-.15in}%[[
 Definition pred_strong1' (n : nat) (pf : n > 0) : nat :=
   match n with
     | O => match zgtz pf with end
@@ -152,10 +151,9 @@ Print sig.
 (** %\vspace{-.15in}% [[
 Inductive sig (A : Type) (P : A -> Prop) : Type :=
     exist : forall x : A, P x -> sig P
- 
 ]]
 
-The family [sig] is a Curry-Howard twin of [ex], except that [sig] is in [Type], while [ex] is in [Prop].  That means that [sig] values can survive extraction, while [ex] proofs will always be erased.  The actual details of extraction of [sig]s are more subtle, as we will see shortly.
+%\smallskip{}%The family [sig] is a Curry-Howard twin of [ex], except that [sig] is in [Type], while [ex] is in [Prop].  That means that [sig] values can survive extraction, while [ex] proofs will always be erased.  The actual details of extraction of [sig]s are more subtle, as we will see shortly.
 
 We rewrite [pred_strong1], using some syntactic sugar for subset types. *)
 
@@ -301,10 +299,9 @@ match n as n0 return (n0 > 0 -> {m : nat | n0 = S m}) with
     exist (fun m : nat => S n' = S m) n' (eq_refl (S n'))
 end
      : forall n : nat, n > 0 -> {m : nat | n = S m}
- 
 ]]
 
-We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof. *)
+%\smallskip{}%We see the code we entered, with some proofs filled in.  The first proof obligation, the second argument to [False_rec], is filled in with a nasty-looking proof term that we can be glad we did not enter by hand.  The second proof obligation is a simple reflexivity proof. *)
 
 Eval compute in pred_strong4 two_gt0.
 (** %\vspace{-.15in}% [[
@@ -312,7 +309,7 @@ Eval compute in pred_strong4 two_gt0.
      : {m : nat | 2 = S m}
      ]]
 
-  A tactic modifier called %\index{tactics!abstract}%[abstract] can be helpful for producing shorter terms, by automatically abstracting subgoals into named lemmas. *)
+  %\smallskip{}%A tactic modifier called %\index{tactics!abstract}%[abstract] can be helpful for producing shorter terms, by automatically abstracting subgoals into named lemmas. *)
 
 (* begin thide *)
 Definition pred_strong4' : forall n : nat, n > 0 -> {m : nat | n = S m}.
@@ -361,7 +358,7 @@ Eval compute in pred_strong5 two_gt0.
      : {m : nat | 2 = S m}
      ]]
 
-  One other alternative is worth demonstrating.  Recent Coq versions include a facility called %\index{Program}%[Program] that streamlines this style of definition.  Here is a complete implementation using [Program].%\index{Vernacular commands!Obligation Tactic}\index{Vernacular commands!Program Definition}% *)
+  %\smallskip{}%One other alternative is worth demonstrating.  Recent Coq versions include a facility called %\index{Program}%[Program] that streamlines this style of definition.  Here is a complete implementation using [Program].%\index{Vernacular commands!Obligation Tactic}\index{Vernacular commands!Program Definition}% *)
 
 Obligation Tactic := crush.
 
@@ -379,7 +376,7 @@ Eval compute in pred_strong6 two_gt0.
      : {m : nat | 2 = S m}
      ]]
 
-In this case, we see that the new definition yields the same computational behavior as before. *)
+%\smallskip{}%In this case, we see that the new definition yields the same computational behavior as before. *)
 
 
 (** * Decidable Proposition Types *)
@@ -423,9 +420,8 @@ Eval compute in eq_nat_dec 2 3.
      = No
      : {2 = 3} + {2 <> 3}
      ]]
-     *)
 
-(** Note that the %\coqdocnotation{%#<tt>#Yes#</tt>#%}% and %\coqdocnotation{%#<tt>#No#</tt>#%}% notations are hiding proofs establishing the correctness of the outputs.
+%\smallskip{}%Note that the %\coqdocnotation{%#<tt>#Yes#</tt>#%}% and %\coqdocnotation{%#<tt>#No#</tt>#%}% notations are hiding proofs establishing the correctness of the outputs.
 
    Our definition extracts to reasonable OCaml code. *)
 
@@ -532,9 +528,8 @@ Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
      = No
      : {In 3 (1 :: 2 :: nil)} + {~ In 3 (1 :: 2 :: nil)}
      ]]
-     *)
 
-(** [In_dec] has a reasonable extraction to OCaml. *)
+%\smallskip{}%[In_dec] has a reasonable extraction to OCaml. *)
 
 Extraction In_dec.
 (* end thide *)
@@ -601,16 +596,15 @@ Eval compute in pred_strong7 0.
      : {{m | 0 = S m}}
      ]]
 
-     Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
+     %\smallskip{}%Because we used [maybe], one valid implementation of the type we gave [pred_strong7] would return [??] in every case.  We can strengthen the type to rule out such vacuous implementations, and the type family %\index{Gallina terms!sumor}%[sumor] from the standard library provides the easiest starting point.  For type [A] and proposition [B], [A + {B}] desugars to [sumor A B], whose values are either values of [A] or proofs of [B]. *)
 
 Print sumor.
 (** %\vspace{-.15in}% [[
 Inductive sumor (A : Type) (B : Prop) : Type :=
     inleft : A -> A + {B} | inright : B -> A + {B}
 ]]
-*)
 
-(** We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
+%\smallskip{}%We add notations for easy use of the [sumor] constructors.  The second notation is specialized to [sumor]s whose [A] parameters are instantiated with regular subset types, since this is how we will use [sumor] below. *)
 
 Notation "!!" := (inright _ _).
 Notation "[|| x ||]" := (inleft _ [x]).
@@ -781,9 +775,8 @@ Eval simpl in typeCheck (Plus (Nat 1) (Bool false)).
      = ??
      : {{t | hasType (Plus (Nat 1) (Bool false)) t}}
      ]]
-     *)
 
-(** The type checker also extracts to some reasonable OCaml code. *)
+%\smallskip{}%The type checker also extracts to some reasonable OCaml code. *)
 
 Extraction typeCheck.
 
@@ -936,4 +929,4 @@ Eval simpl in typeCheck' (Plus (Nat 1) (Bool false)).
        {(forall t : type, ~ hasType (Plus (Nat 1) (Bool false)) t)}
        ]]
 
-The results of simplifying calls to [typeCheck'] look deceptively similar to the results for [typeCheck], but now the types of the results provide more information. *)
+%\smallskip{}%The results of simplifying calls to [typeCheck'] look deceptively similar to the results for [typeCheck], but now the types of the results provide more information. *)

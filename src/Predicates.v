@@ -35,18 +35,17 @@ Reset unit.
 (** The so-called %\index{Curry-Howard correspondence}``%#"#Curry-Howard correspondence#"#%''~\cite{Curry,Howard}% states a formal connection between functional programs and mathematical proofs.  In the last chapter, we snuck in a first introduction to this subject in Coq.  Witness the close similarity between the types [unit] and [True] from the standard library: *)
 
 Print unit.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive unit : Set :=  tt : unit
 ]]
 *)
 
 Print True.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive True : Prop :=  I : True
   ]]
-*)
 
-(** Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].  Chapter 12 goes into more detail about the theoretical differences between [Prop] and [Set].  For now, we will simply follow common intuitions about what a proof is.
+%\smallskip{}%Recall that [unit] is the type with only one value, and [True] is the proposition that always holds.  Despite this superficial difference between the two concepts, in both cases we can use the same inductive definition mechanism.  The connection goes further than this.  We see that we arrive at the definition of [True] by replacing [unit] by [True], [tt] by [I], and [Set] by [Prop].  The first two of these differences are superficial changes of names, while the third difference is the crucial one for separating programs from proofs.  A term [T] of type [Set] is a type of programs, and a term of type [T] is a program.  A term [T] of type [Prop] is a logical proposition, and its proofs are of type [T].  Chapter 12 goes into more detail about the theoretical differences between [Prop] and [Set].  For now, we will simply follow common intuitions about what a proof is.
 
 The type [unit] has one value, [tt].  The type [True] has one proof, [I].  Why distinguish between these two types?  Many people who have read about Curry-Howard in an abstract context and not put it to use in proof engineering answer that the two types in fact _should not_ be distinguished.  There is a certain aesthetic appeal to this point of view, but I want to argue that it is best to treat Curry-Howard very loosely in practical proving.  There are Coq-specific reasons for preferring the distinction, involving efficient compilation and avoidance of paradoxes in the presence of classical math, but I will argue that there is a more general principle that should lead us to avoid conflating programming and proving.
 
@@ -84,12 +83,11 @@ We have also already seen the definition of [True].  For a demonstration of a lo
   (** There is also a predicate [False], which is the Curry-Howard mirror image of [Empty_set] from the last chapter. *)
 
   Print False.
-  (** [[
+  (** %\vspace{-.15in}%[[
   Inductive False : Prop :=
- 
   ]]
 
-  We can conclude anything from [False], doing case analysis on a proof of [False] in the same way we might do case analysis on, say, a natural number.  Since there are no cases to consider, any such case analysis succeeds immediately in proving the goal. *)
+  %\smallskip{}%We can conclude anything from [False], doing case analysis on a proof of [False] in the same way we might do case analysis on, say, a natural number.  Since there are no cases to consider, any such case analysis succeeds immediately in proving the goal. *)
 
   Theorem False_imp : False -> 2 + 2 = 5.
 (* begin thide *)
@@ -129,10 +127,9 @@ We have also already seen the definition of [True].  For a demonstration of a lo
   (** %\vspace{-.15in}% [[
     not = fun A : Prop => A -> False
       : Prop -> Prop
- 
      ]]
 
-     We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] expands to [not P]. *)
+     %\smallskip{}%We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] expands to [not P]. *)
 
   Theorem arith_neq' : ~ (2 + 2 = 5).
 (* begin thide *)
@@ -150,12 +147,11 @@ We have also already seen the definition of [True].  For a demonstration of a lo
   (** We also have conjunction, which we introduced in the last chapter. *)
 
   Print and.
-(** [[
+(** %\vspace{-.15in}%[[
     Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
- 
   ]]
   
-  The interested reader can check that [and] has a Curry-Howard equivalent called %\index{Gallina terms!prod}%[prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  The operator [/\] is an infix shorthand for [and]. *)
+  %\smallskip{}%The interested reader can check that [and] has a Curry-Howard equivalent called %\index{Gallina terms!prod}%[prod], the type of pairs.  However, it is generally most convenient to reason about conjunction using tactics.  An explicit proof of commutativity of [and] illustrates the usual suspects for such tasks.  The operator [/\] is an infix shorthand for [and]. *)
 
   Theorem and_comm : P /\ Q -> Q /\ P.
 
@@ -174,7 +170,8 @@ We have also already seen the definition of [True].  For a demonstration of a lo
     Every proof of a conjunction provides proofs for both conjuncts, so we get a single subgoal reflecting that.  We can proceed by splitting this subgoal into a case for each conjunct of [Q /\ P].%\index{tactics!split}% *)
 
     split.
-(** 2 subgoals
+(** [[
+2 subgoals
   
   H : P
   H0 : Q
@@ -197,13 +194,12 @@ subgoal 2 is
   (** Coq disjunction is called %\index{Gallina terms!or}%[or] and abbreviated with the infix operator [\/]. *)
 
   Print or.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive or (A : Prop) (B : Prop) : Prop :=
     or_introl : A -> A \/ B | or_intror : B -> A \/ B
- 
 ]]
 
-We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
+%\smallskip{}%We see that there are two ways to prov a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
 
   Theorem or_comm : P \/ Q -> Q \/ P.
 
@@ -372,13 +368,12 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 %\index{existential quantification}\index{Gallina terms!exists}\index{Gallina terms!ex}%Existential quantification is defined in the standard library. *)
 
   Print ex.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive ex (A : Type) (P : A -> Prop) : Prop :=
     ex_intro : forall x : A, P x -> ex P
-  
     ]]
 
-  The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
+  %\smallskip{}%The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
@@ -464,12 +459,11 @@ The definition of [isZero] differs in an important way from all of the other ind
 For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
 
 Print eq.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive eq (A : Type) (x : A) : A -> Prop :=  eq_refl : x = x
- 
   ]]
 
-  Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [eq_refl], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
+  %\smallskip{}%Behind the scenes, uses of infix [=] are expanded to instances of [eq].  We see that [eq] has both a parameter [x] that is fixed and an extra unnamed argument of the same type.  The type of [eq] allows us to state any equalities, even those that are provably false.  However, examining the type of equality's sole constructor [eq_refl], we see that we can only _prove_ equality when its two arguments are syntactically equal.  This definition turns out to capture all of the basic properties of equality, and the equality-manipulating tactics that we have seen so far, like [reflexivity] and [rewrite], are implemented treating [eq] as just another inductive type with a well-chosen definition.  Another way of stating that definition is: equality is defined as the least reflexive relation.
 
 Returning to the example of [isZero], we can see how to work with hypotheses that use this predicate. *)
 
@@ -535,10 +529,9 @@ Check isZero_ind.
 (** %\vspace{-.15in}% [[
 isZero_ind
      : forall P : nat -> Prop, P 0 -> forall n : nat, isZero n -> P n
- 
    ]]
 
-   In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
+   %\smallskip{}%In our last proof script, [destruct] chose to instantiate [P] as [fun n => S n + S n = S (S (S (S n)))].  You can verify for yourself that this specialization of the principle applies to the goal and that the hypothesis [P 0] then matches the subgoal we saw generated.  If you are doing a proof and encounter a strange transmutation like this, there is a good chance that you should go back and replace a use of [destruct] with [inversion]. *)
 
 
 (* begin hide *)
@@ -685,6 +678,7 @@ Theorem even_plus : forall n m, even n -> even m -> even (n + m).
 
    [[
   IHn : forall m : nat, even n -> even m -> even (n + m)
+ 
   ]]
 
   Unfortunately, the goal mentions [n0] where it would need to mention [n] to match [IHn].  We could keep looking for a way to finish this proof from here, but it turns out that we can make our lives much easier by changing our basic strategy.  Instead of inducting on the structure of [n], we should induct _on the structure of one of the [even] proofs_.  This technique is commonly called%\index{rule induction}% _rule induction_ in programming language semantics.  In the setting of Coq, we have already seen how predicates are defined using the same inductive type mechanism as datatypes, so the fundamental unity of rule induction with "normal" induction is apparent.
@@ -788,8 +782,7 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   At this point it is useful to use a theorem from the standard library, which we also proved with a different name in the last chapter.  We can search for a theorem that allows us to rewrite terms of the form [x + S y]. *)
 
   SearchRewrite (_ + S _).
-
-(** [[
+(** %\vspace{-.15in}%[[
   plus_n_Sm : forall n m : nat, S (n + m) = n + S m
      ]]
      *)
