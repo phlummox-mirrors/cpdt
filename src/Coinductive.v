@@ -29,7 +29,7 @@ We spent some time in the last chapter discussing the %\index{Curry-Howard corre
 Fixpoint bad (u : unit) : P := bad u.
 ]]
 
-This would leave us with [bad tt] as a proof of [P].
+%\smallskip{}%This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 
@@ -167,14 +167,13 @@ Section map'.
   Variables A B : Type.
   Variable f : A -> B.
 (* begin thide *)
-  (** [[
+  (** %\vspace{-.15in}%[[
   CoFixpoint map' (s : stream A) : stream B :=
     match s with
       | Cons h t => interleave (Cons (f h) (map' t)) (Cons (f h) (map' t))
     end.
     ]]
-    
-    We get another error message about an unguarded recursive call. *)
+    %\vspace{-.15in}%We get another error message about an unguarded recursive call. *)
 
 End map'.
 
@@ -378,9 +377,10 @@ Qed.
 
 Theorem ones_eq' : stream_eq ones ones'.
   cofix; crush.
-  (** [[
+  (** %\vspace{-.25in}%[[
   Guarded.
   ]]
+  %\vspace{-.25in}%
   *)
 Abort.
 
