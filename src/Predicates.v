@@ -174,16 +174,15 @@ We have also already seen the definition of [True].  For a demonstration of a lo
     Every proof of a conjunction provides proofs for both conjuncts, so we get a single subgoal reflecting that.  We can proceed by splitting this subgoal into a case for each conjunct of [Q /\ P].%\index{tactics!split}% *)
 
     split.
-(** %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
-[[
+(** 2 subgoals
   
   H : P
   H0 : Q
   ============================
    Q
-]]
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+
+subgoal 2 is
+
    P
  
  ]]
@@ -212,15 +211,15 @@ We see that there are two ways to prove a disjunction: prove the first disjunct 
     (** As in the proof for [and], we begin with case analysis, though this time we are met by two cases instead of one. *)
 
     destruct 1.
-(** %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
-[[
+(** [[
+2 subgoals
   
   H : P
   ============================
    Q \/ P
-]]
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+
+subgoal 2 is
+
  Q \/ P
  
  ]]
