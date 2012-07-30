@@ -213,17 +213,17 @@ We manipulate the proof state by running commands called%\index{tactics}% _tacti
 
 (** We declare that this proof will proceed by induction on the structure of the expression [e].  This swaps out our initial subgoal for two new subgoals, one for each case of the inductive proof:
 
-%\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
-
 [[
+2 subgoals
+
  n : nat
  ============================
  forall (s : stack) (p : list instr),
    progDenote (compile (Const n) ++ p) s =
    progDenote p (expDenote (Const n) :: s)
-]]
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+
+subgoal 2 is
+
   forall (s : stack) (p : list instr),
     progDenote (compile (Binop b e1 e2) ++ p) s =
     progDenote p (expDenote (Binop b e1 e2) :: s)
@@ -388,8 +388,7 @@ We start out the same way as before, introducing new free variables and unfoldin
 What we need is the associative law of list concatenation, which is available as a theorem [app_assoc_reverse] in the standard library.%\index{Vernacular commands!Check}% *)
 
 Check app_assoc.
-
-(** [[
+(** %\vspace{-.15in}%[[
 app_assoc_reverse
      : forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
  
@@ -398,7 +397,7 @@ app_assoc_reverse
 If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}%[SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
 
 SearchRewrite ((_ ++ _) ++ _).
-(** [[
+(** %\vspace{-.15in}%[[
 app_assoc_reverse:
   forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
 ]]
@@ -412,7 +411,7 @@ We use [app_assoc_reverse] to perform a rewrite: %\index{tactics!rewrite}% *)
 
   rewrite app_assoc_reverse.
 
-(** changing the conclusion to:
+(** %\noindent{}%changing the conclusion to:
 
 [[
    progDenote (compile e2 ++ (compile e1 ++ iBinop b :: nil) ++ p) s =
@@ -725,7 +724,7 @@ Fixpoint tcompile t (e : texp t) (ts : tstack) : tprog ts (t :: ts) :=
 The underscores here are being filled in with stack types.  That is, the Coq type inferencer is, in a sense, inferring something about the flow of control in the translated programs.  We can take a look at exactly which values are filled in: *)
 
 Print tcompile.
-(** [[
+(** %\vspace{-.15in}%[[
 tcompile = 
 fix tcompile (t : type) (e : texp t) (ts : tstack) {struct e} :
   tprog ts (t :: ts) :=

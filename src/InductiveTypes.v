@@ -38,34 +38,34 @@ A short demonstration should explain how this can be.  The identity function ove
 Check (fun x : nat => x).
 (** [: nat -> nat] *)
 
-(** Consider this alternate program, which is almost identical to the last one. *)
+(** %\smallskip{}%Consider this alternate program, which is almost identical to the last one. *)
 
 Check (fun x : True => x).
 (** [: True -> True] *)
 
-(** The identity program is interpreted as a proof that %\index{Gallina terms!True}%[True], the always-true proposition, implies itself!  What we see is that Curry-Howard interprets implications as functions, where an input is a proposition being assumed and an output is a proposition being deduced.  This intuition is not too far from a common one for informal theorem proving, where we might already think of an implication proof as a process for transforming a hypothesis into a conclusion.
+(** %\smallskip{}%The identity program is interpreted as a proof that %\index{Gallina terms!True}%[True], the always-true proposition, implies itself!  What we see is that Curry-Howard interprets implications as functions, where an input is a proposition being assumed and an output is a proposition being deduced.  This intuition is not too far from a common one for informal theorem proving, where we might already think of an implication proof as a process for transforming a hypothesis into a conclusion.
 
 There are also more primitive proof forms available.  For instance, the term %\index{Gallina terms!I}%[I] is the single proof of [True], applicable in any context. *)
 
 Check I.
 (** [: True] *)
 
-(** With [I], we can prove another simple propositional theorem. *)
+(** %\smallskip{}%With [I], we can prove another simple propositional theorem. *)
 
 Check (fun _ : False => I).
 (** [: False -> True] *)
 
-(** No proofs of %\index{Gallina terms!False}%[False] exist in the top-level context, but the implication-as-function analogy gives us an easy way to, for example, show that [False] implies itself. *)
+(** %\smallskip{}%No proofs of %\index{Gallina terms!False}%[False] exist in the top-level context, but the implication-as-function analogy gives us an easy way to, for example, show that [False] implies itself. *)
 
 Check (fun x : False => x).
 (** [: False -> False] *)
 
-(** In fact, [False] implies anything, and we can take advantage of this fact with an odd looking [match] expression that has no branches.  Since there are no rules for deducing [False], there are no cases to consider! *)
+(** %\smallskip{}%In fact, [False] implies anything, and we can take advantage of this fact with an odd looking [match] expression that has no branches.  Since there are no rules for deducing [False], there are no cases to consider! *)
 
 Check (fun x : False => match x with end : True).
 (** [: False -> True] *)
 
-(** Every one of these example programs whose type looks like a logical formula is a%\index{proof term}% _proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
+(** %\smallskip{}%Every one of these example programs whose type looks like a logical formula is a%\index{proof term}% _proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
 
 In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or %\index{proposition}%propositions (i.e., formulas or theorem statements).
 
@@ -89,7 +89,7 @@ Check unit.
 Check tt.
 (** [tt : unit] *)
 
-(** We can prove that [unit] is a genuine singleton type. *)
+(** %\smallskip{}%We can prove that [unit] is a genuine singleton type. *)
 
 Theorem unit_singleton : forall x : unit, x = tt.
 
@@ -111,9 +111,7 @@ Qed.
 (* end thide *)
 
 (** It seems kind of odd to write a proof by induction with no inductive hypotheses.  We could have arrived at the same result by beginning the proof with:%\index{tactics!destruct}% [[
-
   destruct x.
-
 ]]
 
 %\noindent%...which corresponds to "proof by case analysis" in classical math.  For non-recursive inductive types, the two tactics will always have identical behavior.  Often case analysis is sufficient, even in proofs about recursive types, and it is nice to avoid introducing unneeded induction hypotheses.
@@ -123,7 +121,7 @@ What exactly _is_ the %\index{induction principles}%induction principle for [uni
 Check unit_ind.
 (** [unit_ind : forall P : unit -> Prop, P tt -> forall u : unit, P u] *)
 
-(** Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Recall from the last section that our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type %\index{Gallina terms!Prop}%[Prop], which appears in our induction principle; and the type %\index{Gallina terms!Set}%[Set], which we have seen a few times already.
+(** %\smallskip{}%Every [Inductive] command defining a type [T] also defines an induction principle named [T_ind].  Recall from the last section that our type, operations over it, and principles for reasoning about it all live in the same language and are described by the same type system.  The key to telling what is a program and what is a proof lies in the distinction between the type %\index{Gallina terms!Prop}%[Prop], which appears in our induction principle; and the type %\index{Gallina terms!Set}%[Set], which we have seen a few times already.
 
 The convention goes like this: [Set] is the type of normal types used in programming, and the values of such types are programs.  [Prop] is the type of logical propositions, and the values of such types are proofs.  Thus, an induction principle has a type that shows us that it is a function for building proofs.
 
@@ -152,7 +150,7 @@ We can see the induction principle that made this proof so easy: *)
 Check Empty_set_ind.
 (** [Empty_set_ind : forall (P : Empty_set -> Prop) (e : Empty_set), P e] *)
 
-(** In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
+(** %\smallskip{}%In other words, any predicate over values from the empty set holds vacuously of every such element.  In the last proof, we chose the predicate [(fun _ : Empty_set => 2 + 2 = 5)].
 
 We can also apply this get-out-of-jail-free card programmatically.  Here is a lazy way of converting values of [Empty_set] to values of [unit]: *)
 
@@ -188,17 +186,15 @@ Theorem negb_inverse : forall b : bool, negb (negb b) = b.
   destruct b.
 
   (** After we case-analyze on [b], we are left with one subgoal for each constructor of [bool].
-
-  %\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
-
 [[
+  2 subgoals
+
   ============================
    negb (negb true) = true
-]]
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+
+subgoal 2 is
+
  negb (negb false) = false
- 
 ]]
 
 The first subgoal follows by Coq's rules of computation, so we can dispatch it easily: *)
@@ -228,7 +224,7 @@ At this point, it is probably not hard to guess what the underlying induction pr
 Check bool_ind.
 (** [bool_ind : forall P : bool -> Prop, P true -> P false -> forall b : bool, P b] *)
 
-(** That is, to prove that a property describes all [bool]s, prove that it describes both [true] and [false].
+(** %\smallskip{}%That is, to prove that a property describes all [bool]s, prove that it describes both [true] and [false].
 
 There is no interesting Curry-Howard analogue of [bool].  Of course, we can define such a type by replacing [Set] by [Prop] above, but the proposition we arrive at is not very useful.  It is logically equivalent to [True], but it provides two indistinguishable primitive proofs, [true] and [false].   In the rest of the chapter, we will skip commenting on Curry-Howard versions of inductive definitions where such versions are not interesting. *)
 
@@ -241,7 +237,7 @@ Inductive nat : Set :=
 | O : nat
 | S : nat -> nat.
 
-(** [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (S O)], and so on.
+(** The constructor [O] is zero, and [S] is the successor function, so that [0] is syntactic sugar for [O], [1] for [S O], [2] for [S (S O)], and so on.
 
 Pattern matching works as we demonstrated in the last chapter:%\index{Gallina terms!pred}% *)
 
@@ -327,10 +323,9 @@ Check nat_ind.
 (** %\vspace{-.15in}% [[
   nat_ind : forall P : nat -> Prop,
             P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
- 
   ]]
 
-Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+%\smallskip{}%Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
 
 Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective.%\index{tactics!injection}\index{tactics!trivial}% *)
 
@@ -504,10 +499,9 @@ Print list.
 (** %\vspace{-.15in}% [[
   Inductive list (T : Set) : Set :=
     Nil : list T | Cons : T -> list T -> list T
- 
 ]]
 
-The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
+%\smallskip{}%The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
 
 Check length.
 (** %\vspace{-.15in}% [[
@@ -515,7 +509,7 @@ Check length.
      : forall T : Set, list T -> nat
 ]]
 
-The parameter [T] is treated as a new argument to the induction principle, too. *)
+%\smallskip{}%The parameter [T] is treated as a new argument to the induction principle, too. *)
 
 Check list_ind.
 (** %\vspace{-.15in}% [[
@@ -526,7 +520,7 @@ Check list_ind.
        forall l : list T, P l
 ]]
 
-Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
+%\smallskip{}%Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
 
 
 (** * Mutually Inductive Types *)
@@ -588,10 +582,9 @@ Check even_list_ind.
        P ENil ->
        (forall (n : nat) (o : odd_list), P (ECons n o)) ->
        forall e : even_list, P e
- 
 ]]
 
-We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the %\index{Vernacular commands!Scheme}%[Scheme] command. *)
+%\smallskip{}%We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the %\index{Vernacular commands!Scheme}%[Scheme] command. *)
 
 Scheme even_list_mut := Induction for even_list Sort Prop
 with odd_list_mut := Induction for odd_list Sort Prop.
@@ -700,10 +693,9 @@ Check formula_ind.
        (forall f1 : nat -> formula,
         (forall n : nat, P (f1 n)) -> P (Forall f1)) ->
        forall f2 : formula, P f2
- 
 ]]
 
-Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds _for any application of the argument function [f1]_.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
+%\smallskip{}%Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds _for any application of the argument function [f1]_.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
 
 %\medskip%
 
@@ -731,20 +723,19 @@ We have run afoul of the%\index{strict positivity requirement}\index{positivity 
 
 Why must Coq enforce this restriction?  Imagine that our last definition had been accepted, allowing us to write this function:
 
-[[
+%\vspace{-.15in}%[[
 Definition uhoh (t : term) : term :=
   match t with
     | Abs f => f t
     | _ => t
   end.
-
 ]]
 
 Using an informal idea of Coq's semantics, it is easy to verify that the application [uhoh (Abs uhoh)] will run forever.  This would be a mere curiosity in OCaml and Haskell, where non-termination is commonplace, though the fact that we have a non-terminating program without explicit recursive function definitions is unusual.
 
 %\index{termination checking}%For Coq, however, this would be a disaster.  The possibility of writing such a function would destroy all our confidence that proving a theorem means anything.  Since Coq combines programs and proofs in one language, we would be able to prove every theorem with an infinite loop.
 
-Nonetheless, the basic insight of HOAS is a very useful one, and there are ways to realize most benefits of HOAS in Coq.  We will study a particular technique of this kind in the later chapters on programming language syntax and semantics. *)
+Nonetheless, the basic insight of HOAS is a very useful one, and there are ways to realize most benefits of HOAS in Coq.  We will study a particular technique of this kind in the final chapter, on programming language syntax and semantics. *)
 
 
 (** * An Interlude on Induction Principles *)
@@ -756,29 +747,26 @@ Print unit_ind.
   unit_ind = 
   fun P : unit -> Prop => unit_rect P
      : forall P : unit -> Prop, P tt -> forall u : unit, P u
- 
 ]]
 
-We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
+%\smallskip{}%We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
 
 Check unit_rect.
 (** %\vspace{-.15in}% [[
   unit_rect
      : forall P : unit -> Type, P tt -> forall u : unit, P u
- 
 ]]
 
-The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
+%\smallskip{}%The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
 
 Print unit_rec.
 (** %\vspace{-.15in}%[[
   unit_rec = 
   fun P : unit -> Set => unit_rect P
      : forall P : unit -> Set, P tt -> forall u : unit, P u
- 
 ]]
 
-This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
+%\smallskip{}%This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
 
 Definition always_O (u : unit) : nat :=
   match u with
@@ -798,10 +786,9 @@ Print unit_rect.
   | tt => f
   end
      : forall P : unit -> Type, P tt -> forall u : unit, P u
- 
 ]]
 
-The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
+%\smallskip{}%The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
 
 %\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [unit_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
 
@@ -823,8 +810,7 @@ Definition foo := nat_rect.
 We can check the implementation [nat_rect] as well: *)
 
 Print nat_rect.
-
-(** %\vspace{-.05in}% [[
+(** %\vspace{-.15in}% [[
   nat_rect =
   fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
   fix F (n : nat) : P n :=
@@ -836,7 +822,7 @@ Print nat_rect.
         P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
  ]]
 
- Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
+%\smallskip{}%Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
 
 Section nat_ind'.
    (** First, we have the property of natural numbers that we aim to prove. *)
@@ -867,7 +853,7 @@ End nat_ind'.
 We can also examine the definition of [even_list_mut], which we generated with [Scheme] for a mutually recursive type. *)
 
 Print even_list_mut.
-(** [[
+(** %\vspace{-.15in}%[[
   even_list_mut = 
   fun (P : even_list -> Prop) (P0 : odd_list -> Prop) 
     (f : P ENil) (f0 : forall (n : nat) (o : odd_list), P0 o -> P (ECons n o))
@@ -887,10 +873,9 @@ Print even_list_mut.
        (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
        (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
        forall e : even_list, P e
-
 ]]
 
- We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by <<and>> in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+%\smallskip{}%We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by <<and>> in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
 
 Section even_list_mut'.
   (** First, we need the properties that we are proving. *)
@@ -957,10 +942,9 @@ Check nat_tree_ind.
        P NLeaf' ->
        (forall (n : nat) (l : list nat_tree), P (NNode' n l)) ->
        forall n : nat_tree, P n
- 
 ]]
 
-There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses of different type families.  This is roughly the same creativity employed in the traditional task of strengthening an induction hypothesis.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
+%\smallskip{}%There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses of different type families.  This is roughly the same creativity employed in the traditional task of strengthening an induction hypothesis.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
 
 First, we will need an auxiliary definition, characterizing what it means for a property to hold of every element of a list. *)
 
@@ -978,22 +962,22 @@ End All.
 (** It will be useful to review the definitions of [True] and [/\], since we will want to write manual proofs of them below. *)
 
 Print True.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive True : Prop :=  I : True
   ]]
 
-That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
+%\smallskip{}%That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
 
 Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the %\index{Vernacular commands!Locate}%[Locate] command, whose argument may be a parsing token.%\index{Gallina terms!and}% *)
 
 Locate "/\".
-(** [[
+(** %\vspace{-.15in}%[[
   "A /\ B" := and A B  : type_scope (default interpretation)
 ]]
 *)
 
 Print and.
-(** [[
+(** %\vspace{-.15in}%[[
   Inductive and (A : Prop) (B : Prop) : Prop :=  conj : A -> B -> A /\ B
 ]]
 %\vspace{-.1in}%
@@ -1022,7 +1006,7 @@ Section nat_tree_ind'.
 
   (** A first attempt at writing the induction principle itself follows the intuition that nested inductive type definitions are expanded into mutual inductive definitions.
 
-  [[
+  %\vspace{-.15in}%[[
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
       | NLeaf' => NLeaf'_case
@@ -1034,10 +1018,9 @@ Section nat_tree_ind'.
       | Nil => I
       | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
     end.
-
   ]]
 
-  Coq rejects this definition, saying
+  %\smallskip{}%Coq rejects this definition, saying
 <<
   Recursive call to nat_tree_ind' has principal argument equal to "tr"
   instead of rest.
@@ -1162,54 +1145,49 @@ Theorem true_neq_false : true <> false.
 (** We begin with the tactic %\index{tactics!red}%[red], which is short for "one step of reduction," to unfold the definition of logical negation. *)
 
   red.
-(** [[
+(** %\vspace{-.15in}%[[
   ============================
    true = false -> False
- 
 ]]
 
-The negation is replaced with an implication of falsehood.  We use the tactic %\index{tactics!intro}%[intro H] to change the assumption of the implication into a hypothesis named [H]. *)
+%\smallskip{}%The negation is replaced with an implication of falsehood.  We use the tactic %\index{tactics!intro}%[intro H] to change the assumption of the implication into a hypothesis named [H]. *)
 
   intro H.
-(** [[
+(** %\vspace{-.15in}%[[
   H : true = false
   ============================
    False
- 
 ]]
 
-This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
+%\smallskip{}%This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
 
   Definition toProp (b : bool) := if b then True else False.
 
 (** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are boolean values that we can case-analyze.  We have defined [toProp] such that our conclusion of [False] is computationally equivalent to [toProp false].  Thus, the %\index{tactics!change}%[change] tactic will let us change the conclusion to [toProp false].  The general form [change e] replaces the conclusion with [e], whenever Coq's built-in computation rules suffice to establish the equivalence of [e] with the original conclusion. *)
 
   change (toProp false).
-(** [[
+(** %\vspace{-.15in}%[[
   H : true = false
   ============================
    toProp false
- 
 ]]
 
-Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side.%\index{tactics!rewrite}% *)
+%\smallskip{}%Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side.%\index{tactics!rewrite}% *)
 
   rewrite <- H.
-(** [[
+(** %\vspace{-.15in}%[[
   H : true = false
   ============================
    toProp true
- 
 ]]
 
-We are almost done.  Just how close we are to done is revealed by computational simplification. *)
+%\smallskip{}%We are almost done.  Just how close we are to done is revealed by computational simplification. *)
 
   simpl.
-(** [[
+(** %\vspace{-.15in}%[[
   H : true = false
   ============================
    True
- 
 ]]
 *)
 

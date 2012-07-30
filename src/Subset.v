@@ -258,16 +258,16 @@ Definition pred_strong4 : forall n : nat, n > 0 -> {m : nat | n = S m}.
 
      We do most of the work with the %\index{tactics!refine}%[refine] tactic, to which we pass a partial "proof" of the type we are trying to prove.  There may be some pieces left to fill in, indicated by underscores.  Any underscore that Coq cannot reconstruct with type inference is added as a proof subgoal.  In this case, we have two subgoals:
 
-%\vspace{.1in} \noindent 2 \coqdockw{subgoals}\vspace{-.1in}%#<tt>2 subgoals</tt>#
 [[
+2 subgoals
   
   n : nat
   _ : 0 > 0
   ============================
    False
-]]
-%\noindent \coqdockw{subgoal} 2 \coqdockw{is}:%#<tt>subgoal 2 is</tt>#
-[[
+
+subgoal 2 is
+
  S n' = S n'
  ]]
 
