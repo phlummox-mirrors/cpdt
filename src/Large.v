@@ -193,7 +193,6 @@ Theorem eval_times : forall k e,
 Error: Expects a disjunctive pattern with 3 branches.
 >>
   *)
-
 Abort.
 
 (** Unsurprisingly, the old proof fails, because it explicitly says that there are two inductive cases.  To update the script, we must, at a minimum, remember the order in which the inductive cases are generated, so that we can insert the new case in the appropriate place.  Even then, it will be painful to add the case, because we cannot walk through proof steps interactively when they occur inside an explicit set of cases. *)
@@ -562,8 +561,7 @@ Finished transaction in 0. secs (0.068004u,0.s)
     (** <<
 Finished transaction in 2. secs (1.264079u,0.s)
       >>
-
-      Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
+      %\vspace{-.15in}%Why has the search time gone up so much?  The [info] command is not much help, since it only shows the result of search, not all of the paths that turned out to be worthless. *)
 
 (* begin thide *)
     Restart.

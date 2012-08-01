@@ -946,7 +946,6 @@ Section autorewrite.
     Lemma f_f_f' : forall x, f (f (f x)) = f x.
       intros; autorewrite with core.
       (** [[
-
   ============================
    g (g (g x)) = g x
 
