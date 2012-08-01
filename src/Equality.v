@@ -978,11 +978,11 @@ Qed.
 
 (** * Equality of Functions *)
 
-(** The following seems like a reasonable theorem to want to hold, and it does hold in set theory. [[
+(** The following seems like a reasonable theorem to want to hold, and it does hold in set theory.
+   %\vspace{-.15in}%[[
    Theorem two_identities : (fun n => n) = (fun n => n + 0).
    ]]
-
-   Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be%\index{extensionality of function equality}% _extensional_.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We _can_ assert function extensionality as an axiom, and indeed the standard library already contains that axiom. *)
+   %\vspace{-.15in}%Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be%\index{extensionality of function equality}% _extensional_.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We _can_ assert function extensionality as an axiom, and indeed the standard library already contains that axiom. *)
 
 Require Import FunctionalExtensionality.
 About functional_extensionality.
@@ -992,7 +992,7 @@ forall (A B : Type) (f g : A -> B), (forall x : A, f x = g x) -> f = g
 ]]
 *)
 
-(** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [S_eta] is trivial. *)
+(** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [two_identities] is trivial. *)
 
 Theorem two_identities : (fun n => n) = (fun n => n + 0).
 (* begin thide *)
