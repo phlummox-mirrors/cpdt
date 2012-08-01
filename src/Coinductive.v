@@ -29,7 +29,7 @@ We spent some time in the last chapter discussing the %\index{Curry-Howard corre
 Fixpoint bad (u : unit) : P := bad u.
 ]]
 
-%\smallskip{}%This would leave us with [bad tt] as a proof of [P].
+This would leave us with [bad tt] as a proof of [P].
 
 There are also algorithmic considerations that make universal termination very desirable.  We have seen how tactics like [reflexivity] compare terms up to equivalence under computational rules.  Calls to recursive, pattern-matching functions are simplified automatically, with no need for explicit proof steps.  It would be very hard to hold onto that kind of benefit if it became possible to write non-terminating programs; we would be running smack into the halting problem.
 

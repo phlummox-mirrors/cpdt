@@ -103,6 +103,9 @@ Eval simpl in expDenote (Binop Plus (Const 2) (Const 2)).
 Eval simpl in expDenote (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
 (** [= 28 : nat] *)
 
+(** %\smallskip{}%Nothing too surprising goes on here, so we are ready to move on to the target language of our compiler. *)
+
+
 (** ** Target Language *)
 
 (** We will compile our source programs onto a simple stack machine, whose syntax is: *)
@@ -140,6 +143,8 @@ Fixpoint progDenote (p : prog) (s : stack) : option stack :=
       end
   end.
 
+(** With the two programming languages defined, we can turn to the compiler definition. *)
+
 
 (** ** Translation *)
 
@@ -163,7 +168,7 @@ Eval simpl in compile (Binop Plus (Const 2) (Const 2)).
 Eval simpl in compile (Binop Times (Binop Plus (Const 2) (Const 2)) (Const 7)).
 (** [= iConst 7 :: iConst 2 :: iConst 2 :: iBinop Plus :: iBinop Times :: nil : prog] *)
 
-(** We can also run our compiled programs and check that they give the right results. *)
+(** %\smallskip{}%We can also run our compiled programs and check that they give the right results. *)
 
 Eval simpl in progDenote (compile (Const 42)) nil.
 (** [= Some (42 :: nil) : option stack] *)
@@ -615,10 +620,12 @@ Eval simpl in texpDenote (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
   (TNConst 7)).
 (** [= true : typeDenote Bool] *)
 
+(** %\smallskip{}%Now we are ready to define a suitable stack machine target for compilation. *)
+
 
 (** ** Target Language *)
 
-(** Now we want to define a suitable stack machine target for compilation.  In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
+(** In the example of the untyped language, stack machine programs could encounter stack underflows and "get stuck."  This was unfortunate, since we had to deal with this complication even though we proved that our compiler never produced underflowing programs.  We could have used dependent types to force all stack machine programs to be underflow-free.
 
 For our new languages, besides underflow, we also have the problem of stack slots with naturals instead of bools or vice versa.  This time, we will use indexed typed families to avoid the need to reason about potential failures.
 
@@ -760,6 +767,8 @@ Eval simpl in tprogDenote (tcompile (TBinop (TEq Nat) (TBinop TPlus (TNConst 2)
 Eval simpl in tprogDenote (tcompile (TBinop TLt (TBinop TPlus (TNConst 2) (TNConst 2))
   (TNConst 7)) nil) tt.
 (** [= (true, tt) : vstack (Bool :: nil)] *)
+
+(** %\smallskip{}%The compiler seems to be working, so let us turn to proving that it _always_ works. *)
 
 
 (** ** Translation Correctness *)
