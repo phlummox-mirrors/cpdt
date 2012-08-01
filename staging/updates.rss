@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Vertical spacing</title>
+        <pubDate>Wed, 1 Aug 2012 17:29:20 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>This is a mundane revision where I've normalized the vertical space separators between text sections.  Like the last release, this one won't build for LaTeX without a coqdoc patch that may not be in Coq's Subversion repos yet.  This is the home stretch; I am going to make a proofreading pass through everything, and then I'll be looking for other proofreaders to help come up with the final version to be published by MIT Press!</description>
+</item>
+
+<item>
         <title>Taking advantage of coqdoc changes</title>
         <pubDate>Fri, 27 Jul 2012 16:48:35 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>

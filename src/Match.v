@@ -267,12 +267,10 @@ Section firstorder'.
 
   Theorem fo' : forall x, P x -> S x.
 (* begin thide *)
-    (** [[
+    (** %\vspace{-.25in}%[[
     completer'.
- 
     ]]
-
-    Coq loops forever at this point.  What went wrong? *)
+    %\vspace{-.15in}%Coq loops forever at this point.  What went wrong? *)
 
   Abort.
 (* end thide *)
@@ -292,7 +290,7 @@ Qed.
 
 (* begin thide *)
 Theorem t1' : forall x : nat, x = x.
-(** [[
+(** %\vspace{-.25in}%[[
   match goal with
     | [ |- forall x, ?P ] => trivial
   end.
@@ -320,7 +318,6 @@ Abort.
 (** Ltac supports quite convenient functional programming, with a Lisp-with-syntax kind of flavor.  However, there are a few syntactic conventions involved in getting programs to be accepted.  The Ltac syntax is optimized for tactic-writing, so one has to deal with some inconveniences in writing more standard functional programs.
 
    To illustrate, let us try to write a simple list length function.  We start out writing it just like in Gallina, simply replacing [Fixpoint] (and its annotations) with [Ltac].
-
    [[
 Ltac length ls :=
   match ls with
@@ -334,7 +331,6 @@ Error: The reference ls' was not found in the current environment
 >>
 
    At this point, we hopefully remember that pattern variable names must be prefixed by question marks in Ltac.
-
    [[
 Ltac length ls :=
   match ls with
@@ -356,7 +352,7 @@ Ltac length ls :=
     | _ :: ?ls' => constr:(S (length ls'))
   end.
 
-(** This definition is accepted.  It can be a little awkward to test Ltac definitions like this.  Here is one method. *)
+(** This definition is accepted.  It can be a little awkward to test Ltac definitions like this one.  Here is one method. *)
 
 Goal False.
   let n := length (1 :: 2 :: 3 :: nil) in
@@ -365,7 +361,6 @@ Goal False.
   n := S (length (2 :: 3 :: nil)) : nat
   ============================
    False
- 
    ]]
 
    We use the %\index{tactics!pose}%[pose] tactic, which extends the proof context with a new variable that is set equal to a particular term.  We could also have used [idtac n] in place of [pose n], which would have printed the result without changing the context.
@@ -889,7 +884,7 @@ Section t7.
 No more subgoals but non-instantiated existential variables :
 Existential 1 =
 >>
-       [[
+       %\vspace{-.35in}%[[
 ?4384 : [A : Type
          B : Type
          Q : A -> Prop
@@ -904,7 +899,6 @@ Existential 1 =
          H : Q v1
          H0 : Q v2
          H' : Q v2 -> exists u : B, P v2 u |- Q v2] 
- 
          ]]
 
          There is another similar line about a different existential variable.  Here, "existential variable" means what we have also called "unification variable."  In the course of the proof, some unification variable [?4384] was introduced but never unified.  Unification variables are just a device to structure proof search; the language of Gallina proof terms does not include them.  Thus, we cannot produce a proof term without instantiating the variable.

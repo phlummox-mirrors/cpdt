@@ -44,7 +44,6 @@ Even_SS
   (Even_SS
      (Even_SS
         (Even_SS
- 
     ]]
 
     %\noindent%...and so on.  This procedure always works (at least on machines with infinite resources), but it has a serious drawback, which we see when we print the proof it generates that 256 is even.  The final proof term has length super-linear in the input value.  Coq's implicit arguments mechanism is hiding the values given for parameter [n] of [Even_SS], which is why the proof term only appears linear here.  Also, proof terms are represented internally as syntax trees, with opportunity for sharing of node representations, but in this chapter we will measure proof term size as simple textual length or as the number of nodes in the term's syntax tree, two measures that are approximately equivalent.  Sometimes apparently large proof terms have enough internal sharing that they take up less memory than we expect, but one avoids having to reason about such sharing by ensuring that the size of a sharing-free version of a term is low enough.
@@ -66,7 +65,6 @@ Definition paartial := partial.
 Print partial.
 (** %\vspace{-.15in}% [[
 Inductive partial (P : Prop) : Set :=  Proved : P -> [P] | Uncertain : [P]
- 
     ]]
 
     A [partial P] value is an optional proof of [P]. The notation [[P]] stands for [partial P]. *)
@@ -174,7 +172,6 @@ true_galore =
 fun H : True /\ True =>
 and_ind (fun _ _ : True => or_introl (True /\ (True -> True)) I) H
      : True /\ True -> True \/ True /\ (True -> True)
- 
     ]]
 
     As we might expect, the proof that [tauto] builds contains explicit applications of natural deduction rules.  For large formulas, this can add a linear amount of proof size overhead, beyond the size of the input.
@@ -240,7 +237,6 @@ Theorem true_galore' : (True /\ True) -> (True \/ (True /\ (True -> True))).
 Qed.
 
 Print true_galore'.
-
 (** %\vspace{-.15in}% [[
 true_galore' = 
 tautTrue
