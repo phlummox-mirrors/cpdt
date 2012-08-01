@@ -325,7 +325,7 @@ Check nat_ind.
             P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
   ]]
 
-%\smallskip{}%Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
+Each of the two cases of our last proof came from the type of one of the arguments to [nat_ind].  We chose [P] to be [(fun n : nat => plus n O = n)].  The first proof case corresponded to [P O] and the second case to [(forall n : nat, P n -> P (S n))].  The free variable [n] and inductive hypothesis [IHn] came from the argument types given here.
 
 Since [nat] has a constructor that takes an argument, we may sometimes need to know that that constructor is injective.%\index{tactics!injection}\index{tactics!trivial}% *)
 
@@ -501,7 +501,7 @@ Print list.
     Nil : list T | Cons : T -> list T -> list T
 ]]
 
-%\smallskip{}%The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
+The final definition is the same as what we wrote manually before.  The other elements of the section are altered similarly, turning out exactly as they were before, though we managed to write their definitions more succinctly. *)
 
 Check length.
 (** %\vspace{-.15in}% [[
@@ -509,7 +509,7 @@ Check length.
      : forall T : Set, list T -> nat
 ]]
 
-%\smallskip{}%The parameter [T] is treated as a new argument to the induction principle, too. *)
+The parameter [T] is treated as a new argument to the induction principle, too. *)
 
 Check list_ind.
 (** %\vspace{-.15in}% [[
@@ -520,7 +520,7 @@ Check list_ind.
        forall l : list T, P l
 ]]
 
-%\smallskip{}%Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
+Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
 
 
 (** * Mutually Inductive Types *)
@@ -584,7 +584,7 @@ Check even_list_ind.
        forall e : even_list, P e
 ]]
 
-%\smallskip{}%We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the %\index{Vernacular commands!Scheme}%[Scheme] command. *)
+We see that no inductive hypotheses are included anywhere in the type.  To get them, we must ask for mutual principles as we need them, using the %\index{Vernacular commands!Scheme}%[Scheme] command. *)
 
 Scheme even_list_mut := Induction for even_list Sort Prop
 with odd_list_mut := Induction for odd_list Sort Prop.
@@ -695,7 +695,7 @@ Check formula_ind.
        forall f2 : formula, P f2
 ]]
 
-%\smallskip{}%Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds _for any application of the argument function [f1]_.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
+Focusing on the [Forall] case, which comes third, we see that we are allowed to assume that the theorem holds _for any application of the argument function [f1]_.  That is, Coq induction principles do not follow a simple rule that the textual representations of induction variables must get shorter in appeals to induction hypotheses.  Luckily for us, the people behind the metatheory of Coq have verified that this flexibility does not introduce unsoundness.
 
 %\medskip%
 
@@ -749,7 +749,7 @@ Print unit_ind.
      : forall P : unit -> Prop, P tt -> forall u : unit, P u
 ]]
 
-%\smallskip{}%We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
+We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
 
 Check unit_rect.
 (** %\vspace{-.15in}% [[
@@ -757,7 +757,7 @@ Check unit_rect.
      : forall P : unit -> Type, P tt -> forall u : unit, P u
 ]]
 
-%\smallskip{}%The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
+The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
 
 Print unit_rec.
 (** %\vspace{-.15in}%[[
@@ -766,7 +766,7 @@ Print unit_rec.
      : forall P : unit -> Set, P tt -> forall u : unit, P u
 ]]
 
-%\smallskip{}%This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
+This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
 
 Definition always_O (u : unit) : nat :=
   match u with
@@ -788,7 +788,7 @@ Print unit_rect.
      : forall P : unit -> Type, P tt -> forall u : unit, P u
 ]]
 
-%\smallskip{}%The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
+The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
 
 %\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [unit_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
 
@@ -822,7 +822,7 @@ Print nat_rect.
         P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
  ]]
 
-%\smallskip{}%Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
+Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
 
 Section nat_ind'.
    (** First, we have the property of natural numbers that we aim to prove. *)
@@ -875,7 +875,7 @@ Print even_list_mut.
        forall e : even_list, P e
 ]]
 
-%\smallskip{}%We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by <<and>> in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
+We see a mutually recursive [fix], with the different functions separated by %\index{Gallina terms!with}%[with] in the same way that they would be separated by <<and>> in ML.  A final %\index{Gallina terms!for}%[for] clause identifies which of the mutually recursive functions should be the final value of the [fix] expression.  Using this definition as a template, we can reimplement [even_list_mut] directly. *)
 
 Section even_list_mut'.
   (** First, we need the properties that we are proving. *)
@@ -944,7 +944,7 @@ Check nat_tree_ind.
        forall n : nat_tree, P n
 ]]
 
-%\smallskip{}%There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses of different type families.  This is roughly the same creativity employed in the traditional task of strengthening an induction hypothesis.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
+There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses of different type families.  This is roughly the same creativity employed in the traditional task of strengthening an induction hypothesis.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
 
 First, we will need an auxiliary definition, characterizing what it means for a property to hold of every element of a list. *)
 
@@ -966,7 +966,7 @@ Print True.
   Inductive True : Prop :=  I : True
   ]]
 
-%\smallskip{}%That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
+That is, [True] is a proposition with exactly one proof, [I], which we may always supply trivially.
 
 Finding the definition of [/\] takes a little more work.  Coq supports user registration of arbitrary parsing rules, and it is such a rule that is letting us write [/\] instead of an application of some inductive type family.  We can find the underlying inductive type with the %\index{Vernacular commands!Locate}%[Locate] command, whose argument may be a parsing token.%\index{Gallina terms!and}% *)
 
@@ -1020,7 +1020,7 @@ Section nat_tree_ind'.
     end.
   ]]
 
-  %\smallskip{}%Coq rejects this definition, saying
+  Coq rejects this definition, saying
 <<
   Recursive call to nat_tree_ind' has principal argument equal to "tr"
   instead of rest.
@@ -1150,7 +1150,7 @@ Theorem true_neq_false : true <> false.
    true = false -> False
 ]]
 
-%\smallskip{}%The negation is replaced with an implication of falsehood.  We use the tactic %\index{tactics!intro}%[intro H] to change the assumption of the implication into a hypothesis named [H]. *)
+The negation is replaced with an implication of falsehood.  We use the tactic %\index{tactics!intro}%[intro H] to change the assumption of the implication into a hypothesis named [H]. *)
 
   intro H.
 (** %\vspace{-.15in}%[[
@@ -1159,7 +1159,7 @@ Theorem true_neq_false : true <> false.
    False
 ]]
 
-%\smallskip{}%This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
+This is the point in the proof where we apply some creativity.  We define a function whose utility will become clear soon. *)
 
   Definition toProp (b : bool) := if b then True else False.
 
@@ -1172,7 +1172,7 @@ Theorem true_neq_false : true <> false.
    toProp false
 ]]
 
-%\smallskip{}%Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side.%\index{tactics!rewrite}% *)
+Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side.%\index{tactics!rewrite}% *)
 
   rewrite <- H.
 (** %\vspace{-.15in}%[[
@@ -1181,7 +1181,7 @@ Theorem true_neq_false : true <> false.
    toProp true
 ]]
 
-%\smallskip{}%We are almost done.  Just how close we are to done is revealed by computational simplification. *)
+We are almost done.  Just how close we are to done is revealed by computational simplification. *)
 
   simpl.
 (** %\vspace{-.15in}%[[
