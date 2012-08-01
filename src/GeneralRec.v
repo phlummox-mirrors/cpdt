@@ -220,7 +220,7 @@ End mergeSort.
 Eval compute in mergeSort leb (1 :: 2 :: 36 :: 8 :: 19 :: nil).
 (** [= 1 :: 2 :: 8 :: 19 :: 36 :: nil] *)
 
-(** Since the subject of this chapter is merely how to define functions with unusual recursion structure, we will not prove any further correctness theorems about [mergeSort]. Instead, we stop at proving that [mergeSort] has the expected computational behavior, for all inputs, not merely the one we just tested. *)
+(** %\smallskip{}%Since the subject of this chapter is merely how to define functions with unusual recursion structure, we will not prove any further correctness theorems about [mergeSort]. Instead, we stop at proving that [mergeSort] has the expected computational behavior, for all inputs, not merely the one we just tested. *)
 
 (* begin thide *)
 Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
