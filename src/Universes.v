@@ -35,7 +35,6 @@ Check 0.
 (** %\vspace{-.15in}% [[
   0
      : nat
- 
      ]]
 
   It is natural enough that zero be considered as a natural number. *)
@@ -44,7 +43,6 @@ Check nat.
 (** %\vspace{-.15in}% [[
   nat
      : Set
- 
      ]]
 
   From a set theory perspective, it is unsurprising to consider the natural numbers as a "set." *)
@@ -53,7 +51,6 @@ Check Set.
 (** %\vspace{-.15in}% [[
   Set
      : Type
- 
      ]]
 
   The type [Set] may be considered as the set of all sets, a concept that set theory handles in terms of%\index{class (in set theory)}% _classes_.  In Coq, this more general notion is [Type]. *)
@@ -62,7 +59,6 @@ Check Type.
 (** %\vspace{-.15in}% [[
   Type
      : Type
- 
      ]]
 
   Strangely enough, [Type] appears to be its own type.  It is known that polymorphic languages with this property are inconsistent, via %\index{Girard's paradox}%Girard's paradox%~\cite{GirardsParadox}%.  That is, using such a language to encode proofs is unwise, because it is possible to "prove" any proposition.  What is really going on here?
@@ -82,7 +78,6 @@ Check Set.
 (** %\vspace{-.15in}% [[
   Set
      : Type $ (0)+1 ^
-
      ]]
      *)
 
@@ -90,7 +85,6 @@ Check Type.
 (** %\vspace{-.15in}% [[
   Type $ Top.3 ^
      : Type $ (Top.3)+1 ^
- 
      ]]
 
   Occurrences of [Type] are annotated with some additional information, inside comments.  These annotations have to do with the secret behind [Type]: it really stands for an infinite hierarchy of types.  The type of [Set] is [Type(0)], the type of [Type(0)] is [Type(1)], the type of [Type(1)] is [Type(2)], and so on.  This is how we avoid the "[Type : Type]" paradox.  As a convenience, the universe hierarchy drives Coq's one variety of subtyping.  Any term whose type is [Type] at level [i] is automatically also described by [Type] at level [j] when [j > i].
@@ -119,7 +113,6 @@ Check forall T : Type, T.
 (** %\vspace{-.15in}% [[
   forall T : Type $ Top.9 ^ , T
      : Type $ max(Top.9, (Top.9)+1) ^
- 
      ]]
 
   These outputs demonstrate the rule for determining which universe a [forall] type lives in.  In particular, for a type [forall x : T1, T2], we take the maximum of the universes of [T1] and [T2].  In the first example query, both [T1] ([nat]) and [T2] ([fin T]) are in [Set], so the [forall] type is in [Set], too.  In the second query, [T1] is [Set], which is at level [(0)+1]; and [T2] is [T], which is at level [0].  Thus, the [forall] exists at the maximum of these two levels.  The third example illustrates the same outcome, where we replace [Set] with an occurrence of [Type] that is assigned universe variable [Top.9].  This universe variable appears in the places where [0] appeared in the previous query.
@@ -182,7 +175,6 @@ Error: Universe inconsistency (cannot enforce Top.16 < Top.16).
 (** ** Inductive Definitions *)
 
 (** Predicativity restrictions also apply to inductive definitions.  As an example, let us consider a type of expression trees that allows injection of any native Coq value.  The idea is that an [exp T] stands for a reflected expression of type [T].
-
    [[
 Inductive exp : Set -> Set :=
 | Const : forall T : Set, T -> exp T
@@ -223,11 +215,9 @@ Check Eq (Const Set) (Const Type).
 (** %\vspace{-.15in}% [[
   Eq (Const Set) (Const Type $ Top.59 ^ )
      : exp bool
- 
      ]]
 
   We can check many expressions, including fancy expressions that include types.  However, it is not hard to hit a type-checking wall.
-
   [[
 Check Const (Const O).
 ]]
@@ -237,12 +227,10 @@ Error: Universe inconsistency (cannot enforce Top.42 < Top.42).
 >>
 
   We are unable to instantiate the parameter [T] of [Const] with an [exp] type.  To see why, it is helpful to print the annotated version of [exp]'s inductive definition. *)
-
 (** [[
 Print exp.
 ]]
-
-[[
+%\vspace{-.15in}%[[
 Inductive exp
               : Type $ Top.8 ^ ->
                 Type
@@ -251,7 +239,6 @@ Inductive exp
   | Pair : forall (T1 : Type $ Top.14 ^ ) (T2 : Type $ Top.15 ^ ),
            exp T1 -> exp T2 -> exp (T1 * T2)
   | Eq : forall T : Type $ Top.19 ^ , exp T -> exp T -> exp bool
- 
   ]]
 
   We see that the index type of [exp] has been assigned to universe level [Top.8].  In addition, each of the four occurrences of [Type] in the types of the constructors gets its own universe variable.  Each of these variables appears explicitly in the type of [exp].  In particular, any type [exp T] lives at a universe level found by incrementing by one the maximum of the four argument variables.  A consequence of this is that [exp] _must_ live at a higher universe level than any type which may be passed to one of its constructors.  This consequence led to the universe inconsistency.
@@ -264,7 +251,6 @@ Top.19 < Top.9 <= Top.8
 Top.15 < Top.9 <= Top.8 <= Coq.Init.Datatypes.38
 Top.14 < Top.9 <= Top.8 <= Coq.Init.Datatypes.37
 Top.11 < Top.9 <= Top.8
- 
 ]]
 
 The command outputs many more constraints, but we have collected only those that mention [Top] variables.  We see one constraint for each universe variable associated with a constructor argument from [exp]'s definition.  Universe variable [Top.19] is the type argument to [Eq].  The constraint for [Top.19] effectively says that [Top.19] must be less than [Top.8], the universe of [exp]'s indices; an intermediate variable [Top.9] appears as an artifact of the way the constraint was generated.
@@ -278,16 +264,14 @@ Reset prod.
 (* end thide *)
 (* end hide *)
 
-(** [[
+(** %\vspace{-.3in}%[[
 Print prod.
 ]]
-
-[[
+%\vspace{-.15in}%[[
 Inductive prod (A : Type $ Coq.Init.Datatypes.37 ^ )
           (B : Type $ Coq.Init.Datatypes.38 ^ )
             : Type $ max(Coq.Init.Datatypes.37, Coq.Init.Datatypes.38) ^ :=
     pair : A -> B -> A * B
- 
     ]]
 
   We see that the constraint is enforcing that indices to [exp] must not live in a higher universe level than [B]-indices to [prod].  The next constraint above establishes a symmetric condition for [A].
@@ -310,7 +294,7 @@ Check (nat, (Type, Set)).
 
 Inductive prod' : Type -> Type -> Type :=
 | pair' : forall A B : Type, A -> B -> prod' A B.
-(** [[
+(** %\vspace{-.15in}%[[
 Check (pair' nat (pair' Type Set)).
 ]]
 
@@ -347,7 +331,6 @@ Check foo True.
 (** %\vspace{-.15in}% [[
   foo True
      : Prop
- 
      ]]
 
   The basic pattern here is that Coq is willing to automatically build a "copied-and-pasted" version of an inductive definition, where some occurrences of [Type] have been replaced by [Set] or [Prop].  In each context, the type-checker tries to find the valid replacements that are lowest in the type hierarchy.  Automatic cloning of definitions can be much more convenient than manual cloning.  We have already taken advantage of the fact that we may re-use the same families of tuple and list types to form values in [Set] and [Type].
@@ -378,8 +361,8 @@ Qed.
 (** Let us attempt an admittedly silly proof of the following theorem. *)
 
 Theorem illustrative_but_silly_detour : unit = unit.
-  (** [[
-     apply symmetry.
+  (** %\vspace{-.25in}%[[
+  apply symmetry.
 ]]
 <<
 Error: Impossible to unify "?35 = ?34" with "unit = unit".
@@ -390,8 +373,8 @@ Coq tells us that we cannot, in fact, apply our lemma [symmetry] here, but the e
 The following command is the secret to getting better error messages in such cases: *)
 
   Set Printing All.
-  (** [[
-     apply symmetry.
+  (** %\vspace{-.15in}%[[
+   apply symmetry.
 ]]
 <<
 Error: Impossible to unify "@eq Type ?46 ?45" with "@eq Set unit unit".
@@ -431,8 +414,8 @@ Theorem ex_symmetry : (exists x, x = 0) -> (exists x, 0 = x).
    ]]
    *)
 
-  (** [[
-     symmetry; exact H.
+  (** %\vspace{-.2in}%[[
+  symmetry; exact H.
 ]]
 
 <<
@@ -547,7 +530,6 @@ Check forall P Q : Prop, P \/ Q -> Q \/ P.
 (** %\vspace{-.15in}% [[
   forall P Q : Prop, P \/ Q -> Q \/ P
      : Prop
- 
      ]]
 
   We see that it is possible to define a [Prop] that quantifies over other [Prop]s.  This is fortunate, as we start wanting that ability even for such basic purposes as stating propositional tautologies.  In the next section of this chapter, we will see some reasons why unrestricted impredicativity is undesirable.  The impredicativity of [Prop] interacts crucially with the elimination restriction to avoid those pitfalls.
@@ -584,7 +566,6 @@ Check ConstP (ConstP O).
 (** %\vspace{-.15in}% [[
   ConstP (ConstP 0)
      : expP (expP nat)
- 
      ]]
 
   In this case, our victory is really a shallow one.  As we have marked [expP] as a family of proofs, we cannot deconstruct our expressions in the usual programmatic ways, which makes them almost useless for the usual purposes.  Impredicative quantification is much more useful in defining inductive families that we really think of as judgments.  For instance, this code defines a notion of equality that is strictly more permissive than the base equality [=]. *)
@@ -680,7 +661,7 @@ Print Assumptions t1.
 *)
 
 Theorem t2 : forall P : Prop, ~ ~ P -> P.
-  (** [[
+  (** %\vspace{-.25in}%[[
   tauto.
 ]]
 <<
@@ -867,8 +848,7 @@ choice
      : forall (A B : Type) (R : A -> B -> Prop),
        (forall x : A, exists y : B, R x y) ->
        exists f : A -> B, forall x : A, R x (f x)
- 
-  ]]
+   ]]
 
   This principle is proved as a theorem, based on the unique choice axiom and an additional axiom of relational choice from the [RelationalChoice] module.
 
@@ -915,7 +895,7 @@ Theorem t3 : (forall n : nat, fin (S n)) = (forall n : nat, fin (n + 1)).
 Qed.
 
 Eval compute in (cast t3 (fun _ => First)) 12.
-(** [[
+(** %\vspace{-.15in}%[[
      = match t3 in (_ = P) return P with
        | eq_refl => fun n : nat => First
        end 12
@@ -932,7 +912,7 @@ Theorem t3 : (forall n : nat, fin (S n)) = (forall n : nat, fin (n + 1)).
 Defined.
 
 Eval compute in (cast t3 (fun _ => First)) 12.
-(** [[
+(** %\vspace{-.15in}%[[
      = match
          match
            match
