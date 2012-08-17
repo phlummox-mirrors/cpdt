@@ -104,7 +104,7 @@ Theorem unit_singleton : forall x : unit, x = tt.
 ]]
 *)
 
-  (** ...which we can discharge trivially. *)
+  (** %\noindent{}%...which we can discharge trivially. *)
 
   reflexivity.
 Qed.
@@ -160,13 +160,13 @@ Definition e2u (e : Empty_set) : unit := match e with end.
 
 %\medskip%
 
-Moving up the ladder of complexity, we can define the booleans:%\index{Gallina terms!bool}\index{Gallina terms!true}\index{Gallina terms!false}% *)
+Moving up the ladder of complexity, we can define the Booleans:%\index{Gallina terms!bool}\index{Gallina terms!true}\index{Gallina terms!false}% *)
 
 Inductive bool : Set :=
 | true
 | false.
 
-(** We can use less vacuous pattern matching to define boolean negation.%\index{Gallina terms!negb}% *)
+(** We can use less vacuous pattern matching to define Boolean negation.%\index{Gallina terms!negb}% *)
 
 Definition negb (b : bool) : bool :=
   match b with
@@ -209,7 +209,7 @@ Restart.
 Qed.
 (* end thide *)
 
-(** Another theorem about booleans illustrates another useful tactic.%\index{tactics!discriminate}% *)
+(** Another theorem about Booleans illustrates another useful tactic.%\index{tactics!discriminate}% *)
 
 Theorem negb_ineq : forall b : bool, negb b <> b.
 (* begin thide *)
@@ -217,7 +217,7 @@ Theorem negb_ineq : forall b : bool, negb b <> b.
 Qed.
 (* end thide *)
 
-(** [discriminate] is used to prove that two values of an inductive type are not equal, whenever the values are formed with different constructors.  In this case, the different constructors are [true] and [false].
+(** The [discriminate] tactic is used to prove that two values of an inductive type are not equal, whenever the values are formed with different constructors.  In this case, the different constructors are [true] and [false].
 
 At this point, it is probably not hard to guess what the underlying induction principle for [bool] is. *)
 
@@ -305,7 +305,7 @@ We can start out by using computation to simplify the goal as far as we can.%\in
 
   rewrite IHn.
 
-(** ...we get a trivial conclusion [S n = S n]. *)
+(** %\noindent{}%...we get a trivial conclusion [S n = S n]. *)
 
   reflexivity.
 
@@ -599,7 +599,6 @@ Check even_list_mut.
        (forall (n : nat) (o : odd_list), P0 o -> P (ECons n o)) ->
        (forall (n : nat) (e : even_list), P e -> P0 (OCons n e)) ->
        forall e : even_list, P e
- 
 ]]
 
 This is the principle we wanted in the first place.  There is one more wrinkle left in using it: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types.%\index{tactics!apply}% *)
@@ -635,7 +634,13 @@ Inductive pformula : Set :=
 | Falsehood : pformula
 | Conjunction : pformula -> pformula -> pformula.
 
-(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
+(* begin hide *)
+(* begin thide *)
+Definition prod' := prod.
+(* end thide *)
+(* end hide *)
+
+(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugared to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
 
 Fixpoint pformulaDenote (f : pformula) : Prop :=
   match f with
@@ -989,7 +994,7 @@ In addition to the definition of [and] itself, we get information on %\index{imp
 
 %\medskip%
 
-Now we create a section for our induction principle, following the same basic plan as in the last section of this chapter. *)
+Now we create a section for our induction principle, following the same basic plan as in the previous section of this chapter. *)
 
 Section nat_tree_ind'.
   Variable P : nat_tree -> Prop.
@@ -1163,7 +1168,7 @@ This is the point in the proof where we apply some creativity.  We define a func
 
   Definition toProp (b : bool) := if b then True else False.
 
-(** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are boolean values that we can case-analyze.  We have defined [toProp] such that our conclusion of [False] is computationally equivalent to [toProp false].  Thus, the %\index{tactics!change}%[change] tactic will let us change the conclusion to [toProp false].  The general form [change e] replaces the conclusion with [e], whenever Coq's built-in computation rules suffice to establish the equivalence of [e] with the original conclusion. *)
+(** It is worth recalling the difference between the lowercase and uppercase versions of truth and falsehood: [True] and [False] are logical propositions, while [true] and [false] are Boolean values that we can case-analyze.  We have defined [toProp] such that our conclusion of [False] is computationally equivalent to [toProp false].  Thus, the %\index{tactics!change}%[change] tactic will let us change the conclusion to [toProp false].  The general form [change e] replaces the conclusion with [e], whenever Coq's built-in computation rules suffice to establish the equivalence of [e] with the original conclusion. *)
 
   change (toProp false).
 (** %\vspace{-.15in}%[[
@@ -1172,7 +1177,7 @@ This is the point in the proof where we apply some creativity.  We define a func
    toProp false
 ]]
 
-Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side the equality with the lefthand side.%\index{tactics!rewrite}% *)
+Now the righthand side of [H]'s equality appears in the conclusion, so we can rewrite, using the notation [<-] to request to replace the righthand side of the equality with the lefthand side.%\index{tactics!rewrite}% *)
 
   rewrite <- H.
 (** %\vspace{-.15in}%[[
