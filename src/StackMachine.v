@@ -10,7 +10,7 @@
 
 (** %\chapter{Some Quick Examples}% *)
 
-(** I will start off by jumping right in to a fully worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.
+(** I will start off by jumping right in to a fully worked set of examples, building certified compilers from increasingly complicated source languages to stack machines.  We will meet a few useful tactics and see how they can be used in manual proofs, and we will also see how easily these proofs can be automated instead.  This chapter is not meant to give full explanations of the features that are employed.  Rather, it is meant more as an advertisement of what is possible.  Later chapters will introduce all of the concepts in bottom-up fashion.  In other words, it is expected that most readers will not understand what exactly is going on here, but I hope this demo will whet your appetite for the remaining chapters!
 
 As always, you can step through the source file <<StackMachine.v>> for this chapter interactively in Proof General.  Alternatively, to get a feel for the whole lifecycle of creating a Coq development, you can enter the pieces of source code in this chapter in a new <<.v>> file in an Emacs buffer.  If you do the latter, include these two lines at the start of the file. *)
 
@@ -30,7 +30,7 @@ Set Implicit Arguments.
 
 Inductive binop : Set := Plus | Times.
 
-(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an %\index{algebraic datatypes}%algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of <<data>>, <<datatype>>, or <<type>>.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the %\index{Gallina terms!Set}%[: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that bis useful in higher-order constructions. *)
+(** Our first line of Coq code should be unsurprising to ML and Haskell programmers.  We define an %\index{algebraic datatypes}%algebraic datatype [binop] to stand for the binary operators of our source language.  There are just two wrinkles compared to ML and Haskell.  First, we use the keyword [Inductive], in place of <<data>>, <<datatype>>, or <<type>>.  This is not just a trivial surface syntax difference; inductive types in Coq are much more expressive than garden variety algebraic datatypes, essentially enabling us to encode all of mathematics, though we begin humbly in this chapter.  Second, there is the %\index{Gallina terms!Set}%[: Set] fragment, which declares that we are defining a datatype that should be thought of as a constituent of programs.  Later, we will see other options for defining datatypes in the universe of proofs or in an infinite hierarchy of universes, encompassing both programs and proofs, that is useful in higher-order constructions. *)
 
 Inductive exp : Set :=
 | Const : nat -> exp
@@ -180,6 +180,7 @@ Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2))
   (Const 7))) nil.
 (** [= Some (28 :: nil) : option stack] *)
 
+(** %\smallskip{}%So far so good, but how can we be sure the compiler operates correctly for _all_ input programs? *)
 
 (** ** Translation Correctness *)
 
@@ -524,7 +525,7 @@ We are almost done.  The lefthand and righthand sides can be seen to match by si
 Qed.
 (* end thide *)
 
-(** This proof can be shortened and made automated, but we leave that as an exercise for the reader. *)
+(** This proof can be shortened and made automated, but we leave that task as an exercise for the reader. *)
 
 
 (** * Typed Expressions *)
@@ -565,7 +566,7 @@ Inductive texp : type -> Set :=
 | TBConst : bool -> texp Bool
 | TBinop : forall t1 t2 t, tbinop t1 t2 t -> texp t1 -> texp t2 -> texp t.
 
-(** Thanks to our use of dependent types, every well-typed [texp] represents a well-typed source expression, by construction.  This turns out to be very convenient for many things we might want to do with expressions.  For instance, it is easy to adapt our interpreter approach to defining semantics.  We start by defining a function mapping the types of our languages into Coq types: *)
+(** Thanks to our use of dependent types, every well-typed [texp] represents a well-typed source expression, by construction.  This turns out to be very convenient for many things we might want to do with expressions.  For instance, it is easy to adapt our interpreter approach to defining semantics.  We start by defining a function mapping the types of our object language into Coq types: *)
 
 Definition typeDenote (t : type) : Set :=
   match t with
@@ -684,10 +685,9 @@ Definition tinstrDenote ts ts' (i : tinstr ts ts') (s : vstack ts) : vstack ts' 
       let '(arg1, (arg2, s')) := s in
         ((tbinopDenote b) arg1 arg2, s')
   end.
-
 ]]
 
-The Coq type-checker complains that:
+The Coq type checker complains that:
 
 <<
 The term "(n, s)" has type "(nat * vstack ts)%type"
@@ -704,6 +704,8 @@ Fixpoint tprogDenote ts ts' (p : tprog ts ts') : vstack ts -> vstack ts' :=
     | TNil _ => fun s => s
     | TCons _ _ _ i p' => fun s => tprogDenote p' (tinstrDenote i s)
   end.
+
+(** The same argument-postponing trick is crucial for this definition. *)
 
 
 (** ** Translation *)
