@@ -849,7 +849,7 @@ Abort.
 (* begin hide *)
 (* In-class exercises *)
 
-(* EX: Define a type [prop] of simple boolean formulas made up only of truth, falsehood, binary conjunction, and binary disjunction.  Define an inductive predicate [holds] that captures when [prop]s are valid, and define a predicate [falseFree] that captures when a [prop] does not contain the "false" formula.  Prove that every false-free [prop] is valid. *)
+(* EX: Define a type [prop] of simple Boolean formulas made up only of truth, falsehood, binary conjunction, and binary disjunction.  Define an inductive predicate [holds] that captures when [prop]s are valid, and define a predicate [falseFree] that captures when a [prop] does not contain the "false" formula.  Prove that every false-free [prop] is valid. *)
 
 (* begin thide *)
 Inductive prop : Set :=

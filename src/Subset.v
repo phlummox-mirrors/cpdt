@@ -459,7 +459,7 @@ Definition eq_nat_dec' (n m : nat) : {n = m} + {n <> m}.
   decide equality.
 Defined.
 
-(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses <<Left>> and <<Right>> constructors instead of the boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
+(** Curious readers can verify that the [decide equality] version extracts to the same OCaml code as our more manual version does.  That OCaml code had one undesirable property, which is that it uses <<Left>> and <<Right>> constructors instead of the Boolean values built into OCaml.  We can fix this, by using Coq's facility for mapping Coq inductive types to OCaml variant types.%\index{Vernacular commands!Extract Inductive}% *)
 
 Extract Inductive sumbool => "bool" ["true" "false"].
 Extraction eq_nat_dec'.
@@ -492,7 +492,7 @@ let rec eq_nat_dec' n m0 =
 
 (** %\smallskip%
 
-We can build "smart" versions of the usual boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of boolean "or." *)
+We can build "smart" versions of the usual Boolean operators and put them to good use in certified programming.  For instance, here is a [sumbool] version of Boolean "or." *)
 
 (* EX: Write a function that decides if an element belongs to a list. *)
 
