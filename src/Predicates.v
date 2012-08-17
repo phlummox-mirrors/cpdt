@@ -95,7 +95,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 (* end thide *)
   Qed.
 
-  (** In a consistent context, we can never build a proof of [False].  In inconsistent contexts that appear in the courses of proofs, it is usually easiest to proceed by demonstrating that inconsistency with an explicit proof of [False]. *)
+  (** In a consistent context, we can never build a proof of [False].  In inconsistent contexts that appear in the courses of proofs, it is usually easiest to proceed by demonstrating the inconsistency with an explicit proof of [False]. *)
 
   Theorem arith_neq : 2 + 2 = 5 -> 9 + 9 = 835.
 (* begin thide *)
@@ -199,7 +199,7 @@ subgoal 2 is
     or_introl : A -> A \/ B | or_intror : B -> A \/ B
 ]]
 
-We see that there are two ways to prov a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
+We see that there are two ways to prove a disjunction: prove the first disjunct or prove the second.  The Curry-Howard analogue of this is the Coq %\index{Gallina terms!sum}%[sum] type.  We can demonstrate the main tactics here with another proof of commutativity. *)
 
   Theorem or_comm : P \/ Q -> Q \/ P.
 
@@ -452,11 +452,11 @@ Theorem isZero_zero : isZero 0.
 (* end thide *)
 Qed.
 
-(** We can call [isZero] a%\index{judgment}% _judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of%\index{natural deduction}% _natural deduction_, where we write a number of%\index{inference rules}% _inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.
+(** We can call [isZero] a%\index{judgment}% _judgment_, in the sense often used in the semantics of programming languages.  Judgments are typically defined in the style of%\index{natural deduction}% _natural deduction_, where we write a number of%\index{inference rules}% _inference rules_ with premises appearing above a solid line and a conclusion appearing below the line.  In this example, the sole constructor [IsZero] of [isZero] can be thought of as the single inference rule for deducing [isZero], with nothing above the line and [isZero 0] below it.  The proof of [isZero_zero] demonstrates how we can apply an inference rule.  (Readers not familiar with formal semantics should not worry about not following this paragraph!)
 
 The definition of [isZero] differs in an important way from all of the other inductive definitions that we have seen in this and the previous chapter.  Instead of writing just [Set] or [Prop] after the colon, here we write [nat -> Prop].  We saw examples of parameterized types like [list], but there the parameters appeared with names _before_ the colon.  Every constructor of a parameterized inductive type must have a range type that uses the same parameter, whereas the form we use here enables us to use different arguments to the type for different constructors.
 
-For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog, and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
+For instance, our definition [isZero] makes the predicate provable only when the argument is [0].  We can see that the concept of equality is somehow implicit in the inductive definition mechanism.  The way this is accomplished is similar to the way that logic variables are used in %\index{Prolog}%Prolog (but worry not if not familiar with Prolog), and it is a very powerful mechanism that forms a foundation for formalizing all of mathematics.  In fact, though it is natural to think of inductive types as folding in the functionality of equality, in Coq, the true situation is reversed, with equality defined as just another inductive type!%\index{Gallina terms!eq}\index{Gallina terms!refl\_equal}% *)
 
 Print eq.
 (** %\vspace{-.15in}%[[
@@ -500,7 +500,7 @@ Theorem isZero_contra : isZero 1 -> False.
 
    It seems that case analysis has not helped us much at all!  Our sole hypothesis disappears, leaving us, if anything, worse off than we were before.  What went wrong?  We have met an important restriction in tactics like [destruct] and [induction] when applied to types with arguments.  If the arguments are not already free variables, they will be replaced by new free variables internally before doing the case analysis or induction.  Since the argument [1] to [isZero] is replaced by a fresh variable, we lose the crucial fact that it is not equal to [0].
 
-     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems. *)
+     Why does Coq use this restriction?  We will discuss the issue in detail in a future chapter, when we see the dependently typed programming techniques that would allow us to write this proof term manually.  For now, we just say that the algorithmic problem of "logically complete case analysis" is undecidable when phrased in Coq's logic.  A few tactics and design patterns that we will present in this chapter suffice in almost all cases.  For the current example, what we want is a tactic called %\index{tactics!inversion}%[inversion], which corresponds to the concept of inversion that is frequently used with natural deduction proof systems.  (Again, worry not if the semantics-oriented terminology from this last sentence is unfamiliar.) *)
 
   Undo.
   inversion 1.
@@ -807,7 +807,7 @@ Qed.
 
 (** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, %\index{tactics!eauto}%[eauto].
 
-The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  (See Chapter 13 for a first-principles introduction to what we mean by "Prolog-style logic programming.")  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
 
 The original theorem now follows trivially from our lemma. *)
 
