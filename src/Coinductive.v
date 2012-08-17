@@ -304,7 +304,7 @@ Guarded.
 
 Abort.
 
-(** First, we need to define a function that seems pointless on first glance. *)
+(** First, we need to define a function that seems pointless at first glance. *)
 
 Definition frob A (s : stream A) : stream A :=
   match s with
