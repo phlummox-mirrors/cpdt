@@ -49,7 +49,7 @@ Fixpoint times (k : nat) (e : exp) : exp :=
     | Plus e1 e2 => Plus (times k e1) (times k e2)
   end.
 
-(** We can write a very manual proof that [double] really doubles an expression's value. *)
+(** We can write a very manual proof that [times] really implements multiplication. *)
 
 Theorem eval_times : forall k e,
   eval (times k e) = k * eval e.
