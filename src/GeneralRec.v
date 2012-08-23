@@ -69,7 +69,7 @@ Section mergeSort.
   (** Now, let us try to write the final sorting function, using a natural number "[<=]" test [leb] from the standard library.
 [[
   Fixpoint mergeSort (ls : list A) : list A :=
-    if leb (length ls) 2
+    if leb (length ls) 1
       then ls
       else let lss := partition ls in
 	merge (mergeSort (fst lss)) (mergeSort (snd lss)).
@@ -200,7 +200,7 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 
   Hint Resolve partition_wf1 partition_wf2.
 
-  (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type. *)
+  (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type.  (Note that we would not be able to complete the definition without this change, since [refine] will generate subgoals for the [if] branches based only on the _type_ of the test expression, not its _value_.) *)
 
   Definition mergeSort : list A -> list A.
 (* begin thide *)
@@ -582,7 +582,7 @@ Lemma test_mergeSort' : run (mergeSort' leb (1 :: 2 :: 36 :: 8 :: 19 :: nil))
   exists 4; reflexivity.
 Qed.
 
-(** There is another benefit of our new [Fix] compared with one we used in the previous section: we can now write recursive functions that sometimes fail to terminate, without losing easy reasoning principles for the terminating cases.  Consider this simple example, which appeals to another tactic whose definition we elide here. *)
+(** There is another benefit of our new [Fix] compared with the one we used in the previous section: we can now write recursive functions that sometimes fail to terminate, without losing easy reasoning principles for the terminating cases.  Consider this simple example, which appeals to another tactic whose definition we elide here. *)
 
 (* begin hide *)
 Ltac looper := unfold leq in *; run;
@@ -759,7 +759,7 @@ Definition fib := pred.
 (* end thide *)
 (* end hide *)
 
-(** %\vspace{-.15in}%[[
+(** %\vspace{-.3in}%[[
 CoFixpoint fib (n : nat) : thunk nat :=
   match n with
     | 0 => Answer 1
@@ -904,7 +904,7 @@ The problem has to do with rules for inductive definitions that we still study i
 
 (** * Comparing the Alternatives *)
 
-(** We have seen four different approaches to encoding general recursive definitions in Coq.  Among them there is no clear champion that dominates the others in every important way.  Instead, we close the chapter by comparing the techniques along a number of dimensions.  Every technique allows recursive definitions with terminaton arguments that go beyond Coq's built-in termination checking, so we must turn to subtler points to highlight differences.
+(** We have seen four different approaches to encoding general recursive definitions in Coq.  Among them there is no clear champion that dominates the others in every important way.  Instead, we close the chapter by comparing the techniques along a number of dimensions.  Every technique allows recursive definitions with termination arguments that go beyond Coq's built-in termination checking, so we must turn to subtler points to highlight differences.
 
    One useful property is automatic integration with normal Coq programming.  That is, we would like the type of a function to be the same, whether or not that function is defined using an interesting recursion pattern.  Only the first of the four techniques, well-founded recursion, meets this criterion.  It is also the only one of the four to meet the related criterion that evaluation of function calls can take place entirely inside Coq's built-in computation machinery.  The monad inspired by domain theory occupies some middle ground in this dimension, since generally standard computation is enough to evaluate a term once a high enough approximation level is provided.
 
