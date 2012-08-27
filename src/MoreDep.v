@@ -65,41 +65,41 @@ Our [app] function could be typed in so-called%\index{stratified type systems}% 
 (* EX: Implement injection from normal lists *)
 
 (* begin thide *)
-Fixpoint inject (ls : list A) : ilist (length ls) :=
-  match ls with
-    | nil => Nil
-    | h :: t => Cons h (inject t)
-  end.
+  Fixpoint inject (ls : list A) : ilist (length ls) :=
+    match ls with
+      | nil => Nil
+      | h :: t => Cons h (inject t)
+    end.
 
 (** We can define an inverse conversion and prove that it really is an inverse. *)
 
-Fixpoint unject n (ls : ilist n) : list A :=
-  match ls with
-    | Nil => nil
-    | Cons _ h t => h :: unject t
-  end.
+  Fixpoint unject n (ls : ilist n) : list A :=
+    match ls with
+      | Nil => nil
+      | Cons _ h t => h :: unject t
+    end.
 
-Theorem inject_inverse : forall ls, unject (inject ls) = ls.
-  induction ls; crush.
-Qed.
+  Theorem inject_inverse : forall ls, unject (inject ls) = ls.
+    induction ls; crush.
+  Qed.
 (* end thide *)
 
 (* EX: Implement statically checked "car"/"hd" *)
 
 (** Now let us attempt a function that is surprisingly tricky to write.  In ML, the list head function raises an exception when passed an empty list.  With length-indexed lists, we can rule out such invalid calls statically, and here is a first attempt at doing so.  We write [???] as a placeholder for a term that we do not know how to write, not for any real Coq notation like those introduced two chapters ago.
 [[
-Definition hd n (ls : ilist (S n)) : A :=
-  match ls with
-    | Nil => ???
-    | Cons _ h _ => h
-  end.
+  Definition hd n (ls : ilist (S n)) : A :=
+    match ls with
+      | Nil => ???
+      | Cons _ h _ => h
+    end.
 ]]
 It is not clear what to write for the [Nil] case, so we are stuck before we even turn our function over to the type checker.  We could try omitting the [Nil] case:
 [[
-Definition hd n (ls : ilist (S n)) : A :=
-  match ls with
-    | Cons _ h _ => h
-  end.
+  Definition hd n (ls : ilist (S n)) : A :=
+    match ls with
+      | Cons _ h _ => h
+    end.
 ]]
 
 <<
@@ -109,10 +109,10 @@ Error: Non exhaustive pattern-matching: no clause found for pattern Nil
 Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
 
 [[
-Definition hd n (ls : ilist (S n)) : A :=
-  match ls in (ilist (S n)) with
-    | Cons _ h _ => h
-  end.
+  Definition hd n (ls : ilist (S n)) : A :=
+    match ls in (ilist (S n)) with
+      | Cons _ h _ => h
+    end.
 ]]
 
 <<
@@ -124,13 +124,13 @@ In this and other cases, we feel like we want [in] clauses with type family argu
 Our final, working attempt at [hd] uses an auxiliary function and a surprising [return] annotation. *)
 
 (* begin thide *)
-Definition hd' n (ls : ilist n) :=
-  match ls in (ilist n) return (match n with O => unit | S _ => A end) with
-    | Nil => tt
-    | Cons _ h _ => h
-  end.
+  Definition hd' n (ls : ilist n) :=
+    match ls in (ilist n) return (match n with O => unit | S _ => A end) with
+      | Nil => tt
+      | Cons _ h _ => h
+    end.
 
-Check hd'.
+  Check hd'.
 (** %\vspace{-.15in}% [[
 hd'
      : forall n : nat, ilist n -> match n with
@@ -140,7 +140,7 @@ hd'
   ]]
   *)
 
-Definition hd n (ls : ilist (S n)) : A := hd' ls.
+  Definition hd n (ls : ilist (S n)) : A := hd' ls.
 (* end thide *)
 
 End ilist.
@@ -280,7 +280,7 @@ Definition pairOut t (e : exp t) :=
 
 (** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages%\index{Hindley-Milner}%, but is similar to what goes on with Haskell type classes%\index{type classes}%.
 
-With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference with explicit [return] clauses. *)
+With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off with explicit [return] clauses. *)
 
 Fixpoint cfold t (e : exp t) : exp t :=
   match e with
@@ -367,7 +367,7 @@ Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
  
      ]]
 
-     We would like to do a case analysis on [cfold e1], and we attempt that in the way that has worked so far.
+     We would like to do a case analysis on [cfold e1], and we attempt to do so in the way that has worked so far.
      [[
   destruct (cfold e1).
 ]]
@@ -759,7 +759,7 @@ Section insert.
   End present.
 End insert.
 
-(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}%<<Obj.magic>>, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the _value_ of the function's argument, a pattern which OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
+(** We can generate executable OCaml code with the command %\index{Vernacular commands!Recursive Extraction}%[Recursive Extraction insert], which also automatically outputs the OCaml versions of all of [insert]'s dependencies.  In our previous extractions, we wound up with clean OCaml code.  Here, we find uses of %\index{Obj.magic}%<<Obj.magic>>, OCaml's unsafe cast operator for tweaking the apparent type of an expression in an arbitrary way.  Casts appear for this example because the return type of [insert] depends on the _value_ of the function's argument, a pattern that OCaml cannot handle.  Since Coq's type system is much more expressive than OCaml's, such casts are unavoidable in general.  Since the OCaml type-checker is no longer checking full safety of programs, we must rely on Coq's extractor to use casts only in provably safe ways. *)
 
 (* begin hide *)
 Recursive Extraction insert.
@@ -799,7 +799,7 @@ Inductive regexp : (string -> Prop) -> Set :=
 User error: Large non-propositional inductive types must be in Type
 >>
 
-What is a %\index{large inductive types}%large inductive type?  In Coq, it is an inductive type that has a constructor which quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
+What is a %\index{large inductive types}%large inductive type?  In Coq, it is an inductive type that has a constructor that quantifies over some type of type [Type].  We have not worked with [Type] very much to this point.  Every term of CIC has a type, including [Set] and [Prop], which are assigned type [Type].  The type [string -> Prop] from the failed definition also has type [Type].
 
 It turns out that allowing large inductive types in [Set] leads to contradictions when combined with certain kinds of classical logic reasoning.  Thus, by default, such types are ruled out.  There is a simple fix for our [regexp] definition, which is to place our new type in [Type].  While fixing the problem, we also expand the list of constructors to cover the remaining regular expression operators. *)
 
@@ -915,7 +915,6 @@ Section split.
           (P1_dec (substring 0 n s)
             && P2_dec (substring n (length s - n) s))
           || F n' _
- 
      ]]
 
      The [split] function itself is trivial to implement in terms of [split'].  We just ask [split'] to begin its search with [n = length s]. *)
@@ -1098,7 +1097,7 @@ Section dec_star.
 
   Section dec_star''.
     Variable n : nat.
-    (** [n] is the length of the prefix of [s] that we have already processed. *)
+    (** Variable [n] is the length of the prefix of [s] that we have already processed. *)
 
     Variable P' : string -> Prop.
     Variable P'_dec : forall n' : nat, n' > n
@@ -1224,7 +1223,7 @@ Eval hnf in matches a_b "aa".
 Eval hnf in matches a_b "b".
 (* end hide *)
 
-(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to%\index{head-normal form}% _head-normal form_, where the datatype constructor used to build its value is known. *)
+(** Many regular expression matching problems are easy to test.  The reader may run each of the following queries to verify that it gives the correct answer.  We use evaluation strategy %\index{tactics!hnf}%[hnf] to reduce each term to%\index{head-normal form}% _head-normal form_, where the datatype constructor used to build its value is known.  (Further reduction would involve wasteful simplification of proof terms justifying the answers of our procedures.) *)
 
 Example a_star := Star (Char "a"%char).
 Eval hnf in matches a_star "".
