@@ -283,7 +283,7 @@ Example somePairs : hlist (fun T : Set => T * T)%type someTypes :=
 
 (** ** A Lambda Calculus Interpreter *)
 
-(** Heterogeneous lists are very useful in implementing %\index{interpreters}%interpreters for functional programming languages.  Using the types and operations we have already defined, it is trivial to write an interpreter for simply typed lambda calculus%\index{lambda calculus}%.  Our interpreter can alternatively be thought of as a denotational semantics.
+(** Heterogeneous lists are very useful in implementing %\index{interpreters}%interpreters for functional programming languages.  Using the types and operations we have already defined, it is trivial to write an interpreter for simply typed lambda calculus%\index{lambda calculus}%.  Our interpreter can alternatively be thought of as a denotational semantics (but worry not if you are not familiar with such terminology from semantics).
 
    We start with an algebraic datatype for types. *)
 
@@ -434,7 +434,7 @@ Section fhlist.
       | x :: ls' => (x = elm) + fmember ls'
     end%type.
 
-  (** The definition of [fmember] follows the definition of [ffin].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [ffin] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
+  (** The definition of [fmember] follows the definition of [ffin].  Empty lists have no members, and member types for nonempty lists are built by adding one new option to the type of members of the list tail.  While for [ffin] we needed no new information associated with the option that we add, here we need to know that the head of the list equals the element we are searching for.  We express that idea with a sum type whose left branch is the appropriate equality proposition.  Since we define [fmember] to live in [Type], we can insert [Prop] types as needed, because [Prop] is a subtype of [Type].
 
      We know all of the tricks needed to write a first attempt at a [get] function for [fhlist]s.
      [[
@@ -481,6 +481,8 @@ In a proposition [x = y], we see that [x] is a parameter and [y] is a regular ar
 End fhlist.
 
 Implicit Arguments fhget [A B elm ls].
+
+(** How does one choose between the two data structure encoding strategies we have presented so far?  Before answering that question in this chapter's final section, we introduce one further approach. *)
 
 
 (** * Data Structures as Index Functions *)
@@ -790,6 +792,7 @@ Implicit Arguments cfoldCond [t n].
 
 (** Like for the interpreters, most of the action was in this helper function, and [cfold] itself is easy to write. *)
 
+(* begin thide *)
 Fixpoint cfold t (e : exp' t) : exp' t :=
   match e with
     | NConst n => NConst n
@@ -810,16 +813,15 @@ Fixpoint cfold t (e : exp' t) : exp' t :=
 
     | BConst b => BConst b
     | Cond _ _ tests bodies default =>
-(* begin thide *)
       cfoldCond
       (cfold default)
       (fun idx => cfold (tests idx))
       (fun idx => cfold (bodies idx))
-(* end thide *)
   end.
+(* end thide *)
 
 (* begin thide *)
-(** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  This lemma formalizes that property.  The proof is a standard mostly automated one, with the only wrinkle being a guided instantiation of the quantifiers in the induction hypothesis. *)
+(** To prove our final correctness theorem, it is useful to know that [cfoldCond] preserves expression meanings.  The following lemma formalizes that property.  The proof is a standard mostly automated one, with the only wrinkle being a guided instantiation of the quantifiers in the induction hypothesis. *)
 
 Lemma cfoldCond_correct : forall t (default : exp' t)
   n (tests : ffin n -> exp' Bool) (bodies : ffin n -> exp' t),
