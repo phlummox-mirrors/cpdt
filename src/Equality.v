@@ -18,7 +18,7 @@ Set Implicit Arguments.
 
 (** %\chapter{Reasoning About Equality Proofs}% *)
 
-(** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, I will focus on design patterns for circumventing these tricky issues, and I will introduce the different notions of equality as they are germane. *)
+(** In traditional mathematics, the concept of equality is usually taken as a given.  On the other hand, in type theory, equality is a very contentious subject.  There are at least three different notions of equality that are important in Coq, and researchers are actively investigating new definitions of what it means for two terms to be equal.  Even once we fix a notion of equality, there are inevitably tricky issues that arise in proving properties of programs that manipulate equality proofs explicitly.  In this chapter, I will focus on design patterns for circumventing these tricky issues, and I will introduce the different notions of equality as they are germane. *)
 
 
 (** * The Definitional Equality *)
@@ -337,13 +337,12 @@ end
     Using what we know about shorthands for [match] annotations, we can write this proof in shorter form manually. *)
 
 (* begin thide *)
-  Definition lemma1' :=
-    fun (x : A) (pf : x = elm) =>
-      match pf return (0 = match pf with
-                             | eq_refl => 0
-                           end) with
-        | eq_refl => eq_refl 0
-      end.
+  Definition lemma1' (x : A) (pf : x = elm) :=
+    match pf return (0 = match pf with
+                           | eq_refl => 0
+                         end) with
+      | eq_refl => eq_refl 0
+    end.
 (* end thide *)
 
   (** Surprisingly, what seems at first like a _simpler_ lemma is harder to prove. *)
@@ -692,7 +691,7 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
     JMeq_refl : JMeq x x
     ]]
 
-The identity [JMeq] stands for %\index{John Major equality}%"John Major equality," a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+The identitifer [JMeq] stands for %\index{John Major equality}%"John Major equality," a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -825,7 +824,7 @@ Print Assumptions fhapp_ass''.
 Closed under the global context
 >>
 
-One might wonder exactly which elements of a proof involving [JMeq] imply that [JMeq_eq] must be used.  For instance, above we noticed that [rewrite] had brought [JMeq_eq] into the proof of [fhap_ass'], yet here we have also used [rewrite] with [JMeq] hypotheses while avoiding axioms!  One illuminating exercise is comparing the types of the lemmas that [rewrite] uses under the hood to implement the rewrites.  Here is the normal lemma for [eq] rewriting:%\index{Gallina terms!eq\_ind\_r}% *)
+One might wonder exactly which elements of a proof involving [JMeq] imply that [JMeq_eq] must be used.  For instance, above we noticed that [rewrite] had brought [JMeq_eq] into the proof of [fhapp_ass'], yet here we have also used [rewrite] with [JMeq] hypotheses while avoiding axioms!  One illuminating exercise is comparing the types of the lemmas that [rewrite] uses under the hood to implement the rewrites.  Here is the normal lemma for [eq] rewriting:%\index{Gallina terms!eq\_ind\_r}% *)
 
 Check eq_ind_r.
 (** %\vspace{-.15in}%[[
@@ -980,7 +979,7 @@ Qed.
 
 (** The following seems like a reasonable theorem to want to hold, and it does hold in set theory.
    %\vspace{-.15in}%[[
-   Theorem two_identities : (fun n => n) = (fun n => n + 0).
+   Theorem two_funs : (fun n => n) = (fun n => n + 0).
    ]]
    %\vspace{-.15in}%Unfortunately, this theorem is not provable in CIC without additional axioms.  None of the definitional equality rules force function equality to be%\index{extensionality of function equality}% _extensional_.  That is, the fact that two functions return equal results on equal inputs does not imply that the functions are equal.  We _can_ assert function extensionality as an axiom, and indeed the standard library already contains that axiom. *)
 
@@ -992,9 +991,9 @@ forall (A B : Type) (f g : A -> B), (forall x : A, f x = g x) -> f = g
 ]]
 *)
 
-(** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [two_identities] is trivial. *)
+(** This axiom has been verified metatheoretically to be consistent with CIC and the two equality axioms we considered previously.  With it, the proof of [two_funs] is trivial. *)
 
-Theorem two_identities : (fun n => n) = (fun n => n + 0).
+Theorem two_funs : (fun n => n) = (fun n => n + 0).
 (* begin thide *)
   apply functional_extensionality; crush.
 Qed.
@@ -1008,7 +1007,7 @@ Theorem forall_eq : (forall x : nat, match x with
                                     end)
   = (forall _ : nat, True).
 
-  (** There are no immediate opportunities to apply [ext_eq], but we can use %\index{tactics!change}%[change] to fix that. *)
+  (** There are no immediate opportunities to apply [functional_extensionality], but we can use %\index{tactics!change}%[change] to fix that problem. *)
 
 (* begin thide *)
   change ((forall x : nat, (fun x => match x with
