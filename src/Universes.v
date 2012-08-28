@@ -368,7 +368,7 @@ Theorem illustrative_but_silly_detour : unit = unit.
 Error: Impossible to unify "?35 = ?34" with "unit = unit".
 >>
 
-Coq tells us that we cannot, in fact, apply our lemma [symmetry] here, but the error message seems defective.  In particular, one might think that [apply] should unify [?35] and [?34] with [unit] to ensure that the unification goes through.  In fact, the problem is in a part of the unification problem that is _not_ shown to us in this error message!
+Coq tells us that we cannot, in fact, apply our lemma [symmetry] here, but the error message seems defective.  In particular, one might think that [apply] should unify [?35] and [?34] with [unit] to ensure that the unification goes through.  In fact, the issue is in a part of the unification problem that is _not_ shown to us in this error message!
 
 The following command is the secret to getting better error messages in such cases: *)
 
@@ -622,9 +622,9 @@ Axiom classic : forall P : Prop, P \/ ~ P.
 
 (** An [Axiom] may be declared with any type, in any of the universes.  There is a synonym %\index{Vernacular commands!Parameter}%[Parameter] for [Axiom], and that synonym is often clearer for assertions not of type [Prop].  For instance, we can assert the existence of objects with certain properties. *)
 
-Parameter n : nat.
-Axiom positive : n > 0.
-Reset n.
+Parameter num : nat.
+Axiom positive : num > 0.
+Reset num.
 
 (** This kind of "axiomatic presentation" of a theory is very common outside of higher-order logic.  However, in Coq, it is almost always preferable to stick to defining your objects, functions, and predicates via inductive definitions and functional programming.
 
@@ -698,11 +698,12 @@ Closed under the global context
 
 Require Import ProofIrrelevance.
 Print proof_irrelevance.
+
 (** %\vspace{-.15in}% [[
   *** [ proof_irrelevance : forall (P : Prop) (p1 p2 : P), p1 = p2 ]
   ]]
 
-  This axiom asserts that any two proofs of the same proposition are equal.  If we replaced [p1 = p2] by [p1 <-> p2], then the statement would be provable.  However, equality is a stronger notion than logical equivalence.  Recall this example function from Chapter 6. *)
+  This axiom asserts that any two proofs of the same proposition are equal.  Recall this example function from Chapter 6. *)
 
 (* begin hide *)
 Lemma zgtz : 0 > 0 -> False.
@@ -859,7 +860,7 @@ Definition choice_Set (A B : Type) (R : A -> B -> Prop) (H : forall x : A, {y : 
   exist (fun f => forall x : A, R x (f x))
   (fun x => proj1_sig (H x)) (fun x => proj2_sig (H x)).
 
-(** Via the Curry-Howard correspondence, this "axiom" can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtlely different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
+(** %\smallskip{}%Via the Curry-Howard correspondence, this "axiom" can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtly different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
 
    However, when we combine an axiom of choice with the law of the excluded middle, the idea of "choice" becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of "programs," but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This truly is more than repackaging a function with a different type.
 
@@ -902,7 +903,7 @@ Eval compute in (cast t3 (fun _ => First)) 12.
      : fin (12 + 1)
      ]]
 
-  Computation gets stuck in a pattern-match on the proof [t3].  The structure of [t3] is not known, so the match cannot proceed.  It turns out a more basic problem leads to this particular situation.  We ended the proof of [t3] with [Qed], so the definition of [t3] is not available to computation.  That is easily fixed. *)
+  Computation gets stuck in a pattern-match on the proof [t3].  The structure of [t3] is not known, so the match cannot proceed.  It turns out a more basic problem leads to this particular situation.  We ended the proof of [t3] with [Qed], so the definition of [t3] is not available to computation.  That mistake is easily fixed. *)
 
 Reset t3.
 
