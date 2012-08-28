@@ -24,15 +24,15 @@ Set Implicit Arguments.
 
    Generic programming can often be very useful in Coq developments, so we devote this chapter to studying it.  In a proof assistant, there is the new possibility of generic proofs about generic programs, which we also devote some space to. *)
 
-(** * Reflecting Datatype Definitions *)
+(** * Reifying Datatype Definitions *)
 
-(** The key to generic programming with dependent types is%\index{universe types}% _universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reflected syntactic versions of those types.
+(** The key to generic programming with dependent types is%\index{universe types}% _universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reified syntactic versions of those types.
 
    Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
    The first step is to define a representation for constructors of our datatypes. *)
 
-(* EX: Define a reflected representation of simple algebraic datatypes. *)
+(* EX: Define a reified representation of simple algebraic datatypes. *)
 
 (* begin thide *)
 Record constructor : Type := Con {
@@ -54,7 +54,7 @@ Definition bool_dt : datatype := Con unit 0 :: Con unit 0 :: nil.
 Definition nat_dt : datatype := Con unit 0 :: Con unit 1 :: nil.
 Definition list_dt (A : Type) : datatype := Con unit 0 :: Con A 1 :: nil.
 
-(** The type [Empty_set] has no constructors, so its representation is the empty list.  The type [unit] has one constructor with no arguments, so its one reflected constructor indicates no non-recursive data and [0] recursive arguments.  The representation for [bool] just duplicates this single argumentless constructor.    We get from [bool] to [nat] by changing one of the constructors to indicate 1 recursive argument.  We get from [nat] to [list] by adding a non-recursive argument of a parameter type [A].
+(** The type [Empty_set] has no constructors, so its representation is the empty list.  The type [unit] has one constructor with no arguments, so its one reified constructor indicates no non-recursive data and [0] recursive arguments.  The representation for [bool] just duplicates this single argumentless constructor.    We get from [bool] to [nat] by changing one of the constructors to indicate 1 recursive argument.  We get from [nat] to [list] by adding a non-recursive argument of a parameter type [A].
 
    As a further example, we can do the same encoding for a generic binary tree type. *)
 
@@ -116,13 +116,13 @@ Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
 
 (* EX: Define a generic [size] function. *)
 
-(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reflected representation of a%\index{recursion schemes}% _recursion scheme_ for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
+(** We built these encodings of datatypes to help us write datatype-generic recursive functions.  To do so, we will want a reified representation of a%\index{recursion schemes}% _recursion scheme_ for each type, similar to the [T_rect] principle generated automatically for an inductive definition of [T].  A clever reuse of [datatypeDenote] yields a short definition. *)
 
 (* begin thide *)
 Definition fixDenote (T : Type) (dt : datatype) :=
   forall (R : Type), datatypeDenote R dt -> (T -> R).
 
-(** The idea of a recursion scheme is parameterized by a type and a reputed encoding of it.  The principle itself is polymorphic in a type [R], which is the return type of the recursive function that we mean to write.  The next argument is a hetergeneous list of one case of the recursive function definition for each datatype constructor.  The [datatypeDenote] function turns out to have just the right definition to express the type we need; a set of function cases is just like an alternate set of constructors where we replace the original type [T] with the function result type [R].  Given such a reflected definition, a [fixDenote] invocation returns a function from [T] to [R], which is just what we wanted.
+(** The idea of a recursion scheme is parameterized by a type and a reputed encoding of it.  The principle itself is polymorphic in a type [R], which is the return type of the recursive function that we mean to write.  The next argument is a hetergeneous list of one case of the recursive function definition for each datatype constructor.  The [datatypeDenote] function turns out to have just the right definition to express the type we need; a set of function cases is just like an alternate set of constructors where we replace the original type [T] with the function result type [R].  Given such a reified definition, a [fixDenote] invocation returns a function from [T] to [R], which is just what we wanted.
 
    We are ready to write some example functions now.  It will be useful to use one new function from the [DepList] library included in the book source. *)
 
@@ -229,6 +229,8 @@ Eval cbv beta iota delta -[plus] in fun A => size (@tree_fix A).
 ]]
 *)
 (* end thide *)
+
+(** As our examples show, even recursive datatypes are mapped to normal-looking size functions. *)
 
 
 (** ** Pretty-Printing *)
