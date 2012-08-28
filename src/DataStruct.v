@@ -197,8 +197,8 @@ Section hlist.
 
 (* begin thide *)
   Inductive hlist : list A -> Type :=
-  | MNil : hlist nil
-  | MCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
+  | HNil : hlist nil
+  | HCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
 
   (** We can implement a variant of the last section's [get] function for [hlist]s.  To get the dependent typing to work out, we will need to index our element selectors by the types of data that they point to.%\index{Gallina terms!member}% *)
 
@@ -214,11 +214,11 @@ Section hlist.
 
   (** Because the element [elm] that we are "searching for" in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
 
-     We can use [member] to adapt our definition of [get] to [hlist]s.  The same basic [match] tricks apply.  In the [MCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
+     We can use [member] to adapt our definition of [get] to [hlist]s.  The same basic [match] tricks apply.  In the [HCons] case, we form a two-element convoy, passing both the data element [x] and the recursor for the sublist [mls'] to the result of the inner [match].  We did not need to do that in [get]'s definition because the types of list elements were not dependent there. *)
 
   Fixpoint hget ls (mls : hlist ls) : member ls -> B elm :=
     match mls with
-      | MNil => fun mem =>
+      | HNil => fun mem =>
         match mem in member ls' return (match ls' with
                                           | nil => B elm
                                           | _ :: _ => unit
@@ -226,7 +226,7 @@ Section hlist.
           | MFirst _ => tt
           | MNext _ _ _ => tt
         end
-      | MCons _ _ x mls' => fun mem =>
+      | HCons _ _ x mls' => fun mem =>
         match mem in member ls' return (match ls' with
                                           | nil => Empty_set
                                           | x' :: ls'' =>
@@ -241,8 +241,8 @@ Section hlist.
 End hlist.
 
 (* begin thide *)
-Implicit Arguments MNil [A B].
-Implicit Arguments MCons [A B x ls].
+Implicit Arguments HNil [A B].
+Implicit Arguments HCons [A B x ls].
 
 Implicit Arguments MFirst [A elm ls].
 Implicit Arguments MNext [A elm x ls].
@@ -255,7 +255,7 @@ Definition someTypes : list Set := nat :: bool :: nil.
 (* begin thide *)
 
 Example someValues : hlist (fun T : Set => T) someTypes :=
-  MCons 5 (MCons true MNil).
+  HCons 5 (HCons true HNil).
 
 Eval simpl in hget someValues MFirst.
 (** %\vspace{-.15in}% [[
@@ -274,7 +274,7 @@ Eval simpl in hget someValues (MNext MFirst).
 (** We can also build indexed lists of pairs in this way. *)
 
 Example somePairs : hlist (fun T : Set => T * T)%type someTypes :=
-  MCons (1, 2) (MCons (true, false) MNil).
+  HCons (1, 2) (HCons (true, false) HNil).
 
 (** There are many more useful applications of heterogeneous lists, based on different choices of the first argument to [hlist]. *)
 
@@ -311,7 +311,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Arrow t1 t2 => typeDenote t1 -> typeDenote t2
   end.
 
-(** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly typed environments to final values.  An environment for a free variable list [ts] is simply a [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [MCons] to extend the environment in the [Abs] case. *)
+(** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly typed environments to final values.  An environment for a free variable list [ts] is simply a [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [HCons] to extend the environment in the [Abs] case. *)
 
 (* EX: Define an interpreter for [exp]s. *)
 
@@ -322,19 +322,19 @@ Fixpoint expDenote ts t (e : exp ts t) : hlist typeDenote ts -> typeDenote t :=
 
     | Var _ _ mem => fun s => hget s mem
     | App _ _ _ e1 e2 => fun s => (expDenote e1 s) (expDenote e2 s)
-    | Abs _ _ _ e' => fun s => fun x => expDenote e' (MCons x s)
+    | Abs _ _ _ e' => fun s => fun x => expDenote e' (HCons x s)
   end.
 
 (** Like for previous examples, our interpreter is easy to run with [simpl]. *)
 
-Eval simpl in expDenote Const MNil.
+Eval simpl in expDenote Const HNil.
 (** %\vspace{-.15in}% [[
     = tt
      : typeDenote Unit
 ]]
 *)
 
-Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
+Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) HNil.
 (** %\vspace{-.15in}% [[
      = fun x : unit => x
      : typeDenote (Arrow Unit Unit)
@@ -342,21 +342,21 @@ Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) MNil.
 *)
 
 Eval simpl in expDenote (Abs (dom := Unit)
-  (Abs (dom := Unit) (Var (MNext MFirst)))) MNil.
+  (Abs (dom := Unit) (Var (MNext MFirst)))) HNil.
 (** %\vspace{-.15in}% [[
      = fun x _ : unit => x
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]]
 *)
 
-Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) MNil.
+Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) HNil.
 (** %\vspace{-.15in}% [[
      = fun _ x0 : unit => x0
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]]
 *)
 
-Eval simpl in expDenote (App (Abs (Var MFirst)) Const) MNil.
+Eval simpl in expDenote (App (Abs (Var MFirst)) Const) HNil.
 (** %\vspace{-.15in}% [[
      = tt
      : typeDenote Unit
