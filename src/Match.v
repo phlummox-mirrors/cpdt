@@ -146,7 +146,7 @@ Theorem m1 : True.
 Qed.
 (* end thide *)
 
-(** The first case matches trivially, but its body tactic fails, since the conclusion does not begin with a quantifier or implication.  In a similar ML match, that would mean that the whole pattern-match fails.  In Coq, we backtrack and try the next pattern, which also matches.  Its body tactic succeeds, so the overall tactic succeeds as well.
+(** The first case matches trivially, but its body tactic fails, since the conclusion does not begin with a quantifier or implication.  In a similar ML match, the whole pattern-match would fail.  In Coq, we backtrack and try the next pattern, which also matches.  Its body tactic succeeds, so the overall tactic succeeds as well.
 
    The example shows how failure can move to a different pattern within a [match].  Failure can also trigger an attempt to find _a different way of matching a single pattern_.  Consider another example: *)
 
@@ -512,7 +512,7 @@ Ltac inster n :=
     match n with
       | S ?n' =>
         match goal with
-          | [ H : forall x : ?T, _, x : ?T |- _ ] => generalize (H x); inster n'
+          | [ H : forall x : ?T, _, y : ?T |- _ ] => generalize (H y); inster n'
         end
     end.
 (* end thide *)
@@ -620,7 +620,7 @@ Ltac search_prem tac :=
        | [ |- _ --> _ ] => progress (tac || (apply and_True_prem; tac))
      end.
 
-(** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  The call [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.
+(** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  The call [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.  The %\index{tactics!progress}%[progress] tactical fails when its argument tactic succeeds without changing the current subgoal.
 
    The [search] function itself tries the same tricks as in the last case of the final [match].  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
 
@@ -705,10 +705,9 @@ t2 =
 fun P Q : Prop =>
 comm_prem (assoc_prem1 (assoc_prem2 (False_prem (P:=P /\ P /\ Q) (P /\ Q))))
      : forall P Q : Prop, Q /\ (P /\ False) /\ P --> P /\ Q
- 
      ]]
 
-We can also see that [matcher] is well-suited for cases where some human intervention is needed after the automation finishes. *)
+%\smallskip{}%We can also see that [matcher] is well-suited for cases where some human intervention is needed after the automation finishes. *)
 
 Theorem t3 : forall P Q R : Prop,
   P /\ Q --> Q /\ R /\ P.
@@ -969,15 +968,14 @@ Theorem t8 : exists p : nat * nat, fst p = 3.
   econstructor; instantiate (1 := (3, 2)); reflexivity.
 Qed.
 
-(** The [1] above is identifying an existential variable appearing in the current goal, with the last existential appearing assigned number 1, the second last assigned number 2, and so on.  The named existential is replaced everywhere by the term to the right of the [:=].
+(** The [1] above is identifying an existential variable appearing in the current goal, with the last existential appearing assigned number 1, the second-last assigned number 2, and so on.  The named existential is replaced everywhere by the term to the right of the [:=].
 
    The %\index{tactics!instantiate}%[instantiate] tactic can be convenient for exploratory proving, but it leads to very brittle proof scripts that are unlikely to adapt to changing theorem statements.  It is often more helpful to have a tactic that can be used to assign a value to a term that is known to be an existential.  By employing a roundabout implementation technique, we can build a tactic that generalizes this functionality.  In particular, our tactic [equate] will assert that two terms are equal.  If one of the terms happens to be an existential, then it will be replaced everywhere with the other term. *)
 
 Ltac equate x y :=
-  let H := fresh "H" in
-    assert (H : x = y) by reflexivity; clear H.
+  let dummy := constr:(eq_refl x : x = y) in idtac.
 
-(** This tactic fails if it is not possible to prove [x = y] by [reflexivity].  We perform the proof only for its unification side effects, clearing the fact [x = y] afterward.  With [equate], we can build a less brittle version of the prior example. *)
+(** This tactic fails if it is not possible to prove [x = y] by [eq_refl].  We check the proof only for its unification side effects, ignoring the associated variable [dummy].  With [equate], we can build a less brittle version of the prior example. *)
 
 Theorem t9 : exists p : nat * nat, fst p = 3.
   econstructor; match goal with
