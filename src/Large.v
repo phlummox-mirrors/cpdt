@@ -156,7 +156,7 @@ Theorem eval_times : forall k e,
     | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
 Qed.
 
-(** We use the form of the semicolon operator that allows a different tactic to be specified for each generated subgoal.  This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.
+(** We use the form of the semicolon operator that allows a different tactic to be specified for each generated subgoal.  This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.  The same could be said for scripts which use the%\index{bullets}% _bullets_ or curly braces provided by Coq 8.4, which allow code like the above to be stepped through interactively, with periods in place of the semicolons, while representing proof structure in a way that is enforced by Coq.  Interactive replay of scripts becomes easier, but readability is not really helped.
 
    The situation gets worse in considering extensions to the theorem we want to prove.  Let us add multiplication nodes to our [exp] type and see how the proof fares. *)
 
@@ -641,21 +641,21 @@ It is also easy to end up with a proof script that uses too much memory.  As tac
 
 (** * Modules *)
 
-(** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's _module system_ provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML%~\cite{modules}% and Objective Caml, and the discussion that follows assumes familiarity with the basics of one of those systems.
+(** Last chapter's examples of proof by reflection demonstrate opportunities for implementing abstract proof strategies with stronger formal guarantees than can be had with Ltac scripting.  Coq's _module system_ provides another tool for more rigorous development of generic theorems.  This feature is inspired by the module systems found in Standard ML%~\cite{modules}% and OCaml, and the discussion that follows assumes familiarity with the basics of one of those systems.
 
    ML modules facilitate the grouping of %\index{abstract type}%abstract types with operations over those types.  Moreover, there is support for%\index{functor}% _functors_, which are functions from modules to modules.  A canonical example of a functor is one that builds a data structure implementation from a module that describes a domain of keys and its associated comparison operations.
 
-   When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, this module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [e] for [f], and an operation [i] that is a left inverse for [f].%\index{Vernacular commands!Module Type}% *)
+   When we add modules to a base language with dependent types, it becomes possible to use modules and functors to formalize kinds of reasoning that are common in algebra.  For instance, the following module signature captures the essence of the algebraic structure known as a group.  A group consists of a carrier set [G], an associative binary operation [f], a left identity element [id] for [f], and an operation [i] that is a left inverse for [f].%\index{Vernacular commands!Module Type}% *)
 
 Module Type GROUP.
   Parameter G : Set.
   Parameter f : G -> G -> G.
-  Parameter e : G.
+  Parameter id : G.
   Parameter i : G -> G.
 
   Axiom assoc : forall a b c, f (f a b) c = f a (f b c).
-  Axiom ident : forall a, f e a = a.
-  Axiom inverse : forall a, f (i a) a = e.
+  Axiom ident : forall a, f id a = a.
+  Axiom inverse : forall a, f (i a) a = id.
 End GROUP.
 
 (** Many useful theorems hold of arbitrary groups.  We capture some such theorem statements in another module signature.%\index{Vernacular commands!Declare Module}% *)
@@ -663,11 +663,11 @@ End GROUP.
 Module Type GROUP_THEOREMS.
   Declare Module M : GROUP.
 
-  Axiom ident' : forall a, M.f a M.e = a.
+  Axiom ident' : forall a, M.f a M.id = a.
 
-  Axiom inverse' : forall a, M.f a (M.i a) = M.e.
+  Axiom inverse' : forall a, M.f a (M.i a) = M.id.
 
-  Axiom unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
+  Axiom unique_ident : forall id', (forall a, M.f id' a = a) -> id' = M.id.
 End GROUP_THEOREMS.
 
 (** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M]. %\index{Vernacular commands!Module}% *)
@@ -683,7 +683,7 @@ Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
 
      Now we are ready to prove the three theorems.  The proofs are completely manual, which may seem ironic given the content of the previous sections!  This illustrates another lesson, which is that short proof scripts that change infrequently may be worth leaving unautomated.  It would take some effort to build suitable generic automation for these theorems about groups, so I stick with manual proof scripts to avoid distracting us from the main message of the section.  We take the proofs from the Wikipedia page on elementary group theory. *)
 
-  Theorem inverse' : forall a, f a (i a) = e.
+  Theorem inverse' : forall a, f a (i a) = id.
     intro.
     rewrite <- (ident (f a (i a))).
     rewrite <- (inverse (f a (i a))) at 1.
@@ -695,7 +695,7 @@ Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
     apply inverse.
   Qed.
 
-  Theorem ident' : forall a, f a e = a.
+  Theorem ident' : forall a, f a id = a.
     intro.
     rewrite <- (inverse a).
     rewrite <- assoc.
@@ -703,9 +703,9 @@ Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
     apply ident.
   Qed.
 
-  Theorem unique_ident : forall e', (forall a, M.f e' a = a) -> e' = M.e.
+  Theorem unique_ident : forall id', (forall a, M.f id' a = a) -> id' = M.id.
     intros.
-    rewrite <- (H e).
+    rewrite <- (H id).
     symmetry.
     apply ident'.
   Qed.
@@ -719,17 +719,17 @@ Open Scope Z_scope.
 Module Int.
   Definition G := Z.
   Definition f x y := x + y.
-  Definition e := 0.
+  Definition id := 0.
   Definition i x := -x.
 
   Theorem assoc : forall a b c, f (f a b) c = f a (f b c).
     unfold f; crush.
   Qed.
-  Theorem ident : forall a, f e a = a.
-    unfold f, e; crush.
+  Theorem ident : forall a, f id a = a.
+    unfold f, id; crush.
   Qed.
-  Theorem inverse : forall a, f (i a) a = e.
-    unfold f, i, e; crush.
+  Theorem inverse : forall a, f (i a) a = id.
+    unfold f, i, id; crush.
   Qed.
 End Int.
 
@@ -745,13 +745,13 @@ Check IntProofs.unique_ident.
 
 Projections like [Int.G] are known to be definitionally equal to the concrete values we have assigned to them, so the above theorem yields as a trivial corollary the following more natural restatement: *)
 
-Theorem unique_ident : forall e', (forall a, e' + a = a) -> e' = 0.
+Theorem unique_ident : forall id', (forall a, id' + a = a) -> id' = 0.
 (* begin thide *)
   exact IntProofs.unique_ident.
 Qed.
 (* end thide *)
 
-(** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module.  On the other hand, all module values must be determined statically, so modules may not be computed, e.g., within the defintions of normal functions, based on particular function parameters. *)
+(** As in ML, the module system provides an effective way to structure large developments.  Unlike in ML, Coq modules add no expressiveness; we can implement any module as an inhabitant of a dependent record type.  It is the second-class nature of modules that makes them easier to use than dependent records in many case.  Because modules may only be used in quite restricted ways, it is easier to support convenient module coding through special commands and editing modes, as the above example demonstrates.  An isomorphic implementation with records would have suffered from lack of such conveniences as module subtyping and importation of the fields of a module.  On the other hand, all module values must be determined statically, so modules may not be computed, e.g., within the definitions of normal functions, based on particular function parameters. *)
 
 
 (** * Build Processes *)
