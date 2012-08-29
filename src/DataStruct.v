@@ -209,8 +209,8 @@ Section hlist.
   Variable elm : A.
 
   Inductive member : list A -> Type :=
-  | MFirst : forall ls, member (elm :: ls)
-  | MNext : forall x ls, member ls -> member (x :: ls).
+  | HFirst : forall ls, member (elm :: ls)
+  | HNext : forall x ls, member ls -> member (x :: ls).
 
   (** Because the element [elm] that we are "searching for" in a list does not change across the constructors of [member], we simplify our definitions by making [elm] a local variable.  In the definition of [member], we say that [elm] is found in any list that begins with [elm], and, if removing the first element of a list leaves [elm] present, then [elm] is present in the original list, too.  The form looks much like a predicate for list membership, but we purposely define [member] in [Type] so that we may decompose its values to guide computations.
 
@@ -223,8 +223,8 @@ Section hlist.
                                           | nil => B elm
                                           | _ :: _ => unit
                                         end) with
-          | MFirst _ => tt
-          | MNext _ _ _ => tt
+          | HFirst _ => tt
+          | HNext _ _ _ => tt
         end
       | HCons _ _ x mls' => fun mem =>
         match mem in member ls' return (match ls' with
@@ -233,8 +233,8 @@ Section hlist.
                                             B x' -> (member ls'' -> B elm)
                                             -> B elm
                                         end) with
-          | MFirst _ => fun x _ => x
-          | MNext _ _ mem' => fun _ get_mls' => get_mls' mem'
+          | HFirst _ => fun x _ => x
+          | HNext _ _ mem' => fun _ get_mls' => get_mls' mem'
         end x (hget mls')
     end.
 (* end thide *)
@@ -244,8 +244,8 @@ End hlist.
 Implicit Arguments HNil [A B].
 Implicit Arguments HCons [A B x ls].
 
-Implicit Arguments MFirst [A elm ls].
-Implicit Arguments MNext [A elm x ls].
+Implicit Arguments HFirst [A elm ls].
+Implicit Arguments HNext [A elm x ls].
 (* end thide *)
 
 (** By putting the parameters [A] and [B] in [Type], we allow some very higher-order uses.  For instance, one use of [hlist] is for the simple heterogeneous lists that we referred to earlier. *)
@@ -257,14 +257,14 @@ Definition someTypes : list Set := nat :: bool :: nil.
 Example someValues : hlist (fun T : Set => T) someTypes :=
   HCons 5 (HCons true HNil).
 
-Eval simpl in hget someValues MFirst.
+Eval simpl in hget someValues HFirst.
 (** %\vspace{-.15in}% [[
      = 5
      : (fun T : Set => T) nat
 ]]
 *)
 
-Eval simpl in hget someValues (MNext MFirst).
+Eval simpl in hget someValues (HNext HFirst).
 (** %\vspace{-.15in}% [[
      = true
      : (fun T : Set => T) bool
@@ -334,7 +334,7 @@ Eval simpl in expDenote Const HNil.
 ]]
 *)
 
-Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) HNil.
+Eval simpl in expDenote (Abs (dom := Unit) (Var HFirst)) HNil.
 (** %\vspace{-.15in}% [[
      = fun x : unit => x
      : typeDenote (Arrow Unit Unit)
@@ -342,21 +342,21 @@ Eval simpl in expDenote (Abs (dom := Unit) (Var MFirst)) HNil.
 *)
 
 Eval simpl in expDenote (Abs (dom := Unit)
-  (Abs (dom := Unit) (Var (MNext MFirst)))) HNil.
+  (Abs (dom := Unit) (Var (HNext HFirst)))) HNil.
 (** %\vspace{-.15in}% [[
      = fun x _ : unit => x
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]]
 *)
 
-Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var MFirst))) HNil.
+Eval simpl in expDenote (Abs (dom := Unit) (Abs (dom := Unit) (Var HFirst))) HNil.
 (** %\vspace{-.15in}% [[
      = fun _ x0 : unit => x0
      : typeDenote (Arrow Unit (Arrow Unit Unit))
 ]]
 *)
 
-Eval simpl in expDenote (App (Abs (Var MFirst)) Const) HNil.
+Eval simpl in expDenote (App (Abs (Var HFirst)) Const) HNil.
 (** %\vspace{-.15in}% [[
      = tt
      : typeDenote Unit
