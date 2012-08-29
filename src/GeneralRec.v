@@ -244,7 +244,7 @@ Fix_eq
        Fix Rwf P F x = F x (fun (y : A) (_ : R y x) => Fix Rwf P F y)
 ]]
 
-  Most such obligations are dischargable with straightforward proof automation, and this example is no exception. *)
+  Most such obligations are dischargeable with straightforward proof automation, and this example is no exception. *)
 
   match goal with
     | [ |- context[match ?E with left _ => _ | right _ => _ end] ] => destruct E
@@ -748,7 +748,7 @@ Qed.
 
 (** We need to apply constructors of [eval] explicitly, but the process is easy to automate completely for concrete input programs.
 
-   Now consider another very similar definition, this time of a Fibonacci number funtion. *)
+   Now consider another very similar definition, this time of a Fibonacci number function. *)
 
 Notation "x <- m1 ; m2" :=
   (TBind m1 (fun x => m2)) (right associativity, at level 70).
@@ -912,7 +912,7 @@ The problem has to do with rules for inductive definitions that we still study i
 
    One minor plus is the ability to write recursive definitions in natural syntax, rather than with calls to higher-order combinators.  This downside of the first two techniques is actually rather easy to get around using Coq's notation mechanism, though we leave the details as an exercise for the reader.
 
-   The first two techniques impose proof obligations that are more basic than terminaton arguments, where well-founded recursion requires a proof of extensionality and domain-theoretic recursion requires a proof of continuity.  A function may not be defined, and thus may not be computed with, until these obligations are proved.  The co-inductive techniques avoid this problem, as recursive definitions may be made without any proof obligations.
+   The first two techniques impose proof obligations that are more basic than termination arguments, where well-founded recursion requires a proof of extensionality and domain-theoretic recursion requires a proof of continuity.  A function may not be defined, and thus may not be computed with, until these obligations are proved.  The co-inductive techniques avoid this problem, as recursive definitions may be made without any proof obligations.
 
    We can also consider support for common idioms in functional programming.  For instance, the [thunk] monad effectively only supports recursion that is tail recursion, while the others allow arbitrary recursion schemes.
 
