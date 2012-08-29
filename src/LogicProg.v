@@ -126,7 +126,7 @@ Error: Impossible to unify "plusR 0 ?27 ?27" with "plusR 1 3 4".
   apply PlusS.
   apply PlusO.
 
-(** At this point the proof is completed.  It is no doubt clear that a simple procedure could find all proofs of this kind for us.  We are just exploring all possible proof trees, built from the two candidate steps [apply PlusO] and [apply PlusS].  The built-in tactic %\index{tactics!auto}%[auto] does exactly that, since above we used [Hint Constructors] to register the two candidate proof steps as hints. *)
+(** At this point the proof is completed.  It is no doubt clear that a simple procedure could find all proofs of this kind for us.  We are just exploring all possible proof trees, built from the two candidate steps [apply PlusO] and [apply PlusS].  The built-in tactic %\index{tactics!auto}%[auto] does exactly that, since above we used %\index{Vernacular commands!Hint Constructors}%[Hint Constructors] to register the two candidate proof steps as hints. *)
 
 Restart.
   auto.
@@ -149,7 +149,7 @@ Example five_plus_three : plusR 5 3 8.
 
   auto 6.
 
-(** Sometimes it is useful to see a description of the proof tree that [auto] finds, with the %\index{tactics!info}%[info] tactical.  (This tactical is not available in Coq 8.4 as of this writing, but I hope it reappears soon.) *)
+(** Sometimes it is useful to see a description of the proof tree that [auto] finds, with the %\index{tactics!info}%[info] tactical.  (This tactical is not available in Coq 8.4 as of this writing, but I hope it reappears soon.  The special case %\index{tactics!info\_auto}%[info_auto] tactic is provided as a chatty replacement for [auto].) *)
 
 Restart.
   info auto 6.
@@ -191,7 +191,7 @@ Qed.
 
 Example seven_minus_three' : exists x, plusR x 3 7.
 (* begin thide *)
-(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply] instead, which proceeds with placeholder%\index{unification variable}% _unification variables_ standing in for those parameters we wish to postpone guessing. *)
+(** We could attempt to guess the quantifier instantiation manually as before, but here there is no need.  Instead of [apply], we use %\index{tactics!eapply}%[eapply], which proceeds with placeholder%\index{unification variable}% _unification variables_ standing in for those parameters we wish to postpone guessing. *)
 
   eapply ex_intro.
 (** [[
@@ -392,7 +392,7 @@ Definition syms := (eq_sym, plus_n_O, eq_add_S, f_equal2).
   Abort.
 End slow.
 
-(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named%\index{hint databases}% _hint databases_ to segragate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
+(** Sometimes, though, transitivity is just what is needed to get a proof to go through automatically with [eauto].  For those cases, we can use named%\index{hint databases}% _hint databases_ to segregate hints into different groups that may be called on as needed.  Here we put [eq_trans] into the database [slow]. *)
 
 (* begin thide *)
 Hint Resolve eq_trans : slow.
@@ -559,7 +559,7 @@ ex_intro
 ]]
 *)
 
-(** Let us try one more, fancier example.  First, we use a standard high-order function to define a function for summing all data elements of a list. *)
+(** Let us try one more, fancier example.  First, we use a standard higher-order function to define a function for summing all data elements of a list. *)
 
 Definition sum := fold_right plus O.
 
@@ -863,7 +863,7 @@ Section forall_and.
   Qed.
 (* end thide *)
 
-  (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  The function [proj1] is from the standard library, for extracting a proof of [R] from a proof of [R /\ S]. *)
+  (** We see that an [Extern] pattern may bind unification variables that we use in the associated tactic.  The function [proj1] is from the standard library, for extracting a proof of [U] from a proof of [U /\ V]. *)
 
 End forall_and.
 
