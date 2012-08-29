@@ -82,7 +82,7 @@ Fixpoint typeDenote (t : type) : Type :=
 
 (** * Dependent de Bruijn Indices *)
 
-(** The first encoding is one we met first in Chapter 9, the _dependent de Bruijn index_ encoding.  We represent program syntax terms in a type familiy parametrized by a list of types, representing the _typing context_, or information on which free variables are in scope and what their types are.  Variables are represented in a way isomorphic to the natural numbers, where number 0 represents the first element in the context, number 1 the second element, and so on.  Actually, instead of numbers, we use the [member] dependent type family from Chapter 9. *)
+(** The first encoding is one we met first in Chapter 9, the _dependent de Bruijn index_ encoding.  We represent program syntax terms in a type family parameterized by a list of types, representing the _typing context_, or information on which free variables are in scope and what their types are.  Variables are represented in a way isomorphic to the natural numbers, where number 0 represents the first element in the context, number 1 the second element, and so on.  Actually, instead of numbers, we use the [member] dependent type family from Chapter 9. *)
 
 Module FirstOrder.
 
@@ -332,7 +332,7 @@ Module HigherOrder.
 
    However, Coq rejects this definition for failing to meet the %\index{strict positivity requirement}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
 
-   An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a _representation of variables_. *)
+   An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parameterize the syntax type by a type family standing for a _representation of variables_. *)
 
   Section var.
     Variable var : type -> Type.
@@ -432,7 +432,7 @@ Module HigherOrder.
      ]]
      *)
 
-  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of one term in another.  The key insight here is to _tag variables with terms_, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parametrized over a specific [var] choice. *)
+  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of one term in another.  The key insight here is to _tag variables with terms_, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parameterized over a specific [var] choice. *)
 
   Fixpoint squash var t (e : term (term var) t) : term var t :=
     match e with
@@ -659,7 +659,7 @@ Module HigherOrder.
 
   Definition Wf t (E : Term t) := forall var1 var2, wf nil (E var1) (E var2).
 
-  (** After digesting the syntactic details of [Wf], it is probably not hard to see that reasonable term encodings will satsify it.  For example: *)
+  (** After digesting the syntactic details of [Wf], it is probably not hard to see that reasonable term encodings will satisfy it.  For example: *)
 
   Theorem three_the_hard_way_Wf : Wf three_the_hard_way.
     red; intros; repeat match goal with

@@ -694,7 +694,7 @@ The term "(n, s)" has type "(nat * vstack ts)%type"
  while it is expected to have type "vstack ?119".
 >>
 
-This and other mysteries of Coq dependent typing we postpone until Part II of the book.  The upshot of our later discussion is that it is often useful to push inside of [match] branches those function parameters whose types depend on the type of the value being matched.  Our later, more complete treatement of Gallina's typing rules will explain why this helps.
+This and other mysteries of Coq dependent typing we postpone until Part II of the book.  The upshot of our later discussion is that it is often useful to push inside of [match] branches those function parameters whose types depend on the type of the value being matched.  Our later, more complete treatment of Gallina's typing rules will explain why this helps.
 *)
 
 (** We finish the semantics with a straightforward definition of program denotation. *)

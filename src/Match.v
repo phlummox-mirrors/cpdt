@@ -673,7 +673,7 @@ Theorem ex_conc : forall (T : Type) (P : T -> Prop) (Q R : Prop) x,
   imp.
 Qed.
 
-(** We will also want a "base case" lemma for finishing proofs where cancelation has removed every constituent of the conclusion. *)
+(** We will also want a "base case" lemma for finishing proofs where cancellation has removed every constituent of the conclusion. *)
 
 Theorem imp_True : forall P,
   P --> True.
@@ -751,7 +751,7 @@ This proof term is a mouthful, and we can be glad that we did not build it manua
 
 (** A final useful ingredient in tactic crafting is the ability to allocate new unification variables explicitly.  Tactics like [eauto] introduce unification variables internally to support flexible proof search.  While [eauto] and its relatives do _backward_ reasoning, we often want to do similar _forward_ reasoning, where unification variables can be useful for similar reasons.
 
-   For example, we can write a tactic that instantiates the quantifiers of a universally quantified hypothesis.  The tactic should not need to know what the appropriate instantiantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
+   For example, we can write a tactic that instantiates the quantifiers of a universally quantified hypothesis.  The tactic should not need to know what the appropriate instantiations are; rather, we want these choices filled with placeholders.  We hope that, when we apply the specialized hypothesis later, syntactic unification will determine concrete values.
 
    Before we are ready to write a tactic, we can try out its ingredients one at a time. *)
 

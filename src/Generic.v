@@ -122,7 +122,7 @@ Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
 Definition fixDenote (T : Type) (dt : datatype) :=
   forall (R : Type), datatypeDenote R dt -> (T -> R).
 
-(** The idea of a recursion scheme is parameterized by a type and a reputed encoding of it.  The principle itself is polymorphic in a type [R], which is the return type of the recursive function that we mean to write.  The next argument is a hetergeneous list of one case of the recursive function definition for each datatype constructor.  The [datatypeDenote] function turns out to have just the right definition to express the type we need; a set of function cases is just like an alternate set of constructors where we replace the original type [T] with the function result type [R].  Given such a reified definition, a [fixDenote] invocation returns a function from [T] to [R], which is just what we wanted.
+(** The idea of a recursion scheme is parameterized by a type and a reputed encoding of it.  The principle itself is polymorphic in a type [R], which is the return type of the recursive function that we mean to write.  The next argument is a heterogeneous list of one case of the recursive function definition for each datatype constructor.  The [datatypeDenote] function turns out to have just the right definition to express the type we need; a set of function cases is just like an alternate set of constructors where we replace the original type [T] with the function result type [R].  Given such a reified definition, a [fixDenote] invocation returns a function from [T] to [R], which is just what we wanted.
 
    We are ready to write some example functions now.  It will be useful to use one new function from the [DepList] library included in the book source. *)
 
