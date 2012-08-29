@@ -330,7 +330,7 @@ Module HigherOrder.
   | Let : forall t1 t2, term t1 -> (term t1 -> term t2) -> term t2.
 ]]
 
-   However, Coq rejects this definition for failing to meet the %\index{strict positivity restriction}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
+   However, Coq rejects this definition for failing to meet the %\index{strict positivity requirement}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
 
    An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parametrize the syntax type by a type family standing for a _representation of variables_. *)
 
