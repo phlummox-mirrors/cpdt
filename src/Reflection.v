@@ -85,7 +85,7 @@ Definition check_even : forall n : nat, [isEven n].
     end); auto.
 Defined.
 
-(** The function [check_even] may be viewed as a _verified decision procedure_, because its type guarantees that it never returns [Yes] for inputs that are not even.
+(** The function [check_even] may be viewed as a _verified decision procedure_, because its type guarantees that it never returns %\coqdocnotation{%#<tt>#Yes#</tt>#%}% for inputs that are not even.
 
    Now we can use dependent pattern-matching to write a function that performs a surprising feat.  When given a [partial P], this function [partialOut] returns a proof of [P] if the [partial] value contains a proof, and it returns a (useless) proof of [True] otherwise.  From the standpoint of ML and Haskell programming, it seems impossible to write such a type, but it is trivial with a [return] annotation. *)
 
@@ -145,7 +145,7 @@ User error: No matching clauses for match goal
   end" while it is expected to have type "isEven 255"
 >>
 
-  As usual, the type checker performs no reductions to simplify error messages.  If we reduced the first term ourselves, we would see that [check_even 255] reduces to a [No], so that the first term is equivalent to [True], which certainly does not unify with [isEven 255]. *)
+  As usual, the type checker performs no reductions to simplify error messages.  If we reduced the first term ourselves, we would see that [check_even 255] reduces to a %\coqdocnotation{%#<tt>#No#</tt>#%}%, so that the first term is equivalent to [True], which certainly does not unify with [isEven 255]. *)
 
 Abort.
 
@@ -220,7 +220,7 @@ Ltac tautReify P :=
         constr:(TautImp t1 t2)
   end.
 
-(** With [tautReify] available, it is easy to finish our reflective tactic.  We look at the goal formula, reflect it, and apply [tautTrue] to the reflected formula. *)
+(** With [tautReify] available, it is easy to finish our reflective tactic.  We look at the goal formula, reify it, and apply [tautTrue] to the reified formula. *)
 
 Ltac obvious :=
   match goal with
@@ -301,7 +301,7 @@ Section monoid.
       | Op me1 me2 => flatten me1 ++ flatten me2
     end.
 
-  (** [flatten] has a straightforward correctness proof in terms of our [denote] functions. *)
+  (** This function has a straightforward correctness proof in terms of our [denote] functions. *)
 
   Lemma flatten_correct' : forall ml2 ml1,
     mldenote ml1 + mldenote ml2 = mldenote (ml1 ++ ml2).
@@ -422,7 +422,7 @@ Fixpoint formulaDenote (atomics : asgn) (f : formula) : Prop :=
   end.
 (* end thide *)
 
-(** The %\index{Gallina terms!varmap}%[varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  Our reifier [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
+(** The %\index{Gallina terms!varmap}%[varmap] type family implements maps from [index] values.  In this case, we define an assignment as a map from variables to [Prop]s.  Our interpretation function [formulaDenote] works with an assignment, and we use the [varmap_find] function to consult the assignment in the [Atomic] case.  The first argument to [varmap_find] is a default value, in case the variable is not found. *)
 
 Section my_tauto.
   Variable atomics : asgn.
@@ -701,7 +701,7 @@ Ltac lookup x xs :=
         constr:(S n)
   end.
 
-(** The next building block is a procedure for reifying a term, given a list of all allowed variable values.  We are free to make this procedure partial, where tactic failure may be triggered upon attempting to reflect a term containing subterms not included in the list of variables.  The output type of the term is a copy of [formula] where [index] is replaced by [nat], in the type of the constructor for atomic formulas. *)
+(** The next building block is a procedure for reifying a term, given a list of all allowed variable values.  We are free to make this procedure partial, where tactic failure may be triggered upon attempting to reify a term containing subterms not included in the list of variables.  The type of the output term is a copy of [formula] where [index] is replaced by [nat], in the type of the constructor for atomic formulas. *)
 
 Inductive formula' : Set :=
 | Atomic' : nat -> formula'
@@ -868,4 +868,4 @@ Goal (fun (x y : nat) => x + y + 13) = (fun (_ z : nat) => z).
 
 Abort.
 
-(** Our encoding here uses Coq functions to represent binding within the terms we reify, which makes it difficult to implement certain functions over reified terms.  An alternative would be to represent variables with numbers.  This can be done by writing a slightly smarter reification function that detects variable references by detecting when term arguments are just compositions of [fst] and [snd]; from the order of the compositions we may read off the variable number.  We leave the details as an exercise for the reader. *)
+(** Our encoding here uses Coq functions to represent binding within the terms we reify, which makes it difficult to implement certain functions over reified terms.  An alternative would be to represent variables with numbers.  This can be done by writing a slightly smarter reification function that identifies variable references by detecting when term arguments are just compositions of [fst] and [snd]; from the order of the compositions we may read off the variable number.  We leave the details as an exercise for the reader. *)
