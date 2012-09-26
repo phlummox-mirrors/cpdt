@@ -406,7 +406,7 @@ Example three_minus_four_zero : exists x, 1 + x = 0.
 Finished transaction in 0. secs (0.004u,0.s)
 >>
 
-This [eauto] fails to prove the goal, but it least it takes substantially less than the 2 seconds required above! *)
+This [eauto] fails to prove the goal, but at least it takes substantially less than the 2 seconds required above! *)
 
 Abort.
 (* end thide *)

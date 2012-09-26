@@ -42,7 +42,7 @@ A note for readers following along in the PDF version: %\index{coqdoc}%coqdoc su
 
 %\medskip%
 
-Now we are ready to say what these programs mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to "common sense" constructions.)%\index{Vernacular commands!Definition}% *)
+Now we are ready to say what programs in our expression language mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to "common sense" constructions.)%\index{Vernacular commands!Definition}% *)
 
 Definition binopDenote (b : binop) : nat -> nat -> nat :=
   match b with
@@ -187,12 +187,11 @@ Eval simpl in progDenote (compile (Binop Times (Binop Plus (Const 2) (Const 2))
 (** We are ready to prove that our compiler is implemented correctly.  We can use a new vernacular command [Theorem] to start a correctness proof, in terms of the semantics we defined earlier:%\index{Vernacular commands!Theorem}% *)
 
 Theorem compile_correct : forall e, progDenote (compile e) nil = Some (expDenote e :: nil).
-(* begin hide *)
-Abort.
-(* end hide *)
 (* begin thide *)
 
 (** Though a pencil-and-paper proof might clock out at this point, writing "by a routine induction on [e]," it turns out not to make sense to attack this proof directly.  We need to use the standard trick of%\index{strengthening the induction hypothesis}% _strengthening the induction hypothesis_.  We do that by proving an auxiliary lemma, using the command [Lemma] that is a synonym for [Theorem], conventionally used for less important theorems that appear in the proofs of primary theorems.%\index{Vernacular commands!Lemma}% *)
+
+Abort.
 
 Lemma compile_correct' : forall e p s,
   progDenote (compile e ++ p) s = progDenote p (expDenote e :: s).
@@ -393,7 +392,7 @@ We start out the same way as before, introducing new free variables and unfoldin
 
 What we need is the associative law of list concatenation, which is available as a theorem [app_assoc_reverse] in the standard library.%\index{Vernacular commands!Check}% *)
 
-Check app_assoc.
+Check app_assoc_reverse.
 (** %\vspace{-.15in}%[[
 app_assoc_reverse
      : forall (A : Type) (l m n : list A), (l ++ m) ++ n = l ++ m ++ n
@@ -554,7 +553,7 @@ The intuitive explanation of [tbinop] is that a [tbinop t1 t2 t] is a binary ope
 
 ML and Haskell have indexed algebraic datatypes.  For instance, their list types are indexed by the type of data that the list carries.  However, compared to Coq, ML and Haskell 98 place two important restrictions on datatype definitions.
 
-First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}% _Generalized algebraic datatypes_ (GADTs)%~\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell and other languages that removes this first restriction.
+First, the indices of the range of each data constructor must be type variables bound at the top level of the datatype definition.  There is no way to do what we did here, where we, for instance, say that [TPlus] is a constructor building a [tbinop] whose indices are all fixed at [Nat].  %\index{generalized algebraic datatypes}\index{GADTs|see{generalized algebraic datatypes}}% _Generalized algebraic datatypes_ (GADTs)%~\cite{GADT}% are a popular feature in %\index{GHC Haskell}%GHC Haskell, OCaml 4, and other languages that removes this first restriction.
 
 The second restriction is not lifted by GADTs.  In ML and Haskell, indices of types must be types and may not be _expressions_.  In Coq, types may be indexed by arbitrary Gallina terms.  Type indices can live in the same universe as programs, and we can compute with them just like regular programs.  Haskell supports a hobbled form of computation in type indices based on %\index{Haskell}%multi-parameter type classes, and recent extensions like type functions bring Haskell programming even closer to "real" functional programming with types, but, without dependent typing, there must always be a gap between how one programs with types and how one programs normally.
 *)

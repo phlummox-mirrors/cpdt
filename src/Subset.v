@@ -519,17 +519,17 @@ End In_dec.
 Eval compute in In_dec eq_nat_dec 2 (1 :: 2 :: nil).
 (** %\vspace{-.15in}% [[
      = Yes
-     : {In 2 (1 :: 2 :: nil)} + {~ In 2 (1 :: 2 :: nil)}
+     : {In 2 (1 :: 2 :: nil)} + { ~ In 2 (1 :: 2 :: nil)}
      ]]
      *)
 
 Eval compute in In_dec eq_nat_dec 3 (1 :: 2 :: nil).
 (** %\vspace{-.15in}% [[
      = No
-     : {In 3 (1 :: 2 :: nil)} + {~ In 3 (1 :: 2 :: nil)}
+     : {In 3 (1 :: 2 :: nil)} + { ~ In 3 (1 :: 2 :: nil)}
      ]]
 
-[In_dec] has a reasonable extraction to OCaml. *)
+The [In_dec] function has a reasonable extraction to OCaml. *)
 
 Extraction In_dec.
 (* end thide *)

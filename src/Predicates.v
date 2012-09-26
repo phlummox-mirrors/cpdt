@@ -373,6 +373,8 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
     ex_intro : forall x : A, P x -> ex P
     ]]
 
+  (Note that here, as always, each [forall] quantifier has the largest possible scope, so that the type of [ex_intro] could also be written [forall x : A, (P x -> ex P)].)
+
   The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
@@ -519,7 +521,7 @@ Theorem isZero_contra' : isZero 1 -> 2 + 2 = 5.
  
    ]]
 
-   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  This has the net effect of decrementing each of these numbers. *)
+   What on earth happened here?  Internally, [destruct] replaced [1] with a fresh variable, and, trying to be helpful, it also replaced the occurrence of [1] within the unary representation of each number in the goal.  Then, within the [O] case of the proof, we replace the fresh variable with [O].  This has the net effect of decrementing each of these numbers. *)
 
 Abort.
 
