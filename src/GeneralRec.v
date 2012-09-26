@@ -853,7 +853,7 @@ Theorem cassociativity : forall A B C (m : comp A) (f : A -> comp B) (g : B -> c
 Qed.
 (* end hide *)
 
-(** Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for "bind,", we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
+(** Not only can we define the Fibonacci function with the new monad, but even our running example of merge sort becomes definable.  By shadowing our previous notation for "bind," we can write almost exactly the same code as in our previous [mergeSort'] definition, but with less syntactic clutter. *)
 
 Notation "x <- m1 ; m2" := (Bnd m1 (fun x => m2)).
 

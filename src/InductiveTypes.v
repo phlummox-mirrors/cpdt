@@ -60,16 +60,11 @@ Check (fun _ : False => I).
 Check (fun x : False => x).
 (** [: False -> False] *)
 
-(** %\smallskip{}%In fact, [False] implies anything, and we can take advantage of this fact with an odd looking [match] expression that has no branches.  Since there are no rules for deducing [False], there are no cases to consider! *)
-
-Check (fun x : False => match x with end : True).
-(** [: False -> True] *)
-
 (** %\smallskip{}%Every one of these example programs whose type looks like a logical formula is a%\index{proof term}% _proof term_.  We use that name for any Gallina term of a logical type, and we will elaborate shortly on what makes a type logical.
 
-In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or %\index{proposition}%propositions (i.e., formulas or theorem statements).
+In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or proofs.
 
-One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] _evaluates_ to either [true] or [false].  This means that we have an _algorithm_ for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like most any properties of general-purpose programs. *)
+One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] _evaluates_ to either [true] or [false].  This means that we have an _algorithm_ for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like almost any interesting property of general-purpose programs. *)
 
 
 (** * Enumerations *)
@@ -253,15 +248,7 @@ Definition pred (n : nat) : nat :=
     | S n' => n'
   end.
 
-(** We can prove theorems by case analysis: *)
-
-Theorem S_isZero : forall n : nat, isZero (pred (S (S n))) = false.
-(* begin thide *)
-  destruct n; reflexivity.
-Qed.
-(* end thide *)
-
-(** We can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting.%\index{Gallina terms!plus}% *)
+(** We can prove theorems by case analysis with [destruct] as for simpler inductive types, but we can also now get into genuine inductive theorems.  First, we will need a recursive function, to make things interesting.%\index{Gallina terms!plus}% *)
 
 Fixpoint plus (n m : nat) : nat :=
   match n with
@@ -287,7 +274,7 @@ Theorem n_plus_O : forall n : nat, plus n O = n.
 
   reflexivity.
 
-(** Our second subgoal is more work and also demonstrates our first inductive hypothesis.
+(** Our second subgoal requires more work and also demonstrates our first inductive hypothesis.
 
 [[
   n : nat
@@ -489,11 +476,9 @@ Section list.
 (* end thide *)
 End list.
 
-(* begin hide *)
 Implicit Arguments Nil [T].
-(* end hide *)
 
-(** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed.  We verify that this has happened using the [Print] command, a cousin of [Check] which shows the definition of a symbol, rather than just its type. *)
+(** After we end the section, the [Variable]s we used are added as extra function parameters for each defined identifier, as needed.  With an [Implicit Arguments]%~\index{Vernacular commands!Implicit Arguments}% command, we ask that [T] be inferred when we use [Nil]; Coq's heuristics already decided to apply a similar policy to [Cons], because of the [Set Implicit Arguments]%~\index{Vernacular commands!Set Implicit Arguments}% command elided at the beginning of this chapter.  We verify that our definitions have been saved properly using the [Print] command, a cousin of [Check] which shows the definition of a symbol, rather than just its type. *)
 
 Print list.
 (** %\vspace{-.15in}% [[
@@ -627,7 +612,7 @@ Qed.
 
 (** * Reflexive Types *)
 
-(** A kind of inductive type called a _reflexive type_ is defined in terms of functions that have the type being defined as their range.  One very useful class of examples is in modeling variable binders.  Our example will be an encoding of the syntax of first-order logic.  Since the idea of syntactic encodings of logic may require a bit of acclimation, let us first consider a simpler formula type for a subset of propositional logic. *)
+(** A kind of inductive type called a _reflexive type_ includes at least one constructor that takes as an argument _a function returning the same type we are defining_.  One very useful class of examples is in modeling variable binders.  Our example will be an encoding of the syntax of first-order logic.  Since the idea of syntactic encodings of logic may require a bit of acclimation, let us first consider a simpler formula type for a subset of propositional logic.  We are not yet using a reflexive type, but later we will extend the example reflexively. *)
 
 Inductive pformula : Set :=
 | Truth : pformula
@@ -704,7 +689,7 @@ Focusing on the [Forall] case, which comes third, we see that we are allowed to 
 
 %\medskip%
 
-Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in %\index{Haskell}%Haskell and %\index{ML}%ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case.
+Up to this point, we have seen how to encode in Coq more and more of what is possible with algebraic datatypes in %\index{Haskell}%Haskell and %\index{ML}%ML.  This may have given the inaccurate impression that inductive types are a strict extension of algebraic datatypes.  In fact, Coq must rule out some types allowed by Haskell and ML, for reasons of soundness.  Reflexive types provide our first good example of such a case; only some of them are legal.
 
 Given our last example of an inductive type, many readers are probably eager to try encoding the syntax of %\index{lambda calculus}%lambda calculus.  Indeed, the function-based representation technique that we just used, called%\index{higher-order abstract syntax}\index{HOAS|see{higher-order abstract syntax}}% _higher-order abstract syntax_ (HOAS)%~\cite{HOAS}%, is the representation of choice for lambda calculi in %\index{Twelf}%Twelf and in many applications implemented in Haskell and ML.  Let us try to import that choice to Coq: *)
 (* begin hide *)
@@ -800,7 +785,7 @@ The only new wrinkle here is the annotations on the [match] expression.  This is
 To prove that [unit_rect] is nothing special, we can reimplement it manually. *)
 
 Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
-  match u with
+  match u return P u with
     | tt => f
   end.
 
@@ -810,9 +795,7 @@ Definition foo := nat_rect.
 (* end thide *)
 (* end hide *)
 
-(** We rely on Coq's heuristics for inferring [match] annotations, which are not consulted in the pretty-printing of terms.
-
-We can check the implementation [nat_rect] as well: *)
+(** We can check the implementation [nat_rect] as well: *)
 
 Print nat_rect.
 (** %\vspace{-.15in}% [[

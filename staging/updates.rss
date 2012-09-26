@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Batch of changes based on proofreader feedback</title>
+        <pubDate>Wed, 26 Sep 2012 16:31:01 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>Thanks to everyone who is helping with the final proofreading!</description>
+</item>
+
+<item>
         <title>Ready for final proofreading</title>
         <pubDate>Thu, 30 Aug 2012 08:31:25 EDT</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
