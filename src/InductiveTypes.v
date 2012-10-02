@@ -334,7 +334,7 @@ Inductive nat_list : Set :=
 | NNil : nat_list
 | NCons : nat -> nat_list -> nat_list.
 
-(** Recursive definitions are straightforward extensions of what we have seen before. *)
+(** Recursive definitions over [nat_list] are straightforward extensions of what we have seen before. *)
 
 Fixpoint nlength (ls : nat_list) : nat :=
   match ls with
@@ -625,7 +625,7 @@ Definition prod' := prod.
 (* end thide *)
 (* end hide *)
 
-(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugared to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
+(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
 
 Fixpoint pformulaDenote (f : pformula) : Prop :=
   match f with
@@ -641,7 +641,7 @@ Inductive formula : Set :=
 | And : formula -> formula -> formula
 | Forall : (nat -> formula) -> formula.
 
-(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of "variables" in our type, by using Coq functions to encode quantification.  For instance, here is the encoding of [forall x : nat, x = x]:%\index{Vernacular commands!Example}% *)
+(** Our kinds of formulas are equalities between naturals, conjunction, and universal quantification over natural numbers.  We avoid needing to include a notion of "variables" in our type, by using Coq functions to encode the syntax of quantification.  For instance, here is the encoding of [forall x : nat, x = x]:%\index{Vernacular commands!Example}% *)
 
 Example forall_refl : formula := Forall (fun x => Eq x x).
 
@@ -732,85 +732,74 @@ Nonetheless, the basic insight of HOAS is a very useful one, and there are ways 
 
 (** As we have emphasized a few times already, Coq proofs are actually programs, written in the same language we have been using in our examples all along.  We can get a first sense of what this means by taking a look at the definitions of some of the %\index{induction principles}%induction principles we have used.  A close look at the details here will help us construct induction principles manually, which we will see is necessary for some more advanced inductive definitions. *)
 
-Print unit_ind.
+Print nat_ind.
 (** %\vspace{-.15in}%[[
-  unit_ind = 
-  fun P : unit -> Prop => unit_rect P
-     : forall P : unit -> Prop, P tt -> forall u : unit, P u
+nat_ind = 
+fun P : nat -> Prop => nat_rect P
+     : forall P : nat -> Prop,
+       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
 ]]
 
-We see that this induction principle is defined in terms of a more general principle, [unit_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
+We see that this induction principle is defined in terms of a more general principle, [nat_rect].  The <<rec>> stands for "recursion principle," and the <<t>> at the end stands for [Type]. *)
 
-Check unit_rect.
+Check nat_rect.
 (** %\vspace{-.15in}% [[
-  unit_rect
-     : forall P : unit -> Type, P tt -> forall u : unit, P u
+nat_rect
+     : forall P : nat -> Type,
+       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
 ]]
 
-The principle [unit_rect] gives [P] type [unit -> Type] instead of [unit -> Prop].  [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [unit] automatically: *)
+The principle [nat_rect] gives [P] type [nat -> Type] instead of [nat -> Prop].  This [Type] is another universe, like [Set] and [Prop].  In fact, it is a common supertype of both.  Later on, we will discuss exactly what the significances of the different universes are.  For now, it is just important that we can use [Type] as a sort of meta-universe that may turn out to be either [Set] or [Prop].  We can see the symmetry inherent in the subtyping relationship by printing the definition of another principle that was generated for [nat] automatically: *)
 
-Print unit_rec.
+Print nat_rec.
 (** %\vspace{-.15in}%[[
-  unit_rec = 
-  fun P : unit -> Set => unit_rect P
-     : forall P : unit -> Set, P tt -> forall u : unit, P u
+nat_rec = 
+fun P : nat -> Set => nat_rect P
+     : forall P : nat -> Set,
+       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
 ]]
 
-This is identical to the definition for [unit_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
+This is identical to the definition for [nat_ind], except that we have substituted [Set] for [Prop].  For most inductive types [T], then, we get not just induction principles [T_ind], but also %\index{recursion principles}%recursion principles [T_rec].  We can use [T_rec] to write recursive definitions without explicit [Fixpoint] recursion.  For instance, the following two definitions are equivalent: *)
 
-Definition always_O (u : unit) : nat :=
-  match u with
-    | tt => O
+Fixpoint plus_recursive (n : nat) : nat -> nat :=
+  match n with
+    | O => fun m => m
+    | S n' => fun m => S (plus_recursive n' m)
   end.
 
-Definition always_O' (u : unit) : nat :=
-  unit_rec (fun _ : unit => nat) O u.
+Definition plus_rec : nat -> nat -> nat :=
+  nat_rec (fun _ : nat => nat -> nat) (fun _ => O) (fun _ r m => S (r m)).
 
-(** Going even further down the rabbit hole, [unit_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
-
-Print unit_rect.
-(** %\vspace{-.15in}%[[
-  unit_rect = 
-  fun (P : unit -> Type) (f : P tt) (u : unit) =>
-  match u as u0 return (P u0) with
-  | tt => f
-  end
-     : forall P : unit -> Type, P tt -> forall u : unit, P u
-]]
-
-The only new wrinkle here is the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  Of course, for this example, the dependency is degenerate; the value being matched on has type [unit], so it may only take on a single known value, [tt].  We will meet more involved examples later, especially in Part II of the book.
-
-%\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [unit_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
-
-To prove that [unit_rect] is nothing special, we can reimplement it manually. *)
-
-Definition unit_rect' (P : unit -> Type) (f : P tt) (u : unit) :=
-  match u return P u with
-    | tt => f
-  end.
-
-(* begin hide *)
-(* begin thide *)
-Definition foo := nat_rect.
-(* end thide *)
-(* end hide *)
-
-(** We can check the implementation [nat_rect] as well: *)
+(** Going even further down the rabbit hole, [nat_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
 
 Print nat_rect.
-(** %\vspace{-.15in}% [[
-  nat_rect =
-  fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
-  fix F (n : nat) : P n :=
-    match n as n0 return (P n0) with
-     | O => f
-     | S n0 => f0 n0 (F n0)
-     end
-      : forall P : nat -> Type,
-        P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
- ]]
+(** %\vspace{-.15in}%[[
+nat_rect = 
+fun (P : nat -> Type) (f : P O) (f0 : forall n : nat, P n -> P (S n)) =>
+fix F (n : nat) : P n :=
+  match n as n0 return (P n0) with
+  | O => f
+  | S n0 => f0 n0 (F n0)
+  end
+     : forall P : nat -> Type,
+       P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
+]]
 
-Now we have an actual recursive definition.  Expressions starting with %\index{Gallina terms!fix}%[fix] are anonymous forms of [Fixpoint], just as [fun] expressions stand for anonymous non-recursive functions.  Beyond that, the syntax of [fix] mirrors that of [Fixpoint].  We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
+The only new wrinkle heres are, first, an anonymous recursive function definition, using the %\index{Gallina terms!fix}%[fix] keyword of Gallina (which is like [fun] with recursion supported); and, second, the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  We will meet more involved examples later, especially in Part II of the book.
+
+%\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [nat_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
+
+To prove that [nat_rect] is nothing special, we can reimplement it manually. *)
+
+Fixpoint nat_rect' (P : nat -> Type) 
+  (HO : P O)
+  (HS : forall n, P n -> P (S n)) (n : nat) :=
+  match n return P n with
+    | O => HO
+    | S n' => HS n' (nat_rect' P HO HS n')
+  end.
+
+(** We can understand the definition of [nat_rect] better by reimplementing [nat_ind] using sections. *)
 
 Section nat_ind'.
    (** First, we have the property of natural numbers that we aim to prove. *)
