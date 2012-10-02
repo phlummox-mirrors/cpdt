@@ -380,7 +380,7 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
   (** remove printing exists *)
-  (** We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  (In the PDF version of this document, the reverse %`%#'#E#'#%'% appears instead of the text "exists" in formulas.) *)
+  (** We can start this proof with a tactic %\index{tactics!exists}%[exists], which should not be confused with the formula constructor shorthand of the same name.  %In the version of this document that you are reading, the reverse ``E'' appears instead of the text ``exists'' in formulas.% *)
 
   exists 1.
 
