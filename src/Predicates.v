@@ -56,7 +56,7 @@ With that perspective in mind, this chapter is sort of a mirror image of the las
 
 (** * Propositional Logic *)
 
-(** Let us begin with a brief tour through the definitions of the connectives for propositional logic.  We will work within a Coq section that provides us with a set of propositional variables.  In Coq parlance, these are just terms of type [Prop.] *)
+(** Let us begin with a brief tour through the definitions of the connectives for propositional logic.  We will work within a Coq section that provides us with a set of propositional variables.  In Coq parlance, these are just variables of type [Prop]. *)
 
 Section Propositional.
   Variables P Q R : Prop.
@@ -101,7 +101,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
 (* begin thide *)
     intro.
 
-    (** At this point, we have an inconsistent hypothesis [2 + 2 = 5], so the specific conclusion is not important.  We use the %\index{tactics!elimtype}%[elimtype] tactic to state a proposition, telling Coq that we wish to construct a proof of the new proposition and then prove the original goal by case analysis on the structure of the new auxiliary proof.  Since [False] has no constructors, [elimtype False] simply leaves us with the obligation to prove [False]. *)
+    (** At this point, we have an inconsistent hypothesis [2 + 2 = 5], so the specific conclusion is not important.  We use the %\index{tactics!elimtype}%[elimtype] tactic.  For a full description of it, see the Coq manual.  For our purposes, we only need the variant [elimtype False], which lets us replace any conclusion formula with [False], because any fact follows from an inconsistent context. *)
 
     elimtype False.
     (** [[
@@ -294,7 +294,7 @@ subgoal 2 is
 (* end thide *)
   Qed.
 
-  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  The tactic %\index{tactics!intuition}%[intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some goals remain, it uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator [++] from the standard library. *)
+  (** Sometimes propositional reasoning forms important plumbing for the proof of a theorem, but we still need to apply some other smarts about, say, arithmetic.  The tactic %\index{tactics!intuition}%[intuition] is a generalization of [tauto] that proves everything it can using propositional reasoning.  When some further facts must be established to finish the proof, [intuition] uses propositional laws to simplify them as far as possible.  Consider this example, which uses the list concatenation operator %\coqdocnotation{%#<tt>#++#</tt>#%}% from the standard library. *)
 
   Theorem arith_comm : forall ls1 ls2 : list nat,
     length ls1 = length ls2 \/ length ls1 + length ls2 = 6
@@ -350,9 +350,11 @@ End Propositional.
 
 (** * What Does It Mean to Be Constructive? *)
 
-(** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  The datatype [bool] is built from two values [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth?
+(** One potential point of confusion in the presentation so far is the distinction between [bool] and [Prop].  The datatype [bool] is built from two values [true] and [false], while [Prop] is a more primitive type that includes among its members [True] and [False].  Why not collapse these two concepts into one, and why must there be more than two states of mathematical truth, [True] and [False]?
 
 The answer comes from the fact that Coq implements%\index{constructive logic}% _constructive_ or%\index{intuitionistic logic|see{constructive logic}}% _intuitionistic_ logic, in contrast to the%\index{classical logic}% _classical_ logic that you may be more familiar with.  In constructive logic, classical tautologies like [~ ~ P -> P] and [P \/ ~ P] do not always hold.  In general, we can only prove these tautologies when [P] is%\index{decidability}% _decidable_, in the sense of %\index{computability|see{decidability}}%computability theory.  The Curry-Howard encoding that Coq uses for [or] allows us to extract either a proof of [P] or a proof of [~ P] from any proof of [P \/ ~ P].  Since our proofs are just functional programs which we can run, a general %\index{law of the excluded middle}%law of the excluded middle would give us a decision procedure for the halting problem, where the instantiations of [P] would be formulas like "this particular Turing machine halts."
+
+A similar paradoxical situation would result if every proposition evaluated to either [True] or [False].  Evaluation in Coq is decidable, so we would be limiting ourselves to decidable propositions only.
 
 Hence the distinction between [bool] and [Prop].  Programs of type [bool] are computational by construction; we can always run them to determine their results.  Many [Prop]s are undecidable, and so we can write more expressive formulas with [Prop]s than with [bool]s, but the inevitable consequence is that we cannot simply "run a [Prop] to determine its truth."
 
@@ -375,7 +377,9 @@ We will see more about Coq's program extraction facility in a later chapter.  Ho
 
   (Note that here, as always, each [forall] quantifier has the largest possible scope, so that the type of [ex_intro] could also be written [forall x : A, (P x -> ex P)].)
 
-  The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
+  The family [ex] is parameterized by the type [A] that we quantify over, and by a predicate [P] over [A]s.  We prove an existential by exhibiting some [x] of type [A], along with a proof of [P x].  As usual, there are tactics that save us from worrying about the low-level details most of the time.
+
+  Here is an example of a theorem statement with existential quantification.  We use the equality operator [=], which, depending on the settings in which they learned logic, different people will say either is or is not part of first-order logic.  For our purposes, it is. *)
 
 Theorem exist1 : exists x : nat, x + 1 = 2.
 (* begin thide *)
@@ -809,7 +813,7 @@ Qed.
 
 (** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, %\index{tactics!eauto}%[eauto].
 
-The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  The [auto] tactic attempts %\index{Prolog}%Prolog-style logic programming, searching through all proof trees up to a certain depth that are built only out of hints that have been registered with [Hint] commands.  (See Chapter 13 for a first-principles introduction to what we mean by "Prolog-style logic programming.")  Compared to Prolog, [auto] places an important restriction: it never introduces new unification variables during search.  That is, every time a rule is applied during proof search, all of its arguments must be deducible by studying the form of the goal.  This restriction is relaxed for [eauto], at the cost of possibly exponentially greater running time.  In this particular case, we know that [eauto] has only a small space of proofs to search, so it makes sense to run it.  It is common in effectively automated Coq proofs to see a bag of standard tactics applied to pick off the "easy" subgoals, finishing with [eauto] to handle the tricky parts that can benefit from ad-hoc exhaustive search.
+The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  For now, think of [eauto] as a potentially more expensive version of [auto] that considers more possible proofs; see Chapter 13 for more detail.  The quick summary is that [eauto] considers applying a lemma even when the form of the current goal doesn not uniquely determine the values of all of the lemma's quantified variables.
 
 The original theorem now follows trivially from our lemma. *)
 
