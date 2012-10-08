@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 \chapter{Introducing Inductive Types}% *)
 
-(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and we have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment.
+(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and I have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment.
 
 The last chapter took a deep dive into some of the more advanced Coq features, to highlight the unusual approach that I advocate in this book.  However, from this point on, we will rewind and go back to basics, presenting the relevant features of Coq in a more bottom-up manner.  A useful first step is a discussion of the differences and relationships between proofs and programs in Coq. *)
 
@@ -64,7 +64,7 @@ Check (fun x : False => x).
 
 In the rest of this chapter, we will introduce different ways of defining types.  Every example type can be interpreted alternatively as a type of programs or proofs.
 
-One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] _evaluates_ to either [true] or [false].  This means that we have an _algorithm_ for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like almost any interesting property of general-purpose programs. *)
+One of the first types we introduce will be [bool], with constructors [true] and [false].  Newcomers to Coq often wonder about the distinction between [True] and [true] and the distinction between [False] and [false].  One glib answer is that [True] and [False] are types, but [true] and [false] are not.  A more useful answer is that Coq's metatheory guarantees that any term of type [bool] _evaluates_ to either [true] or [false].  This means that we have an _algorithm_ for answering any question phrased as an expression of type [bool].  Conversely, most propositions do not evaluate to [True] or [False]; the language of inductively defined propositions is much richer than that.  We ought to be glad that we have no algorithm for deciding our formalized version of mathematical truth, since otherwise it would be clear that we could not formalize undecidable properties, like almost any interesting property of general-purpose programs. *)
 
 
 (** * Enumerations *)
@@ -76,7 +76,7 @@ The singleton type [unit] is an inductive type:%\index{Gallina terms!unit}\index
 Inductive unit : Set :=
   | tt.
 
-(** This vernacular command defines a new inductive type [unit] whose only value is [tt], as we can see by checking the types of the two identifiers: *)
+(** This vernacular command defines a new inductive type [unit] whose only value is [tt].  We can verify the types of the two identifiers we introduce: *)
 
 Check unit.
 (** [unit : Set] *)
@@ -322,7 +322,7 @@ Theorem S_inj : forall n m : nat, S n = S m -> n = m.
 Qed.
 (* end thide *)
 
-(** The [injection] tactic refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.
+(** The [injection] tactic refers to a premise by number, adding new equalities between the corresponding arguments of equated terms that are formed with the same constructor.  We end up needing to prove [n = m -> n = m], so it is unsurprising that a tactic named [trivial] is able to finish the proof.  This tactic attempts a variety of single proof steps, drawn from a user-specified database that we will later see how to extend.
 
 There is also a very useful tactic called %\index{tactics!congruence}%[congruence] that can prove this theorem immediately.  The [congruence] tactic generalizes [discriminate] and [injection], and it also adds reasoning about the general properties of equality, such as that a function returns equal results on equal arguments.  That is, [congruence] is a%\index{theory of equality and uninterpreted functions}% _complete decision procedure for the theory of equality and uninterpreted functions_, plus some smarts about inductive types.
 
@@ -368,11 +368,13 @@ Check nat_list_ind.
 
 %\medskip%
 
-In general, we can implement any "tree" types as inductive types.  For example, here are binary trees of naturals. *)
+In general, we can implement any "tree" type as an inductive type.  For example, here are binary trees of naturals. *)
 
 Inductive nat_btree : Set :=
 | NLeaf : nat_btree
 | NNode : nat_btree -> nat -> nat_btree -> nat_btree.
+
+(** Here are two functions whose intuitive explanations are not so important.  The first one computes the size of a tree, and the second performs some sort of splicing of one tree into the leftmost available leaf node of another. *)
 
 Fixpoint nsize (tr : nat_btree) : nat :=
   match tr with
@@ -401,7 +403,7 @@ Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
 Qed.
 (* end thide *)
 
-(** It is convenient that these proofs go through so easily, but it is useful to check that the tree induction principle works as usual. *)
+(** It is convenient that these proofs go through so easily, but it is still useful to look into the details of what happened, by checking the statement of the tree induction principle. *)
 
 Check nat_btree_ind.
 (** %\vspace{-.15in}% [[
@@ -505,7 +507,7 @@ Check list_ind.
        forall l : list T, P l
 ]]
 
-Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], there is no quantifier for [T] in the type of the inductive case like there is for each of the other arguments. *)
+Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], the inductive case in the type of [list_ind] (i.e., the third line of the type) includes no quantifier for [T], even though all of the other arguments are quantified explicitly.  Parameters in other inductive definitions are treated similarly in stating induction principles. *)
 
 
 (** * Mutually Inductive Types *)
@@ -586,13 +588,23 @@ Check even_list_mut.
        forall e : even_list, P e
 ]]
 
-This is the principle we wanted in the first place.  There is one more wrinkle left in using it: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types.%\index{tactics!apply}% *)
+This is the principle we wanted in the first place.
+
+The [Scheme] command is for asking Coq to generate particular induction schemes that are mutual among a set of inductive types (possibly only one such type, in which case we get a normal induction principle).  In a sense, it generalizes the induction scheme generation that goes on automatically for each inductive definition.  Future Coq versions might make that automatic generation smarter, so that [Scheme] is needed in fewer places.  In a few sections, we will see how induction principles are derived theorems in Coq, so that there is not actually any need to build in _any_ automatic scheme generation.
+
+There is one more wrinkle left in using the [even_list_mut] induction principle: the [induction] tactic will not apply it for us automatically.  It will be helpful to look at how to prove one of our past examples without using [induction], so that we can then generalize the technique to mutual inductive types.%\index{tactics!apply}% *)
 
 Theorem n_plus_O' : forall n : nat, plus n O = n.
+  apply nat_ind.
+  (** Here we use [apply], which is one of the most essential basic tactics.  When we are trying to prove fact [P], and when [thm] is a theorem whose conclusion can be made to match [P] by proper choice of quantified variable values, the invocation [apply thm] will replace the current goal with one new goal for each premise of [thm].
+
+     This use of [apply] may seem a bit _too_ magical.  To better see what is going on, we use a variant where we partially apply the theorem [nat_ind] to give an explicit value for the predicate that gives our induction hypothesis. *)
+
+  Undo.
   apply (nat_ind (fun n => plus n O = n)); crush.
 Qed.
 
-(** From this example, we can see that [induction] is not magic.  It only does some bookkeeping for us to make it easy to apply a theorem, which we can do directly with the [apply] tactic.  We apply not just an identifier but a partial application of it, specifying the predicate we mean to prove holds for all naturals.
+(** From this example, we can see that [induction] is not magic.  It only does some bookkeeping for us to make it easy to apply a theorem, which we can do directly with the [apply] tactic.
 
 This technique generalizes to our mutual example: *)
 
@@ -905,25 +917,29 @@ End formula_ind'.
 (** Suppose we want to extend our earlier type of binary trees to trees with arbitrary finite branching.  We can use lists to give a simple definition. *)
 
 Inductive nat_tree : Set :=
-| NLeaf' : nat_tree
 | NNode' : nat -> list nat_tree -> nat_tree.
 
 (** This is an example of a%\index{nested inductive type}% _nested_ inductive type definition, because we use the type we are defining as an argument to a parameterized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
 
 Like we encountered for mutual inductive types, we find that the automatically generated induction principle for [nat_tree] is too weak. *)
 
+(* begin hide *)
+(* begin thide *)
+Check Forall.
+(* end thide *)
+(* end hide *)
+
 Check nat_tree_ind.
 (** %\vspace{-.15in}% [[
   nat_tree_ind
      : forall P : nat_tree -> Prop,
-       P NLeaf' ->
        (forall (n : nat) (l : list nat_tree), P (NNode' n l)) ->
        forall n : nat_tree, P n
 ]]
 
-There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out how to incorporate nested uses of different type families.  This is roughly the same creativity employed in the traditional task of strengthening an induction hypothesis.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
+There is no command like [Scheme] that will implement an improved principle for us.  In general, it takes creativity to figure out _good_ ways to incorporate nested uses of different type families.  Now that we know how to implement induction principles manually, we are in a position to apply just such creativity to this problem.
 
-First, we will need an auxiliary definition, characterizing what it means for a property to hold of every element of a list. *)
+Many induction principles for types with nested used of [list] could benefit from a unified predicate capturing the idea that some property holds of every element in a list.  By defining this generic predicate once, we facilitate reuse of library theorems about it.  (Here, we are actually duplicating the standard library's [Forall] predicate, with a different implementation, for didactic purposes.) *)
 
 Section All.
   Variable T : Set.
@@ -971,7 +987,6 @@ Now we create a section for our induction principle, following the same basic pl
 Section nat_tree_ind'.
   Variable P : nat_tree -> Prop.
 
-  Hypothesis NLeaf'_case : P NLeaf'.
   Hypothesis NNode'_case : forall (n : nat) (ls : list nat_tree),
     All P ls -> P (NNode' n ls).
 
@@ -986,7 +1001,6 @@ Section nat_tree_ind'.
   %\vspace{-.15in}%[[
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
-      | NLeaf' => NLeaf'_case
       | NNode' n ls => NNode'_case n ls (list_nat_tree_ind ls)
     end
 
@@ -1007,12 +1021,11 @@ Section nat_tree_ind'.
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
-      | NLeaf' => NLeaf'_case
       | NNode' n ls => NNode'_case n ls
         ((fix list_nat_tree_ind (ls : list nat_tree) : All P ls :=
           match ls with
             | Nil => I
-            | Cons tr rest => conj (nat_tree_ind' tr) (list_nat_tree_ind rest)
+            | Cons tr' rest => conj (nat_tree_ind' tr') (list_nat_tree_ind rest)
           end) ls)
     end.
 
@@ -1043,7 +1056,6 @@ Fixpoint sum (ls : list nat) : nat :=
 
 Fixpoint ntsize (tr : nat_tree) : nat :=
   match tr with
-    | NLeaf' => S O
     | NNode' _ trs => S (sum (map ntsize trs))
   end.
 
@@ -1051,7 +1063,6 @@ Fixpoint ntsize (tr : nat_tree) : nat :=
 
 Fixpoint ntsplice (tr1 tr2 : nat_tree) : nat_tree :=
   match tr1 with
-    | NLeaf' => NNode' O (Cons tr2 Nil)
     | NNode' n Nil => NNode' n (Cons tr2 Nil)
     | NNode' n (Cons tr trs) => NNode' n (Cons (ntsplice tr tr2) trs)
   end.

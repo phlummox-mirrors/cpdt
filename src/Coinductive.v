@@ -57,7 +57,7 @@ CoInductive evilStream := Nil.
 
 (** The definition is surprisingly simple.  Starting from the definition of [list], we just need to change the keyword [Inductive] to [CoInductive].  We could have left a [Nil] constructor in our definition, but we will leave it out to force all of our streams to be infinite.
 
-   How do we write down a stream constant?  Obviously simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need%\index{co-recursive definitions}% _co-recursive definitions_ to _build_ values of co-inductive types effectively.
+   How do we write down a stream constant?  Obviously, simple application of constructors is not good enough, since we could only denote finite objects that way.  Rather, whereas recursive definitions were necessary to _use_ values of recursive inductive types effectively, here we find that we need%\index{co-recursive definitions}% _co-recursive definitions_ to _build_ values of co-inductive types effectively.
 
    We can define a stream consisting only of zeroes.%\index{Vernacular commands!CoFixpoint}% *)
 
@@ -191,11 +191,13 @@ CoFixpoint bad : stream nat := tl (Cons 0 bad).
 
 Imagine that Coq had accepted our definition, and consider how we might evaluate [approx bad 1].  We would be trying to calculate the first element in the stream [bad].  However, it is not hard to see that the definition of [bad] "begs the question": unfolding the definition of [tl], we see that we essentially say "define [bad] to equal itself"!  Of course such an equation admits no single well-defined solution, which does not fit well with the determinism of Gallina reduction.
 
-Since Coq can be considered to check definitions after inlining and simplification of previously defined identifiers, the basic guardedness condition rules out our definition of [bad].  Such an inlining reduces [bad] to:
+Coq's complete rule for co-recursive definitions includes not just the basic guardedness condition, but also a requirement about where co-recursive calls may occur.  In particular, a co-recursive call must be a direct argument to a constructor, _nested only inside of other constructor calls or [fun] or [match] expressions_.  In the definition of [bad], we erroneously nested the co-recursive call inside a call to [tl], and we nested inside a call to [interleave] in the definition of [map'].
+
+Coq helps the user out a little by performing the guardedness check after using computation to simplify terms.  For instance, any co-recursive function definition can be expanded by inserting extra calls to an identity function, and this change preserves guardedness.  However, in other cases computational simplification can reveal why definitions are dangerous.  Consider what happens when we inline the definition of [tl] in [bad]:
 [[
 CoFixpoint bad : stream nat := bad.
 ]]
-This is the same looping definition we rejected earlier.  A similar inlining process reveals the way that Coq saw our failed definition of [map']:
+This is the same looping definition we rejected earlier.  A similar inlining process reveals an alternate view on our failed definition of [map']:
 [[
 CoFixpoint map' (s : stream A) : stream B :=
   match s with
@@ -384,7 +386,7 @@ Theorem ones_eq' : stream_eq ones ones'.
   *)
 Abort.
 
-(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  One usually starts a proof like this by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.
+(** The standard [auto] machinery sees that our goal matches an assumption and so applies that assumption, even though this violates guardedness.  A correct proof strategy for a theorem like this usually starts by [destruct]ing some parameter and running a custom tactic to figure out the first proof rule to apply for each case.  Alternatively, there are tricks that can be played with "hiding" the co-inductive hypothesis.
 
    %\medskip%
 
@@ -404,7 +406,7 @@ Definition hd A (s : stream A) : A :=
 Section stream_eq_coind.
   Variable A : Type.
   Variable R : stream A -> stream A -> Prop.
-  (** This relation generalizes the theorem we want to prove, characterizing exactly which two arguments to [stream_eq] we want to consider. *)
+  (** This relation generalizes the theorem we want to prove, defining a set of pairs of streams that we must eventually prove contains the particular pair we care about. *)
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
@@ -494,7 +496,7 @@ Eval simpl in approx fact_slow 5.
      : list nat
 ]]
 
-Now, to prove that the two versions are equivalent, it is helpful to prove (and add as a proof hint) a quick lemma about the computational behavior of [fact]. *)
+Now, to prove that the two versions are equivalent, it is helpful to prove (and add as a proof hint) a quick lemma about the computational behavior of [fact].  (I intentionally skip explaining its proof at this point.) *)
 
 (* begin thide *)
 Lemma fact_def : forall x n,
@@ -547,7 +549,7 @@ Qed.
 
 (** We close the chapter with a quick motivating example for more complex uses of co-inductive types.  We will define a co-inductive semantics for a simple imperative programming language and use that semantics to prove the correctness of a trivial optimization that removes spurious additions by 0.  We follow the technique of%\index{co-inductive big-step operational semantics}% _co-inductive big-step operational semantics_ %\cite{BigStep}%.
 
-   We define a suggestive synonym for [nat], as we will consider programs with infinitely many variables, represented as [nat]s. *)
+   We define a suggestive synonym for [nat], as we will consider programs over infinitely many variables, represented as [nat]s. *)
 
 Definition var := nat.
 
@@ -578,7 +580,7 @@ Inductive cmd : Set :=
 | Seq : cmd -> cmd -> cmd
 | While : exp -> cmd -> cmd.
 
-(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture _nonterminating_ executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to _any_ final state. *)
+(** We could define an inductive relation to characterize the results of command evaluation.  However, such a relation would not capture _nonterminating_ executions.  With a co-inductive relation, we can capture both cases.  The parameters of the relation are an initial state, a command, and a final state.  A program that does not terminate in a particular initial state is related to _any_ final state.  For more realistic languages than this one, it is often possible for programs to _crash_, in which case a semantics would generally relate their executions to no final states; so relating safely non-terminating programs to all final states provides a crucial distinction. *)
 
 CoInductive evalCmd : vars -> cmd -> vars -> Prop :=
 | EvalAssign : forall vs v e, evalCmd vs (Assign v e) (set vs v (evalExp vs e))

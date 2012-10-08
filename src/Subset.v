@@ -107,7 +107,7 @@ The term [zgtz pf] fails to type-check.  Somehow the type checker has failed to 
 
 In this case, we must use a [return] annotation to declare the relationship between the _value_ of the [match] discriminee and the _type_ of the result.  There is no annotation that lets us declare a relationship between the discriminee and the type of a variable that is already in scope; hence, we delay the binding of [pf], so that we can use the [return] annotation to express the needed relationship.
 
-We are lucky that Coq's heuristics infer the [return] clause (specifically, [return n > 0 -> nat]) for us in this case. *)
+We are lucky that Coq's heuristics infer the [return] clause (specifically, [return n > 0 -> nat]) for us in the definition of [pred_strong1], leading to the following elaborated code: *)
 
 Definition pred_strong1' (n : nat) : n > 0 -> nat :=
   match n return n > 0 -> nat with
@@ -138,6 +138,8 @@ let pred_strong1 = function
 </pre># *)
 
 (** The proof argument has disappeared!  We get exactly the OCaml code we would have written manually.  This is our first demonstration of the main technically interesting feature of Coq program extraction: proofs are erased systematically.
+
+%\medskip%
 
 We can reimplement our dependently typed [pred] based on%\index{subset types}% _subset types_, defined in the standard library with the type family %\index{Gallina terms!sig}%[sig]. *)
 
@@ -389,7 +391,7 @@ Inductive sumbool (A : Prop) (B : Prop) : Set :=
     left : A -> {A} + {B} | right : B -> {A} + {B}
 ]]
 
-We can define some notations to make working with [sumbool] more convenient. *)
+Here, the constructors of [sumbool] have types written in terms of a registered notation for [sumbool], such that the result type of each constructor desugars to [sumbool A B].  We can define some notations of our own to make working with [sumbool] more convenient. *)
 
 Notation "'Yes'" := (left _ _).
 Notation "'No'" := (right _ _).
@@ -638,7 +640,7 @@ Eval compute in pred_strong8 0.
 
 (** * Monadic Notations *)
 
-(** We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell <<Maybe>> type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful. *)
+(** We can treat [maybe] like a monad%~\cite{Monads}\index{monad}\index{failure monad}%, in the same way that the Haskell <<Maybe>> type is interpreted as a failure monad.  Our [maybe] has the wrong type to be a literal monad, but a "bind"-like notation will still be helpful.  %Note that the notation definition uses an ASCII \texttt{<-}, while later code uses (in this rendering) a nicer left arrow $\leftarrow$.% *)
 
 Notation "x <- e1 ; e2" := (match e1 with
                              | Unknown => ??
@@ -661,7 +663,7 @@ Definition doublePred : forall n1 n2 : nat, {{p | n1 = S (fst p) /\ n2 = S (snd 
 Defined.
 (* end thide *)
 
-(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %The operator rendered here as $\longleftarrow$ is noted in the source as a less-than character followed by two hyphens.% *)
+(** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %Again, the notation definition exposes the ASCII syntax with an operator \texttt{<-{}-}, while the later code uses a nicer long left arrow $\longleftarrow$.% *)
 
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
@@ -896,7 +898,7 @@ Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ 
         [||TBool||]
     end); clear F; crush' tt hasType; eauto.
 
-  (** We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  The [crush] variant %\index{tactics!crush'}%[crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
+  (** We clear [F], the local name for the recursive function, to avoid strange proofs that refer to recursive calls that we never make.  Such a step is usually warranted when defining a recursive function with [refine].  The [crush] variant %\index{tactics!crush'}%[crush'] helps us by performing automatic inversion on instances of the predicates specified in its second argument.  Once we throw in [eauto] to apply [hasType_det] for us, we have discharged all the subgoals. *)
 (* end thide *)
 
 

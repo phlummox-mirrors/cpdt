@@ -148,7 +148,7 @@ Fixpoint progDenote (p : prog) (s : stack) : option stack :=
 
 (** ** Translation *)
 
-(** Our compiler itself is now unsurprising.  The list concatenation operator %\index{Gallina operators!++}%[++] comes from the Coq standard library. *)
+(** Our compiler itself is now unsurprising.  The list concatenation operator %\index{Gallina operators!++}\coqdocnotation{%#<tt>#++#</tt>#%}% comes from the Coq standard library. *)
 
 Fixpoint compile (e : exp) : prog :=
   match e with
@@ -303,7 +303,7 @@ We only need to unfold the first occurrence of [progDenote] to prove the goal.  
  
 ]]
 
-This last [unfold] has left us with an anonymous fixpoint version of [progDenote], which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm [None (A:=stack)], which has an annotation specifying that the type of the term ought to be [option stack].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
+This last [unfold] has left us with an anonymous recursive definition of [progDenote] (similarly to how [fun] or "lambda" constructs in general allow anonymous non-recursive functions), which will generally happen when unfolding recursive definitions.  Note that Coq has automatically renamed the [fix] arguments [p] and [s] to [p0] and [s0], to avoid clashes with our local free variables.  There is also a subterm [None (A:=stack)], which has an annotation specifying that the type of the term ought to be [option stack].  This is phrased as an explicit instantiation of a named type parameter [A] from the definition of [option].
 
 Fortunately, in this case, we can eliminate the complications of anonymous recursion right away, since the structure of the argument ([iConst n :: nil) ++ p] is known, allowing us to simplify the internal pattern match with the [simpl] tactic, which applies the same reduction strategy that we used earlier with [Eval] (and whose details we still postpone).%\index{tactics!simpl}%
 *)
@@ -390,7 +390,7 @@ We start out the same way as before, introducing new free variables and unfoldin
  
 ]]
 
-What we need is the associative law of list concatenation, which is available as a theorem [app_assoc_reverse] in the standard library.%\index{Vernacular commands!Check}% *)
+What we need is the associative law of list concatenation, which is available as a theorem [app_assoc_reverse] in the standard library.%\index{Vernacular commands!Check}%  (Here and elsewhere, it is possible to tell the difference between inputs and outputs to Coq by periods at the ends of the inputs.) *)
 
 Check app_assoc_reverse.
 (** %\vspace{-.15in}%[[
@@ -587,8 +587,7 @@ Definition tbinopDenote arg1 arg2 res (b : tbinop arg1 arg2 res)
 
 (** This function has just a few differences from the denotation functions we saw earlier.  First, [tbinop] is an indexed type, so its indices become additional arguments to [tbinopDenote].  Second, we need to perform a genuine%\index{dependent pattern matching}% _dependent pattern match_, where the necessary _type_ of each case body depends on the _value_ that has been matched.  At this early stage, we will not go into detail on the many subtle aspects of Gallina that support dependent pattern-matching, but the subject is central to Part II of the book.
 
-The same tricks suffice to define an expression denotation function in an unsurprising way:
-*)
+The same tricks suffice to define an expression denotation function in an unsurprising way.  Note that the [type] arguments to the [TBinop] constructor must be included explicitly in pattern-matching, but here we write underscores because we do not need to refer to those arguments directly. *)
 
 Fixpoint texpDenote t (e : texp t) : typeDenote t :=
   match e with
