@@ -780,7 +780,11 @@ Fixpoint plus_recursive (n : nat) : nat -> nat :=
   end.
 
 Definition plus_rec : nat -> nat -> nat :=
-  nat_rec (fun _ : nat => nat -> nat) (fun _ => O) (fun _ r m => S (r m)).
+  nat_rec (fun _ : nat => nat -> nat) (fun m => m) (fun _ r m => S (r m)).
+
+Theorem plus_equivalent : plus_recursive = plus_rec.
+  reflexivity.
+Qed.
 
 (** Going even further down the rabbit hole, [nat_rect] itself is not even a primitive.  It is a functional program that we can write manually. *)
 
