@@ -106,27 +106,27 @@ Inductive Acc (A : Type) (R : A -> A -> Prop) (x : A) : Prop :=
 
 In prose, an element [x] is accessible for a relation [R] if every element "less than" [x] according to [R] is also accessible.  Since [Acc] is defined inductively, we know that any accessibility proof involves a finite chain of invocations, in a certain sense that we can make formal.  Building on Chapter 5's examples, let us define a co-inductive relation that is closer to the usual informal notion of "absence of infinite decreasing chains." *)
 
-  CoInductive isChain A (R : A -> A -> Prop) : stream A -> Prop :=
-  | ChainCons : forall x y s, isChain R (Cons y s)
+  CoInductive infiniteDecreasingChain A (R : A -> A -> Prop) : stream A -> Prop :=
+  | ChainCons : forall x y s, infiniteDecreasingChain R (Cons y s)
     -> R y x
-    -> isChain R (Cons x (Cons y s)).
+    -> infiniteDecreasingChain R (Cons x (Cons y s)).
 
 (** We can now prove that any accessible element cannot be the beginning of any infinite decreasing chain. *)
 
 (* begin thide *)
-  Lemma noChains' : forall A (R : A -> A -> Prop) x, Acc R x
-    -> forall s, ~isChain R (Cons x s).
+  Lemma noBadChains' : forall A (R : A -> A -> Prop) x, Acc R x
+    -> forall s, ~infiniteDecreasingChain R (Cons x s).
     induction 1; crush;
       match goal with
-        | [ H : isChain _ _ |- _ ] => inversion H; eauto
+        | [ H : infiniteDecreasingChain _ _ |- _ ] => inversion H; eauto
       end.
   Qed.
 
 (** From here, the absence of infinite decreasing chains in well-founded sets is immediate. *)
 
-  Theorem noChains : forall A (R : A -> A -> Prop), well_founded R
-    -> forall s, ~isChain R s.
-    destruct s; apply noChains'; auto.
+  Theorem noBadChains : forall A (R : A -> A -> Prop), well_founded R
+    -> forall s, ~infiniteDecreasingChain R s.
+    destruct s; apply noBadChains'; auto.
   Qed.
 (* end thide *)
 
@@ -170,7 +170,7 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 
   (** Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  Recall that [Defined] marks the theorems as %\emph{transparent}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as _recursive in the structure of [Acc] proofs_.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.
 
-     To justify our two recursive [mergeSort] calls, we will also need to prove that [partition] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation. *)
+     To justify our two recursive [mergeSort] calls, we will also need to prove that [partition] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation.  We use the syntax [@foo] to reference identifier [foo] with its implicit argument behavior turned off. *)
 
   Lemma partition_wf : forall len ls, 2 <= length ls <= len
     -> let (ls1, ls2) := partition ls in
@@ -301,7 +301,7 @@ Section computation.
 	-> forall (n' : nat), n' >= n
 	  -> f n' = Some v}.
 
-  (** A computation is fundamentally a function [f] from an _approximation level_ [n] to an optional result.  Intuitively, higher [n] values enable termination in more cases than lower values.  A call to [f] may return [None] to indicate that [n] was not high enough to run the computation to completion; higher [n] values may yield [Some].  Further, the proof obligation within the sigma type asserts that [f] is _monotone_ in an appropriate sense: when some [n] is sufficient to produce termination, so are all higher [n] values, and they all yield the same program result [v].
+  (** A computation is fundamentally a function [f] from an _approximation level_ [n] to an optional result.  Intuitively, higher [n] values enable termination in more cases than lower values.  A call to [f] may return [None] to indicate that [n] was not high enough to run the computation to completion; higher [n] values may yield [Some].  Further, the proof obligation within the subset type asserts that [f] is _monotone_ in an appropriate sense: when some [n] is sufficient to produce termination, so are all higher [n] values, and they all yield the same program result [v].
 
   It is easy to define a relation characterizing when a computation runs to a particular result at a particular approximation level. *)
 
@@ -410,7 +410,7 @@ Section Return.
   Qed.
 End Return.
 
-(** The name [Return] was meant to be suggestive of the standard operations of %\index{monad}%monads%~\cite{Monads}%.  The other standard operation is [Bind], which lets us run one computation and, if it terminates, pass its result off to another computation. *)
+(** The name [Return] was meant to be suggestive of the standard operations of %\index{monad}%monads%~\cite{Monads}%.  The other standard operation is [Bind], which lets us run one computation and, if it terminates, pass its result off to another computation.  We implement bind using the notation [let (x, y) := e1 in e2], for pulling apart the value [e1] which may be thought of as a pair.  The second component of a [computation] is a proof, which we do not need to mention directly in the definition of [Bind]. *)
 
 Section Bind.
   Variables A B : Type.

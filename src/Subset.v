@@ -172,7 +172,7 @@ Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
     | exist (S n') _ => n'
   end.
 
-(** To build a value of a subset type, we use the [exist] constructor, and the details of how to do that follow from the output of our earlier [Print sig] command (where we elided the extra information that parameter [A] is implicit). *)
+(** To build a value of a subset type, we use the [exist] constructor, and the details of how to do that follow from the output of our earlier [Print sig] command, where we elided the extra information that parameter [A] is implicit.  We need an extra [_] here and not in the definition of [pred_strong2] because _parameters_ of inductive types (like the predicate [P] for [sig]) are not mentioned in pattern matching, but _are_ mentioned in construction of terms (if they are not marked as implicit arguments). *)
 
 Eval compute in pred_strong2 (exist _ 2 two_gt0).
 (** %\vspace{-.15in}% [[
@@ -222,7 +222,7 @@ Definition pred_strong := 0.
 (* end thide *)
 (* end hide *)
 
-(** The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the base value from a subset type.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
+(** A value in a subset type can be thought of as a%\index{dependent pair}% _dependent pair_ (or%\index{sigma type}% _sigma type_) of a base value and a proof about it.  The function %\index{Gallina terms!proj1\_sig}%[proj1_sig] extracts the first component of the pair.  It turns out that we need to include an explicit [return] clause here, since Coq's heuristics are not smart enough to propagate the result type that we wrote earlier.
 
 By now, the reader is probably ready to believe that the new [pred_strong] leads to the same OCaml code as we have seen several times so far, and Coq does not disappoint. *)
 
