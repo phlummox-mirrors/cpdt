@@ -42,7 +42,7 @@ A note for readers following along in the PDF version: %\index{coqdoc}%coqdoc su
 
 %\medskip%
 
-Now we are ready to say what programs in our expression language mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry; we will stick to "common sense" constructions.)%\index{Vernacular commands!Definition}% *)
+Now we are ready to say what programs in our expression language mean.  We will do this by writing an %\index{interpreters}%interpreter that can be thought of as a trivial operational or denotational semantics.  (If you are not familiar with these semantic techniques, no need to worry: we will stick to "common sense" constructions.)%\index{Vernacular commands!Definition}% *)
 
 Definition binopDenote (b : binop) : nat -> nat -> nat :=
   match b with
@@ -68,15 +68,15 @@ Definition binopDenote := fun b =>
   end.
 ]]
 
-Languages like Haskell and ML have a convenient%\index{principal types}\index{type inference}% _principal types_ property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of "complete" type inference is impossible, and the task even seems to be hard heuristically in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
+Languages like Haskell and ML have a convenient%\index{principal types}\index{type inference}% _principal types_ property, which gives us strong guarantees about how effective type inference will be.  Unfortunately, Coq's type system is so expressive that any kind of "complete" type inference is impossible, and the task even seems to be hard in practice.  Nonetheless, Coq includes some very helpful heuristics, many of them copying the workings of Haskell and ML type-checkers for programs that fall in simple fragments of Coq's language.
 
-This is as good a time as any to mention the preponderance of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the%\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}% _Calculus of Inductive Constructions_ (CIC)%~\cite{CIC}%, which is an extension of the older%\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}% _Calculus of Constructions_ (CoC)%~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like%\index{strong normalization}% _strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and%\index{relative consistency}% _relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are "really true," if you believe in set theory.
+This is as good a time as any to mention the profusion of different languages associated with Coq.  The theoretical foundation of Coq is a formal system called the%\index{Calculus of Inductive Constructions}\index{CIC|see{Calculus of Inductive Constructions}}% _Calculus of Inductive Constructions_ (CIC)%~\cite{CIC}%, which is an extension of the older%\index{Calculus of Constructions}\index{CoC|see{Calculus of Constructions}}% _Calculus of Constructions_ (CoC)%~\cite{CoC}%.  CIC is quite a spartan foundation, which is helpful for proving metatheory but not so helpful for real development.  Still, it is nice to know that it has been proved that CIC enjoys properties like%\index{strong normalization}% _strong normalization_ %\cite{CIC}%, meaning that every program (and, more importantly, every proof term) terminates; and%\index{relative consistency}% _relative consistency_ %\cite{SetsInTypes}% with systems like versions of %\index{Zermelo-Fraenkel set theory}%Zermelo-Fraenkel set theory, which roughly means that you can believe that Coq proofs mean that the corresponding propositions are "really true," if you believe in set theory.
 
-Coq is actually based on an extension of CIC called%\index{Gallina}% _Gallina_.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina includes several useful features that must be considered as extensions to CIC.  The important metatheorems about CIC have not been extended to the full breadth of these features, but most Coq users do not seem to lose much sleep over this omission.
+Coq is actually based on an extension of CIC called %\index{Gallina}%Gallina.  The text after the [:=] and before the period in the last code example is a term of Gallina.  Gallina includes several useful features that must be considered as extensions to CIC.  The important metatheorems about CIC have not been extended to the full breadth of the features that go beyond the formalized language, but most Coq users do not seem to lose much sleep over this omission.
 
-Next, there is%\index{Ltac}% _Ltac_, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
+Next, there is %\index{Ltac}%Ltac, Coq's domain-specific language for writing proofs and decision procedures. We will see some basic examples of Ltac later in this chapter, and much of this book is devoted to more involved Ltac examples.
 
-Finally, commands like [Inductive] and [Definition] are part of%\index{Vernacular commands}% _the Vernacular_, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like _trees_ of vernacular commands, thanks to various nested scoping constructs.)
+Finally, commands like [Inductive] and [Definition] are part of %\index{Vernacular commands}%the Vernacular, which includes all sorts of useful queries and requests to the Coq system.  Every Coq source file is a series of vernacular commands, where many command forms take arguments that are Gallina or Ltac programs.  (Actually, Coq source files are more like _trees_ of vernacular commands, thanks to various nested scoping constructs.)
 
 %\medskip%
 
@@ -524,7 +524,7 @@ We are almost done.  The lefthand and righthand sides can be seen to match by si
 Qed.
 (* end thide *)
 
-(** This proof can be shortened and made automated, but we leave that task as an exercise for the reader. *)
+(** This proof can be shortened and automated, but we leave that task as an exercise for the reader. *)
 
 
 (** * Typed Expressions *)

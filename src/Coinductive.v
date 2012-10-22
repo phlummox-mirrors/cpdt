@@ -177,7 +177,7 @@ Section map'.
 
 End map'.
 
-(** What is going wrong here?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Here is one simpler example demonstrating the essential pitfall.  We start defining a standard function for taking the tail of a stream.  Since streams are infinite, this operation is total. *)
+(** What is going wrong here?  Imagine that, instead of [interleave], we had called some other, less well-behaved function on streams.  Here is one simpler example demonstrating the essential pitfall.  We start by defining a standard function for taking the tail of a stream.  Since streams are infinite, this operation is total. *)
 
 Definition tl A (s : stream A) : stream A :=
   match s with
@@ -406,10 +406,12 @@ Definition hd A (s : stream A) : A :=
 Section stream_eq_coind.
   Variable A : Type.
   Variable R : stream A -> stream A -> Prop.
+
   (** This relation generalizes the theorem we want to prove, defining a set of pairs of streams that we must eventually prove contains the particular pair we care about. *)
 
   Hypothesis Cons_case_hd : forall s1 s2, R s1 s2 -> hd s1 = hd s2.
   Hypothesis Cons_case_tl : forall s1 s2, R s1 s2 -> R (tl s1) (tl s2).
+
   (** Two hypotheses characterize what makes a good choice of [R]: it enforces equality of stream heads, and it is %``%#<i>#hereditary#</i>#%''% in the sense that an [R] stream pair passes on "[R]-ness" to its tails.  An established technical term for such a relation is%\index{bisimulation}% _bisimulation_. *)
 
   (** Now it is straightforward to prove the principle, which says that any stream pair in [R] is equal.  The reader may wish to step through the proof script to see what is going on. *)

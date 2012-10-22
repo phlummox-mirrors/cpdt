@@ -34,6 +34,7 @@ Set Implicit Arguments.
 Section mergeSort.
   Variable A : Type.
   Variable le : A -> A -> bool.
+
   (** We have a set equipped with some "less-than-or-equal-to" test. *)
 
   (** A standard function inserts an element into a sorted list, preserving sortedness. *)
@@ -475,6 +476,7 @@ End lattice.
 (** We now have the tools we need to define a new [Fix] combinator that, unlike the one we saw in the prior section, does not require a termination proof, and in fact admits recursive definition of functions that fail to terminate on some or all inputs. *)
 
 Section Fix.
+
   (** First, we have the function domain and range types. *)
 
   Variables A B : Type.

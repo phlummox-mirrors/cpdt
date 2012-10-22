@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 \chapter{Introducing Inductive Types}% *)
 
-(** In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove effectively all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and I have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment.
+(** The logical foundation of Coq is the Calculus of Inductive Constructions, or CIC.  In a sense, CIC is built from just two relatively straightforward features: function types and inductive types.  From this modest foundation, we can prove essentially all of the theorems of math and carry out effectively all program verifications, with enough effort expended.  This chapter introduces induction and recursion for functional programming in Coq.  Most of our examples reproduce functionality from the Coq standard library, and I have tried to copy the standard library's choices of identifiers, where possible, so many of the definitions here are already available in the default Coq environment.
 
 The last chapter took a deep dive into some of the more advanced Coq features, to highlight the unusual approach that I advocate in this book.  However, from this point on, we will rewind and go back to basics, presenting the relevant features of Coq in a more bottom-up manner.  A useful first step is a discussion of the differences and relationships between proofs and programs in Coq. *)
 
@@ -619,7 +619,7 @@ Theorem elength_eapp : forall el1 el2 : even_list,
 Qed.
 (* end thide *)
 
-(** We simply need to specify two predicates, one for each of the mutually inductive types.  In general, it would not be a good idea to assume that a proof assistant could infer extra predicates, so this way of applying mutual induction is about as straightforward as we could hope for. *)
+(** We simply need to specify two predicates, one for each of the mutually inductive types.  In general, it is not a good idea to assume that a proof assistant can infer extra predicates, so this way of applying mutual induction is about as straightforward as we may hope for. *)
 
 
 (** * Reflexive Types *)
@@ -637,7 +637,7 @@ Definition prod' := prod.
 (* end thide *)
 (* end hide *)
 
-(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to uses of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
+(** A key distinction here is between, for instance, the _syntax_ [Truth] and its _semantics_ [True].  We can make the semantics explicit with a recursive function.  This function uses the infix operator %\index{Gallina operators!/\textbackslash}%[/\], which desugars to instances of the type family %\index{Gallina terms!and}%[and] from the standard library.  The family [and] implements conjunction, the [Prop] Curry-Howard analogue of the usual pair type from functional programming (which is the type family %\index{Gallina terms!prod}%[prod] in Coq's standard library). *)
 
 Fixpoint pformulaDenote (f : pformula) : Prop :=
   match f with
@@ -925,7 +925,7 @@ Inductive nat_tree : Set :=
 
 (** This is an example of a%\index{nested inductive type}% _nested_ inductive type definition, because we use the type we are defining as an argument to a parameterized type family.  Coq will not allow all such definitions; it effectively pretends that we are defining [nat_tree] mutually with a version of [list] specialized to [nat_tree], checking that the resulting expanded definition satisfies the usual rules.  For instance, if we replaced [list] with a type family that used its parameter as a function argument, then the definition would be rejected as violating the positivity restriction.
 
-Like we encountered for mutual inductive types, we find that the automatically generated induction principle for [nat_tree] is too weak. *)
+As we encountered with mutual inductive types, we find that the automatically generated induction principle for [nat_tree] is too weak. *)
 
 (* begin hide *)
 (* begin thide *)
@@ -1021,7 +1021,7 @@ Section nat_tree_ind'.
   instead of rest.
 >>
 
-  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term "nested inductive type" hints at the solution to this particular problem.  Just like true mutually inductive types require mutually recursive induction principles, nested types require nested recursion. *)
+  There is no deep theoretical reason why this program should be rejected; Coq applies incomplete termination-checking heuristics, and it is necessary to learn a few of the most important rules.  The term "nested inductive type" hints at the solution to this particular problem.  Just as mutually inductive types require mutually recursive induction principles, nested types require nested recursion. *)
 
   Fixpoint nat_tree_ind' (tr : nat_tree) : P tr :=
     match tr with
@@ -1037,7 +1037,7 @@ Section nat_tree_ind'.
 
 End nat_tree_ind'.
 
-(** We can try our induction principle out by defining some recursive functions on [nat_tree]s and proving a theorem about them.  First, we define some helper functions that operate on lists. *)
+(** We can try our induction principle out by defining some recursive functions on [nat_tree] and proving a theorem about them.  First, we define some helper functions that operate on lists. *)
 
 Section map.
   Variables T T' : Set.
