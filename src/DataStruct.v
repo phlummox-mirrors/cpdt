@@ -311,7 +311,7 @@ Fixpoint typeDenote (t : type) : Set :=
     | Arrow t1 t2 => typeDenote t1 -> typeDenote t2
   end.
 
-(** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly typed environments to final values.  An environment for a free variable list [ts] is simply a [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [HCons] to extend the environment in the [Abs] case. *)
+(** Now it is straightforward to write an expression interpreter.  The type of the function, [expDenote], tells us that we translate expressions into functions from properly typed environments to final values.  An environment for a free variable list [ts] is simply an [hlist typeDenote ts].  That is, for each free variable, the heterogeneous list that is the environment must have a value of the variable's associated type.  We use [hget] to implement the [Var] case, and we use [HCons] to extend the environment in the [Abs] case. *)
 
 (* EX: Define an interpreter for [exp]s. *)
 

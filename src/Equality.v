@@ -180,7 +180,7 @@ Recall that co-recursive definitions have a dual rule: a co-recursive call only 
 
 (** * Heterogeneous Lists Revisited *)
 
-(** One of our example dependent data structures from the last chapter was heterogeneous lists and their associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [fmember] types. *)
+(** One of our example dependent data structures from the last chapter was the heterogeneous list and its associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [fmember] types. *)
 
 Section fhlist.
   Variable A : Type.

@@ -106,7 +106,7 @@ It is not clear what to write for the [Nil] case, so we are stuck before we even
 Error: Non exhaustive pattern-matching: no clause found for pattern Nil
 >>
 
-Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover that encoding ourselves directly.  We might try using an [in] clause somehow.
+Unlike in ML, we cannot use inexhaustive pattern matching, because there is no conception of a <<Match>> exception to be thrown.  In fact, recent versions of Coq _do_ allow this, by implicit translation to a [match] that considers all constructors.  It is educational to discover such an encoding for ourselves.  We might try using an [in] clause somehow.
 
 [[
   Definition hd n (ls : ilist (S n)) : A :=
@@ -378,7 +378,7 @@ User error: e1 is used in hypothesis e
 
     Coq gives us another cryptic error message.  Like so many others, this one basically means that Coq is not able to build some proof about dependent types.  It is hard to generate helpful and specific error messages for problems like this, since that would require some kind of understanding of the dependency structure of a piece of code.  We will encounter many examples of case-specific tricks for recovering from errors like this one.
 
-    For our current proof, we can use a tactic [dep_destruct]%\index{tactics!dep\_destruct}% defined in the book [CpdtTactics] module.  General elimination/inversion of dependently typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  The tactic [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive %\index{tactics!dependent destruction}%[dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box.  (In Chapter 12, we will also see how [dependent destruction] forces us to make a larger philosophical commitment about our logic than we might like, and we will see some workarounds.) *)
+    For our current proof, we can use a tactic [dep_destruct]%\index{tactics!dep\_destruct}% defined in the book's [CpdtTactics] module.  General elimination/inversion of dependently typed hypotheses is undecidable, since it must be implemented with [match] expressions that have the restriction on [in] clauses that we have already discussed.  The tactic [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive %\index{tactics!dependent destruction}%[dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dep_destruct]'s implementation in Ltac, but for now, we treat it as a useful black box.  (In Chapter 12, we will also see how [dependent destruction] forces us to make a larger philosophical commitment about our logic than we might like, and we will see some workarounds.) *)
   
   dep_destruct (cfold e1).
 
@@ -405,7 +405,7 @@ Qed.
 
 (** * Dependently Typed Red-Black Trees *)
 
-(** Red-black trees are a favorite purely functional data structure with an interesting invariant.  We can use dependent types to enforce that operations on red-black trees preserve the invariant.  For simplicity, we specialize our red-black trees to represent sets of [nat]s. *)
+(** Red-black trees are a favorite purely functional data structure with an interesting invariant.  We can use dependent types to guarantee that operations on red-black trees preserve the invariant.  For simplicity, we specialize our red-black trees to represent sets of [nat]s. *)
 
 Inductive color : Set := Red | Black.
 
@@ -1103,6 +1103,7 @@ Section dec_star.
     Variable P'_dec : forall n' : nat, n' > n
       -> {P' (substring n' (length s - n') s)}
       + {~ P' (substring n' (length s - n') s)}.
+
     (** When we use [dec_star''], we will instantiate [P'_dec] with a function for continuing the search for more instances of [P] in [s]. *)
 
     (** Now we come to [dec_star''] itself.  It takes as an input a natural [l] that records how much of the string has been searched so far, as we did for [split'].  The return type expresses that [dec_star''] is looking for an index into [s] that splits [s] into a nonempty prefix and a suffix, such that the prefix satisfies [P] and the suffix satisfies [P']. *)

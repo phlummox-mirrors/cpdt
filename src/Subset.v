@@ -873,9 +873,11 @@ Qed.
 Definition typeCheck' : forall e : exp, {t : type | hasType e t} + {forall t, ~ hasType e t}.
 (* begin thide *)
   Hint Constructors hasType.
+
   (** We register all of the typing rules as hints. *)
 
   Hint Resolve hasType_det.
+
   (** The lemma [hasType_det] will also be useful for proving proof obligations with contradictory contexts.  Since its statement includes [forall]-bound variables that do not appear in its conclusion, only [eauto] will apply this hint. *)
 
   (** Finally, the implementation of [typeCheck] can be transcribed literally, simply switching notations as needed. *)
