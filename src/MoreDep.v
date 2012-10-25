@@ -20,7 +20,7 @@ Set Implicit Arguments.
 
 (** Subset types and their relatives help us integrate verification with programming.  Though they reorganize the certified programmer's workflow, they tend not to have deep effects on proofs.  We write largely the same proofs as we would for classical verification, with some of the structure moved into the programs themselves.  It turns out that, when we use dependent types to their full potential, we warp the development and proving process even more than that, picking up "free theorems" to the extent that often a certified program is hardly more complex than its uncertified counterpart in Haskell or ML.
 
-   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes (that is, dependent inductive types outside [Prop]), a possibility that sets Coq apart from all of the competition not based on type theory. *)
+   In particular, we have only scratched the tip of the iceberg that is Coq's inductive definition mechanism.  The inductive types we have seen so far have their counterparts in the other proof assistants that we surveyed in Chapter 1.  This chapter explores the strange new world of dependent inductive datatypes outside [Prop], a possibility that sets Coq apart from all of the competition not based on type theory. *)
 
 
 (** * Length-Indexed Lists *)
@@ -60,7 +60,7 @@ Section ilist.
 
 We may use [in] clauses only to bind names for the arguments of an inductive type family.  That is, each [in] clause must be an inductive type family name applied to a sequence of underscores and variable names of the proper length.  The positions for _parameters_ to the type family must all be underscores.  Parameters are those arguments declared with section variables or with entries to the left of the first colon in an inductive definition.  They cannot vary depending on which constructor was used to build the discriminee, so Coq prohibits pointless matches on them.  It is those arguments defined in the type to the right of the colon that we may name with [in] clauses.
 
-Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  This stratification between a compile-time universe and a run-time universe, with no references to the latter in the former, gives rise to the terminology "stratified."  Our next example would be harder to implement in a stratified system.  We write an injection function from regular lists to length-indexed lists.  A stratified implementation would need to duplicate the definition of lists across compile-time and run-time versions, and the run-time versions would need to be indexed by the compile-time versions. *)
+Our [app] function could be typed in so-called%\index{stratified type systems}% _stratified_ type systems, which avoid true dependency.  That is, we could consider the length indices to lists to live in a separate, compile-time-only universe from the lists themselves.  Compile-time data may be _erased_ such that we can still execute a program.  As an example where erasure would not work, consider an injection function from regular lists to length-indexed lists.  Here the run-time computation actually depends on details of the compile-time argument, if we decide that the list to inject can be considered compile-time.  More commonly, we think of lists as run-time data.  Neither case will work with naive erasure.  (It is not too important to grasp the details of this run-time/compile-time distinction, since Coq's expressive power comes from avoiding such restrictions.) *)
 
 (* EX: Implement injection from normal lists *)
 
@@ -414,7 +414,7 @@ Inductive rbtree : color -> nat -> Set :=
 | RedNode : forall n, rbtree Black n -> nat -> rbtree Black n -> rbtree Red n
 | BlackNode : forall c1 c2 n, rbtree c1 n -> nat -> rbtree c2 n -> rbtree Black (S n).
 
-(** A value of type [rbtree c d] is a red-black tree node whose root has color [c] and that has black depth [d].  The latter property means that there are no more than [d] black-colored nodes on any path from the root to a leaf. *)
+(** A value of type [rbtree c d] is a red-black tree whose root has color [c] and that has black depth [d].  The latter property means that there are exactly [d] black-colored nodes on any path from the root to a leaf. *)
 
 (** At first, it can be unclear that this choice of type indices tracks any useful property.  To convince ourselves, we will prove that every red-black tree is balanced.  We will phrase our theorem in terms of a depth calculating function that ignores the extra information in the types.  It will be useful to parameterize this function over a combining operation, so that we can re-use the same code to calculate the minimum or maximum height among all paths from root to leaf. *)
 
