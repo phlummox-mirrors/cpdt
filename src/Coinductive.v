@@ -617,8 +617,7 @@ Section evalCmd_coind.
     cofix; intros; destruct c.
     rewrite (AssignCase H); constructor.
     destruct (SeqCase H) as [? [? ?]]; econstructor; eauto.
-    destruct (WhileCase H) as [[? ?] | [? [? [? ?]]]]; subst;
-      [ econstructor | econstructor 4 ]; eauto.
+    destruct (WhileCase H) as [[? ?] | [? [? [? ?]]]]; subst; econstructor; eauto.
   Qed.
 End evalCmd_coind.
 
@@ -644,13 +643,12 @@ Fixpoint optCmd (c : cmd) : cmd :=
 Lemma optExp_correct : forall vs e, evalExp vs (optExp e) = evalExp vs e.
   induction e; crush;
     repeat (match goal with
-              | [ |- context[match ?E with Const _ => _ | Var _ => _
-                               | Plus _ _ => _ end] ] => destruct E
+              | [ |- context[match ?E with Const _ => _ | _ => _ end] ] => destruct E
               | [ |- context[match ?E with O => _ | S _ => _ end] ] => destruct E
             end; crush).
 Qed.
 
-Hint Rewrite optExp_correct .
+Hint Rewrite optExp_correct.
 
 (** The final theorem is easy to establish, using our co-induction principle and a bit of Ltac smarts that we leave unexplained for now.  Curious readers can consult the Coq manual, or wait for the later chapters of this book about proof automation.  At a high level, we show inclusions between behaviors, going in both directions between original and optimized programs. *)
 
