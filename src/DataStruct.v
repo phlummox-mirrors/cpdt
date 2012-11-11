@@ -74,7 +74,7 @@ Section ilist.
         end
     end.
     ]]
-    %\vspace{-.15in}%Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  In fact, the error message Coq gives for this exact code can be confusing, thanks to an overenthusiastic type inference heuristic.  We are told that the [Nil] case body has type [match X with | 0 => A | S _ => unit end] for a unification variable [X], while it is expected to have type [A].  We can see that setting [X] to [0] resolves the conflict, but Coq is not yet smart enough to do this unification automatically.  Repeating the function's type in a [return] annotation, used with an [in] annotation, leads us to a more informative error message, saying that [idx'] has type [fin n1] while it is expected to have type [fin n0], where [n0] is bound by the [Cons] pattern and [n1] by the [Next] pattern.  As the code is written above, nothing forces these two natural numbers to be equal, though we know intuitively that they must be.
+    %\vspace{-.15in}%Now the first [match] case type-checks, and we see that the problem with the [Cons] case is that the pattern-bound variable [idx'] does not have an apparent type compatible with [ls'].  In fact, the error message Coq gives for this exact code can be confusing, thanks to an overenthusiastic type inference heuristic.  We are told that the [Nil] case body has type [match X with | O => A | S _ => unit end] for a unification variable [X], while it is expected to have type [A].  We can see that setting [X] to [O] resolves the conflict, but Coq is not yet smart enough to do this unification automatically.  Repeating the function's type in a [return] annotation, used with an [in] annotation, leads us to a more informative error message, saying that [idx'] has type [fin n1] while it is expected to have type [fin n0], where [n0] is bound by the [Cons] pattern and [n1] by the [Next] pattern.  As the code is written above, nothing forces these two natural numbers to be equal, though we know intuitively that they must be.
 
     We need to use [match] annotations to make the relationship explicit.  Unfortunately, the usual trick of postponing argument binding will not help us here.  We need to match on both [ls] and [idx]; one or the other must be matched first.  To get around this, we apply the convoy pattern that we met last chapter.  This application is a little more clever than those we saw before; we use the natural number predecessor function [pred] to express the relationship between the types of these variables.
     [[
@@ -623,7 +623,7 @@ Qed.
 
 Lemma sum_inc' : forall n (f1 f2 : ffin n -> nat),
   (forall idx, f1 idx >= f2 idx)
-  -> rifoldr plus 0 f1 >= rifoldr plus 0 f2.
+  -> rifoldr plus O f1 >= rifoldr plus O f2.
   Hint Resolve plus_ge.
 
   induction n; crush.
