@@ -789,7 +789,7 @@ Fixpoint termDenote t (e : term t) : typeDenote t :=
     | Abs _ e1 => fun x => termDenote (e1 x)
   end.
 
-(** Here is a naive first attempt at a reification tactic. *)
+(** Here is a %\%naive first attempt at a reification tactic. *)
 
 Ltac refl' e :=
   match e with
@@ -805,7 +805,7 @@ Ltac refl' e :=
     | _ => constr:(Const e)
   end.
 
-(** Recall that a regular Ltac pattern variable [?X] only matches terms that _do not mention new variables introduced within the pattern_.  In our naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
+(** Recall that a regular Ltac pattern variable [?X] only matches terms that _do not mention new variables introduced within the pattern_.  In our %\%naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
 
    To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  For instance: *)
 

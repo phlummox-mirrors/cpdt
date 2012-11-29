@@ -132,7 +132,8 @@ Check id Set.
 <<
 Error: Illegal application (Type Error):
 ...
-The 1st term has type "Type (* (Top.15)+1 *)" which should be coercible to "Set".
+The 1st term has type "Type (* (Top.15)+1 *)"
+which should be coercible to "Set".
 >>
 
   The parameter [T] of [id] must be instantiated with a [Set].  The type [nat] is a [Set], but [Set] is not.  We can try fixing the problem by generalizing our definition of [id]. *)
@@ -169,7 +170,7 @@ Check id id.
 Error: Universe inconsistency (cannot enforce Top.16 < Top.16).
 >>
 
-  %\index{universe inconsistency}%This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is _predicative_, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, for any object of quantified type, none of those quantifiers may ever be instantiated with the object itself.  %\index{impredicativity}%Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like "the set of all sets that do not contain themselves" (%\index{Russell's paradox}%Russell's paradox).  Similar paradoxes would result from uncontrolled impredicativity in Coq. *)
+  %\index{universe inconsistency}%This error message reminds us that the universe variable for [T] still exists, even though it is usually hidden.  To apply [id] to itself, that variable would need to be less than itself in the type hierarchy.  Universe inconsistency error messages announce cases like this one where a term could only type-check by violating an implied constraint over universe variables.  Such errors demonstrate that [Type] is _predicative_, where this word has a CIC meaning closely related to its usual mathematical meaning.  A predicative system enforces the constraint that, when an object is defined using some sort of quantifier, none of the quantifiers may ever be instantiated with the object itself.  %\index{impredicativity}%Impredicativity is associated with popular paradoxes in set theory, involving inconsistent constructions like "the set of all sets that do not contain themselves" (%\index{Russell's paradox}%Russell's paradox).  Similar paradoxes would result from uncontrolled impredicativity in Coq. *)
 
 
 (** ** Inductive Definitions *)
@@ -1109,7 +1110,7 @@ eq_rect_eq : forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
 
 It turns out that this familiar axiom about equality (or some other axiom) is required to deduce [p = p0] from the hypothesis [H3] above.  The soundness of that proof step is neither provable nor disprovable in Gallina.
 
-Hope is not lost, however.  We can produce an even stranger looking lemma, which gives us the theorem without axioms. *)
+Hope is not lost, however.  We can produce an even stranger looking lemma, which gives us the theorem without axioms.  As always when we want to do case analysis on a term with a tricky dependent type, the key is to refactor the theorem statement so that every term we [match] on has _variables_ as its type indices; so instead of talking about proofs of [And p q], we talk about proofs of an arbitrary [r], but we only conclude anything interesting when [r] is an [And]. *)
 
 Lemma proj1_again'' : forall r, proof r
   -> match r with

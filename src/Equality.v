@@ -106,7 +106,7 @@ Eval compute in fun x => id' x.
      = fun x : nat => (fix id' (n : nat) : nat := n) x
 ]]
 
-By running [compute], we ask Coq to run reduction steps until no more apply, so why do we see an application of a known function, where clearly no beta reduction has been performed?  The answer has to do with ensuring termination of all Gallina programs.  One candidate rule would say that we apply recursive definitions wherever possible.  However, this would clearly lead to nonterminating reduction sequences, since the function may appear fully applied within its own definition, and we would naively "simplify" such applications immediately.  Instead, Coq only applies the beta rule for a recursive function when _the top-level structure of the recursive argument is known_.  For [id'] above, we have only one argument [n], so clearly it is the recursive argument, and the top-level structure of [n] is known when the function is applied to [O] or to some [S e] term.  The variable [x] is neither, so reduction is blocked.
+By running [compute], we ask Coq to run reduction steps until no more apply, so why do we see an application of a known function, where clearly no beta reduction has been performed?  The answer has to do with ensuring termination of all Gallina programs.  One candidate rule would say that we apply recursive definitions wherever possible.  However, this would clearly lead to nonterminating reduction sequences, since the function may appear fully applied within its own definition, and we would %\%naive%{}%ly "simplify" such applications immediately.  Instead, Coq only applies the beta rule for a recursive function when _the top-level structure of the recursive argument is known_.  For [id'] above, we have only one argument [n], so clearly it is the recursive argument, and the top-level structure of [n] is known when the function is applied to [O] or to some [S e] term.  The variable [x] is neither, so reduction is blocked.
 
 What are recursive arguments in general?  Every recursive function is compiled by Coq to a %\index{Gallina terms!fix}%[fix] expression, for anonymous definition of recursive functions.  Further, every [fix] with multiple arguments has one designated as the recursive argument via a [struct] annotation.  The recursive argument is the one that must decrease across recursive calls, to appease Coq's termination checker.  Coq will generally infer which argument is recursive, though we may also specify it manually, if we want to tweak reduction behavior.  For instance, consider this definition of a function to add two lists of [nat]s elementwise: *)
 
@@ -248,7 +248,7 @@ Section fhlist_map.
 
   Variable elm : A.
 
-  Theorem get_imap : forall ls (mem : fmember elm ls) (hls : fhlist B ls),
+  Theorem fhget_fhmap : forall ls (mem : fmember elm ls) (hls : fhlist B ls),
     fhget (fhmap hls) mem = f (fhget hls mem).
 (* begin hide *)
     induction ls; crush; case a0; reflexivity.
@@ -503,7 +503,7 @@ Section fhapp.
 
   (** We might like to prove that [fhapp] is associative.
      [[
-  Theorem fhapp_ass : forall ls1 ls2 ls3
+  Theorem fhapp_assoc : forall ls1 ls2 ls3
     (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) = fhapp (fhapp hls1 hls2) hls3.
 ]]
@@ -517,7 +517,7 @@ The term
 
      This first cut at the theorem statement does not even type-check.  We know that the two [fhlist] types appearing in the error message are always equal, by associativity of normal list append, but this fact is not apparent to the type checker.  This stems from the fact that Coq's equality is%\index{intensional type theory}% _intensional_, in the sense that type equality theorems can never be applied after the fact to get a term to type-check.  Instead, we need to make use of equality explicitly in the theorem statement. *)
 
-  Theorem fhapp_ass : forall ls1 ls2 ls3
+  Theorem fhapp_assoc : forall ls1 ls2 ls3
     (pf : (ls1 ++ ls2) ++ ls3 = ls1 ++ (ls2 ++ ls3))
     (hls1 : fhlist B ls1) (hls2 : fhlist B ls2) (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3)
@@ -651,7 +651,7 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
 
         However, now that we have generalized over the [fhapp] call, the type of the term being type-cast appears explicitly in the goal and _may be rewritten as well_.  In particular, the final masterstroke is rewriting everywhere in our goal using associativity of list append. *)
 
-    rewrite app_ass.
+    rewrite app_assoc.
     (** [[
   ============================
    forall (pf0 : a :: ls1 ++ ls2 ++ ls3 = a :: ls1 ++ ls2 ++ ls3)
@@ -730,12 +730,12 @@ Section fhapp'.
   Variable A : Type.
   Variable B : A -> Type.
 
-  (** This time, the naive theorem statement type-checks. *)
+  (** This time, the %\%naive theorem statement type-checks. *)
 
   (* EX: Prove [fhapp] associativity using [JMeq]. *)
 
 (* begin thide *)
-  Theorem fhapp_ass' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
+  Theorem fhapp_assoc' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
     (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
     induction ls1; crush.
@@ -773,7 +773,7 @@ Error: Impossible to unify "fhlist B ((ls1 ++ ?1572) ++ ?1573)" with
 
         Now we can rewrite with append associativity, as before. *)
 
-    rewrite app_ass.
+    rewrite app_assoc.
     (** %\vspace{-.15in}%[[
   ============================
    forall f f0 : fhlist B (ls1 ++ ls2 ++ ls3), f == f0 -> (a0, f) == (a0, f0)
@@ -791,7 +791,7 @@ End fhapp'.
    
    The proof we have found relies on the [JMeq_eq] axiom, which we can verify with a command%\index{Vernacular commands!Print Assumptions}% that we will discuss more in two chapters. *)
 
-Print Assumptions fhapp_ass'.
+Print Assumptions fhapp_assoc'.
 (** %\vspace{-.15in}%[[
 Axioms:
 JMeq_eq : forall (A : Type) (x y : A), x == y -> x = y
@@ -812,19 +812,19 @@ Section fhapp''.
   Variable A : Type.
   Variable B : A -> Type.
 
-  Theorem fhapp_ass'' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
+  Theorem fhapp_assoc'' : forall ls1 ls2 ls3 (hls1 : fhlist B ls1) (hls2 : fhlist B ls2)
     (hls3 : fhlist B ls3),
     fhapp hls1 (fhapp hls2 hls3) == fhapp (fhapp hls1 hls2) hls3.
     induction ls1; crush.
   Qed.
 End fhapp''.
 
-Print Assumptions fhapp_ass''.
+Print Assumptions fhapp_assoc''.
 (** <<
 Closed under the global context
 >>
 
-One might wonder exactly which elements of a proof involving [JMeq] imply that [JMeq_eq] must be used.  For instance, above we noticed that [rewrite] had brought [JMeq_eq] into the proof of [fhapp_ass'], yet here we have also used [rewrite] with [JMeq] hypotheses while avoiding axioms!  One illuminating exercise is comparing the types of the lemmas that [rewrite] uses under the hood to implement the rewrites.  Here is the normal lemma for [eq] rewriting:%\index{Gallina terms!eq\_ind\_r}% *)
+One might wonder exactly which elements of a proof involving [JMeq] imply that [JMeq_eq] must be used.  For instance, above we noticed that [rewrite] had brought [JMeq_eq] into the proof of [fhapp_assoc'], yet here we have also used [rewrite] with [JMeq] hypotheses while avoiding axioms!  One illuminating exercise is comparing the types of the lemmas that [rewrite] uses under the hood to implement the rewrites.  Here is the normal lemma for [eq] rewriting:%\index{Gallina terms!eq\_ind\_r}% *)
 
 Check eq_ind_r.
 (** %\vspace{-.15in}%[[
@@ -842,7 +842,7 @@ internal_JMeq_rew_r
          (P : forall B0 : Type, B0 -> Type), P B b -> x == b -> P A x
 ]]
 
-The key difference is that, where the [eq] lemma is parameterized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply [internal_JMeq_rew_r], it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and _its type_.  In other words, the predicate must be _polymorphic_ in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done naively leads to a type error.
+The key difference is that, where the [eq] lemma is parameterized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply [internal_JMeq_rew_r], it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and _its type_.  In other words, the predicate must be _polymorphic_ in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done %\%naive%{}%ly leads to a type error.
 
 When [rewrite] cannot figure out how to apply [internal_JMeq_rew_r] for [x == y] where [x] and [y] have the same type, the tactic can instead use an alternate theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
 
@@ -853,7 +853,7 @@ JMeq_ind_r
        P x -> forall y : A, y == x -> P y
 ]]
 
-Ironically, where in the proof of [fhapp_ass'] we used [rewrite app_ass] to make it clear that a use of [JMeq] was actually homogeneously typed, we created a situation where [rewrite] applied the axiom-based [JMeq_ind_r] instead of the axiom-free [internal_JMeq_rew_r]!
+Ironically, where in the proof of [fhapp_assoc'] we used [rewrite app_assoc] to make it clear that a use of [JMeq] was actually homogeneously typed, we created a situation where [rewrite] applied the axiom-based [JMeq_ind_r] instead of the axiom-free [internal_JMeq_rew_r]!
 
 For another simple example, consider this theorem that applies a heterogeneous equality to prove a congruence fact. *)
 
@@ -896,7 +896,7 @@ In other words, the successor function [S] is insufficiently polymorphic.  If we
 
 Abort.
 
-(** Why did we not run into this problem in our proof of [fhapp_ass'']?  The reason is that the pair constructor is polymorphic in the types of the pair components, while functions like [S] are not polymorphic at all.  Use of such non-polymorphic functions with [JMeq] tends to push toward use of axioms.  The example with [nat] here is a bit unrealistic; more likely cases would involve functions that have _some_ polymorphism, but not enough to allow abstractions of the sort we attempted above with [pattern].  For instance, we might have an equality between two lists, where the goal only type-checks when the terms involved really are lists, though everything is polymorphic in the types of list data elements.  The {{http://www.mpi-sws.org/~gil/Heq/}Heq} library builds up a slightly different foundation to help avoid such problems. *)
+(** Why did we not run into this problem in our proof of [fhapp_assoc'']?  The reason is that the pair constructor is polymorphic in the types of the pair components, while functions like [S] are not polymorphic at all.  Use of such non-polymorphic functions with [JMeq] tends to push toward use of axioms.  The example with [nat] here is a bit unrealistic; more likely cases would involve functions that have _some_ polymorphism, but not enough to allow abstractions of the sort we attempted above with [pattern].  For instance, we might have an equality between two lists, where the goal only type-checks when the terms involved really are lists, though everything is polymorphic in the types of list data elements.  The {{http://www.mpi-sws.org/~gil/Heq/}Heq} library builds up a slightly different foundation to help avoid such problems. *)
 
 
 (** * Equivalence of Equality Axioms *)
