@@ -56,14 +56,14 @@ Section mergeSort.
       | h :: ls' => insert h (merge ls' ls2)
     end.
 
-  (** The last helper function for classic merge sort is the one that follows, to partition a list arbitrarily into two pieces of approximately equal length. *)
+  (** The last helper function for classic merge sort is the one that follows, to split a list arbitrarily into two pieces of approximately equal length. *)
 
-  Fixpoint partition (ls : list A) : list A * list A :=
+  Fixpoint split (ls : list A) : list A * list A :=
     match ls with
       | nil => (nil, nil)
       | h :: nil => (h :: nil, nil)
       | h1 :: h2 :: ls' =>
-	let (ls1, ls2) := partition ls' in
+	let (ls1, ls2) := split ls' in
 	  (h1 :: ls1, h2 :: ls2)
     end.
 
@@ -72,13 +72,13 @@ Section mergeSort.
   Fixpoint mergeSort (ls : list A) : list A :=
     if leb (length ls) 1
       then ls
-      else let lss := partition ls in
+      else let lss := split ls in
 	merge (mergeSort (fst lss)) (mergeSort (snd lss)).
 ]]
 
 <<
 Recursive call to mergeSort has principal argument equal to
-"fst (partition ls)" instead of a subterm of "ls".
+"fst (split ls)" instead of a subterm of "ls".
 >>
 
 The definition is rejected for not following the simple primitive recursion criterion.  In particular, it is not apparent that recursive calls to [mergeSort] are syntactic subterms of the original argument [ls]; indeed, they are not, yet we know this is a well-founded recursive definition.
@@ -171,35 +171,35 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
 
   (** Notice that we end these proofs with %\index{Vernacular commands!Defined}%[Defined], not [Qed].  Recall that [Defined] marks the theorems as %\emph{transparent}%, so that the details of their proofs may be used during program execution.  Why could such details possibly matter for computation?  It turns out that [Fix] satisfies the primitive recursion restriction by declaring itself as _recursive in the structure of [Acc] proofs_.  This is possible because [Acc] proofs follow a predictable inductive structure.  We must do work, as in the last theorem's proof, to establish that all elements of a type belong to [Acc], but the automatic unwinding of those proofs during recursion is straightforward.  If we ended the proof with [Qed], the proof details would be hidden from computation, in which case the unwinding process would get stuck.
 
-     To justify our two recursive [mergeSort] calls, we will also need to prove that [partition] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation.  We use the syntax [@foo] to reference identifier [foo] with its implicit argument behavior turned off. *)
+     To justify our two recursive [mergeSort] calls, we will also need to prove that [split] respects the [lengthOrder] relation.  These proofs, too, must be kept transparent, to avoid stuckness of [Fix] evaluation.  We use the syntax [@foo] to reference identifier [foo] with its implicit argument behavior turned off.  (The proof details below use Ltac features not introduced yet, and they are safe to skip for now.) *)
 
-  Lemma partition_wf : forall len ls, 2 <= length ls <= len
-    -> let (ls1, ls2) := partition ls in
+  Lemma split_wf : forall len ls, 2 <= length ls <= len
+    -> let (ls1, ls2) := split ls in
       lengthOrder ls1 ls /\ lengthOrder ls2 ls.
     unfold lengthOrder; induction len; crush; do 2 (destruct ls; crush);
       destruct (le_lt_dec 2 (length ls));
         repeat (match goal with
                   | [ _ : length ?E < 2 |- _ ] => destruct E
                   | [ _ : S (length ?E) < 2 |- _ ] => destruct E
-                  | [ IH : _ |- context[partition ?L] ] =>
-                    specialize (IH L); destruct (partition L); destruct IH
+                  | [ IH : _ |- context[split ?L] ] =>
+                    specialize (IH L); destruct (split L); destruct IH
                 end; crush).
   Defined.
 
-  Ltac partition := intros ls ?; intros; generalize (@partition_wf (length ls) ls);
-    destruct (partition ls); destruct 1; crush.
+  Ltac split_wf := intros ls ?; intros; generalize (@split_wf (length ls) ls);
+    destruct (split ls); destruct 1; crush.
 
-  Lemma partition_wf1 : forall ls, 2 <= length ls
-    -> lengthOrder (fst (partition ls)) ls.
-    partition.
+  Lemma split_wf1 : forall ls, 2 <= length ls
+    -> lengthOrder (fst (split ls)) ls.
+    split_wf.
   Defined.
 
-  Lemma partition_wf2 : forall ls, 2 <= length ls
-    -> lengthOrder (snd (partition ls)) ls.
-    partition.
+  Lemma split_wf2 : forall ls, 2 <= length ls
+    -> lengthOrder (snd (split ls)) ls.
+    split_wf.
   Defined.
 
-  Hint Resolve partition_wf1 partition_wf2.
+  Hint Resolve split_wf1 split_wf2.
 
   (** To write the function definition itself, we use the %\index{tactics!refine}%[refine] tactic as a convenient way to write a program that needs to manipulate proofs, without writing out those proofs manually.  We also use a replacement [le_lt_dec] for [leb] that has a more interesting dependent type.  (Note that we would not be able to complete the definition without this change, since [refine] will generate subgoals for the [if] branches based only on the _type_ of the test expression, not its _value_.) *)
 
@@ -209,7 +209,7 @@ Before writing [mergeSort], we need to settle on a well-founded relation.  The r
       (fun (ls : list A)
         (mergeSort : forall ls' : list A, lengthOrder ls' ls -> list A) =>
         if le_lt_dec 2 (length ls)
-	  then let lss := partition ls in
+	  then let lss := split ls in
             merge (mergeSort (fst lss) _) (mergeSort (snd lss) _)
 	  else ls)); subst lss; eauto.
   Defined.
@@ -226,7 +226,7 @@ Eval compute in mergeSort leb (1 :: 2 :: 36 :: 8 :: 19 :: nil).
 (* begin thide *)
 Theorem mergeSort_eq : forall A (le : A -> A -> bool) ls,
   mergeSort le ls = if le_lt_dec 2 (length ls)
-    then let lss := partition ls in
+    then let lss := split ls in
       merge le (mergeSort le (fst lss)) (mergeSort le (snd lss))
     else ls.
   intros; apply (Fix_eq (@lengthOrder_wf A) (fun _ => list A)); intros.
@@ -261,7 +261,7 @@ Extraction mergeSort.
 let rec mergeSort le x =
   match le_lt_dec (S (S O)) (length x) with
   | Left ->
-    let lss = partition x in
+    let lss = split x in
     merge le (mergeSort le (fst lss)) (mergeSort le (snd lss))
   | Right -> x
 >>
@@ -382,7 +382,7 @@ Hint Extern 1 => match goal with
 (* end hide *)
 (** remove printing exists *)
 
-(** Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the [run] tactic.  In contrast to the previous section, opaque proofs are fine here, since the proof components of computations do not influence evaluation behavior. *)
+(** Now, as a simple first example of a computation, we can define [Bottom], which corresponds to an infinite loop.  For any approximation level, it fails to terminate (returns [None]).  Note the use of [abstract] to create a new opaque lemma for the proof found by the #<tt>#%\coqdocvar{%run%}%#</tt># tactic.  In contrast to the previous section, opaque proofs are fine here, since the proof components of computations do not influence evaluation behavior.  It is generally preferable to make proofs opaque when possible, as this enforces a kind of modularity in the code to follow, preventing it from depending on any details of the proof. *)
 
 Section Bottom.
   Variable A : Type.
@@ -570,7 +570,7 @@ Definition mergeSort' : forall A, (A -> A -> bool) -> list A -> computation (lis
     (fun (mergeSort : list A -> computation (list A))
       (ls : list A) =>
       if le_lt_dec 2 (length ls)
-	then let lss := partition ls in
+	then let lss := split ls in
           ls1 <- mergeSort (fst lss);
           ls2 <- mergeSort (snd lss);
           Return (merge le ls1 ls2)
@@ -605,7 +605,7 @@ Qed.
 
 (** As before, proving outputs for specific inputs is as easy as demonstrating a high enough approximation level.
 
-   There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic "gotchas" that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort. *)
+   There are other theorems that are important to prove about combinators like [Return], [Bind], and [Fix].  In general, for a computation [c], we sometimes have a hypothesis proving [run c v] for some [v], and we want to perform inversion to deduce what [v] must be.  Each combinator should ideally have a theorem of that kind, for [c] built directly from that combinator.  We have omitted such theorems here, but they are not hard to prove.  In general, the domain theory-inspired approach avoids the type-theoretic "gotchas" that tend to show up in approaches that try to mix normal Coq computation with explicit syntax types.  The next section of this chapter demonstrates two alternate approaches of that sort.  In the final section of the chapter, we review the pros and cons of the different choices, coming to the conclusion that none of them is obviously better than any one of the others for all situations. *)
 
 
 (** * Co-Inductive Non-Termination Monads *)
@@ -861,7 +861,7 @@ Notation "x <- m1 ; m2" := (Bnd m1 (fun x => m2)).
 
 CoFixpoint mergeSort'' A (le : A -> A -> bool) (ls : list A) : comp (list A) :=
   if le_lt_dec 2 (length ls)
-    then let lss := partition ls in
+    then let lss := split ls in
       ls1 <- mergeSort'' le (fst lss);
       ls2 <- mergeSort'' le (snd lss);
       Ret (merge le ls1 ls2)
@@ -912,7 +912,7 @@ The problem has to do with rules for inductive definitions that we still study i
 
    Another useful property is that a function and its termination argument may be developed separately.  We may even want to define functions that fail to terminate on some or all inputs.  The well-founded recursion technique does not have this property, but the other three do.
 
-   One minor plus is the ability to write recursive definitions in natural syntax, rather than with calls to higher-order combinators.  This downside of the first two techniques is actually rather easy to get around using Coq's notation mechanism, though we leave the details as an exercise for the reader.
+   One minor plus is the ability to write recursive definitions in natural syntax, rather than with calls to higher-order combinators.  This downside of the first two techniques is actually rather easy to get around using Coq's notation mechanism, though we leave the details as an exercise for the reader.  (For this and other details of notations, see Chapter 12 of the Coq 8.4 manual.)
 
    The first two techniques impose proof obligations that are more basic than termination arguments, where well-founded recursion requires a proof of extensionality and domain-theoretic recursion requires a proof of continuity.  A function may not be defined, and thus may not be computed with, until these obligations are proved.  The co-inductive techniques avoid this problem, as recursive definitions may be made without any proof obligations.
 
