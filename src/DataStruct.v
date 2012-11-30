@@ -41,7 +41,7 @@ Section ilist.
   | First : forall n, fin (S n)
   | Next : forall n, fin n -> fin (S n).
 
-  (** An instance of [fin] is essentially a more richly typed copy of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
+  (** An instance of [fin] is essentially a more richly typed copy of a prefix of the natural numbers.  The type [fin n] is isomorphic to [{m : nat | m < n}].  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
 
      Now it is easy to pick a [Prop]-free type for a selection function.  As usual, our first implementation attempt will not convince the type checker, and we will attack the deficiencies one at a time.
      [[
@@ -55,7 +55,7 @@ Section ilist.
         end
     end.
     ]]
-    %\vspace{-.15in}%We apply the usual wisdom of delaying arguments in [Fixpoint]s so that they may be included in [return] clauses.  This still leaves us with a quandary in each of the [match] cases.  First, we need to figure out how to take advantage of the contradiction in the [Nil] case.  Every [fin] has a type of the form [S n], which cannot unify with the [O] value that we learn for [n] in the [Nil] case.  The solution we adopt is another case of [match]-within-[return].
+    %\vspace{-.15in}%We apply the usual wisdom of delaying arguments in [Fixpoint]s so that they may be included in [return] clauses.  This still leaves us with a quandary in each of the [match] cases.  First, we need to figure out how to take advantage of the contradiction in the [Nil] case.  Every [fin] has a type of the form [S n], which cannot unify with the [O] value that we learn for [n] in the [Nil] case.  The solution we adopt is another case of [match]-within-[return], with the [return] clause chosen carefully so that it returns the proper type [A] in case the [fin] index is [O], which we know is true here; and so that it returns an easy-to-inhabit type [unit] in the remaining, impossible cases, which nonetheless appear explicitly in the body of the [match].
     [[
   Fixpoint get n (ls : ilist n) : fin n -> A :=
     match ls with
@@ -200,7 +200,7 @@ Section hlist.
   | HNil : hlist nil
   | HCons : forall (x : A) (ls : list A), B x -> hlist ls -> hlist (x :: ls).
 
-  (** We can implement a variant of the last section's [get] function for [hlist]s.  To get the dependent typing to work out, we will need to index our element selectors by the types of data that they point to.%\index{Gallina terms!member}% *)
+  (** We can implement a variant of the last section's [get] function for [hlist]s.  To get the dependent typing to work out, we will need to index our element selectors (in type family [member]) by the types of data that they point to.%\index{Gallina terms!member}% *)
 
 (* end thide *)
   (* EX: Define an analogue to [get] for [hlist]s. *)
@@ -248,7 +248,7 @@ Implicit Arguments HFirst [A elm ls].
 Implicit Arguments HNext [A elm x ls].
 (* end thide *)
 
-(** By putting the parameters [A] and [B] in [Type], we allow some very higher-order uses.  For instance, one use of [hlist] is for the simple heterogeneous lists that we referred to earlier. *)
+(** By putting the parameters [A] and [B] in [Type], we enable fancier kinds of polymorphism than in mainstream functional languages.  For instance, one use of [hlist] is for the simple heterogeneous lists that we referred to earlier. *)
 
 Definition someTypes : list Set := nat :: bool :: nil.
 
@@ -370,7 +370,7 @@ Eval simpl in expDenote (App (Abs (Var HFirst)) Const) HNil.
 
 (** * Recursive Type Definitions *)
 
-(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as _recursive_ definitions. *)
+(** %\index{recursive type definition}%There is another style of datatype definition that leads to much simpler definitions of the [get] and [hget] definitions above.  Because Coq supports "type-level computation," we can redo our inductive definitions as _recursive_ definitions.  Here we will preface type names with the letter [f] to indicate that they are based on explicit recursive _function_ definitions. *)
 
 (* EX: Come up with an alternate [ilist] definition that makes it easier to write [get]. *)
 

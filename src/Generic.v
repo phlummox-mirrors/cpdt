@@ -30,7 +30,7 @@ Set Implicit Arguments.
 
    Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
-   The first step is to define a representation for constructors of our datatypes. *)
+   The first step is to define a representation for constructors of our datatypes.  We use the [Record] command as a shorthand for defining an inductive type with a single constructor, plus projection functions for pulling out any of the named arguments to that constructor. *)
 
 (* EX: Define a reified representation of simple algebraic datatypes. *)
 
@@ -42,7 +42,7 @@ Record constructor : Type := Con {
 
 (** The idea is that a constructor represented as [Con T n] has [n] arguments of the type that we are defining.  Additionally, all of the other, non-recursive arguments can be encoded in the type [T].  When there are no non-recursive arguments, [T] can be [unit].  When there are two non-recursive arguments, of types [A] and [B], [T] can be [A * B].  We can generalize to any number of arguments via tupling.
 
-   With this definition, it as easy to define a datatype representation in terms of lists of constructors. *)
+   With this definition, it is easy to define a datatype representation in terms of lists of constructors.  The intended meaning is that the datatype came from an inductive definition including exactly the constructors in the list. *)
 
 Definition datatype := list constructor.
 

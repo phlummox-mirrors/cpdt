@@ -180,7 +180,7 @@ Recall that co-recursive definitions have a dual rule: a co-recursive call only 
 
 (** * Heterogeneous Lists Revisited *)
 
-(** One of our example dependent data structures from the last chapter was the heterogeneous list and its associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [fmember] types. *)
+(** One of our example dependent data structures from the last chapter (code repeated below) was the heterogeneous list and its associated "cursor" type.  The recursive version poses some special challenges related to equality proofs, since it uses such proofs in its definition of [fmember] types. *)
 
 Section fhlist.
   Variable A : Type.
@@ -420,7 +420,7 @@ UIP_refl
      : forall (U : Type) (x : U) (p : x = x), p = eq_refl x
      ]]
 
-     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_, the term [eq_rect_eq] below. *)
+     The theorem %\index{Gallina terms!UIP\_refl}%[UIP_refl] comes from the [Eqdep] module of the standard library.  (Its name uses the acronym "UIP" for "unicity of identity proofs.")  Do the Coq authors know of some clever trick for building such proofs that we have not seen yet?  If they do, they did not use it for this proof.  Rather, the proof is based on an _axiom_, the term [eq_rect_eq] below. *)
 
 (* begin hide *)
   Import Eq_rect_eq.
@@ -459,16 +459,15 @@ x = eq_rect p Q x p h ]
   (* end thide *)
   (* end hide *)
 
-  Print Streicher_K.
+  Check Streicher_K.
 (* end thide *)
 (** %\vspace{-.15in}% [[
-Streicher_K = 
-fun U : Type => UIP_refl__Streicher_K U (UIP_refl U)
+Streicher_K
      : forall (U : Type) (x : U) (P : x = x -> Prop),
-       P (eq_refl x) -> forall p : x = x, P p
+       P eq_refl -> forall p : x = x, P p
   ]]
 
-  This is the unfortunately named %\index{axiom K}%"Streicher's axiom K," which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
+  This is the opaquely named %\index{axiom K}%"Streicher's axiom K," which says that a predicate on properly typed equality proofs holds of all such proofs if it holds of reflexivity. *)
 
 End fhlist_map.
 
@@ -691,7 +690,7 @@ Inductive JMeq (A : Type) (x : A) : forall B : Type, B -> Prop :=
     JMeq_refl : JMeq x x
     ]]
 
-The identifier [JMeq] stands for %\index{John Major equality}%"John Major equality," a name coined by Conor McBride%~\cite{JMeq}% as a sort of pun about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
+The identifier [JMeq] stands for %\index{John Major equality}%"John Major equality," a name coined by Conor McBride%~\cite{JMeq}% as an inside joke about British politics.  The definition [JMeq] starts out looking a lot like the definition of [eq].  The crucial difference is that we may use [JMeq] _on arguments of different types_.  For instance, a lemma that we failed to establish before is trivial with [JMeq].  It makes for prettier theorem statements to define some syntactic shorthand first. *)
 
 Infix "==" := JMeq (at level 70, no associativity).
 
@@ -722,7 +721,7 @@ JMeq_eq
      : forall (A : Type) (x y : A), x == y -> x = y
     ]]
 
-    It may be surprising that we cannot prove that heterogeneous equality implies normal equality.  The difficulties are the same kind we have seen so far, based on limitations of [match] annotations.
+    It may be surprising that we cannot prove that heterogeneous equality implies normal equality.  The difficulties are the same kind we have seen so far, based on limitations of [match] annotations.  The [JMeq_eq] axiom has been proved on paper to be consistent, but asserting it may still be considered to complicate the logic we work in, so there is some motivation for avoiding it.
 
    We can redo our [fhapp] associativity proof based around [JMeq]. *)
 
@@ -862,7 +861,7 @@ Theorem out_of_luck : forall n m : nat,
   -> S n == S m.
   intros n m H.
 
-  (** Applying [JMeq_ind_r] is easy, as the %\index{tactics!pattern}%[pattern] tactic will transform the goal into an application of an appropriate [fun] to a term that we want to abstract. *)
+  (** Applying [JMeq_ind_r] is easy, as the %\index{tactics!pattern}%[pattern] tactic will transform the goal into an application of an appropriate [fun] to a term that we want to abstract.  (In general, [pattern] abstracts over a term by introducing a new anonymous function taking that term as argument.) *)
 
   pattern n.
   (** %\vspace{-.15in}%[[
