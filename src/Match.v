@@ -117,7 +117,7 @@ Ltac my_tauto :=
 
    It is also trivial to implement the introduction rules (in the sense of %\index{natural deduction}%natural deduction%~\cite{TAPLNatDed}%) for a few of the connectives.  Implementing elimination rules is only a little more work, since we must give a name for a hypothesis to [destruct].
 
-   The last rule implements modus ponens, using a tactic %\index{tactics!specialize}%[specialize] which will replace a hypothesis with a version that is specialized to a provided set of arguments (for quantified variables or local hypotheses from implications). *)
+   The last rule implements modus ponens, using a tactic %\index{tactics!specialize}%[specialize] which will replace a hypothesis with a version that is specialized to a provided set of arguments (for quantified variables or local hypotheses from implications).  By convention, when the argument to [specialize] is an application of a hypothesis [H] to a set of arguments, the result of the specialization replaces [H].  For other terms, the outcome is the same as with [generalize]. *)
 
 Section propositional.
   Variables P Q R : Prop.
@@ -196,7 +196,7 @@ Ltac extend pf :=
 
 (** We see the useful %\index{tactics!type of}%[type of] operator of Ltac.  This operator could not be implemented in Gallina, but it is easy to support in Ltac.  We end up with [t] bound to the type of [pf].  We check that [t] is not already present.  If so, we use a [generalize]/[intro] combo to add a new hypothesis proved by [pf].  The tactic %\index{tactics!generalize}%[generalize] takes as input a term [t] (for instance, a proof of some proposition) and then changes the conclusion from [G] to [T -> G], where [T] is the type of [t] (for instance, the proposition proved by the proof [t]).
 
-   With these tactics defined, we can write a tactic [completer] for adding to the context all consequences of a set of simple first-order formulas. *)
+   With these tactics defined, we can write a tactic [completer] for, among other things, adding to the context all consequences of a set of simple first-order formulas. *)
 
 (* begin thide *)
 Ltac completer :=
@@ -317,7 +317,7 @@ Abort.
 
 (** The problem is that unification variables may not contain locally bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
 
-   The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in the next chapter.
+   The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in Section 15.5.
 
    No matter which Coq version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the surprising behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the check that a suitably matching hypothesis is available and leading to different behavior, where wrong quantifier instantiations are chosen.  Our earlier [completer] tactic uses a modus ponens rule that matches the implication conclusion with a variable, which blocks matching against non-trivial universal quantifiers.
 
@@ -478,6 +478,8 @@ Abort.
 (** What is going wrong here?  The answer has to do with the dual status of Ltac as both a purely functional and an imperative programming language.  The basic programming language is purely functional, but tactic scripts are one "datatype" that can be returned by such programs, and Coq will run such a script using an imperative semantics that mutates proof states.  Readers familiar with %\index{monad}\index{Haskell}%monadic programming in Haskell%~\cite{Monads,IO}% may recognize a similarity.  Haskell programs with side effects can be thought of as pure programs that return _the code of programs in an imperative language_, where some out-of-band mechanism takes responsibility for running these derived programs.  In this way, Haskell remains pure, while supporting usual input-output side effects and more.  Ltac uses the same basic mechanism, but in a dynamically typed setting.  Here the embedded imperative language includes all the tactics we have been applying so far.
 
    Even basic [idtac] is an embedded imperative program, so we may not automatically mix it with purely functional code.  In fact, a semicolon operator alone marks a span of Ltac code as an embedded tactic script.  This makes some amount of sense, since pure functional languages have no need for sequencing: since they lack side effects, there is no reason to run an expression and then just throw away its value and move on to another expression.
+
+   An alternate explanation that avoids an analogy to Haskell monads (admittedly a tricky concept in its own right) is: An Ltac tactic program returns a function that, when run later, will perform the desired proof modification.  These functions are distinct from other types of data, like numbers or Gallina terms.  The prior, correctly working version of [length] computed solely with Gallina terms, but the new one is implicitly returning a tactic function, as indicated by the use of [idtac] and semicolon.  However, the new version's recursive call to [length] is structured to expect a Gallina term, not a tactic function, as output.  As a result, we have a basic dynamic type error, perhaps obscured by the involvement of first-class tactic scripts.
 
    The solution is like in Haskell: we must "monadify" our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into%\index{continuation-passing style}% _continuation-passing style_ %\cite{continuations}%, a program structuring idea popular in functional programming. *)
 

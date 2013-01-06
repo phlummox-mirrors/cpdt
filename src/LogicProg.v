@@ -320,7 +320,7 @@ Section slow.
 
   (** The following fact is false, but that does not stop [eauto] from taking a very long time to search for proofs of it.  We use the handy %\index{Vernacular commands!Time}%[Time] command to measure how long a proof step takes to run.  None of the following steps make any progress. *)
 
-  Example three_minus_four_zero : exists x, 1 + x = 0.
+  Example zero_minus_one : exists x, 1 + x = 0.
     Time eauto 1.
 (** %\vspace{-.15in}%
 <<
@@ -488,7 +488,7 @@ Qed.
 Hint Resolve length_O length_S.
 (* end thide *)
 
-(** Let us apply these hints to prove that a [list nat] of length 2 exists. *)
+(** Let us apply these hints to prove that a [list nat] of length 2 exists.  (Here we register [length_O] with [Hint Resolve] instead of [Hint Immediate] merely as a convenience to use the same command as for [length_S]; [Resolve] and [Immediate] have the same meaning for a premise-free hint.) *)
 
 Example length_is_2 : exists ls : list nat, length ls = 2.
 (* begin thide *)
@@ -660,7 +660,7 @@ Example eval1' : forall var, eval var (Plus Var (Plus (Const 8) Var)) (2 * var +
 Abort.
 (* end thide *)
 
-(** To help prove [eval1'], we prove an alternate version of [EvalPlus] that inserts an extra equality premise. *)
+(** To help prove [eval1'], we prove an alternate version of [EvalPlus] that inserts an extra equality premise.  This sort of staging is helpful to get around limitations of [eauto]'s unification: [EvalPlus] as a direct hint will only match goals whose results are already expressed as additions, rather than as constants.  With the alternate version below, to prove the first two premises, [eauto] is given free reign in deciding the values of [n1] and [n2], while the third premise can then be proved by [reflexivity], no matter how each of its sides is decomposed as a tree of additions. *)
 
 (* begin thide *)
 Theorem EvalPlus' : forall var e1 e2 n1 n2 n, eval var e1 n1
@@ -815,7 +815,7 @@ Print linear.
 
 The basic hints for [auto] and [eauto] are: %\index{Vernacular commands!Hint Immediate}%[Hint Immediate lemma], asking to try solving a goal immediately by applying a lemma and discharging any hypotheses with a single proof step each; %\index{Vernacular commands!Hint Resolve}%[Resolve lemma], which does the same but may add new premises that are themselves to be subjects of nested proof search; %\index{Vernacular commands!Hint Constructors}%[Constructors type], which acts like [Resolve] applied to every constructor of an inductive type; and %\index{Vernacular commands!Hint Unfold}%[Unfold ident], which tries unfolding [ident] when it appears at the head of a proof goal.  Each of these [Hint] commands may be used with a suffix, as in [Hint Resolve lemma : my_db].  This adds the hint only to the specified database, so that it would only be used by, for instance, [auto with my_db].  An additional argument to [auto] specifies the maximum depth of proof trees to search in depth-first order, as in [auto 8] or [auto 8 with my_db].  The default depth is 5.
 
-All of these [Hint] commands can be issued alternatively with a more primitive hint kind, [Extern].  A few more examples of [Hint Extern] should illustrate more of the possibilities. *)
+All of these [Hint] commands can be expressed with a more primitive hint kind, [Extern].  A few more examples of [Hint Extern] should illustrate more of the possibilities. *)
 
 Theorem bool_neq : true <> false.
 (* begin thide *)

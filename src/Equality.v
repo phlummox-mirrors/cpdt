@@ -729,7 +729,7 @@ Section fhapp'.
   Variable A : Type.
   Variable B : A -> Type.
 
-  (** This time, the %\%naive theorem statement type-checks. *)
+  (** This time, the %\%naive%{}% theorem statement type-checks. *)
 
   (* EX: Prove [fhapp] associativity using [JMeq]. *)
 
