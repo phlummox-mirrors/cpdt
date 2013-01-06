@@ -659,7 +659,7 @@ The traditional [tauto] tactic introduces a quadratic blow-up in the size of the
 (* begin thide *)
 (** The action of the [quote] tactic above may seem like magic.  Somehow it performs equality comparison between subterms of arbitrary types, so that these subterms may be represented with the same reified variable.  While [quote] is implemented in OCaml, we can code the reification process completely in Ltac, as well.  To make our job simpler, we will represent variables as [nat]s, indexing into a simple list of variable values that may be referenced.
 
-   Step one of the process is to crawl over a term, building a duplicate-free list of all values that appear in positions we will encode as variables.  A useful helper function adds an element to a list, maintaining lack of duplicates.  Note how we use Ltac pattern matching to implement an equality test on Gallina terms; this is simple syntactic equality, not even the richer definitional equality.  We also represent lists as nested tuples, to allow different list elements to have different Gallina types. *)
+   Step one of the process is to crawl over a term, building a duplicate-free list of all values that appear in positions we will encode as variables.  A useful helper function adds an element to a list, preventing duplicates.  Note how we use Ltac pattern matching to implement an equality test on Gallina terms; this is simple syntactic equality, not even the richer definitional equality.  We also represent lists as nested tuples, to allow different list elements to have different Gallina types. *)
 
 Ltac inList x xs :=
   match xs with
