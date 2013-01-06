@@ -214,7 +214,7 @@ Ltac completer :=
 
    In the fifth rule, when we find a [forall] fact [H] with a premise matching one of our hypotheses, we add the appropriate instantiation of [H]'s conclusion, if we have not already added it.
 
-   We can check that [completer] is working properly: *)
+   We can check that [completer] is working properly, with a theorem that introduces a spurious variable whose didactic purpose we will come to shortly. *)
 
 Section firstorder.
   Variable A : Set.
@@ -223,10 +223,11 @@ Section firstorder.
   Hypothesis H1 : forall x, P x -> Q x /\ R x.
   Hypothesis H2 : forall x, R x -> S x.
 
-  Theorem fo : forall x, P x -> S x.
+  Theorem fo : forall (y x : A), P x -> S x.
 (* begin thide *)
     completer.
     (** [[
+  y : A
   x : A
   H : P x
   H0 : Q x
@@ -242,13 +243,16 @@ Section firstorder.
 (* end thide *)
 End firstorder.
 
-(** We narrowly avoided a subtle pitfall in our definition of [completer].  Let us try another definition that even seems preferable to the original, to the untrained eye. *)
+(** We narrowly avoided a subtle pitfall in our definition of [completer].  Let us try another definition that even seems preferable to the original, to the untrained eye.  (We change the second [match] case a bit to make the tactic smart enough to handle some subtleties of Ltac behavior that had not been exercised previously.) *)
 
 (* begin thide *)
 Ltac completer' :=
   repeat match goal with
            | [ |- _ /\ _ ] => constructor
-	   | [ H : _ /\ _ |- _ ] => destruct H
+	   | [ H : ?P /\ ?Q |- _ ] => destruct H;
+             repeat match goal with
+                      | [ H' : P /\ Q |- _ ] => clear H'
+                    end
            | [ H : ?P -> _, H' : ?P |- _ ] => specialize (H H')
            | [ |- forall x, _ ] => intro
 
@@ -256,7 +260,7 @@ Ltac completer' :=
          end.
 (* end thide *)
 
-(** The only difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
+(** The only other difference is in the modus ponens rule, where we have replaced an unused unification variable [?Q] with a wildcard.  Let us try our example again with this version: *)
 
 Section firstorder'.
   Variable A : Set.
@@ -265,12 +269,19 @@ Section firstorder'.
   Hypothesis H1 : forall x, P x -> Q x /\ R x.
   Hypothesis H2 : forall x, R x -> S x.
 
-  Theorem fo' : forall x, P x -> S x.
-(* begin thide *)
-    (** %\vspace{-.25in}%[[
+  Theorem fo' : forall (y x : A), P x -> S x.
     completer'.
-    ]]
-    %\vspace{-.15in}%Coq loops forever at this point.  What went wrong? *)
+    (** [[
+  y : A
+  H1 : P y -> Q y /\ R y
+  H2 : R y -> S y
+  x : A
+  H : P x
+  ============================
+   S x
+   ]]
+   The quantified theorems have been instantiated with [y] instead of [x], reducing a provable goal to one that is unprovable.  Our code in the last [match] case for [completer'] is careful only to instantiate quantifiers along with suitable hypotheses, so why were incorrect choices made?
+   *)
 
   Abort.
 (* end thide *)
@@ -308,7 +319,9 @@ Abort.
 
    The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in the next chapter.
 
-   No matter which Coq version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the infinite-looping behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the "already present" check and leading to different behavior, where the same fact may be added to the context repeatedly in an infinite loop.  Our earlier [completer] tactic uses a modus ponens rule that matches the implication conclusion with a variable, which blocks matching against non-trivial universal quantifiers. *)
+   No matter which Coq version you use, it is important to be aware of this restriction.  As we have alluded to, the restriction is the culprit behind the surprising behavior of [completer'].  We unintentionally match quantified facts with the modus ponens rule, circumventing the check that a suitably matching hypothesis is available and leading to different behavior, where wrong quantifier instantiations are chosen.  Our earlier [completer] tactic uses a modus ponens rule that matches the implication conclusion with a variable, which blocks matching against non-trivial universal quantifiers.
+
+   Actually, the behavior demonstrated here applies to Coq version 8.4, but not 8.4pl1.  The latter version will allow regular Ltac pattern variables to match terms that contain locally bound variables, but a tactic failure occurs if that variable is later used as a Gallina term. *)
 
 
 (** * Functional Programming in Ltac *)
