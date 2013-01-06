@@ -401,7 +401,7 @@ Inductive formula : Set :=
 
 (** The type %\index{Gallina terms!index}%[index] comes from the [Quote] library and represents a countable variable type.  The rest of [formula]'s definition should be old hat by now.
 
-   The [quote] tactic will implement injection from [Prop] into [formula] for us, but it is not quite as smart as we might like.  In particular, it interprets implications incorrectly, so we will need to declare a wrapper definition for implication, as we did in the last chapter. *)
+   The [quote] tactic will implement injection from [Prop] into [formula] for us, but it is not quite as smart as we might like.  In particular, it wants to treat function types specially, so it gets confused if function types are part of the structure we want to encode syntactically.  To trick [quote] into not noticing our uses of function types to express logical implication, we will need to declare a wrapper definition for implication, as we did in the last chapter. *)
 
 Definition imp (P1 P2 : Prop) := P1 -> P2.
 Infix "-->" := imp (no associativity, at level 95).
@@ -478,7 +478,9 @@ Section my_tauto.
 
   Local Open Scope partial_scope.
 
-  (** Now we can write a function [forward] which implements deconstruction of hypotheses.  It has a dependent type, in the style of Chapter 6, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
+  (** Now we can write a function [forward] that implements deconstruction of hypotheses, expanding a compound formula into a set of sets of atomic formulas covering all possible cases introduced with use of [Or].  To handle consideration of multiple cases, the function takes in a continuation argument, which will be called once for each case.
+
+     The [forward] function has a dependent type, in the style of Chapter 6, guaranteeing correctness.  The arguments to [forward] are a goal formula [f], a set [known] of atomic formulas that we may assume are true, a hypothesis formula [hyp], and a success continuation [cont] that we call when we have extended [known] to hold new truths implied by [hyp]. *)
 
   Definition forward : forall (f : formula) (known : set index) (hyp : formula)
     (cont : forall known', [allTrue known' -> formulaDenote atomics f]),
@@ -789,7 +791,7 @@ Fixpoint termDenote t (e : term t) : typeDenote t :=
     | Abs _ e1 => fun x => termDenote (e1 x)
   end.
 
-(** Here is a %\%naive first attempt at a reification tactic. *)
+(** Here is a %\%naive%{}% first attempt at a reification tactic. *)
 
 Ltac refl' e :=
   match e with
@@ -805,9 +807,9 @@ Ltac refl' e :=
     | _ => constr:(Const e)
   end.
 
-(** Recall that a regular Ltac pattern variable [?X] only matches terms that _do not mention new variables introduced within the pattern_.  In our %\%naive implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
+(** Recall that a regular Ltac pattern variable [?X] only matches terms that _do not mention new variables introduced within the pattern_.  In our %\%naive%{}% implementation, the case for matching function abstractions matches the function body in a way that prevents it from mentioning the function argument!  Our code above plays fast and loose with the function body in a way that leads to independent problems, but we could change the code so that it indeed handles function abstractions that ignore their arguments.
 
-   To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  For instance: *)
+   To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  A use of [@?X] must be followed by a list of the local variables that may be mentioned.  The variable [X] then comes to stand for a Gallina function over the values of those variables.  For instance: *)
 
 Reset refl'.
 Ltac refl' e :=
@@ -868,4 +870,4 @@ Goal (fun (x y : nat) => x + y + 13) = (fun (_ z : nat) => z).
 
 Abort.
 
-(** Our encoding here uses Coq functions to represent binding within the terms we reify, which makes it difficult to implement certain functions over reified terms.  An alternative would be to represent variables with numbers.  This can be done by writing a slightly smarter reification function that identifies variable references by detecting when term arguments are just compositions of [fst] and [snd]; from the order of the compositions we may read off the variable number.  We leave the details as an exercise for the reader. *)
+(** Our encoding here uses Coq functions to represent binding within the terms we reify, which makes it difficult to implement certain functions over reified terms.  An alternative would be to represent variables with numbers.  This can be done by writing a slightly smarter reification function that identifies variable references by detecting when term arguments are just compositions of [fst] and [snd]; from the order of the compositions we may read off the variable number.  We leave the details as an exercise (though not a trivial one!) for the reader. *)
