@@ -628,7 +628,7 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    end
         ]]
 
-        The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but that is exactly the case here and for many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations only support variables in certain positions.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
+        The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but that is exactly the case here and for many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations contain some positions where only variables are allowed.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
 
         In this case, it is helpful to generalize over our two proofs as well. *)
 

@@ -582,13 +582,13 @@ Theorem and_True_conc : forall P Q,
   imp.
 Qed.
 
-Theorem assoc_prem1 : forall P Q R S,
+Theorem pick_prem1 : forall P Q R S,
   (P /\ (Q /\ R) --> S)
   -> ((P /\ Q) /\ R --> S).
   imp.
 Qed.
 
-Theorem assoc_prem2 : forall P Q R S,
+Theorem pick_prem2 : forall P Q R S,
   (Q /\ (P /\ R) --> S)
   -> ((P /\ Q) /\ R --> S).
   imp.
@@ -600,13 +600,13 @@ Theorem comm_prem : forall P Q R,
   imp.
 Qed.
 
-Theorem assoc_conc1 : forall P Q R S,
+Theorem pick_conc1 : forall P Q R S,
   (S --> P /\ (Q /\ R))
   -> (S --> (P /\ Q) /\ R).
   imp.
 Qed.
 
-Theorem assoc_conc2 : forall P Q R S,
+Theorem pick_conc2 : forall P Q R S,
   (S --> Q /\ (P /\ R))
   -> (S --> (P /\ Q) /\ R).
   imp.
@@ -626,8 +626,8 @@ Ltac search_prem tac :=
     || (apply and_True_prem; tac)
     || match P with
          | ?P1 /\ ?P2 =>
-           (apply assoc_prem1; search P1)
-           || (apply assoc_prem2; search P2)
+           (apply pick_prem1; search P1)
+           || (apply pick_prem2; search P2)
        end
   in match goal with
        | [ |- ?P /\ _ --> _ ] => search P
@@ -637,7 +637,7 @@ Ltac search_prem tac :=
 
 (** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  The call [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.  The %\index{tactics!progress}%[progress] tactical fails when its argument tactic succeeds without changing the current subgoal.
 
-   The [search] function itself tries the same tricks as in the last case of the final [match].  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
+   The [search] function itself tries the same tricks as in the last case of the final [match], using the [||] operator as a shorthand for trying one tactic and then, if the first fails, trying another.  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
 
    We will also want a dual function [search_conc], which does tree search through an [imp] conclusion. *)
 
@@ -647,8 +647,8 @@ Ltac search_conc tac :=
     || (apply and_True_conc; tac)
     || match P with
          | ?P1 /\ ?P2 =>
-           (apply assoc_conc1; search P1)
-           || (apply assoc_conc2; search P2)
+           (apply pick_conc1; search P1)
+           || (apply pick_conc2; search P2)
        end
   in match goal with
        | [ |- _ --> ?P /\ _ ] => search P
@@ -718,7 +718,7 @@ Print t2.
 (** %\vspace{-.15in}% [[
 t2 = 
 fun P Q : Prop =>
-comm_prem (assoc_prem1 (assoc_prem2 (False_prem (P:=P /\ P /\ Q) (P /\ Q))))
+comm_prem (pick_prem1 (pick_prem2 (False_prem (P:=P /\ P /\ Q) (P /\ Q))))
      : forall P Q : Prop, Q /\ (P /\ False) /\ P --> P /\ Q
      ]]
 
@@ -750,7 +750,7 @@ fun (P : nat -> Prop) (Q : Prop) =>
 and_True_prem
   (ex_prem (P:=fun x : nat => P x /\ Q)
      (fun x : nat =>
-      assoc_prem2
+      pick_prem2
         (Match (P:=Q)
            (and_True_conc
               (ex_conc (fun x0 : nat => P x0) x

@@ -26,7 +26,7 @@ Set Implicit Arguments.
 
 (** * Reifying Datatype Definitions *)
 
-(** The key to generic programming with dependent types is%\index{universe types}% _universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reified syntactic versions of those types.
+(** The key to generic programming with dependent types is%\index{universe types}% _universe types_.  This concept should not be confused with the idea of _universes_ from the metatheory of CIC and related languages, which we will study in more detail in the next chapter.  Rather, the idea of universe types is to define inductive types that provide _syntactic representations_ of Coq types.  We cannot directly write CIC programs that do case analysis on types, but we _can_ case analyze on reified syntactic versions of those types.
 
    Thus, to begin, we must define a syntactic representation of some class of datatypes.  In this chapter, our running example will have to do with basic algebraic datatypes, of the kind found in ML and Haskell, but without additional bells and whistles like type parameters and mutually recursive definitions.
 
@@ -138,7 +138,7 @@ Check hmake.
 Definition size T dt (fx : fixDenote T dt) : T -> nat :=
   fx nat (hmake (B := constructorDenote nat) (fun _ _ r => foldr plus 1 r) dt).
 
-(** Our definition is parameterized over a recursion scheme [fx].  We instantiate [fx] by passing it the function result type and a set of function cases, where we build the latter with [hmake].  The function argument to [hmake] takes three arguments: the representation of a constructor, its non-recursive arguments, and the results of recursive calls on all of its recursive arguments.  We only need the recursive call results here, so we call them [r] and bind the other two inputs with wildcards.  The actual case body is simple: we add together the recursive call results and increment the result by one (to account for the current constructor).  This [foldr] function is an [hlist]-specific version defined in the [DepList] module.
+(** Our definition is parameterized over a recursion scheme [fx].  We instantiate [fx] by passing it the function result type and a set of function cases, where we build the latter with [hmake].  The function argument to [hmake] takes three arguments: the representation of a constructor, its non-recursive arguments, and the results of recursive calls on all of its recursive arguments.  We only need the recursive call results here, so we call them [r] and bind the other two inputs with wildcards.  The actual case body is simple: we add together the recursive call results and increment the result by one (to account for the current constructor).  This [foldr] function is an [ilist]-specific version defined in the [DepList] module.
 
    It is instructive to build [fixDenote] values for our example types and see what specialized [size] functions result from them. *)
 
@@ -292,7 +292,7 @@ Eval compute in print (^ "true" (fun _ => "")
   ::: HNil) bool_fix.
 (** %\vspace{-.15in}% [[
    = fun b : bool => if b then "true()" else "false()"
-   : bool -> s
+   : bool -> string
    ]]
    *)
 
@@ -656,7 +656,7 @@ Theorem map_id : forall T dt
   (* end thide *)
   (* end hide *)
 
-  (** The base case is discharged automatically, and the inductive case looks like this, where [H] is the outer IH (for induction over [T] values) and [IHn] is the inner IH (for induction over the recursive arguments).
+  (** The base case is discharged automatically, and the inductive case looks like this, where [H] is the outer IH (for induction over [T] values) and [IHr] is the inner IH (for induction over the recursive arguments).
      [[
   H : forall i : fin (S n),
       fx T

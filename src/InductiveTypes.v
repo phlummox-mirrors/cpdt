@@ -507,7 +507,7 @@ Check list_ind.
        forall l : list T, P l
 ]]
 
-Thus, even though we just saw that [T] is added as an extra argument to the constructor [Cons], the inductive case in the type of [list_ind] (i.e., the third line of the type) includes no quantifier for [T], even though all of the other arguments are quantified explicitly.  Parameters in other inductive definitions are treated similarly in stating induction principles. *)
+Thus, despite a very real sense in which the type [T] is an argument to the constructor [Cons], the inductive case in the type of [list_ind] (i.e., the third line of the type) includes no quantifier for [T], even though all of the other arguments are quantified explicitly.  Parameters in other inductive definitions are treated similarly in stating induction principles. *)
 
 
 (** * Mutually Inductive Types *)
