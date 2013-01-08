@@ -129,7 +129,7 @@ We have also already seen the definition of [True].  For a demonstration of a lo
       : Prop -> Prop
      ]]
 
-     We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] expands to [not P]. *)
+     We see that [not] is just shorthand for implication of [False].  We can use that fact explicitly in proofs.  The syntax [~ P] %(written with a tilde in ASCII)% expands to [not P]. *)
 
   Theorem arith_neq' : ~ (2 + 2 = 5).
 (* begin thide *)

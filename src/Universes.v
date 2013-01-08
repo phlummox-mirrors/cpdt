@@ -91,7 +91,7 @@ Check Type.
 
   In the outputs of our first [Check] query, we see that the type level of [Set]'s type is [(0)+1]. Here [0] stands for the level of [Set], and we increment it to arrive at the level that _classifies_ [Set].
 
-  In the second query's output, we see that the occurrence of [Type] that we check is assigned a fresh%\index{universe variable}% _universe variable_ [Top.3].  The output type increments [Top.3] to move up a level in the universe hierarchy.  As we write code that uses definitions whose types mention universe variables, unification may refine the values of those variables.  Luckily, the user rarely has to worry about the details.
+  In the third query's output, we see that the occurrence of [Type] that we check is assigned a fresh%\index{universe variable}% _universe variable_ [Top.3].  The output type increments [Top.3] to move up a level in the universe hierarchy.  As we write code that uses definitions whose types mention universe variables, unification may refine the values of those variables.  Luckily, the user rarely has to worry about the details.
 
   Another crucial concept in CIC is%\index{predicativity}% _predicativity_.  Consider these queries. *)
 

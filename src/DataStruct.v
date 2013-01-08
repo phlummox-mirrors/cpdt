@@ -584,7 +584,7 @@ End tree.
 
 Implicit Arguments Node [A n].
 
-(** We can redefine [sum] and [inc] for our new [tree] type.  Again, it is useful to define a generic fold function first.  This time, it takes in a function whose range is some [ffin] type, and it folds another function over the results of calling the first function at every possible [ffin] value. *)
+(** We can redefine [sum] and [inc] for our new [tree] type.  Again, it is useful to define a generic fold function first.  This time, it takes in a function whose domain is some [ffin] type, and it folds another function over the results of calling the first function at every possible [ffin] value. *)
 
 Section rifoldr.
   Variables A B : Set.
