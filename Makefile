@@ -52,9 +52,10 @@ templates/%.v: src/%.v tools/make_template.ml
 cpdt.tgz:
 	hg archive -t tgz $@
 
-install: cpdt.tgz latex/cpdt.pdf html
+install: cpdt.tgz latex/cpdt.pdf latex/exercises.pdf html
 	cp cpdt.tgz staging/
 	cp latex/cpdt.pdf staging/
+	cp latex/exercises.pdf staging/ex/
 	cp -R html staging/
 	rsync -az --exclude '*~' staging/* chlipala.net:sites/chlipala/adam/cpdt/
 
