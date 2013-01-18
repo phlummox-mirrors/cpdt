@@ -69,7 +69,7 @@ One of the first types we introduce will be [bool], with constructors [true] and
 
 (** * Enumerations *)
 
-(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
+(** Coq inductive types generalize the %\index{algebraic datatypes}%algebraic datatypes found in %\index{Haskell}%Haskell and %\index{ML}%ML.  Confusingly enough, inductive types also generalize %\index{generalized algebraic datatypes}%generalized algebraic datatypes (GADTs), by adding the possibility for type dependency.  Even so, it is worth backing up from the examples of the last chapter and going over basic, algebraic-datatype uses of inductive datatypes, because the chance to prove things about the values of these types adds new wrinkles beyond usual practice in Haskell and ML.
 
 The singleton type [unit] is an inductive type:%\index{Gallina terms!unit}\index{Gallina terms!tt}% *)
 
@@ -151,7 +151,7 @@ We can also apply this get-out-of-jail-free card programmatically.  Here is a la
 
 Definition e2u (e : Empty_set) : unit := match e with end.
 
-(** We employ [match] pattern matching as in the last chapter.  Since we match on a value whose type has no constructors, there is no need to provide any branches.  This idiom may look familiar; we employed it with proofs of [False] in the last section.  In fact, [Empty_set] is the Curry-Howard equivalent of [False].  As for why [Empty_set] starts with a capital letter and not a lowercase letter like [unit] does, we must refer the reader to the authors of the Coq standard library, to which we try to be faithful.
+(** We employ [match] pattern matching as in the last chapter.  Since we match on a value whose type has no constructors, there is no need to provide any branches.  It turns out that [Empty_set] is the Curry-Howard equivalent of [False].  As for why [Empty_set] starts with a capital letter and not a lowercase letter like [unit] does, we must refer the reader to the authors of the Coq standard library, to which we try to be faithful.
 
 %\medskip%
 
@@ -801,7 +801,7 @@ fix F (n : nat) : P n :=
        P O -> (forall n : nat, P n -> P (S n)) -> forall n : nat, P n
 ]]
 
-The only new wrinkle heres are, first, an anonymous recursive function definition, using the %\index{Gallina terms!fix}%[fix] keyword of Gallina (which is like [fun] with recursion supported); and, second, the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  We will meet more involved examples later, especially in Part II of the book.
+The only new wrinkles here are, first, an anonymous recursive function definition, using the %\index{Gallina terms!fix}%[fix] keyword of Gallina (which is like [fun] with recursion supported); and, second, the annotations on the [match] expression.  This is a%\index{dependent pattern matching}% _dependently typed_ pattern match, because the _type_ of the expression depends on the _value_ being matched on.  We will meet more involved examples later, especially in Part II of the book.
 
 %\index{type inference}%Type inference for dependent pattern matching is undecidable, which can be proved by reduction from %\index{higher-order unification}%higher-order unification%~\cite{HOU}%.  Thus, we often find ourselves needing to annotate our programs in a way that explains dependencies to the type checker.  In the example of [nat_rect], we have an %\index{Gallina terms!as}%[as] clause, which binds a name for the discriminee; and a %\index{Gallina terms!return}%[return] clause, which gives a way to compute the [match] result type as a function of the discriminee.
 
