@@ -217,7 +217,7 @@ Theorem eval_times : forall k e,
 Qed.
 (* end thide *)
 
-(** This style is motivated by a hard truth: one person's manual proof script is almost always mostly inscrutable to most everyone else.  I claim that step-by-step formal proofs are a poor way of conveying information.  Thus, we had might as well cut out the steps and automate as much as possible.
+(** This style is motivated by a hard truth: one person's manual proof script is almost always mostly inscrutable to most everyone else.  I claim that step-by-step formal proofs are a poor way of conveying information.  Thus, we might as well cut out the steps and automate as much as possible.
 
    What about the illustrative value of proofs?  Most informal proofs are read to convey the big ideas of proofs.  How can reading [induction e; crush] convey any big ideas?  My position is that any ideas that standard automation can find are not very big after all, and the _real_ big ideas should be expressed through lemmas that are added as hints.
 

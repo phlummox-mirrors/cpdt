@@ -75,7 +75,7 @@ This book is going to be about certified programming using Coq, and I am convinc
 (** ** Dependent Types *)
 
 (**
-A language with _dependent types_ may include references to programs inside of types.  For instance, the type of an array might include a program expression giving the size of the array, making it possible to verify absence of out-of-bounds accesses statically.  Dependent types can go even further than this, effectively capturing any correctness property in a type.  For instance, later in this book, we will see how to give a Mini-ML compiler a type that guarantees that it maps well-typed source programs to well-typed target programs.
+A language with _dependent types_ may include references to programs inside of types.  For instance, the type of an array might include a program expression giving the size of the array, making it possible to verify absence of out-of-bounds accesses statically.  Dependent types can go even further than this, effectively capturing any correctness property in a type.  For instance, later in this book, we will see how to give a compiler a type that guarantees that it maps well-typed source programs to well-typed target programs.
 
 %\index{ACL2}%ACL2 and %\index{HOL}%HOL lack dependent types outright.  Each of %\index{PVS}%PVS and %\index{Twelf}%Twelf supports a different strict subset of Coq's dependent type language.  Twelf's type language is restricted to a bare-bones, monomorphic lambda calculus, which places serious restrictions on how complicated _computations inside types_ can be.  This restriction is important for the soundness argument behind Twelf's approach to representing and checking proofs.
 
@@ -188,7 +188,7 @@ Some readers have asked about the pragmatics of using this tactic library in the
 (**
 At the start of the next chapter, I assume that you have installed Coq and Proof General.  The code in this book is tested with Coq versions 8.4 and 8.4pl1.  Though parts may work with other versions, it is expected that the book source will fail to build with _earlier_ versions.
 
-%\index{Proof General|(}%To set up your Proof General environment to process the source to this chapter, a few simple steps are required.
+%\index{Proof General|(}%To set up your Proof General environment to process the source to the next chapter, a few simple steps are required.
 
 %\begin{enumerate}%#<ol>#
 
@@ -197,7 +197,7 @@ At the start of the next chapter, I assume that you have installed Coq and Proof
 
 %\item %#<li>#Unpack the tarball to some directory <<DIR>>.#</li>#
 
-%\item %#<li>#Run <<make>> in <<DIR>>.#</li>#
+%\item %#<li>#Run <<make>> in <<DIR>> (ideally with a <<-j>> flag to use multiple processor cores, if you have them).#</li>#
 
 %\item %#<li>#There are some minor headaches associated with getting Proof General to pass the proper command line arguments to the <<coqtop>> program, which provides the interactive Coq toplevel.  One way to add settings that will be shared by many source files is to add a custom variable setting to your %\index{.emacs file@\texttt{.emacs} file}%<<.emacs>> file, like this:
 <<
