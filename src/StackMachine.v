@@ -401,6 +401,12 @@ app_assoc_reverse
 
 If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}%[SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
 
+(* begin hide *)
+(* begin thide *)
+Definition bleh := app_assoc.
+(* end thide *)
+(* end hide *)
+
 SearchRewrite ((_ ++ _) ++ _).
 (** %\vspace{-.15in}%[[
 app_assoc_reverse:
