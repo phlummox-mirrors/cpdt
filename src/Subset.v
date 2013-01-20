@@ -161,9 +161,9 @@ We rewrite [pred_strong1], using some syntactic sugar for subset types. *)
 
 Locate "{ _ : _ | _ }".
 (** %\vspace{-.15in}% [[
-Notation
-"{ x : A  |  P }" := sig (fun x : A => P)
- ]]
+  Notation
+  "{ x : A  |  P }" := sig (fun x : A => P)
+   ]]
  *)
 
 Definition pred_strong2 (s : {n : nat | n > 0}) : nat :=
@@ -208,6 +208,12 @@ Definition pred_strong3 (s : {n : nat | n > 0}) : {m : nat | proj1_sig s = S m} 
     | exist 0 pf => match zgtz pf with end
     | exist (S n') pf => exist _ n' (eq_refl _)
   end.
+
+(* begin hide *)
+(* begin thide *)
+Definition ugh := lt.
+(* end thide *)
+(* end hide *)
 
 Eval compute in pred_strong3 (exist _ 2 two_gt0).
 (** %\vspace{-.15in}% [[
@@ -370,7 +376,7 @@ Program Definition pred_strong6 (n : nat) (_ : n > 0) : {m : nat | n = S m} :=
     | S n' => n'
   end.
 
-(** Printing the resulting definition of [pred_strong6] yields a term very similar to what we built with [refine].  [Program] can save time in writing programs that use subset types.  Nonetheless, [refine] is often just as effective, and [refine] gives you more control over the form the final term takes, which can be useful when you want to prove additional theorems about your definition.  [Program] will sometimes insert type casts that can complicate theorem proving. *)
+(** Printing the resulting definition of [pred_strong6] yields a term very similar to what we built with [refine].  [Program] can save time in writing programs that use subset types.  Nonetheless, [refine] is often just as effective, and [refine] gives more control over the form the final term takes, which can be useful when you want to prove additional theorems about your definition.  [Program] will sometimes insert type casts that can complicate theorem proving. *)
 
 Eval compute in pred_strong6 two_gt0.
 (** %\vspace{-.15in}% [[
@@ -383,7 +389,7 @@ In this case, we see that the new definition yields the same computational behav
 
 (** * Decidable Proposition Types *)
 
-(** There is another type in the standard library which captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
+(** There is another type in the standard library that captures the idea of program values that indicate which of two propositions is true.%\index{Gallina terms!sumbool}% *)
 
 Print sumbool.
 (** %\vspace{-.15in}% [[
