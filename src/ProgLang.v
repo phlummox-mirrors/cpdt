@@ -26,7 +26,7 @@ Set Implicit Arguments.
    We will define a small programming language and reason about its semantics, expressed as an interpreter into Coq terms, much as we have done in examples throughout the book.  It will be helpful to build a slight extension of [crush] that tries to apply %\index{functional extensionality}%functional extensionality, an axiom we met in Chapter 12, which says that two functions are equal if they map equal inputs to equal outputs. *)
 
 Ltac ext := let x := fresh "x" in extensionality x.
-Ltac t := crush; repeat (ext || f_equal; crush).
+Ltac pl := crush; repeat (ext || f_equal; crush).
 
 (** At this point in the book source, some auxiliary proofs also appear. *)
 
@@ -141,7 +141,7 @@ Module FirstOrder.
 
   Theorem identSound : forall G t (e : term G t) s,
     termDenote (ident e) s = termDenote e s.
-    induction e; t.
+    induction e; pl.
   Qed.
 
   (** A slightly more ambitious transformation belongs to the family of _constant folding_ optimizations we have used as examples in other chapters. *)
@@ -176,11 +176,11 @@ Module FirstOrder.
 
   Theorem cfoldSound : forall G t (e : term G t) s,
     termDenote (cfold e) s = termDenote e s.
-    induction e; t;
+    induction e; pl;
       repeat (match goal with
                 | [ |- context[match ?E with Var _ _ _ => _ | _ => _ end] ] =>
                   dep_destruct E
-              end; t).
+              end; pl).
   Qed.
 
   (** The transformations we have tried so far have been straightforward because they do not have interesting effects on the variable binding structure of terms.  The dependent de Bruijn representation is called%\index{first-order syntax}% _first-order_ because it encodes variable identity explicitly; all such representations incur bookkeeping overheads in transformations that rearrange binding structure.
@@ -266,7 +266,7 @@ Module FirstOrder.
 
   Lemma liftVarSound : forall t' (x : typeDenote t') t G (m : member t G) s n,
     hget s m = hget (insertAtS x n s) (liftVar m t' n).
-    induction m; destruct n; dep_destruct s; t.
+    induction m; destruct n; dep_destruct s; pl.
   Qed.
 
   Hint Resolve liftVarSound.
@@ -275,11 +275,11 @@ Module FirstOrder.
 
   Lemma lift'Sound : forall G t' (x : typeDenote t') t (e : term G t) n s,
     termDenote e s = termDenote (lift' t' n e) (insertAtS x n s).
-    induction e; t;
+    induction e; pl;
       repeat match goal with
                | [ IH : forall n s, _ = termDenote (lift' _ n ?E) _
                    |- context[lift' _ (S ?N) ?E] ] => specialize (IH (S N))
-             end; t.
+             end; pl.
   Qed.
 
   (** Correctness of [lift] itself is an easy corollary. *)
@@ -296,7 +296,7 @@ Module FirstOrder.
   Lemma unletSound' : forall G t (e : term G t) G' (s : hlist (term G') G) s1,
     termDenote (unlet e s) s1
     = termDenote e (hmap (fun t' (e' : term G' t') => termDenote e' s1) s).
-    induction e; t.
+    induction e; pl.
   Qed.
 
   (** The lemma statement is a mouthful, with all its details of typing contexts and substitutions.  It is usually prudent to state a final theorem in as simple a way as possible, to help your readers believe that you have proved what they expect.  We do that here for the simple case of terms with empty typing contexts. *)
@@ -432,7 +432,7 @@ Module HigherOrder.
      ]]
      *)
 
-  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of one term in another.  The key insight here is to _tag variables with terms_, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parameterized over a specific [var] choice. *)
+  (** However, it is not necessary to convert to first-order form to support many common operations on terms.  For instance, we can implement substitution of terms for variables.  The key insight here is to _tag variables with terms_, so that, on encountering a variable, we can simply replace it by the term in its tag.  We will call this function initially on a term with exactly one free variable, tagged with the appropriate substitute.  During recursion, new variables are added, but they are only tagged with their own term equivalents.  Note that this function [squash] is parameterized over a specific [var] choice. *)
 
   Fixpoint squash var t (e : term (term var) t) : term var t :=
     match e with
@@ -520,7 +520,7 @@ Module HigherOrder.
 
   Lemma identSound : forall t (e : term typeDenote t),
     termDenote (ident e) = termDenote e.
-    induction e; t.
+    induction e; pl.
   Qed.
 
   Theorem IdentSound : forall t (E : Term t),
@@ -553,11 +553,11 @@ Module HigherOrder.
 
   Lemma cfoldSound : forall t (e : term typeDenote t),
     termDenote (cfold e) = termDenote e.
-    induction e; t;
+    induction e; pl;
       repeat (match goal with
                 | [ |- context[match ?E with Var _ _ => _ | _ => _ end] ] =>
                   dep_destruct E
-              end; t).
+              end; pl).
   Qed.
 
   Theorem CfoldSound : forall t (E : Term t),
@@ -667,7 +667,7 @@ Module HigherOrder.
                         end; intuition.
   Qed.
 
-  (** Now we are ready to give a nice simple proof of correctness for [unlet].  First, we add one hint to apply a standard library theorem connecting [Forall], a higher-order predicate asserting that every element of a list satisfies some property; and [In], the list membership predicate. *)
+  (** Now we are ready to give a nice simple proof of correctness for [unlet].  First, we add one hint to apply a small variant of a standard library theorem connecting [Forall], a higher-order predicate asserting that every element of a list satisfies some property; and [In], the list membership predicate. *)
 
   Hint Extern 1 => match goal with
                      | [ H1 : Forall _ _, H2 : In _ _ |- _ ] => apply (Forall_In H1 _ H2)
@@ -679,7 +679,7 @@ Module HigherOrder.
     wf G e1 e2
     -> Forall (fun ve => termDenote (First ve) = Second ve) G
     -> termDenote (unlet e1) = termDenote e2.
-    induction 1; t.
+    induction 1; pl.
   Qed.
 
   Theorem UnletSound : forall t (E : Term t), Wf E
@@ -710,7 +710,7 @@ Module HigherOrder.
     wf G e1 e2
     -> forall G', Forall (fun x => In x G') G
       -> wf G' e1 e2.
-    induction 1; t; auto 6.
+    induction 1; pl; auto 6.
   Qed.
 
   Hint Resolve wf_monotone Forall_In'.
@@ -723,7 +723,7 @@ Module HigherOrder.
     wf G e1 e2
     -> forall G', Forall (fun ve => wf G' (First ve) (Second ve)) G
       -> wf G' (unlet e1) (unlet e2).
-    induction 1; t; eauto 9.
+    induction 1; pl; eauto 9.
   Qed.
 
   (** Repackaging [unletWf] into a theorem about [Wf] and [Unlet] is straightforward. *)
