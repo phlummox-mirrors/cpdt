@@ -255,32 +255,21 @@ We run again into the problem of not being able to specify non-variable argument
 (* EX: Define a function [pairOut : forall t1 t2, exp (Prod t1 t2) -> option (exp t1 * exp t2)] *)
 
 (* begin thide *)
-Definition pairOutType (t : type) :=
-  match t with
-    | Prod t1 t2 => option (exp t1 * exp t2)
-    | _ => unit
-  end.
+Definition pairOutType (t : type) := option (match t with
+                                               | Prod t1 t2 => exp t1 * exp t2
+                                               | _ => unit
+                                             end).
 
-(** When passed a type that is a product, [pairOutType] returns our final desired type.  On any other input type, [pairOutType] returns [unit], since we do not care about extracting components of non-pairs.  Now we can write another helper function to provide the default behavior of [pairOut], which we will apply for inputs that are not literal pairs. *)
-
-Definition pairOutDefault (t : type) :=
-  match t return (pairOutType t) with
-    | Prod _ _ => None
-    | _ => tt
-  end.
-
-(** Now [pairOut] is deceptively easy to write. *)
+(** When passed a type that is a product, [pairOutType] returns our final desired type.  On any other input type, [pairOutType] returns the harmless [option unit], since we do not care about extracting components of non-pairs.  Now [pairOut] is easy to write. *)
 
 Definition pairOut t (e : exp t) :=
   match e in (exp t) return (pairOutType t) with
     | Pair _ _ e1 e2 => Some (e1, e2)
-    | _ => pairOutDefault _
+    | _ => None
   end.
 (* end thide *)
 
-(** There is one important subtlety in this definition.  Coq allows us to use convenient ML-style pattern matching notation, but, internally and in proofs, we see that patterns are expanded out completely, matching one level of inductive structure at a time.  Thus, the default case in the [match] above expands out to one case for each constructor of [exp] besides [Pair], and the underscore in [pairOutDefault _] is resolved differently in each case.  From an ML or Haskell programmer's perspective, what we have here is type inference determining which code is run (returning either [None] or [tt]), which goes beyond what is possible with type inference guiding parametric polymorphism in Hindley-Milner languages%\index{Hindley-Milner}%, but is similar to what goes on with Haskell type classes%\index{type classes}%.
-
-With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off with explicit [return] clauses. *)
+(** With [pairOut] available, we can write [cfold] in a straightforward way.  There are really no surprises beyond that Coq verifies that this code has such an expressive type, given the small annotation burden.  In some places, we see that Coq's [match] annotation inference is too smart for its own good, and we have to turn that inference off with explicit [return] clauses. *)
 
 Fixpoint cfold t (e : exp t) : exp t :=
   match e with
@@ -378,7 +367,7 @@ User error: e1 is used in hypothesis e
 
     Coq gives us another cryptic error message.  Like so many others, this one basically means that Coq is not able to build some proof about dependent types.  It is hard to generate helpful and specific error messages for problems like this, since that would require some kind of understanding of the dependency structure of a piece of code.  We will encounter many examples of case-specific tricks for recovering from errors like this one.
 
-    For our current proof, we can use a tactic [dep_destruct]%\index{tactics!dep\_destruct}% defined in the book's [CpdtTactics] module.  General elimination/inversion of dependently typed hypotheses is undecidable, as witnessed by a simple reduction to the known-undecidable problem of higher-order unification, which has come up a few times already.  The tactic [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive %\index{tactics!dependent destruction}%[dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dependent destruction]'s implementation, but for now, we treat it as a useful black box.  (In Chapter 12, we will also see how [dependent destruction] forces us to make a larger philosophical commitment about our logic than we might like, and we will see some workarounds.) *)
+    For our current proof, we can use a tactic [dep_destruct]%\index{tactics!dep\_destruct}% defined in the book's [CpdtTactics] module.  General elimination/inversion of dependently typed hypotheses is undecidable, as witnessed by a simple reduction from the known-undecidable problem of higher-order unification, which has come up a few times already.  The tactic [dep_destruct] makes a best effort to handle some common cases, relying upon the more primitive %\index{tactics!dependent destruction}%[dependent destruction] tactic that comes with Coq.  In a future chapter, we will learn about the explicit manipulation of equality proofs that is behind [dependent destruction]'s implementation, but for now, we treat it as a useful black box.  (In Chapter 12, we will also see how [dependent destruction] forces us to make a larger philosophical commitment about our logic than we might like, and we will see some workarounds.) *)
   
   dep_destruct (cfold e1).
 
