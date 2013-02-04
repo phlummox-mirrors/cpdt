@@ -808,14 +808,12 @@ Lemma even_contra' : forall n', even n' -> forall n, n' = S (n + n) -> False.
   induction 1; crush;
     match goal with
       | [ H : S ?N = ?N0 + ?N0 |- _ ] => destruct N; destruct N0
-    end; crush; eauto.
+    end; crush.
 Qed.
 
-(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem, and we also take critical advantage of a new tactic, %\index{tactics!eauto}%[eauto].
+(** We write the proof in a way that avoids the use of local variable or hypothesis names, using the %\index{tactics!match}%[match] tactic form to do pattern-matching on the goal.  We use unification variables prefixed by question marks in the pattern, and we take advantage of the possibility to mention a unification variable twice in one pattern, to enforce equality between occurrences.  The hint to rewrite with [plus_n_Sm] in a particular direction saves us from having to figure out the right place to apply that theorem.
 
-The [crush] tactic uses the tactic [intuition], which, when it runs out of tricks to try using only propositional logic, by default tries the tactic [auto], which we saw in an earlier example.  For now, think of [eauto] as a potentially more expensive version of [auto] that considers more possible proofs; see Chapter 13 for more detail.  The quick summary is that [eauto] considers applying a lemma even when the form of the current goal doesn not uniquely determine the values of all of the lemma's quantified variables.
-
-The original theorem now follows trivially from our lemma. *)
+The original theorem now follows trivially from our lemma, using a new tactic %\index{tactics!eauto}%[eauto], a fancier version of [auto] whose explanation we postpone to Chapter 13. *)
 
 Theorem even_contra : forall n, even (S (n + n)) -> False.
   intros; eapply even_contra'; eauto.
@@ -829,7 +827,7 @@ Lemma even_contra'' : forall n' n, even n' -> n' = S (n + n) -> False.
   induction 1; crush;
     match goal with
       | [ H : S ?N = ?N0 + ?N0 |- _ ] => destruct N; destruct N0
-    end; crush; eauto.
+    end; crush.
 
   (** One subgoal remains:
 
