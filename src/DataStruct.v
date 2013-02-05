@@ -41,7 +41,7 @@ Section ilist.
   | First : forall n, fin (S n)
   | Next : forall n, fin n -> fin (S n).
 
-  (** An instance of [fin] is essentially a more richly typed copy of a prefix of the natural numbers.  The type [fin n] is isomorphic to [{m : nat | m < n}].  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
+  (** An instance of [fin] is essentially a more richly typed copy of a prefix of the natural numbers.  Every element is a [First] iterated through applying [Next] a number of times that indicates which number is being selected.  For instance, the three values of type [fin 3] are [First 2], [Next (First 1)], and [Next (Next (First 0))].
 
      Now it is easy to pick a [Prop]-free type for a selection function.  As usual, our first implementation attempt will not convince the type checker, and we will attack the deficiencies one at a time.
      [[
@@ -276,7 +276,7 @@ Eval simpl in hget someValues (HNext HFirst).
 Example somePairs : hlist (fun T : Set => T * T)%type someTypes :=
   HCons (1, 2) (HCons (true, false) HNil).
 
-(** There are many more useful applications of heterogeneous lists, based on different choices of the first argument to [hlist]. *)
+(** There are many other useful applications of heterogeneous lists, based on different choices of the first argument to [hlist]. *)
 
 (* end thide *)
 
@@ -570,7 +570,7 @@ Error: Non strictly positive occurrence of "tree" in
  "forall n : nat, filist tree n -> tree"
 >>
 
-  The special-case rule for nested datatypes only works with nested uses of other inductive types, which could be replaced with uses of new mutually inductive types.  We defined [filist] recursively, so it may not be used for nested recursion.
+  The special-case rule for nested datatypes only works with nested uses of other inductive types, which could be replaced with uses of new mutually inductive types.  We defined [filist] recursively, so it may not be used in nested inductive definitions.
 
   Our final solution uses yet another of the inductive definition techniques introduced in Chapter 3, %\index{reflexive inductive type}%reflexive types.  Instead of merely using [fin] to get elements out of [ilist], we can _define_ [ilist] in terms of [fin].  For the reasons outlined above, it turns out to be easier to work with [ffin] in place of [fin]. *)
 
