@@ -244,7 +244,7 @@ Section fhlist_map.
   (* end thide *)
   (* end hide *)
 
-  (** For the inductive versions of the [ilist] definitions, we proved a lemma about the interaction of [get] and [imap].  It was a strategic choice not to attempt such a proof for the definitions that we just gave, because that sets us on a collision course with the problems that are the subject of this chapter. *)
+  (** For the inductive versions of the [ilist] definitions, we proved a lemma about the interaction of [get] and [imap].  It was a strategic choice not to attempt such a proof for the definitions that we just gave, which sets us on a collision course with the problems that are the subject of this chapter. *)
 
   Variable elm : A.
 
@@ -270,7 +270,7 @@ Section fhlist_map.
            end
        ]]
 
-   This seems like a trivial enough obligation.  The equality proof [a0] must be [eq_refl], since that is the only constructor of [eq].  Therefore, both the [match]es reduce to the point where the conclusion follows by reflexivity.
+   This seems like a trivial enough obligation.  The equality proof [a0] must be [eq_refl], the only constructor of [eq].  Therefore, both the [match]es reduce to the point where the conclusion follows by reflexivity.
     [[
     destruct a0.
 ]]
@@ -279,7 +279,7 @@ Section fhlist_map.
 User error: Cannot solve a second-order unification problem
 >>
 
-    This is one of Coq's standard error messages for informing us that its heuristics for attempting an instance of an undecidable problem about dependent typing have failed.  We might try to nudge things in the right direction by stating the lemma that we believe makes the conclusion trivial.
+    This is one of Coq's standard error messages for informing us of a failure in its heuristics for attempting an instance of an undecidable problem about dependent typing.  We might try to nudge things in the right direction by stating the lemma that we believe makes the conclusion trivial.
     [[
     assert (a0 = eq_refl _).
 ]]
@@ -432,7 +432,7 @@ forall (U : Type) (p : U) (Q : U -> Type) (x : Q p) (h : p = p),
 x = eq_rect p Q x p h ]
       ]]
 
-      The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy (which, by the way, applies all applicable rules of the definitional equality presented in this chapter's first section). *)
+      The axiom %\index{Gallina terms!eq\_rect\_eq}%[eq_rect_eq] states a "fact" that seems like common sense, once the notation is deciphered.  The term [eq_rect] is the automatically generated recursion principle for [eq].  Calling [eq_rect] is another way of [match]ing on an equality proof.  The proof we match on is the argument [h], and [x] is the body of the [match].  The statement of [eq_rect_eq] just says that [match]es on proofs of [p = p], for any [p], are superfluous and may be removed.  We can see this intuition better in code by asking Coq to simplify the theorem statement with the [compute] reduction strategy. *)
 
   (* begin hide *)
   (* begin thide *)
@@ -628,7 +628,7 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    end
         ]]
 
-        The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but that is exactly the case here and for many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations contain some positions where only variables are allowed.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
+        The conclusion has gotten markedly simpler.  It seems counterintuitive that we can have an easier time of proving a more general theorem, but such a phenomenon applies to the case here and to many other proofs that use dependent types heavily.  Speaking informally, the reason why this kind of activity helps is that [match] annotations contain some positions where only variables are allowed.  By reducing more elements of a goal to variables, built-in tactics can have more success building [match] terms under the hood.
 
         In this case, it is helpful to generalize over our two proofs as well. *)
 
@@ -646,7 +646,7 @@ The term "pf" has type "a :: (ls1 ++ ls2) ++ ls3 = a :: ls1 ++ ls2 ++ ls3"
    end
         ]]
 
-        To an experienced dependent types hacker, the appearance of this goal term calls for a celebration.  The formula has a critical property that indicates that our problems are over.  To get our proofs into the right form to apply [UIP_refl], we need to use associativity of list append to rewrite their types.  We could not do that before because other parts of the goal require the proofs to retain their original types.  In particular, the call to [fhapp] that we generalized must have type [(ls1 ++ ls2) ++ ls3], for some values of the list variables.  If we rewrite the type of the proof used to type-cast this value to something like [ls1 ++ ls2 ++ ls3 = ls1 ++ ls2 ++ ls3], then the lefthand side of the equality would no longer match the type of the term we are trying to cast.
+        To an experienced dependent types hacker, the appearance of this goal term calls for a celebration.  The formula has a critical property that indicates that our problems are over.  To get our proofs into the right form to apply [UIP_refl], we need to use associativity of list append to rewrite their types.  We could not do so before because other parts of the goal require the proofs to retain their original types.  In particular, the call to [fhapp] that we generalized must have type [(ls1 ++ ls2) ++ ls3], for some values of the list variables.  If we rewrite the type of the proof used to type-cast this value to something like [ls1 ++ ls2 ++ ls3 = ls1 ++ ls2 ++ ls3], then the lefthand side of the equality would no longer match the type of the term we are trying to cast.
 
         However, now that we have generalized over the [fhapp] call, the type of the term being type-cast appears explicitly in the goal and _may be rewritten as well_.  In particular, the final masterstroke is rewriting everywhere in our goal using associativity of list append. *)
 
@@ -903,7 +903,7 @@ Abort.
 (* EX: Show that the approaches based on K and JMeq are equivalent logically. *)
 
 (* begin thide *)
-(** Assuming axioms (like axiom K and [JMeq_eq]) is a hazardous business.  The due diligence associated with it is necessarily global in scope, since two axioms may be consistent alone but inconsistent together.  It turns out that all of the major axioms proposed for reasoning about equality in Coq are logically equivalent, so that we only need to pick one to assert without proof.  In this section, we demonstrate this by showing how each of the previous two sections' approaches reduces to the other logically.
+(** Assuming axioms (like axiom K and [JMeq_eq]) is a hazardous business.  The due diligence associated with it is necessarily global in scope, since two axioms may be consistent alone but inconsistent together.  It turns out that all of the major axioms proposed for reasoning about equality in Coq are logically equivalent, so that we only need to pick one to assert without proof.  In this section, we demonstrate by showing how each of the previous two sections' approaches reduces to the other logically.
 
    To show that [JMeq] and its axiom let us prove [UIP_refl], we start from the lemma [UIP_refl'] from the previous section.  The rest of the proof is trivial. *)
 
