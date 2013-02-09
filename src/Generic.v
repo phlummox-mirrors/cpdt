@@ -87,26 +87,23 @@ Section denote.
 End denote.
 (* end thide *)
 
-(** Some example pieces of evidence should help clarify the convention.  First, we define some helpful notations, providing different ways of writing constructor denotations.  There is really just one notation, but we need several versions of it to cover different choices of which variables will be used in the body of a definition.  %The ASCII \texttt{\textasciitilde{}>} from the notation will be rendered later as $\leadsto$.% *)
+(** Some example pieces of evidence should help clarify the convention.  First, we define a helpful notation for constructor denotations.  %The ASCII \texttt{\textasciitilde{}>} from the notation will be rendered later as $\leadsto$.% *)
 
-Notation "[ ! , ! ~> x ]" := ((fun _ _ => x) : constructorDenote _ (Con _ _)).
-Notation "[ v , ! ~> x ]" := ((fun v _ => x) : constructorDenote _ (Con _ _)).
-Notation "[ ! , r ~> x ]" := ((fun _ r => x) : constructorDenote _ (Con _ _)).
 Notation "[ v , r ~> x ]" := ((fun v r => x) : constructorDenote _ (Con _ _)).
 
 (* begin thide *)
 Definition Empty_set_den : datatypeDenote Empty_set Empty_set_dt :=
   HNil.
 Definition unit_den : datatypeDenote unit unit_dt :=
-  [!, ! ~> tt] ::: HNil.
+  [_, _ ~> tt] ::: HNil.
 Definition bool_den : datatypeDenote bool bool_dt :=
-  [!, ! ~> true] ::: [!, ! ~> false] ::: HNil.
+  [_, _ ~> true] ::: [_, _ ~> false] ::: HNil.
 Definition nat_den : datatypeDenote nat nat_dt :=
-  [!, ! ~> O] ::: [!, r ~> S (hd r)] ::: HNil.
+  [_, _ ~> O] ::: [_, r ~> S (hd r)] ::: HNil.
 Definition list_den (A : Type) : datatypeDenote (list A) (list_dt A) :=
-  [!, ! ~> nil] ::: [x, r ~> x :: hd r] ::: HNil.
+  [_, _ ~> nil] ::: [x, r ~> x :: hd r] ::: HNil.
 Definition tree_den (A : Type) : datatypeDenote (tree A) (tree_dt A) :=
-  [v, ! ~> Leaf v] ::: [!, r ~> Node (hd r) (hd (tl r))] ::: HNil.
+  [v, _ ~> Leaf v] ::: [_, r ~> Node (hd r) (hd (tl r))] ::: HNil.
 (* end thide *)
 
 (** Recall that the [hd] and [tl] calls above operate on richly typed lists, where type indices tell us the lengths of lists, guaranteeing the safety of operations like [hd].  The type annotation attached to each definition provides enough information for Coq to infer list lengths at appropriate points. *)
