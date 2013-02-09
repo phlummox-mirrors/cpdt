@@ -29,7 +29,7 @@ clean:: Makefile.coq
 doc: latex/cpdt.pdf html
 
 latex/%.v.tex: Makefile src/%.v src/%.glob
-	cd src ; coqdoc --interpolate --latex --body-only -s --no-externals \
+	cd src ; coqdoc --interpolate --latex --body-only -s \
 		$*.v -o ../latex/$*.v.tex
 
 latex/cpdt.pdf: latex/cpdt.tex $(TEX) latex/cpdt.bib
