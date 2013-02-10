@@ -315,7 +315,7 @@ User error: No matching clauses for match goal
 Abort.
 (* end thide *)
 
-(** The problem is that unification variables may not contain locally bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this applies to the [completer] tactics, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
+(** The problem is that unification variables may not contain locally bound variables.  In this case, [?P] would need to be bound to [x = x], which contains the local quantified variable [x].  By using a wildcard in the earlier version, we avoided this restriction.  To understand why this restriction affects the behavior of the [completer] tactic, recall that, in Coq, implication is shorthand for degenerate universal quantification where the quantified variable is not used.  Nonetheless, in an Ltac pattern, Coq is happy to match a wildcard implication against a universal quantification.
 
    The Coq 8.2 release includes a special pattern form for a unification variable with an explicit set of free variables.  That unification variable is then bound to a function from the free variables to the "real" value.  In Coq 8.1 and earlier, there is no such workaround.  We will see an example of this fancier binding form in Section 15.5.
 
@@ -532,7 +532,7 @@ Ltac inster n :=
     end.
 (* end thide *)
 
-(** The tactic begins by applying propositional simplification.  Next, it checks if any chain length remains, failing if not.  If so, it tries all possible ways of instantiating quantified hypotheses with properly typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
+(** The tactic begins by applying propositional simplification.  Next, it checks if any chain length remains, failing if not.  Otherwise, it tries all possible ways of instantiating quantified hypotheses with properly typed local variables.  It is critical to realize that, if the recursive call [inster n'] fails, then the [match goal] just seeks out another way of unifying its pattern against proof state.  Thus, this small amount of code provides an elegant demonstration of how backtracking [match] enables exhaustive search.
 
    We can verify the efficacy of [inster] with two short examples.  The built-in [firstorder] tactic (with no extra arguments) is able to prove the first but not the second. *)
 
@@ -637,7 +637,7 @@ Ltac search_prem tac :=
 
 (** To understand how [search_prem] works, we turn first to the final [match].  If the premise begins with a conjunction, we call the [search] procedure on each of the conjuncts, or only the first conjunct, if that already yields a case where [tac] does not fail.  The call [search P] expects and maintains the invariant that the premise is of the form [P /\ Q] for some [Q].  We pass [P] explicitly as a kind of decreasing induction measure, to avoid looping forever when [tac] always fails.  The second [match] case calls a commutativity lemma to realize this invariant, before passing control to [search].  The final [match] case tries applying [tac] directly and then, if that fails, changes the form of the goal by adding an extraneous [True] conjunct and calls [tac] again.  The %\index{tactics!progress}%[progress] tactical fails when its argument tactic succeeds without changing the current subgoal.
 
-   The [search] function itself tries the same tricks as in the last case of the final [match], using the [||] operator as a shorthand for trying one tactic and then, if the first fails, trying another.  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity lemmas to maintain the goal-form invariant.
+   The [search] function itself tries the same tricks as in the last case of the final [match], using the [||] operator as a shorthand for trying one tactic and then, if the first fails, trying another.  Additionally, if neither works, it checks if [P] is a conjunction.  If so, it calls itself recursively on each conjunct, first applying associativity/commutativity lemmas to maintain the goal-form invariant.
 
    We will also want a dual function [search_conc], which does tree search through an [imp] conclusion. *)
 
