@@ -175,7 +175,7 @@ Error: Universe inconsistency (cannot enforce Top.16 < Top.16).
 
 (** ** Inductive Definitions *)
 
-(** Predicativity restrictions also apply to inductive definitions.  As an example, let us consider a type of expression trees that allows injection of any native Coq value.  The idea is that an [exp T] stands for a reflected expression of type [T].
+(** Predicativity restrictions also apply to inductive definitions.  As an example, let us consider a type of expression trees that allows injection of any native Coq value.  The idea is that an [exp T] stands for an encoded expression of type [T].
    [[
 Inductive exp : Set -> Set :=
 | Const : forall T : Set, T -> exp T
@@ -194,7 +194,7 @@ Inductive exp : Type -> Type :=
 | Pair : forall T1 T2, exp T1 -> exp T2 -> exp (T1 * T2)
 | Eq : forall T, exp T -> exp T -> exp bool.
 
-(** Note that before we had to include an annotation [: Set] for the variable [T] in [Const]'s type, but we need no annotation now.  When the type of a variable is not known, and when that variable is used in a context where only types are allowed, Coq infers that the variable is of type [Type].  That is the right behavior here, but it was wrong for the [Set] version of [exp].
+(** Note that before we had to include an annotation [: Set] for the variable [T] in [Const]'s type, but we need no annotation now.  When the type of a variable is not known, and when that variable is used in a context where only types are allowed, Coq infers that the variable is of type [Type], the right behavior here, though it was wrong for the [Set] version of [exp].
 
    Our new definition is accepted.  We can build some sample expressions. *)
 
@@ -242,7 +242,7 @@ Inductive exp
   | Eq : forall T : Type $ Top.19 ^ , exp T -> exp T -> exp bool
   ]]
 
-  We see that the index type of [exp] has been assigned to universe level [Top.8].  In addition, each of the four occurrences of [Type] in the types of the constructors gets its own universe variable.  Each of these variables appears explicitly in the type of [exp].  In particular, any type [exp T] lives at a universe level found by incrementing by one the maximum of the four argument variables.  A consequence of this is that [exp] _must_ live at a higher universe level than any type which may be passed to one of its constructors.  This consequence led to the universe inconsistency.
+  We see that the index type of [exp] has been assigned to universe level [Top.8].  In addition, each of the four occurrences of [Type] in the types of the constructors gets its own universe variable.  Each of these variables appears explicitly in the type of [exp].  In particular, any type [exp T] lives at a universe level found by incrementing by one the maximum of the four argument variables.  Therefore, [exp] _must_ live at a higher universe level than any type which may be passed to one of its constructors.  This consequence led to the universe inconsistency.
 
   Strangely, the universe variable [Top.8] only appears in one place.  Is there no restriction imposed on which types are valid arguments to [exp]?  In fact, there is a restriction, but it only appears in a global set of universe constraints that are maintained "off to the side," not appearing explicitly in types.  We can print the current database.%\index{Vernacular commands!Print Universes}% *)
 
@@ -281,7 +281,7 @@ Inductive prod (A : Type $ Coq.Init.Datatypes.37 ^ )
 
   %\medskip%
 
-  Something interesting is revealed in the annotated definition of [prod].  A type [prod A B] lives at a universe that is the maximum of the universes of [A] and [B].  From our earlier experiments, we might expect that [prod]'s universe would in fact need to be _one higher_ than the maximum.  The critical difference is that, in the definition of [prod], [A] and [B] are defined as _parameters_; that is, they appear named to the left of the main colon, rather than appearing (possibly unnamed) to the right.
+  The annotated definition of [prod] reveals something interesting.  A type [prod A B] lives at a universe that is the maximum of the universes of [A] and [B].  From our earlier experiments, we might expect that [prod]'s universe would in fact need to be _one higher_ than the maximum.  The critical difference is that, in the definition of [prod], [A] and [B] are defined as _parameters_; that is, they appear named to the left of the main colon, rather than appearing (possibly unnamed) to the right.
 
   Parameters are not as flexible as normal inductive type arguments.  The range types of all of the constructors of a parameterized type must share the same parameters.  Nonetheless, when it is possible to define a polymorphic type in this way, we gain the ability to use the new type family in more ways, without triggering universe inconsistencies.  For instance, nested pairs of types are perfectly legal. *)
 
@@ -811,7 +811,7 @@ Check constructive_definite_description.
      : forall (A : Set) (f : A -> nat) (g : nat -> A),
        (forall x : A, g (f x) = x) ->
        forall P : A -> Prop,
-       (forall x : A, {P x} + {~ P x}) ->
+       (forall x : A, {P x} + { ~ P x}) ->
        (exists! x : A, P x) -> {x : A | P x}
        ]]
        *)
@@ -863,13 +863,13 @@ Definition choice_Set (A B : Type) (R : A -> B -> Prop) (H : forall x : A, {y : 
 
 (** %\smallskip{}%Via the Curry-Howard correspondence, this "axiom" can be taken to have the same meaning as the original.  It is implemented trivially as a transformation not much deeper than uncurrying.  Thus, we see that the utility of the axioms that we mentioned earlier comes in their usage to build programs from proofs.  Normal set theory has no explicit proofs, so the meaning of the usual axiom of choice is subtly different.  In Gallina, the axioms implement a controlled relaxation of the restrictions on information flow from proofs to programs.
 
-   However, when we combine an axiom of choice with the law of the excluded middle, the idea of "choice" becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of "programs," but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This truly is more than repackaging a function with a different type.
+   However, when we combine an axiom of choice with the law of the excluded middle, the idea of "choice" becomes more interesting.  Excluded middle gives us a highly non-computational way of constructing proofs, but it does not change the computational nature of programs.  Thus, the axiom of choice is still giving us a way of translating between two different sorts of "programs," but the input programs (which are proofs) may be written in a rich language that goes beyond normal computability.  This combination truly is more than repackaging a function with a different type.
 
    %\bigskip%
 
-   The Coq tools support a command-line flag %\index{impredicative Set}%<<-impredicative-set>>, which modifies Gallina in a more fundamental way by making [Set] impredicative.  A term like [forall T : Set, T] has type [Set], and inductive definitions in [Set] may have constructors that quantify over arguments of any types.  To maintain consistency, an elimination restriction must be imposed, similarly to the restriction for [Prop].  The restriction only applies to large inductive types, where some constructor quantifies over a type of type [Type].  In such cases, a value in this inductive type may only be pattern-matched over to yield a result type whose type is [Set] or [Prop].  This contrasts with [Prop], where the restriction applies even to non-large inductive types, and where the result type may only have type [Prop].
+   The Coq tools support a command-line flag %\index{impredicative Set}%<<-impredicative-set>>, which modifies Gallina in a more fundamental way by making [Set] impredicative.  A term like [forall T : Set, T] has type [Set], and inductive definitions in [Set] may have constructors that quantify over arguments of any types.  To maintain consistency, an elimination restriction must be imposed, similarly to the restriction for [Prop].  The restriction only applies to large inductive types, where some constructor quantifies over a type of type [Type].  In such cases, a value in this inductive type may only be pattern-matched over to yield a result type whose type is [Set] or [Prop].  This rule contrasts with the rule for [Prop], where the restriction applies even to non-large inductive types, and where the result type may only have type [Prop].
 
-   In old versions of Coq, [Set] was impredicative by default.  Later versions make [Set] predicative to avoid inconsistency with some classical axioms.  In particular, one should watch out when using impredicative [Set] with axioms of choice.  In combination with excluded middle or predicate extensionality, this can lead to inconsistency.  Impredicative [Set] can be useful for modeling inherently impredicative mathematical concepts, but almost all Coq developments get by fine without it. *)
+   In old versions of Coq, [Set] was impredicative by default.  Later versions make [Set] predicative to avoid inconsistency with some classical axioms.  In particular, one should watch out when using impredicative [Set] with axioms of choice.  In combination with excluded middle or predicate extensionality, inconsistency can result.  Impredicative [Set] can be useful for modeling inherently impredicative mathematical concepts, but almost all Coq developments get by fine without it. *)
 
 (** ** Axioms and Computation *)
 
