@@ -52,7 +52,7 @@ Even_SS
 
     It is also unfortunate not to have static typing guarantees that our tactic always behaves appropriately.  Other invocations of similar tactics might fail with dynamic type errors, and we would not know about the bugs behind these errors until we happened to attempt to prove complex enough goals.
 
-    The techniques of proof by reflection address both complaints.  We will be able to write proofs like this with constant size overhead beyond the size of the input, and we will do it with verified decision procedures written in Gallina.
+    The techniques of proof by reflection address both complaints.  We will be able to write proofs like in the example above with constant size overhead beyond the size of the input, and we will do it with verified decision procedures written in Gallina.
 
     For this example, we begin by using a type from the [MoreSpecif] module (included in the book source) to write a certified evenness checker. *)
 
@@ -245,7 +245,7 @@ tautTrue
      : True /\ True -> True \/ True /\ (True -> True)
     ]]
 
-    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here _is_ on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This is all in addition to the proof-size improvement that we have already seen.
+    It is worth considering how the reflective tactic improves on a pure-Ltac implementation.  The formula reification process is just as ad-hoc as before, so we gain little there.  In general, proofs will be more complicated than formula translation, and the "generic proof rule" that we apply here _is_ on much better formal footing than a recursive Ltac function.  The dependent type of the proof guarantees that it "works" on any input formula.  This benefit is in addition to the proof-size improvement that we have already seen.
 
     It may also be worth pointing out that our previous example of evenness testing used a function [partialOut] for sound handling of input goals that the verified decision procedure fails to prove.  Here, we prove that our procedure [tautTrue] (recall that an inductive proof may be viewed as a recursive procedure) is able to prove any goal representable in [taut], so no extra step is necessary. *)
 
