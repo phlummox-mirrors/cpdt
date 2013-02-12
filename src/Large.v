@@ -103,7 +103,7 @@ Theorem eval_times : forall k e,
   trivial.
 Qed.
 
-(** We pass %\index{tactics!induction}%[induction] an%\index{intro pattern}% _intro pattern_, using a [|] character to separate out instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
+(** We pass %\index{tactics!induction}%[induction] an%\index{intro pattern}% _intro pattern_, using a [|] character to separate instructions for the different inductive cases.  Within a case, we write [?] to ask Coq to generate a name automatically, and we write an explicit name to assign that name to the corresponding new variable.  It is apparent that, to use intro patterns to avoid proof brittleness, one needs to keep track of the seemingly unimportant facts of the orders in which variables are introduced.  Thus, the script keeps working if we replace [e] by [x], but it has become more cluttered.  Arguably, neither proof is particularly easy to follow.
 
    That category of complaint has to do with understanding proofs as static artifacts.  As with programming in general, with serious projects, it tends to be much more important to be able to support evolution of proofs as specifications change.  Unstructured proofs like the above examples can be very hard to update in concert with theorem statements.  For instance, consider how the last proof script plays out when we modify [times] to introduce a bug. *)
 
@@ -156,7 +156,7 @@ Theorem eval_times : forall k e,
     | simpl; rewrite IHe1; rewrite IHe2; rewrite mult_plus_distr_l; trivial ].
 Qed.
 
-(** We use the form of the semicolon operator that allows a different tactic to be specified for each generated subgoal.  This is an improvement in robustness of the script.  We no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.  The same could be said for scripts which use the%\index{bullets}% _bullets_ or curly braces provided by Coq 8.4, which allow code like the above to be stepped through interactively, with periods in place of the semicolons, while representing proof structure in a way that is enforced by Coq.  Interactive replay of scripts becomes easier, but readability is not really helped.
+(** We use the form of the semicolon operator that allows a different tactic to be specified for each generated subgoal.  This change improves the robustness of the script: we no longer need to worry about tactics from one case being applied to a different case.  Still, the proof script is not especially readable.  Probably most readers would not find it helpful in explaining why the theorem is true.  The same could be said for scripts using the%\index{bullets}% _bullets_ or curly braces provided by Coq 8.4, which allow code like the above to be stepped through interactively, with periods in place of the semicolons, while representing proof structure in a way that is enforced by Coq.  Interactive replay of scripts becomes easier, but readability is not really helped.
 
    The situation gets worse in considering extensions to the theorem we want to prove.  Let us add multiplication nodes to our [exp] type and see how the proof fares. *)
 
@@ -288,7 +288,7 @@ Qed.
 
    Perhaps I am a pessimist for thinking that fully formal proofs will inevitably consist of details that are uninteresting to people, but it is my preference to focus on conveying proof-specific details through choice of lemmas.  Additionally, adaptive Ltac scripts contain bits of automation that can be understood in isolation.  For instance, in a big [repeat match] loop, each case can generally be digested separately, which is a big contrast from trying to understand the hierarchical structure of a script in a more common style.  Adaptive scripts rely on variable binding, but generally only over very small scopes, whereas understanding a traditional script requires tracking the identities of local variables potentially across pages of code.
 
-   One might also wonder why it makes sense to prove all theorems automatically (in the sense of adaptive proof scripts) but not construct all programs automatically.  My view there is that _program synthesis_ is a very useful idea that deserves broader application!  In practice, there are difficult obstacles in the way of finding a program automatically from its specification.  A typical specification is not exhaustive in its description of program properties.  For instance, details of performance on particular machine architectures are often omitted.  As a result, a synthesized program may be correct in some sense while suffering from deficiencies in other senses.  Program synthesis research will continue to come up with ways of dealing with this problem, but the situation for theorem proving is fundamentally different.  Following mathematical practice, the only property of a formal proof that we care about is which theorem it proves, and it is trivial to check this property automatically.  In other words, with a simple criterion for what makes a proof acceptable, automatic search is straightforward.  Of course, in practice we also care about understandability of proofs to facilitate long-term maintenance, and that is just what the techniques outlined above are meant to support, and the next section gives some related advice. *)
+   One might also wonder why it makes sense to prove all theorems automatically (in the sense of adaptive proof scripts) but not construct all programs automatically.  My view there is that _program synthesis_ is a very useful idea that deserves broader application!  In practice, there are difficult obstacles in the way of finding a program automatically from its specification.  A typical specification is not exhaustive in its description of program properties.  For instance, details of performance on particular machine architectures are often omitted.  As a result, a synthesized program may be correct in some sense while suffering from deficiencies in other senses.  Program synthesis research will continue to come up with ways of dealing with this problem, but the situation for theorem proving is fundamentally different.  Following mathematical practice, the only property of a formal proof that we care about is which theorem it proves, and it is trivial to check this property automatically.  In other words, with a simple criterion for what makes a proof acceptable, automatic search is straightforward.  Of course, in practice we also care about understandability of proofs to facilitate long-term maintenance, which is just what motivates the techniques outlined above, and the next section gives some related advice. *)
 
 
 (** * Debugging and Maintaining Automation *)
@@ -444,7 +444,7 @@ Theorem reassoc_correct : forall e, eval (reassoc e) = eval e.
 
   induction e.
 
-  (** Since we see the subgoals before any simplification occurs, it is clear that this is the case for constants.  Our [t] makes short work of it. *)
+  (** Since we see the subgoals before any simplification occurs, it is clear that we are looking at the case for constants.  Our [t] makes short work of it. *)
   
   t.
 
@@ -673,6 +673,7 @@ End GROUP_THEOREMS.
 (** We implement generic proofs of these theorems with a functor, whose input is an arbitrary group [M]. %\index{Vernacular commands!Module}% *)
 
 Module GroupProofs (M : GROUP) : GROUP_THEOREMS with Module M := M.
+
   (** As in ML, Coq provides multiple options for ascribing signatures to modules.  Here we use just the colon operator, which implements%\index{opaque ascription}% _opaque ascription_, hiding all details of the module not exposed by the signature.  Another option is%\index{transparent ascription}% _transparent ascription_ via the [<:] operator, which checks for signature compatibility without hiding implementation details.  Here we stick with opaque ascription but employ the [with] operation to add more detail to a signature, exposing just those implementation details that we need to.  For instance, here we expose the underlying group representation set and operator definitions.  Without such a refinement, we would get an output module proving theorems about some unknown group, which is not very useful.  Also note that opaque ascription can in Coq have some undesirable consequences without analogues in ML, since not just the types but also the _definitions_ of identifiers have significance in type checking and theorem proving. *)
 
   Module M := M.
@@ -874,4 +875,6 @@ Require Import Lib.
 ((coq-mode . ((coq-prog-args .
   ("-emacs-U" "-R" "LIB" "Lib" "-R" "CLIENT" "Client")))))
 >>
+
+   A downside of this approach is that users of your code may not want to trust the arbitrary Emacs Lisp programs that you are allowed to place in such files, so that they prefer to add mappings manually.
 *)
