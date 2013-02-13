@@ -371,7 +371,7 @@ Error: Impossible to unify "?35 = ?34" with "unit = unit".
 
 Coq tells us that we cannot, in fact, apply our lemma [symmetry] here, but the error message seems defective.  In particular, one might think that [apply] should unify [?35] and [?34] with [unit] to ensure that the unification goes through.  In fact, the issue is in a part of the unification problem that is _not_ shown to us in this error message!
 
-The following command is the secret to getting better error messages in such cases: *)
+The following command is the secret to getting better error messages in such cases:%\index{Vernacular commands!Set Printing All}% *)
 
   Set Printing All.
   (** %\vspace{-.15in}%[[

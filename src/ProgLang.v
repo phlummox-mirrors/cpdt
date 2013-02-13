@@ -299,7 +299,7 @@ Module FirstOrder.
     induction e; pl.
   Qed.
 
-  (** The lemma statement is a mouthful, with all its details of typing contexts and substitutions.  It is usually prudent to state a final theorem in as simple a way as possible, to help your readers believe that you have proved what they expect.  We do that here for the simple case of terms with empty typing contexts. *)
+  (** The lemma statement is a mouthful, with all its details of typing contexts and substitutions.  It is usually prudent to state a final theorem in as simple a way as possible, to help your readers believe that you have proved what they expect.  We follow that advice here for the simple case of terms with empty typing contexts. *)
 
   Theorem unletSound : forall t (e : term nil t),
     termDenote (unlet e HNil) HNil = termDenote e HNil.
@@ -313,7 +313,7 @@ End FirstOrder.
 
 (** * Parametric Higher-Order Abstract Syntax *)
 
-(** In contrast to first-order encodings,%\index{higher-order syntax}% _higher-order_ encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an%\index{object language}% _object language_ (the language being formalized) can be represented using the binding constructs of the%\index{meta language}% _meta language_ (the language in which the formalization is done).  The best known higher-order encoding is called%\index{higher-order abstract syntax}\index{HOAS}% _higher-order abstract syntax_ (HOAS) %\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
+(** In contrast to first-order encodings,%\index{higher-order syntax}% _higher-order_ encodings avoid explicit modeling of variable identity.  Instead, the binding constructs of an%\index{object language}% _object language_ (the language being formalized) can be represented using the binding constructs of the%\index{meta language}% _meta language_ (the language in which the formalization is done).  The best known higher-order encoding is called%\index{higher-order abstract syntax}% _higher-order abstract syntax_ (HOAS) %\cite{HOAS}%, and we can start by attempting to apply it directly in Coq. *)
 
 Module HigherOrder.
 
@@ -332,7 +332,7 @@ Module HigherOrder.
 
    However, Coq rejects this definition for failing to meet the %\index{strict positivity requirement}%strict positivity restriction.  For instance, the constructor [Abs] takes an argument that is a function over the same type family [term] that we are defining.  Inductive definitions of this kind can be used to write non-terminating Gallina programs, which breaks the consistency of Coq's logic.
 
-   An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parameterize the syntax type by a type family standing for a _representation of variables_. *)
+   An alternate higher-order encoding is%\index{parametric higher-order abstract syntax}\index{PHOAS|see{parametric higher-order abstract syntax}}% _parametric HOAS_, as introduced by Washburn and Weirich%~\cite{BGB}% for Haskell and tweaked by me%~\cite{PhoasICFP08}% for use in Coq.  Here the idea is to parameterize the syntax type by a type family standing for a _representation of variables_. *)
 
   Section var.
     Variable var : type -> Type.
@@ -367,13 +367,15 @@ Module HigherOrder.
   Example three_the_hard_way : Term Nat := fun var =>
     App (App (add var) (Const 1)) (Const 2).
 
-  (** The argument [var] does not even appear in the function body for [add].  How can that be?  By giving our terms expressive types, we allow Coq to infer many arguments for us.  In fact, we do not even need to name the [var] argument!  Even though these formal parameters appear as underscores, they _are_ mentioned in the function bodies that type inference calculates. *)
+  (** The argument [var] does not even appear in the function body for [add].  How can that be?  By giving our terms expressive types, we allow Coq to infer many arguments for us.  In fact, we do not even need to name the [var] argument! *)
 
   Example add' : Term (Func Nat (Func Nat Nat)) := fun _ =>
     Abs (fun x => Abs (fun y => Plus (Var x) (Var y))).
 
   Example three_the_hard_way' : Term Nat := fun _ =>
     App (App (add' _) (Const 1)) (Const 2).
+
+  (** Even though the [var] formal parameters appear as underscores, they _are_ mentioned in the function bodies that type inference calculates. *)
 
 
   (** ** Functional Programming with PHOAS *)
