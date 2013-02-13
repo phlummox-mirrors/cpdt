@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Finished last pass before entering MIT Press editorial process</title>
+        <pubDate>Wed, 13 Feb 2013 10:23:25 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>This is it: the content is largely frozen now, and next comes copyediting by the publisher.</description>
+</item>
+
+<item>
         <title>Batch of changes based on proofreader feedback</title>
         <pubDate>Sun, 6 Jan 2013 16:34:49 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
