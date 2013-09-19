@@ -17,6 +17,12 @@ As always, you can step through the source file <<StackMachine.v>> for this chap
 Require Import Bool Arith List CpdtTactics.
 Set Implicit Arguments.
 
+(* begin hide *)
+(* begin thide *)
+Definition bleh := app_assoc.
+(* end thide *)
+(* end hide *)
+
 (** In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with the above two lines, with the import list tweaked as appropriate, considering which definitions the chapter uses.  The second command above affects the default behavior of definitions regarding type inference. *)
 
 
@@ -400,12 +406,6 @@ app_assoc_reverse
 ]]
 
 If we did not already know the name of the theorem, we could use the %\index{Vernacular commands!SearchRewrite}%[SearchRewrite] command to find it, based on a pattern that we would like to rewrite: *)
-
-(* begin hide *)
-(* begin thide *)
-Definition bleh := app_assoc.
-(* end thide *)
-(* end hide *)
 
 SearchRewrite ((_ ++ _) ++ _).
 (** %\vspace{-.15in}%[[
