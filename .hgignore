@@ -17,6 +17,8 @@ templates/*.v
 
 staging/html/.dir
 cpdt.tgz
+cpdtlib.tgz
+cpdtlib
 
 *.glob
 *.v.d

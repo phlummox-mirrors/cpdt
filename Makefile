@@ -52,8 +52,16 @@ templates/%.v: src/%.v tools/make_template.ml
 cpdt.tgz:
 	hg archive -t tgz $@
 
-install: cpdt.tgz latex/cpdt.pdf latex/exercises.pdf html
-	cp cpdt.tgz staging/
+cpdtlib.tgz: Makefile
+	mkdir -p cpdtlib
+	cp src/LICENSE cpdtlib
+	cp src/CpdtTactics.v cpdtlib
+	cp src/MoreSpecif.v cpdtlib
+	cp src/DepList.v cpdtlib
+	tar zcf cpdtlib.tgz cpdtlib/*
+
+install: cpdt.tgz cpdtlib.tgz latex/cpdt.pdf latex/exercises.pdf html
+	cp cpdt*.tgz staging/
 	cp latex/cpdt.pdf staging/
 	cp latex/exercises.pdf staging/ex/
 	cp -R html staging/
