@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>CPDT now available in print!</title>
+        <pubDate>Fri, 13 Dec 2013 13:05:17 EST</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>I'm happy to report that the print version of the book has been released officially!  My web site for the book now includes links to online purchasing options.</description>
+</item>
+
+<item>
         <title>Finished last pass before entering MIT Press editorial process</title>
         <pubDate>Wed, 13 Feb 2013 10:23:25 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
