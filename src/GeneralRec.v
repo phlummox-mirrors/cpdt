@@ -940,6 +940,6 @@ Theorem test_map : run (map (fun x => Return (S x)) (1 :: 2 :: 3 :: nil))
   exists 1; reflexivity.
 Qed.
 
-(** One further disadvantage of [comp] is that we cannot prove an inversion lemma for executions of [Bind] without appealing to an %\emph{axiom}%, a logical complication that we discuss at more length in Chapter 12.  The other three techniques allow proof of all the important theorems within the normal logic of Coq.
+(** One further disadvantage of [comp] is that we cannot prove an inversion lemma for executions of [Bind] without appealing to an _axiom_, a logical complication that we discuss at more length in Chapter 12.  The other three techniques allow proof of all the important theorems within the normal logic of Coq.
 
 Perhaps one theme of our comparison is that one must trade off between, on one hand, functional programming expressiveness and compatibility with normal Coq types and computation; and, on the other hand, the level of proof obligations one is willing to handle at function definition time. *)
