@@ -671,12 +671,15 @@ Defined.
 
 (** We can build a [sumor] version of the "bind" notation and use it to write a similarly straightforward version of this function.  %Again, the notation definition exposes the ASCII syntax with an operator \texttt{<-{}-}, while the later code uses a nicer long left arrow $\longleftarrow$.% *)
 
+(** %\def\indash{-}\catcode`-=13\def-{\indash\kern0pt }% *)
+
 Notation "x <-- e1 ; e2" := (match e1 with
                                | inright _ => !!
                                | inleft (exist x _) => e2
                              end)
 (right associativity, at level 60).
 
+(** %\catcode`-=12% *)(* *)
 (** printing * $\times$ *)
 
 (* EX: Write a more expressively typed version of the last exercise. *)
