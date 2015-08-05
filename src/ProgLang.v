@@ -1,4 +1,4 @@
-(* Copyright (c) 2011-2012, Adam Chlipala
+(* Copyright (c) 2011-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import FunctionalExtensionality List.
 
-Require Import CpdtTactics DepList.
+Require Import Cpdt.CpdtTactics Cpdt.DepList.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 (** %\chapter{A Taste of Reasoning About Programming Language Syntax}% *)
@@ -23,10 +24,13 @@ Set Implicit Arguments.
 
    I apologize in advance to those readers not familiar with the theory of programming language semantics.  I will make a few remarks intended to relate the material here with common ideas in semantics, but these remarks should be safe for others to skip.
 
-   We will define a small programming language and reason about its semantics, expressed as an interpreter into Coq terms, much as we have done in examples throughout the book.  It will be helpful to build a slight extension of [crush] that tries to apply %\index{functional extensionality}%functional extensionality, an axiom we met in Chapter 12, which says that two functions are equal if they map equal inputs to equal outputs. *)
+   We will define a small programming language and reason about its semantics, expressed as an interpreter into Coq terms, much as we have done in examples throughout the book.  It will be helpful to build a slight extension of [crush] that tries to apply %\index{functional extensionality}%functional extensionality, an axiom we met in Chapter 12, which says that two functions are equal if they map equal inputs to equal outputs.  We also use [f_equal] to simplify goals of a particular form that will come up with the term denotation function that we define shortly. *)
 
 Ltac ext := let x := fresh "x" in extensionality x.
-Ltac pl := crush; repeat (ext || f_equal; crush).
+Ltac pl := crush; repeat (match goal with
+                            | [ |- (fun x => _) = (fun y => _) ] => ext
+                            | [ |- _ _ _ ?E _ = _ _ _ ?E _ ] => f_equal
+                          end; crush).
 
 (** At this point in the book source, some auxiliary proofs also appear. *)
 

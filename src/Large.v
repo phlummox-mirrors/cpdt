@@ -1,4 +1,4 @@
-(* Copyright (c) 2009-2012, Adam Chlipala
+(* Copyright (c) 2009-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import Arith.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -390,7 +391,7 @@ Qed.
 
 (** We can take the final tactic and move it into the initial part of the proof script, arriving at a nicely automated proof. *)
 
-Reset t.
+Reset cfold_correct.
 
 Theorem cfold_correct : forall t (e : exp t), expDenote e = expDenote (cfold e).
   induction e; crush;

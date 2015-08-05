@@ -1,4 +1,4 @@
-(* Copyright (c) 2011-2012, Adam Chlipala
+(* Copyright (c) 2011-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -9,12 +9,12 @@
 
 (* begin hide *)
 
-Require Import List.
+Require Import List Omega.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
-
+Set Asymmetric Patterns.
 (* end hide *)
 
 (** %\part{Proof Engineering}
@@ -684,12 +684,6 @@ Example eval1' : forall var, eval var (Plus Var (Plus (Const 8) Var)) (2 * var +
   eauto.
 Qed.
 (* end thide *)
-
-(* begin hide *)
-(* begin thide *)
-Definition e1s := eval1'_subproof.
-(* end thide *)
-(* end hide *)
 
 Print eval1'.
 (** %\vspace{-.15in}%[[

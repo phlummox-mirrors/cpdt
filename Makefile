@@ -17,8 +17,8 @@ coq: Makefile.coq
 
 Makefile.coq: Makefile $(VS)
 	coq_makefile $(VS) \
-		COQC = "coqc -I src" \
-		COQDEP = "coqdep -I src" \
+		COQC = "coqc -R src Cpdt" \
+		COQDEP = "coqdep -R src Cpdt" \
 		-o Makefile.coq
 
 clean:: Makefile.coq

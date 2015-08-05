@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import List.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -359,6 +360,9 @@ Error: The reference S was not found in the current environment
    The problem is that Ltac treats the expression [S (length ls')] as an invocation of a tactic [S] with argument [length ls'].  We need to use a special annotation to "escape into" the Gallina parsing nonterminal.%\index{tactics!constr}% *)
 
 (* begin thide *)
+(* begin hide *)
+Definition red_herring := O.
+(* end hide *)
 Ltac length ls :=
   match ls with
     | nil => O
@@ -383,9 +387,15 @@ Goal False.
 Abort.
 
 Reset length.
+(* begin hide *)
+Reset red_herring.
+(* end hide *)
 
 (** The thing to remember is that Gallina terms built by tactics must be bound explicitly via [let] or a similar technique, rather than inserting Ltac calls directly in other Gallina terms. *)
 
+(* begin hide *)
+Definition red_herring := O.
+(* end hide *)
 Ltac length ls :=
   match ls with
     | nil => O
@@ -452,7 +462,13 @@ One other gotcha shows up when we want to debug our Ltac functional programs.  W
 
 (* begin thide *)
 Reset length.
+(* begin hide *)
+Reset red_herring.
+(* end hide *)
 
+(* begin hide *)
+Definition red_herring := O.
+(* end hide *)
 Ltac length ls :=
   idtac ls;
   match ls with
@@ -484,6 +500,9 @@ Abort.
    The solution is like in Haskell: we must "monadify" our pure program to give it access to side effects.  The trouble is that the embedded tactic language has no [return] construct.  Proof scripts are about proving theorems, not calculating results.  We can apply a somewhat awkward workaround that requires translating our program into%\index{continuation-passing style}% _continuation-passing style_ %\cite{continuations}%, a program structuring idea popular in functional programming. *)
 
 Reset length.
+(* begin hide *)
+Reset red_herring.
+(* end hide *)
 
 Ltac length ls k :=
   idtac ls;
@@ -811,6 +830,9 @@ Qed.
 
 (** Now we can write a tactic that encapsulates the pattern we just employed, instantiating all quantifiers of a particular hypothesis. *)
 
+(* begin hide *)
+Definition red_herring := O.
+(* end hide *)
 Ltac insterU H :=
   repeat match type of H with
            | forall x : ?T, _ =>
@@ -923,6 +945,9 @@ Existential 1 =
 End t7.
 
 Reset insterU.
+(* begin hide *)
+Reset red_herring.
+(* end hide *)
 
 (** We can redefine [insterU] to treat implications differently.  In particular, we pattern-match on the type of the type [T] in [forall x : ?T, ...].  If [T] has type [Prop], then [x]'s instantiation should be thought of as a proof.  Thus, instead of picking a new unification variable for it, we instead apply a user-supplied tactic [tac].  It is important that we end this special [Prop] case with [|| fail 1], so that, if [tac] fails to prove [T], we abort the instantiation, rather than continuing on to the default quantifier handling.  Also recall that the tactic form %\index{tactics!solve}%[solve [ t ]] fails if [t] does not completely solve the goal. *)
 

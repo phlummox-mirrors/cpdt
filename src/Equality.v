@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import Eqdep JMeq List.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -832,18 +833,17 @@ eq_ind_r
        P x -> forall y : A, y = x -> P y
 ]]
 
-The corresponding lemma used for [JMeq] in the proof of [pair_cong] is %\index{Gallina terms!internal\_JMeq\_rew\_r}%[internal_JMeq_rew_r], which, confusingly, is defined by [rewrite] as needed, so it is not available for checking until after we apply it. *)
+The corresponding lemma used for [JMeq] in the proof of [pair_cong] is defined internally by [rewrite as needed, but its type happens to be the following. *)
 
-Check internal_JMeq_rew_r.
 (** %\vspace{-.15in}%[[
 internal_JMeq_rew_r
      : forall (A : Type) (x : A) (B : Type) (b : B)
          (P : forall B0 : Type, B0 -> Type), P B b -> x == b -> P A x
 ]]
 
-The key difference is that, where the [eq] lemma is parameterized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply [internal_JMeq_rew_r], it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and _its type_.  In other words, the predicate must be _polymorphic_ in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done %\%naive%{}%ly leads to a type error.
+The key difference is that, where the [eq] lemma is parameterized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply the alternative principle, it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and _its type_.  In other words, the predicate must be _polymorphic_ in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done %\%naive%{}%ly leads to a type error.
 
-When [rewrite] cannot figure out how to apply [internal_JMeq_rew_r] for [x == y] where [x] and [y] have the same type, the tactic can instead use an alternate theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
+When [rewrite] cannot figure out how to apply the alternative principle for [x == y] where [x] and [y] have the same type, the tactic can instead use an alternate theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
 
 Check JMeq_ind_r.
 (** %\vspace{-.15in}%[[
@@ -852,7 +852,7 @@ JMeq_ind_r
        P x -> forall y : A, y == x -> P y
 ]]
 
-Ironically, where in the proof of [fhapp_assoc'] we used [rewrite app_assoc] to make it clear that a use of [JMeq] was actually homogeneously typed, we created a situation where [rewrite] applied the axiom-based [JMeq_ind_r] instead of the axiom-free [internal_JMeq_rew_r]!
+Ironically, where in the proof of [fhapp_assoc'] we used [rewrite app_assoc] to make it clear that a use of [JMeq] was actually homogeneously typed, we created a situation where [rewrite] applied the axiom-based [JMeq_ind_r] instead of the axiom-free principle!
 
 For another simple example, consider this theorem that applies a heterogeneous equality to prove a congruence fact. *)
 
@@ -874,7 +874,7 @@ Theorem out_of_luck : forall n m : nat,
 *)
   apply JMeq_ind_r with (x := m); auto.
 
-  (** However, we run into trouble trying to get the goal into a form compatible with [internal_JMeq_rew_r.] *)
+  (** However, we run into trouble trying to get the goal into a form compatible with the alternative principle. *)
 
   Undo 2.
 (** %\vspace{-.15in}%[[

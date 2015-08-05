@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import Arith List.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -489,6 +490,11 @@ Implicit Arguments fhget [A B elm ls].
 
 (** %\index{index function}%Indexed lists can be useful in defining other inductive types with constructors that take variable numbers of arguments.  In this section, we consider parameterized trees with arbitrary branching factor. *)
 
+(* begin hide *)
+Definition red_herring := O.
+(* working around a bug in Coq 8.5! *)
+(* end hide *)
+
 Section tree.
   Variable A : Set.
 
@@ -553,6 +559,10 @@ The automatically generated induction principle is too weak.  For the [Node] cas
 Abort.
 
 Reset tree.
+(* begin hide *)
+Reset red_herring.
+(* working around a bug in Coq 8.5! *)
+(* end hide *)
 
 (** First, let us try using our recursive definition of [ilist]s instead of the inductive version. *)
 

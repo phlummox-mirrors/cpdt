@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2009, Adam Chlipala
+(* Copyright (c) 2008-2009, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -9,9 +9,10 @@
 
 (* Dependent list types presented in Chapter 9 *)
 
-Require Import Arith List CpdtTactics.
+Require Import Arith List Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 
 
 Section ilist.

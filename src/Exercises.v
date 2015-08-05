@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,7 +10,7 @@
 (* begin hide *)
 Require Import List.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 (* end hide *)
 
 (** These exercises were originally included inline in the text, but my latest feeling is that I don't have the time to maintain the exercises at a sufficient quality level to match the level I'm targetting for the rest of the book.  I'm including them in this file for now. *)
