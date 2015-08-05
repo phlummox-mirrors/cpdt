@@ -30,6 +30,8 @@ Ltac ext := let x := fresh "x" in extensionality x.
 Ltac pl := crush; repeat (match goal with
                             | [ |- (fun x => _) = (fun y => _) ] => ext
                             | [ |- _ _ _ ?E _ = _ _ _ ?E _ ] => f_equal
+                            | [ |- ?E ::: _ = ?E ::: _ ] => f_equal
+                            | [ |- hmap _ ?E = hmap _ ?E ] => f_equal
                           end; crush).
 
 (** At this point in the book source, some auxiliary proofs also appear. *)

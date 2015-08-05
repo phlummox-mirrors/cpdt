@@ -852,7 +852,7 @@ Require Import Lib.
 <<
 (custom-set-variables
   ...
-  '(coq-prog-args '("-I" "/path/to/cpdt/src"))
+  '(coq-prog-args '("-R" "/path/to/cpdt/src" "Cpdt"))
   ...
 )
 >>
@@ -862,7 +862,7 @@ Require Import Lib.
 <<
 (custom-set-variables
   ...
-; '(coq-prog-args '("-I" "/path/to/cpdt/src"))
+; '(coq-prog-args '("-R" "/path/to/cpdt/src" "Cpdt"))
   '(coq-prog-args '("-R" "LIB" "Lib" "-R" "CLIENT" "Client"))
   ...
 )
