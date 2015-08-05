@@ -1,4 +1,4 @@
-(* Copyright (c) 2008, 2011, Adam Chlipala
+(* Copyright (c) 2008, 2011, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,6 +10,7 @@
 (* Types and notations presented in Chapter 6 *)
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 
 
 Notation "!" := (False_rec _ _) : specif_scope.

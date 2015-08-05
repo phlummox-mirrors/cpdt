@@ -7,9 +7,7 @@
  *   http://creativecommons.org/licenses/by-nc-nd/3.0/
  *)
 
-Require Import Eqdep List.
-
-Require Omega.
+Require Import Eqdep List Omega.
 
 Set Implicit Arguments.
 

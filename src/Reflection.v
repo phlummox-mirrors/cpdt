@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import List.
 
-Require Import CpdtTactics MoreSpecif.
+Require Import Cpdt.CpdtTactics Cpdt.MoreSpecif.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -793,6 +794,9 @@ Fixpoint termDenote t (e : term t) : typeDenote t :=
 
 (** Here is a %\%naive%{}% first attempt at a reification tactic. *)
 
+(* begin hide *)
+Definition red_herring := O.
+(* end hide *)
 Ltac refl' e :=
   match e with
     | ?E1 + ?E2 =>
@@ -812,6 +816,10 @@ Ltac refl' e :=
    To handle functions in general, we will use the pattern variable form [@?X], which allows [X] to mention newly introduced variables that are declared explicitly.  A use of [@?X] must be followed by a list of the local variables that may be mentioned.  The variable [X] then comes to stand for a Gallina function over the values of those variables.  For instance: *)
 
 Reset refl'.
+(* begin hide *)
+Reset red_herring.
+Definition red_herring := O.
+(* end hide *)
 Ltac refl' e :=
   match e with
     | ?E1 + ?E2 =>
@@ -829,6 +837,9 @@ Ltac refl' e :=
 (** Now, in the abstraction case, we bind [E1] as a function from an [x] value to the value of the abstraction body.  Unfortunately, our recursive call there is not destined for success.  It will match the same abstraction pattern and trigger another recursive call, and so on through infinite recursion.  One last refactoring yields a working procedure.  The key idea is to consider every input to [refl'] as _a function over the values of variables introduced during recursion_. *)
 
 Reset refl'.
+(* begin hide *)
+Reset red_herring.
+(* end hide *)
 Ltac refl' e :=
   match eval simpl in e with
     | fun x : ?T => @?E1 x + @?E2 x =>
@@ -838,7 +849,7 @@ Ltac refl' e :=
 
     | fun (x : ?T) (y : nat) => @?E1 x y =>
       let r1 := refl' (fun p : T * nat => E1 (fst p) (snd p)) in
-        constr:(fun x => Abs (fun y => r1 (x, y)))
+        constr:(fun u => Abs (fun v => r1 (u, v)))
 
     | _ => constr:(fun x => Const (e x))
   end.

@@ -1,4 +1,4 @@
-(* Copyright (c) 2006, 2011-2012, Adam Chlipala
+(* Copyright (c) 2006, 2011-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -8,11 +8,12 @@
  *)
 
 (* begin hide *)
-Require Import Arith List.
+Require Import Arith List Omega.
 
-Require Import CpdtTactics Coinductive.
+Require Import Cpdt.CpdtTactics Cpdt.Coinductive.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 

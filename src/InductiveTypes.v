@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -10,9 +10,10 @@
 (* begin hide *)
 Require Import List.
 
-Require Import CpdtTactics.
+Require Import Cpdt.CpdtTactics.
 
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 (* end hide *)
 
 
@@ -394,11 +395,11 @@ Theorem plus_assoc : forall n1 n2 n3 : nat, plus (plus n1 n2) n3 = plus n1 (plus
 Qed.
 (* end thide *)
 
+Hint Rewrite n_plus_O plus_assoc.
+
 Theorem nsize_nsplice : forall tr1 tr2 : nat_btree, nsize (nsplice tr1 tr2)
   = plus (nsize tr2) (nsize tr1).
 (* begin thide *)
-  Hint Rewrite n_plus_O plus_assoc.
-
   induction tr1; crush.
 Qed.
 (* end thide *)
@@ -1082,11 +1083,11 @@ Qed.
 
 (** Now we begin the proof of the theorem, adding the lemma [plus_S] as a hint. *)
 
+Hint Rewrite plus_S.
+
 Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   = plus (ntsize tr2) (ntsize tr1).
 (* begin thide *)
-  Hint Rewrite plus_S.
-
   (** We know that the standard induction principle is insufficient for the task, so we need to provide a %\index{tactics!using}%[using] clause for the [induction] tactic to specify our alternate principle. *)
 
   induction tr1 using nat_tree_ind'; crush.
@@ -1115,7 +1116,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   (** We can go further in automating the proof by exploiting the hint mechanism.%\index{Vernacular commands!Hint Extern}% *)
 
   Restart.
-
+  
   Hint Extern 1 (ntsize (match ?LS with Nil => _ | Cons _ _ => _ end) = _) =>
     destruct LS; crush.
   induction tr1 using nat_tree_ind'; crush.

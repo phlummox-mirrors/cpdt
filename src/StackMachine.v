@@ -1,4 +1,4 @@
-(* Copyright (c) 2008-2012, Adam Chlipala
+(* Copyright (c) 2008-2012, 2015, Adam Chlipala
  * 
  * This work is licensed under a
  * Creative Commons Attribution-Noncommercial-No Derivative Works 3.0
@@ -16,6 +16,7 @@ As always, you can step through the source file <<StackMachine.v>> for this chap
 
 Require Import Bool Arith List CpdtTactics.
 Set Implicit Arguments.
+Set Asymmetric Patterns.
 
 (* begin hide *)
 (* begin thide *)
@@ -23,7 +24,7 @@ Definition bleh := app_assoc.
 (* end thide *)
 (* end hide *)
 
-(** In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with the above two lines, with the import list tweaked as appropriate, considering which definitions the chapter uses.  The second command above affects the default behavior of definitions regarding type inference. *)
+(** In general, similar commands will be hidden in the book rendering of each chapter's source code, so you will need to insert them in from-scratch replayings of the code that is presented.  To be more specific, every chapter begins with the above three lines, with the import list tweaked as appropriate, considering which definitions the chapter uses.  The second command above affects the default behavior of definitions regarding type inference, and the third allows for more concise pattern-matching syntax in Coq versions 8.5 and higher (having no effect in earlier versions). *)
 
 
 (** * Arithmetic Expressions Over Natural Numbers *)

@@ -36,3 +36,4 @@ exercises.tex
 *.pdf
 *.ind
 *.out
+src/.coq-native
