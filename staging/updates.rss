@@ -12,6 +12,14 @@
 <docs>http://blogs.law.harvard.edu/tech/rss</docs>
 
 <item>
+        <title>Book source updated for Coq 8.5</title>
+        <pubDate>Wed, 5 Aug 2015 18:08:34 EDT</pubDate>
+        <link>http://adam.chlipala.net/cpdt/</link>
+        <author>adamc@csail.mit.edu</author>
+        <description>The online versions of the book have been updated with code that builds not only in Coq version 8.4, current at the time that the print book was released, but now also builds in Coq 8.5, which is in beta release now.</description>
+</item>
+
+<item>
         <title>CPDT now available in print!</title>
         <pubDate>Fri, 13 Dec 2013 13:05:17 EST</pubDate>
         <link>http://adam.chlipala.net/cpdt/</link>
