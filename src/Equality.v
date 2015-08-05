@@ -833,7 +833,7 @@ eq_ind_r
        P x -> forall y : A, y = x -> P y
 ]]
 
-The corresponding lemma used for [JMeq] in the proof of [pair_cong] is defined internally by [rewrite as needed, but its type happens to be the following. *)
+The corresponding lemma used for [JMeq] in the proof of [pair_cong] is defined internally by [rewrite] as needed, but its type happens to be the following. *)
 
 (** %\vspace{-.15in}%[[
 internal_JMeq_rew_r
@@ -843,7 +843,7 @@ internal_JMeq_rew_r
 
 The key difference is that, where the [eq] lemma is parameterized on a predicate of type [A -> Prop], the [JMeq] lemma is parameterized on a predicate of type more like [forall A : Type, A -> Prop].  To apply [eq_ind_r] with a proof of [x = y], it is only necessary to rearrange the goal into an application of a [fun] abstraction to [y].  In contrast, to apply the alternative principle, it is necessary to rearrange the goal to an application of a [fun] abstraction to both [y] and _its type_.  In other words, the predicate must be _polymorphic_ in [y]'s type; any type must make sense, from a type-checking standpoint.  There may be cases where the former rearrangement is easy to do in a type-correct way, but the second rearrangement done %\%naive%{}%ly leads to a type error.
 
-When [rewrite] cannot figure out how to apply the alternative principle for [x == y] where [x] and [y] have the same type, the tactic can instead use an alternate theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
+When [rewrite] cannot figure out how to apply the alternative principle for [x == y] where [x] and [y] have the same type, the tactic can instead use a different theorem, which is easy to prove as a composition of [eq_ind_r] and [JMeq_eq]. *)
 
 Check JMeq_ind_r.
 (** %\vspace{-.15in}%[[

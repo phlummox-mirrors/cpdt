@@ -1116,7 +1116,7 @@ Theorem ntsize_ntsplice : forall tr1 tr2 : nat_tree, ntsize (ntsplice tr1 tr2)
   (** We can go further in automating the proof by exploiting the hint mechanism.%\index{Vernacular commands!Hint Extern}% *)
 
   Restart.
-  
+
   Hint Extern 1 (ntsize (match ?LS with Nil => _ | Cons _ _ => _ end) = _) =>
     destruct LS; crush.
   induction tr1 using nat_tree_ind'; crush.
