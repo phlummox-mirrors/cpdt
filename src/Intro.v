@@ -203,7 +203,7 @@ At the start of the next chapter, I assume that you have installed Coq and Proof
 <<
 (custom-set-variables
   ...
-  '(coq-prog-args '("-I" "DIR/src"))
+  '(coq-prog-args '("-R" "DIR/src" "Cpdt"))
   ...
 )
 >>
@@ -211,13 +211,13 @@ The extra arguments demonstrated here are the proper choices for working with th
 
 Alternatively, Proof General configuration can be set on a per-directory basis, using a %\index{.dir-locals.el file@\texttt{.dir-locals.el} file}%<<.dir-locals.el>> file in the directory of the source files for which you want the settings to apply.  Here is an example that could be written in such a file to enable use of the book source.  Note the need to include an argument that starts Coq in Emacs support mode.
 <<
-((coq-mode . ((coq-prog-args . ("-emacs-U" "-I" "DIR/src")))))
+((coq-mode . ((coq-prog-args . ("-emacs-U" "-R" "DIR/src" "Cpdt")))))
 >>
  #</li>#
 
 #</ol>#%\end{enumerate}%
 
-Every chapter of this book is generated from a commented Coq source file.  You can load these files and run through them step-by-step in Proof General.  Be sure to run the Coq binary <<coqtop>> with the command-line argument <<-I DIR/src>>.  If you have installed Proof General properly, the Coq mode should start automatically when you visit a <<.v>> buffer in Emacs, and the above advice on <<.emacs>> settings should ensure that the proper arguments are passed to <<coqtop>> by Emacs.
+Every chapter of this book is generated from a commented Coq source file.  You can load these files and run through them step-by-step in Proof General.  Be sure to run the Coq binary <<coqtop>> with the command-line argument <<-R DIR/src Cpdt>>.  If you have installed Proof General properly, the Coq mode should start automatically when you visit a <<.v>> buffer in Emacs, and the above advice on <<.emacs>> settings should ensure that the proper arguments are passed to <<coqtop>> by Emacs.
 
 With Proof General, the portion of a buffer that Coq has processed is highlighted in some way, like being given a blue background.  You step through Coq source files by positioning the point at the position you want Coq to run to and pressing C-C C-RET.  This can be used both for normal step-by-step coding, by placing the point inside some command past the end of the highlighted region; and for undoing, by placing the point inside the highlighted region.
 %\index{Proof General|)}% *)
