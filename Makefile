@@ -73,6 +73,6 @@ pdf:
 	evince latex/cpdt.pdf&
 
 latex/exercises.pdf: Makefile src/Exercises.v
-	coqc -I src src/Exercises
-	coqdoc --latex -s src/Exercises.v -o latex/exercises.tex
+	coqc -R src Cpdt src/Exercises
+	$(COQDOC) --latex -s src/Exercises.v -o latex/exercises.tex
 	cd latex ; pdflatex exercises
