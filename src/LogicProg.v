@@ -398,7 +398,7 @@ End slow.
 Hint Resolve eq_trans : slow.
 (* end thide *)
 
-Example three_minus_four_zero : exists x, 1 + x = 0.
+Example from_one_to_zero : exists x, 1 + x = 0.
 (* begin thide *)
   Time eauto.
 (** %\vspace{-.15in}%
@@ -777,7 +777,7 @@ Qed.
 
 Hint Resolve plus_0 times_1.
 
-(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the _ring_ algebraic structure, so, since the naturals form a ring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
+(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the _ring_ algebraic structure, so, since the naturals form a semiring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
 
 Require Import Arith Ring.
 
