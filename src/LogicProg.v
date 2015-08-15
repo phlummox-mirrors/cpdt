@@ -777,7 +777,7 @@ Qed.
 
 Hint Resolve plus_0 times_1.
 
-(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the _ring_ algebraic structure, so, since the naturals form a semiring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
+(** We finish with one more arithmetic lemma that is particularly specialized to this theorem.  This fact happens to follow by the axioms of the _semiring_ algebraic structure, so, since the naturals form a semiring, we can use the built-in tactic %\index{tactics!ring}%[ring]. *)
 
 Require Import Arith Ring.
 
