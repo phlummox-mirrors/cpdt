@@ -878,4 +878,6 @@ Require Import Lib.
 >>
 
    A downside of this approach is that users of your code may not want to trust the arbitrary Emacs Lisp programs that you are allowed to place in such files, so that they prefer to add mappings manually.
+
+   Relatively recent versions of Coq support another, more principled approach to all this.  A project's list of settings and source files may be saved in a single file named <<_CoqProject>>, which is processed uniformly by recent enough versions of <<coq_makefile>>, Proof General, and CoqIDE.  For details, see the Coq manual.
 *)
