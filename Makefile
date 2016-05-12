@@ -57,9 +57,10 @@ cpdt.tgz:
 cpdtlib.tgz: Makefile
 	mkdir -p cpdtlib
 	cp src/LICENSE cpdtlib
-	cp src/CpdtTactics.v cpdtlib
-	cp src/MoreSpecif.v cpdtlib
-	cp src/DepList.v cpdtlib
+	# Generate specifically BSD licenced versions of the lib files.
+	ocaml tools/bsd_license.ml < src/CpdtTactics.v > cpdtlib/CpdtTactics.v
+	ocaml tools/bsd_license.ml < src/MoreSpecif.v > cpdtlib/MoreSpecif.v
+	ocaml tools/bsd_license.ml < src/DepList.v > cpdtlib/DepList.v
 	tar zcf cpdtlib.tgz cpdtlib/*
 
 install: cpdt.tgz cpdtlib.tgz latex/cpdt.pdf latex/exercises.pdf html
